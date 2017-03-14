@@ -613,12 +613,12 @@ object APIUtil extends Loggable {
   )
 
   // Used to document the KafkaMessage calls
-  case class MessageDocs(
+  case class MessageDoc(
     action: String,
-    kafkaConnectorVersion: String,
+    connectorVersion: String,
     description: String,
-    exampleRequestMessage: JValue,
-    exampleResponseMessage: JValue,
+    exampleInboundMessage: JValue,
+    exampleOutboundMessage: JValue,
     errorResponseMessages: List[JValue]
   )
   

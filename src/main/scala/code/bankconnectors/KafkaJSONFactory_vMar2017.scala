@@ -34,16 +34,19 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
+import code.api.util.APIUtil.{MessageDoc}
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
 import code.model._
 import code.transactionrequests.TransactionRequestTypeCharge
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 
-case class KafkaInboundBank(
+//TODO this may be moved to connector trait as before : 99348d866c968dcc859c8ac525e06566d630523c
+case class InboundBank(
   bankId: String,
   name: String,
   logo: String,
@@ -56,33 +59,20 @@ case class InboundUser(
   display_name: String
 )
 
-case class KafkaInboundAccountData(
-  banks: List[KafkaInboundBank],
+case class InboundAccountData(
+  banks: List[InboundBank],
   users: List[InboundUser],
-  accounts: List[KafkaInboundAccount]
+  accounts: List[InboundAccount]
 )
 
-// We won't need this. TODO clean up.
-case class KafkaInboundData(
-  banks: List[KafkaInboundBank],
-  users: List[InboundUser],
-  accounts: List[KafkaInboundAccount],
-  transactions: List[KafkaInboundTransaction],
-  branches: List[KafkaInboundBranch],
-  atms: List[KafkaInboundAtm],
-  products: List[KafkaInboundProduct],
-  crm_events: List[KafkaInboundCrmEvent]
-)
-
-
-case class GetUser(
+case class InboundGetUser(
   action: String,
   version: String,
   username: String,
   password: String
 )
 
-case class UpdateUserAccountViews(
+case class InboundUserAccountViews(
   action: String,
   version: String,
   username: String,
@@ -90,14 +80,14 @@ case class UpdateUserAccountViews(
   bankId: String
 )
 
-case class GetBanks(
+case class InboundBanks(
   action: String,
   version: String,
   username: String,
   userId: String
 )
 
-case class GetBank(
+case class InboundGetBank(
   action: String,
   version: String,
   bankId: String,
@@ -105,7 +95,7 @@ case class GetBank(
   username: String
 )
 
-case class GetChallengeThreshold(
+case class InboundChallengeThreshold(
   action: String,
   version: String,
   bankId: String,
@@ -117,7 +107,7 @@ case class GetChallengeThreshold(
   username: String
 )
 
-case class GetChargeLevel(
+case class InboundChargeLevel(
   action: String,
   version: String,
   bankId: String,
@@ -129,7 +119,7 @@ case class GetChargeLevel(
   currency: String
 )
 
-case class CreateChallenge(
+case class InboundChallenge(
   action: String,
   version: String,
   bankId: String,
@@ -140,7 +130,7 @@ case class CreateChallenge(
   transactionRequestId: String
 )
 
-case class ValidateChallengeAnswer(
+case class InboundChallengeAnswer(
   action: String,
   version: String,
   userId: String,
@@ -149,7 +139,7 @@ case class ValidateChallengeAnswer(
   hashOfSuppliedAnswer: String
 )
 
-case class GetTransaction(
+case class InboundTransaction(
   action: String,
   version: String,
   userId: String,
@@ -159,7 +149,7 @@ case class GetTransaction(
   transactionId: String
 )
 
-case class GetTransactions(
+case class InboundTransactions(
   action: String,
   version: String,
   userId: String,
@@ -169,7 +159,7 @@ case class GetTransactions(
   queryParams: String
 )
 
-case class GetBankAccount(
+case class InboundBankAccount(
   action: String,
   version: String,
   userId: String,
@@ -178,7 +168,7 @@ case class GetBankAccount(
   accountId: String
 )
 
-case class GetBankAccounts(
+case class InboundBankAccounts(
   action: String,
   version: String,
   userId: String,
@@ -187,7 +177,7 @@ case class GetBankAccounts(
   accountId: String
 )
 
-case class GetAccountByNumber(
+case class InboundAccountByNumber(
   action: String,
   version: String,
   userId: String,
@@ -196,7 +186,7 @@ case class GetAccountByNumber(
   number: String
 )
 
-case class SaveTransaction(
+case class InboundSaveTransaction(
   action: String,
   version: String,
   userId: String,
@@ -228,12 +218,12 @@ case class SaveTransaction(
   toCounterpartyBankRoutingScheme: String
 )
 
-case class GetTransactionRequestStatusesImpl(
+case class InboundTransactionRequestStatusesImpl(
   action: String,
   version: String
 )
 
-case class GetCurrentFxRate(
+case class InboundCurrentFxRate(
   action: String,
   version: String,
   userId: String,
@@ -242,7 +232,7 @@ case class GetCurrentFxRate(
   toCurrencyCode: String
 )
 
-case class GetTransactionRequestTypeCharge(
+case class InboundTransactionRequestTypeCharge(
   action: String,
   version: String,
   userId: String,
@@ -253,11 +243,11 @@ case class GetTransactionRequestTypeCharge(
   transactionRequestType: String
 )
 
-case class KafkaInboundValidatedUser(email: String,
+case class InboundValidatedUser(email: String,
   displayName: String)
 
 
-case class GetCounterpartyByIban(
+case class InboundCounterpartyByIban(
   action: String,
   version: String,
   userId: String,
@@ -266,7 +256,7 @@ case class GetCounterpartyByIban(
   otherAccountRoutingScheme: String
 )
 
-case class GetCounterpartyByCounterpartyId(
+case class InboundCounterpartyByCounterpartyId(
   action: String,
   version: String,
   userId: String,
@@ -274,7 +264,7 @@ case class GetCounterpartyByCounterpartyId(
   counterpartyId: String
 )
 
-case class KafkaInboundCounterparty(
+case class InboundCounterparty(
   name: String,
   created_by_user_id: String,
   this_bank_id: String,
@@ -288,7 +278,7 @@ case class KafkaInboundCounterparty(
   is_beneficiary: Boolean
 )
 
-case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends CounterpartyTrait {
+case class OutboundCounterparty(counterparty: InboundCounterparty) extends CounterpartyTrait {
   
   def createdByUserId: String = counterparty.created_by_user_id
   def name: String = counterparty.name
@@ -303,7 +293,7 @@ case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends Cou
   def isBeneficiary: Boolean = counterparty.is_beneficiary
 }
 
-case class KafkaBank(r: KafkaInboundBank) extends Bank {
+case class OutboundBank(r: InboundBank) extends Bank {
   
   def fullName = r.name
   def shortName = r.name
@@ -316,7 +306,7 @@ case class KafkaBank(r: KafkaInboundBank) extends Bank {
   def websiteUrl = r.url
 }
 
-case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
+case class OutboundBankAccount(r: InboundAccount) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.`type`
@@ -340,7 +330,7 @@ case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
   
 }
 
-case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
+case class OutboundFXRate(kafkaInboundFxRate: InboundFXRate) extends FXRate {
   
   def fromCurrencyCode: String = kafkaInboundFxRate.from_currency_code
   def toCurrencyCode: String = kafkaInboundFxRate.to_currency_code
@@ -350,7 +340,7 @@ case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
   def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
 }
 
-case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
+case class OutboundTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: InboundGetTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
   
   def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transaction_request_type_id
   def bankId: String = kafkaInboundTransactionRequestTypeCharge.bank_id
@@ -359,7 +349,7 @@ case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeC
   def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.charge_summary
 }
 
-case class KafkaTransactionRequestStatus(kafkaInboundTransactionRequestStatus: KafkaInboundTransactionRequestStatus) extends TransactionRequestStatus {
+case class OutboundTransactionRequestStatus(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
   
   override def transactionRequestid: String = kafkaInboundTransactionRequestStatus.transactionRequestId
   override def bulkTransactionsStatus: List[TransactionStatus] = kafkaInboundTransactionRequestStatus.bulkTransactionsStatus
@@ -377,28 +367,33 @@ case class KafkaTransactionRequestStatus(kafkaInboundTransactionRequestStatus: K
   * @param lobby    Info about when the lobby doors are open
   * @param driveUp  Info about when automated facilities are open e.g. cash point machine
   */
-case class KafkaInboundBranch(
+case class InboundBranch(
   id: String,
   bank_id: String,
   name: String,
-  address: KafkaInboundAddress,
-  location: KafkaInboundLocation,
-  meta: KafkaInboundMeta,
-  lobby: Option[KafkaInboundLobby],
-  driveUp: Option[KafkaInboundDriveUp])
+  address: InboundAddress,
+  location: InboundLocation,
+  meta: InboundMeta,
+  lobby: Option[InboundLobby],
+  driveUp: Option[InboundDriveUp]
+)
 
-case class KafkaInboundLicense(
+case class InboundLicense(
   id: String,
-  name: String)
+  name: String
+)
 
-case class KafkaInboundMeta(
-  license: KafkaInboundLicense)
+case class InboundMeta(
+  license: InboundLicense
+)
 
-case class KafkaInboundLobby(
-  hours: String)
+case class InboundLobby(
+  hours: String
+)
 
-case class KafkaInboundDriveUp(
-  hours: String)
+case class InboundDriveUp(
+  hours: String
+)
 
 /**
   *
@@ -411,7 +406,7 @@ case class KafkaInboundDriveUp(
   * @param post_code    Post Code or Zip Code
   * @param country_code 2 letter country code: ISO 3166-1 alpha-2
   */
-case class KafkaInboundAddress(
+case class InboundAddress(
   line_1: String,
   line_2: String,
   line_3: String,
@@ -419,16 +414,18 @@ case class KafkaInboundAddress(
   county: String, // Division of State
   state: String, // Division of Country
   post_code: String,
-  country_code: String)
+  country_code: String
+)
 
-case class KafkaInboundLocation(
+case class InboundLocation(
   latitude: Double,
-  longitude: Double)
+  longitude: Double
+)
 
 
 // TODO Be consistent use camelCase
 
-case class KafkaInboundAccount(
+case class InboundAccount(
   accountId: String,
   bankId: String,
   label: String,
@@ -440,9 +437,11 @@ case class KafkaInboundAccount(
   owners: List[String],
   generate_public_view: Boolean,
   generate_accountants_view: Boolean,
-  generate_auditors_view: Boolean)
+  generate_auditors_view: Boolean
+)
 
-case class KafkaInboundTransaction(
+//InboundTransaction --> InternalTransaction -->OutboundTransaction
+case class InternalTransaction(
   transactionId: String,
   accountId: String,
   amount: String,
@@ -459,16 +458,16 @@ case class KafkaInboundTransaction(
   userId: String
 )
 
-case class KafkaInboundAtm(
+case class InboundAtm(
   id: String,
   bank_id: String,
   name: String,
-  address: KafkaInboundAddress,
-  location: KafkaInboundLocation,
-  meta: KafkaInboundMeta
+  address: InboundAddress,
+  location: InboundLocation,
+  meta: InboundMeta
 )
 
-case class KafkaInboundProduct(
+case class InboundProduct(
   bank_id: String,
   code: String,
   name: String,
@@ -476,30 +475,30 @@ case class KafkaInboundProduct(
   family: String,
   super_family: String,
   more_info_url: String,
-  meta: KafkaInboundMeta
+  meta: InboundMeta
 )
 
 
-case class KafkaInboundCrmEvent(
+case class InboundCrmEvent(
   id: String, // crmEventId
   bank_id: String,
-  customer: KafkaInboundCustomer,
+  customer: InboundCustomer,
   category: String,
   detail: String,
   channel: String,
   actual_date: String
 )
 
-case class KafkaInboundCustomer(
+case class InboundCustomer(
   name: String,
   number: String // customer number, also known as ownerId (owner of accounts) aka API User?
 )
 
-case class KafkaInboundTransactionId(
+case class InboundTransactionId(
   transactionId: String
 )
 
-case class KafkaOutboundTransaction(
+case class OutboundTransaction(
   action: String,
   version: String,
   userId: String,
@@ -511,32 +510,32 @@ case class KafkaOutboundTransaction(
   otherAccountCurrency: String,
   transactionType: String)
 
-case class KafkaInboundChallengeLevel(
+case class InboundChallengeLevel(
   limit: String,
   currency: String
 )
 
-case class KafkaInboundTransactionRequestStatus(
+case class InboundTransactionRequestStatus(
   transactionRequestId: String,
-  bulkTransactionsStatus: List[KafkaInboundTransactionStatus]
+  bulkTransactionsStatus: List[InboundTransactionStatus]
 )
 
-case class KafkaInboundTransactionStatus(
+case class InboundTransactionStatus(
   transactionId: String,
   transactionStatus: String,
   transactionTimestamp: String
 ) extends TransactionStatus
 
-case class KafkaInboundCreateChallange(challengeId: String)
+case class InboundCreateChallange(challengeId: String)
 
-case class KafkaInboundValidateChallangeAnswer(answer: String)
+case class InboundValidateChallangeAnswer(answer: String)
 
-case class KafkaInboundChargeLevel(
+case class OutboundChargeLevel(
   currency: String,
   amount: String
 )
 
-case class KafkaInboundFXRate(
+case class InboundFXRate(
   from_currency_code: String,
   to_currency_code: String,
   conversion_value: Double,
@@ -544,7 +543,7 @@ case class KafkaInboundFXRate(
   effective_date: String
 )
 
-case class KafkaInboundTransactionRequestTypeCharge(
+case class InboundGetTransactionRequestTypeCharge(
   transaction_request_type_id: String,
   bank_id: String,
   charge_currency: String,
@@ -552,7 +551,35 @@ case class KafkaInboundTransactionRequestTypeCharge(
   charge_summary: String
 )
 
+// Used to describe the Kafka message requests parameters for documentation in Json
+case class MessageDocJson(
+    action: String,
+    connector_version: String,
+    description: String,
+    example_inbound_message: JValue,
+    example_outbound_message: JValue,
+    error_response_messages: List[JValue]
+)
+
+// Creates the json resource_docs
+case class MessageDocsJson(message_docs: List[MessageDocJson])
+
 object KafkaJSONFactory_vMar2017 {
+  
+  def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
+    MessageDocsJson(messageDocsList.map(createMessageDocJson))
+  }
+  
+  def createMessageDocJson(rd: MessageDoc): MessageDocJson = {
+    MessageDocJson(
+      action = rd.action,
+      connector_version = rd.connectorVersion,
+      description = rd.description,
+      example_inbound_message = rd.exampleInboundMessage,
+      example_outbound_message = rd.exampleOutboundMessage,
+      error_response_messages = rd.errorResponseMessages
+    )
+  }
   
 }
 
