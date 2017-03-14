@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.FXRate
@@ -64,7 +64,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     type AccountType = BankAccount
 
     override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
-  def getUser(name: String, password: String): Box[InboundUser] = ???
+    override def getUser(name: String, password: String): Box[InboundUser] = ???
     def updateUserAccountViews(user: ResourceUser): Unit = ???
 
     //these methods aren't required by our test

@@ -36,7 +36,7 @@ import java.util.UUID
 import code.api.util.APIUtil.isValidStrongPassword
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, InboundUser}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -534,7 +534,7 @@ import net.liftweb.util.Helpers._
 
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
-      case Full(Connector.connector.vend.InboundUser(extEmail, extPassword, extUsername)) => {
+      case Full(InboundUser(extEmail, extPassword, extUsername)) => {
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
           case Full(url) =>
