@@ -187,9 +187,6 @@ class OAuthTest extends ServerSetup {
   /************************ the tests ************************/
   feature("request token"){
     scenario("we get a request token", RequestToken, Oauth) {
-
-      val c = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None)
-      println("=========================>" + c)
       Given("The application is registered and does not have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, oob)
