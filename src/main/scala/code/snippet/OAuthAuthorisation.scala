@@ -34,20 +34,22 @@ Email: contact@tesobe.com
 
 package code.snippet
 
+import java.util.Date
+
+import code.api.util.APIUtil
+import code.consumer.Consumers
+import code.model.dataAccess.AuthUser
+import code.model.{Nonce, Token, TokenType}
+import code.users.Users
 import code.util.Helper
+import code.util.Helper.NOOP_SELECTOR
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.S
-import code.model.{Consumer, Nonce, Token}
 import net.liftweb.mapper.By
-import java.util.Date
-import code.api.util.APIUtil
-import net.liftweb.util.{CssSel, Helpers, Props}
-import code.model.TokenType
-import code.model.dataAccess.AuthUser
-import code.users.Users
-import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
-import code.util.Helper.NOOP_SELECTOR
+import net.liftweb.util.{CssSel, Helpers, Props}
+
+import scala.xml.NodeSeq
 
 object OAuthAuthorisation {
 
@@ -136,7 +138,7 @@ object OAuthAuthorisation {
         //if login fails, just reload the page with the login form visible
         AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
         //the user is not logged in so we show a login form
-        Consumer.find(By(Consumer.id, appToken.consumerId)) match {
+        Consumers.consumers.vend.getConsumerByConsumerId(appToken.consumerId) match {
           case Full(consumer) => {
             hideFailedLoginMessageIfNeeded &
               "#applicationName" #> consumer.name &
@@ -191,8 +193,8 @@ object OAuthAuthorisation {
 
   //looks for expired tokens and nonces and deletes them
   def dataBaseCleaner: Unit = {
-    import net.liftweb.util.Schedule
     import net.liftweb.mapper.By_<
+    import net.liftweb.util.Schedule
     Schedule.schedule(dataBaseCleaner _, 1 hour)
 
     val currentDate = new Date()

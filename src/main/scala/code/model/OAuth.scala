@@ -30,15 +30,14 @@ Berlin 13359, Germany
 
  */
 package code.model
-import net.liftweb._
-import net.liftweb.mapper.{LongKeyedMetaMapper, _}
-import net.liftweb.util.{FieldError, Helpers, Props, SecurityHelpers}
-import net.liftweb.common._
-import Helpers.now
+import code.consumer.{Consumers, ConsumersProvider}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
+import net.liftweb.common._
 import net.liftweb.http.S
-import net.liftweb.util.Helpers._
+import net.liftweb.mapper.{LongKeyedMetaMapper, _}
+import net.liftweb.util.Helpers.{now, _}
+import net.liftweb.util.{FieldError, Helpers, Props}
 
 object AppType extends Enumeration {
   type AppType = Value
@@ -48,6 +47,107 @@ object AppType extends Enumeration {
 object TokenType extends Enumeration {
   type TokenType=Value
   val Request, Access = Value
+}
+
+
+object MappedConsumersProvider extends ConsumersProvider {
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, consumerId))
+  }
+
+  override def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
+    Consumer.find(By(Consumer.key, consumerKey))
+  }
+
+  override def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+    tryo {
+      val c = Consumer.create
+      key match {
+        case Some(v) => c.key(v)
+        case None =>
+      }
+      secret match {
+        case Some(v) => c.secret(v)
+        case None =>
+      }
+      isActive match {
+        case Some(v) => c.isActive(v)
+        case None =>
+      }
+      name match {
+        case Some(v) => c.name(v)
+        case None =>
+      }
+      appType match {
+        case Some(v) => c.appType(v)
+        case None =>
+      }
+      description match {
+        case Some(v) => c.description(v)
+        case None =>
+      }
+      developerEmail match {
+        case Some(v) => c.developerEmail(v)
+        case None =>
+      }
+      redirectURL match {
+        case Some(v) => c.redirectURL(v)
+        case None =>
+      }
+      createdByUserId match {
+        case Some(v) => c.createdByUserId(v)
+        case None =>
+      }
+      c.saveMe()
+    }
+  }
+
+  override def updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+    val consumer = Consumer.find(By(Consumer.id, consumerId))
+    consumer match {
+      case Full(c) => tryo {
+        key match {
+          case Some(v) => c.key(v)
+          case None =>
+        }
+        secret match {
+          case Some(v) => c.secret(v)
+          case None =>
+        }
+        isActive match {
+          case Some(v) => c.isActive(v)
+          case None =>
+        }
+        name match {
+          case Some(v) => c.name(v)
+          case None =>
+        }
+        appType match {
+          case Some(v) => c.appType(v)
+          case None =>
+        }
+        description match {
+          case Some(v) => c.description(v)
+          case None =>
+        }
+        developerEmail match {
+          case Some(v) => c.developerEmail(v)
+          case None =>
+        }
+        redirectURL match {
+          case Some(v) => c.redirectURL(v)
+          case None =>
+        }
+        createdByUserId match {
+          case Some(v) => c.createdByUserId(v)
+          case None =>
+        }
+        c.saveMe()
+      }
+      case _ => consumer
+    }
+  }
+
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
@@ -62,6 +162,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 
   private def validUrl(field: MappedString[Consumer])(s: String) = {
     import java.net.URL
+
     import Helpers.tryo
     if(s.isEmpty)
       Nil
@@ -140,7 +241,7 @@ object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer
   
   def getRedirectURLByConsumerKey(consumerKey: String): String = {
     logger.debug("hello from getRedirectURLByConsumerKey")
-    val consumer: Consumer = Consumer.find(By(Consumer.key, consumerKey)).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
+    val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
     logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}" )
     consumer.redirectURL.toString()
   }

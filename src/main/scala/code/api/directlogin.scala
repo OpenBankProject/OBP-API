@@ -40,9 +40,9 @@ import net.liftweb.util.{Helpers, Props}
 import net.liftweb.util.Helpers._
 
 import scala.compat.Platform
-
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
+import code.consumer.Consumers
 import code.util.Helper.SILENCE_IS_GOLDEN
 
 /**
@@ -277,7 +277,7 @@ object DirectLogin extends RestHelper with Loggable {
     import code.model.{Token, TokenType}
     val token = Token.create
     token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key, directLoginParameters.getOrElse("consumer_key", ""))) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }

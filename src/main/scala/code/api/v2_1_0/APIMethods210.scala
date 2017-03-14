@@ -18,6 +18,7 @@ import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.branches.Branches
 import code.branches.Branches.BranchId
+import code.consumer.Consumers
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
@@ -693,7 +694,7 @@ trait APIMethods210 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
             consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId
-            consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
+            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong)
           } yield {
             // Format the data as json
             val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.createdByUserId, consumer.isActive, consumer.createdAt)
@@ -763,11 +764,11 @@ trait APIMethods210 {
               case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers), s"$CanDisableConsumers entitlement required")
             }
-            consumer <- Consumer.find(By(Consumer.id, consumerId.toLong))
+            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerId.toLong)
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
           } yield {
             // Format the data as json
-            consumer.isActive(putData.enabled).save
-            val json = PutEnabledJSON(consumer.isActive)
+            val json = PutEnabledJSON(updatedConsumer.isActive)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -1462,13 +1463,13 @@ trait APIMethods210 {
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), s"$CanUpdateConsumerRedirectUrl entitlement required")
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! ErrorMessages.InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId 
-            consumer <- Connector.connector.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ErrorMessages.ConsumerNotFoundByConsumerId}
+            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ErrorMessages.ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
             isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! ErrorMessages.UserNoPermissionUpdateConsumer
+            //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! "Cannot update Consumer"
           } yield {
-            //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table 
-            val success = consumer.redirectURL(postJson.redirect_url).isActive(false).saveMe()
-            val json = JSONFactory210.createConsumerJSON(success)
+            val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))
           }
       }

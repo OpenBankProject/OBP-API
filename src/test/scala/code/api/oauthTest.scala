@@ -36,6 +36,7 @@ import java.util.ResourceBundle
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
+import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
@@ -65,23 +66,9 @@ class OAuthTest extends ServerSetup {
 
   val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      redirectURL(selfCallback).
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None).get
 
-  lazy val disabledTestConsumer =
-    OBPConsumer.create.
-      name("test application disabled").
-      redirectURL(selfCallback).
-      isActive(false).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
+  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None).get
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
@@ -200,6 +187,9 @@ class OAuthTest extends ServerSetup {
   /************************ the tests ************************/
   feature("request token"){
     scenario("we get a request token", RequestToken, Oauth) {
+
+      val c = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None)
+      println("=========================>" + c)
       Given("The application is registered and does not have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, oob)

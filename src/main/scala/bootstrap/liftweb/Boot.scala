@@ -436,6 +436,7 @@ object ToSchemify {
     MappedNarrative,
     MappedCustomer,
     MappedUserCustomerLink,
+    Consumer,
     MapperAccountHolders
   )
 
@@ -447,7 +448,6 @@ object ToSchemify {
     Admin,
     Nonce,
     Token,
-    Consumer,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
