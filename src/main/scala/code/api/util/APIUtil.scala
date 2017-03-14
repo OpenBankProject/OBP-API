@@ -615,6 +615,16 @@ object APIUtil extends Loggable {
     tags: List[ResourceDocTag]
   )
 
+  // Used to document the KafkaMessage calls
+  case class MessageDocs(
+    action: String,
+    kafkaConnectorVersion: String,
+    description: String,
+    exampleRequestMessage: JValue,
+    exampleResponseMessage: JValue,
+    errorResponseMessages: List[JValue]
+  )
+  
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(
     fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],

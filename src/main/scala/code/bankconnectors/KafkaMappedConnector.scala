@@ -645,7 +645,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val sentTransactionId = saveTransaction(fromAccount,
                                             toAccount,
                                             toCounterparty,
-                                            -amt,
+                                            amt,
                                             description,
                                             transactionRequestType,
                                             chargePolicy)
