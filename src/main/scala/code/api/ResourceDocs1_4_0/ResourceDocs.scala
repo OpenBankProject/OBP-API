@@ -14,7 +14,8 @@ object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with Logga
 
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
-    ImplementationsResourceDocs.getResourceDocsSwagger
+    ImplementationsResourceDocs.getResourceDocsSwagger,
+    ImplementationsResourceDocs.getMessageDocsKafka
   )
 
   routes.foreach(route => {
