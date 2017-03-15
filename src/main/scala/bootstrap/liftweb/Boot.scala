@@ -237,7 +237,7 @@ class Boot extends Loggable{
 
 
 
-    // Add Resource Docs
+    // Add Resource Docs These are treated separately else we have circular dependency.
     LiftRules.statelessDispatch.append(ResourceDocs)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
@@ -425,6 +425,7 @@ class Boot extends Loggable{
 }
 
 object ToSchemify {
+  // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
   val modelsRemotedata = List(
     ViewImpl,
     ViewPrivileges,
@@ -440,6 +441,7 @@ object ToSchemify {
     MapperAccountHolders
   )
 
+  // The following tables are accessed directly via Mapper / JDBC
   val models = List(
     MappedCounterparty,
     MappedCounterpartyMetadata,
