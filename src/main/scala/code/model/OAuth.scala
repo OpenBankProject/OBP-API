@@ -328,7 +328,7 @@ class Token extends LongKeyedMapper[Token]{
   object insertDate extends MappedDateTime(this)
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
-  def consumer = consumerId.obj
+  def consumer = Consumers.consumers.vend.getConsumerByConsumerId(consumerId.get)
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){
