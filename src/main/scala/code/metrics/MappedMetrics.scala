@@ -2,9 +2,8 @@ package code.metrics
 
 import java.util.Date
 
-import code.model.Consumer
+import code.bankconnectors._
 import code.util.DefaultStringField
-import net.liftweb.http.S
 import net.liftweb.mapper._
 
 object MappedMetrics extends APIMetrics {
@@ -39,8 +38,22 @@ object MappedMetrics extends APIMetrics {
     MappedMetric.findAll.groupBy(_.getUrl())
   }
 
-  override def getAllMetrics(): List[APIMetric] = {
-    MappedMetric.findAll
+  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedMetric.date, date) }.headOption
+    val ordering = queryParams.collect {
+      //we don't care about the intended sort field and only sort on finish date for now
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedMetric.date, Ascending)
+          case OBPDescending => OrderBy(MappedMetric.date, Descending)
+        }
+    }
+    val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+
+    MappedMetric.findAll(optionalParams: _*)
   }
 
 }
