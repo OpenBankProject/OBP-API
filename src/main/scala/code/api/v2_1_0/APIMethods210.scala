@@ -1534,7 +1534,7 @@ trait APIMethods210 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            //hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
   
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
