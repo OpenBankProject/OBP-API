@@ -166,7 +166,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       apiVersion,
       "getMessageDocsKafka",
       "GET",
-      "/message-docs/kakfa",
+      "/message-docs/mar2017",
       "Get all Kafka request message in Documentation of Json format. Work In Progress!",
       """Returns documentation about all Kafka message format""",
       emptyObjectJson,
@@ -177,7 +177,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
     )
     // TOOD for now, this is just a quick solution, it will be fixed as ResourceDocs latter
     def getMessageDocsKafka: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "message-docs" :: requestedApiVersion :: "kakfa" :: Nil JsonGet _ => {
+      case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
         user => {
           for {
             resource <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
