@@ -3,6 +3,8 @@ package code.metrics
 import net.liftweb.util.{Props, SimpleInjector}
 import java.util.{Calendar, Date}
 
+import code.bankconnectors.OBPQueryParam
+
 object APIMetrics extends SimpleInjector {
 
   val apiMetrics = new Inject(buildOne _) {}
@@ -50,7 +52,7 @@ trait APIMetrics {
   //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
-  def getAllMetrics(): List[APIMetric]
+  def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric]
 
 }
 
