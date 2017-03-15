@@ -69,7 +69,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
-  type AccountType = OutboundBankAccount
+  type AccountType = BankAccount2
 
   // Local TTL Cache
   val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
@@ -81,8 +81,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val cachedPublicAccounts  = TTLCache[List[InboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[InboundAccount]](cacheTTL)
   val cachedFxRate          = TTLCache[InboundFXRate](cacheTTL)
-  val cachedCounterparty    = TTLCache[InboundCounterparty](cacheTTL)
-  val cachedTransactionRequestTypeCharge = TTLCache[InboundGetTransactionRequestTypeCharge](cacheTTL)
+  val cachedCounterparty    = TTLCache[InboundCounterpartySnake](cacheTTL)
+  val cachedTransactionRequestTypeCharge = TTLCache[InboundTransactionRequestTypeCharge](cacheTTL)
 
 
   //
@@ -109,7 +109,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.User",
     connectorVersion = formatVersion,
     description = "getUser from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundGetUser(
+    exampleInboundMessage = Extraction.decompose(OutboundUserByUsernamePassword(
       action = "obp.get.User",
       version = formatVersion,
       username = "susan.uk.29@example.com",
@@ -117,10 +117,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   def getUser(username: String, password: String): Box[InboundUser] = {
     for {
-      req <- Full(InboundGetUser(
+      req <- Full(OutboundUserByUsernamePassword(
         action = "obp.get.User",
         version = formatVersion,
         username = username,
@@ -138,7 +138,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "updateUserAccountViews from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundUserAccountViews(
+    exampleInboundMessage = Extraction.decompose(OutboundUserAccountViews(
       action = "obp.get.Accounts",
       version = formatVersion,
       username = "susan.uk.29@example.com",
@@ -147,14 +147,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   def updateUserAccountViews( user: ResourceUser ) = {
     val accounts: List[InboundAccount] = getBanks.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
         username <- tryo {user.name}
-        req <- Full(InboundUserAccountViews(
+        req <- Full(OutboundUserAccountViews(
           action = "obp.get.Accounts",
           version = formatVersion,
           username = user.name,
@@ -196,7 +196,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Banks",
     connectorVersion = formatVersion,
     description = "getBanks from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundBanks(
+    exampleInboundMessage = Extraction.decompose(OutboundBanks(
       action = "obp.get.Banks",
       version = formatVersion,
       username = "susan.uk.29@example.com",
@@ -207,7 +207,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    val req = InboundBanks(
+    val req = OutboundBanks(
       action = "obp.get.Banks",
       version = formatVersion,
       username = currentResourceUserId,
@@ -224,7 +224,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
-        new OutboundBank(r)
+        new Bank2(r)
       }
     }
     // Return list of results
@@ -236,7 +236,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.ChallengeThreshold",
     connectorVersion = formatVersion,
     description = "getChallengeThreshold from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundChallengeThreshold(
+    exampleInboundMessage = Extraction.decompose(OutboundChallengeThreshold(
       action = "obp.get.ChallengeThreshold",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -249,11 +249,11 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String): AmountOfMoney = {
     // Create argument list
-    val req = InboundChallengeThreshold(
+    val req = OutboundChallengeThreshold(
       action = "obp.get.ChallengeThreshold",
       version = formatVersion,
       bankId = bankId,
@@ -282,7 +282,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.ChargeLevel",
     connectorVersion = formatVersion,
     description = "ChargeLevel from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundChargeLevel(
+    exampleInboundMessage = Extraction.decompose(OutboundChargeLevel(
       action = "obp.get.ChargeLevel",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -295,7 +295,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
                               viewId: ViewId,
@@ -304,7 +304,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                               transactionRequestType: String,
                               currency: String): Box[AmountOfMoney] = {
     // Create argument list
-    val req = InboundChargeLevel(
+    val req = OutboundChargeLevel(
       action = "obp.get.ChargeLevel",
       version = formatVersion,
       bankId = bankId.value,
@@ -316,7 +316,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = username
     )
    
-    val r: Option[OutboundChargeLevel] = process(req).extractOpt[OutboundChargeLevel]
+    val r: Option[InboundChargeLevel] = process(req).extractOpt[InboundChargeLevel]
     // Return result
     val chargeValue = r match {
       // Check does the response data match the requested data
@@ -332,7 +332,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.create.Challenge",
     connectorVersion = formatVersion,
     description = "CreateChallenge from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundChallenge(
+    exampleInboundMessage = Extraction.decompose(OutboundChallenge(
       action = "obp.create.Challenge",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -344,10 +344,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String] = {
     // Create argument list
-    val req = InboundChallenge(
+    val req = OutboundChallenge(
       action = "obp.create.Challenge",
       version = formatVersion,
       bankId = bankId.value,
@@ -357,7 +357,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       transactionRequestType = transactionRequestType.value,
       transactionRequestId = transactionRequestId)
     
-    val r: Option[InboundCreateChallange] = process(req).extractOpt[InboundCreateChallange]
+    val r: Option[OutboundCreateChallange] = process(req).extractOpt[OutboundCreateChallange]
     // Return result
     r match {
       // Check does the response data match the requested data
@@ -370,7 +370,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.validate.ChallengeAnswer",
     connectorVersion = formatVersion,
     description = "validateChallengeAnswer from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundChallengeAnswer(
+    exampleInboundMessage = Extraction.decompose(OutboundChallengeAnswer(
       action = "obp.validate.ChallengeAnswer",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -382,7 +382,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   )
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
     // Create argument list
-    val req = InboundChallengeAnswer(
+    val req = OutboundChallengeAnswer(
       action = "obp.validate.ChallengeAnswer",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -403,7 +403,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Bank",
     connectorVersion = formatVersion,
     description = "getBank from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundGetBank(
+    exampleInboundMessage = Extraction.decompose(OUTTBank(
       action = "obp.get.Bank",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -414,7 +414,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   )
   override def getBank(bankid: BankId): Box[Bank] = {
     // Create argument list
-    val req = InboundGetBank(
+    val req = OUTTBank(
       action = "obp.get.Bank",
       version = formatVersion,
       bankId = bankid.toString,
@@ -425,14 +425,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[InboundBank])
     }
     // Return result
-    Full(new OutboundBank(r))
+    Full(new Bank2(r))
   }
   
   messageDocs += MessageDoc(
     action = "obp.get.Transaction",
     connectorVersion = formatVersion,
     description = "getTransaction from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundTransaction(
+    exampleInboundMessage = Extraction.decompose(OUTTTransaction(
       action = "obp.get.Transaction",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -445,7 +445,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   )
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    val req = InboundTransaction(
+    val req = OUTTTransaction(
       action = "obp.get.Transaction",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -469,7 +469,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Transactions",
     connectorVersion = formatVersion,
     description = "getTransactions from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundTransactions(
+    exampleInboundMessage = Extraction.decompose(OutboundTransactionsQueryWithParams(
       action = "obp.get.Transactions",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -496,8 +496,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     }
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-  
-    val req = InboundTransactions(
+
+    val req = OutboundTransactionsQueryWithParams(
       action = "obp.get.Transactions",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -526,7 +526,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getBankAccount from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundBankAccount(
+    exampleInboundMessage = Extraction.decompose(OutboundBankAccount(
       action = "obp.get.Account",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -536,9 +536,9 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[OutboundBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount2] = {
     // Generate random uuid to be used as request-response match id
-    val req = InboundBankAccount(
+    val req = OutboundBankAccount(
       action = "obp.get.Account",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -558,14 +558,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 
-    Full(new OutboundBankAccount(r))
+    Full(new BankAccount2(r))
   }
   
   messageDocs += MessageDoc(
     action = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "getBankAccounts from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundBankAccounts(
+    exampleInboundMessage = Extraction.decompose(OutboundBankAccounts(
       action = "obp.get.Accounts",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -575,14 +575,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleOutboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[OutboundBankAccount] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount2] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[InboundAccount] = accts.flatMap { a => {
 
         logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
-        val req = InboundBankAccounts(
+        val req = OutboundBankAccounts(
           action = "obp.get.Accounts",
           version = formatVersion,
           userId = currentResourceUserId,
@@ -606,7 +606,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     r.map { t =>
       createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
-      new OutboundBankAccount(t) }
+      new BankAccount2(t) }
   }
   
   //TODO the method name is different from action 
@@ -614,7 +614,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getAccountByNumber from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundAccountByNumber(
+    exampleInboundMessage = Extraction.decompose(OutboundAccountByNumber(
       action = "obp.get.Account",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -627,7 +627,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
-    val req = InboundAccountByNumber(
+    val req = OutboundAccountByNumber(
       action = "obp.get.Account",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -642,7 +642,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
     }
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
-    Full(new OutboundBankAccount(r))
+    Full(new BankAccount2(r))
   }
 
   def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
@@ -697,7 +697,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.CounterpartyByCounterpartyId",
     connectorVersion = formatVersion,
     description = "getCounterpartyByCounterpartyId from kafka ",
-    Extraction.decompose(InboundCounterpartyByCounterpartyId(
+    Extraction.decompose(OutboundCounterpartyByCounterpartyId(
       action = "obp.get.CounterpartyByCounterpartyId",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -711,7 +711,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
       MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
     } else {
-      val req = InboundCounterpartyByCounterpartyId(
+      val req = OutboundCounterpartyByCounterpartyId(
         action = "obp.get.CounterpartyByCounterpartyId",
         version = formatVersion,
         userId = currentResourceUserId,
@@ -721,9 +721,9 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       // Since result is single account, we need only first list entry
       implicit val formats = net.liftweb.json.DefaultFormats
       val r = {
-        cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterparty])
+        cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterpartySnake])
       }
-      Full(new OutboundCounterparty(r))
+      Full(new InboundCounterparty(r))
     }
   }
   
@@ -731,7 +731,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.CounterpartyByIban",
     connectorVersion = formatVersion,
     description = "getCounterpartyByIban from kafka ",
-    exampleInboundMessage = Extraction.decompose(InboundCounterpartyByIban(
+    exampleInboundMessage = Extraction.decompose(OutboundCounterpartyByIban(
       action = "obp.get.CounterpartyByIban",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -749,7 +749,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
       )
     } else {
-      val req = InboundCounterpartyByIban(
+      val req = OutboundCounterpartyByIban(
         action = "obp.get.CounterpartyByIban",
         version = formatVersion,
         userId = currentResourceUserId,
@@ -758,9 +758,11 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         otherAccountRoutingScheme = "IBAN"
       )
 
-      val r = process(req).extract[InboundCounterparty]
+      val r = process(req).extract[InboundCounterparty] // Was InboundCounterpartySnake
 
-      Full(new OutboundCounterparty(r))
+      Full(r)
+
+      //Full(new InboundCounterparty(r))
     }
   }
 
@@ -797,8 +799,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
 
-  protected override def makePaymentImpl(fromAccount: OutboundBankAccount,
-                                         toAccount: OutboundBankAccount,
+  protected override def makePaymentImpl(fromAccount: BankAccount2,
+                                         toAccount: BankAccount2,
                                          toCounterparty: CounterpartyTrait,
                                          amt: BigDecimal,
                                          description: String,
@@ -821,7 +823,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.put.Transaction",
     connectorVersion = formatVersion,
     description = "saveTransaction from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundSaveTransaction(
+    exampleInboundMessage = Extraction.decompose(OutboundSaveTransaction(
       action = "",
       version = "",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -859,8 +861,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: OutboundBankAccount,
-                              toAccount: OutboundBankAccount,
+  private def saveTransaction(fromAccount: BankAccount2,
+                              toAccount: BankAccount2,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
@@ -872,7 +874,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   
     val req =
       if (toAccount != null && toCounterparty == null) {
-        InboundSaveTransaction(
+        OutboundSaveTransaction(
           action = "obp.put.Transaction",
           version = formatVersion,
           userId = currentResourceUserId,
@@ -903,7 +905,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           toCounterpartyBankRoutingAddress = toAccount.bankId.value,
           toCounterpartyBankRoutingScheme = "OBP")
       } else {
-        InboundSaveTransaction(
+        OutboundSaveTransaction(
           action = "obp.put.Transaction",
           version = formatVersion,
           userId = currentResourceUserId,
@@ -953,7 +955,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.TransactionRequestStatusesImpl",
     connectorVersion = formatVersion,
     description = "getTransactionRequestStatusesImpl from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundTransactionRequestStatusesImpl(
+    exampleInboundMessage = Extraction.decompose(OutboundTransactionRequestStatuses(
       action = "obp.get.TransactionRequestStatusesImpl",
       version = formatVersion
       )),
@@ -965,14 +967,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   */
   override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = {
     logger.info(s"tKafka getTransactionRequestStatusesImpl sart: ")
-    val req = InboundTransactionRequestStatusesImpl(
+    val req = OutboundTransactionRequestStatuses(
       action = "obp.get.TransactionRequestStatusesImpl",
       version = formatVersion
     )
     //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty. 
     val r = try{
       val response = process(req).extract[InboundTransactionRequestStatus]
-      Full(new OutboundTransactionRequestStatus(response))
+      Full(new InboundTransactionRequestStatus2(response))
     }catch {
       case _ => Empty
     }
@@ -1368,7 +1370,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.CurrentFxRate",
     connectorVersion = formatVersion,
     description = "getCurrentFxRate from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundCurrentFxRate(
+    exampleInboundMessage = Extraction.decompose(OutboundCurrentFxRate(
       action = "obp.get.CurrentFxRate",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -1381,7 +1383,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
-    val req = InboundCurrentFxRate(
+    val req = OutboundCurrentFxRate(
       action = "obp.get.CurrentFxRate",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -1393,14 +1395,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       cachedFxRate.getOrElseUpdate(req.toString, () => process(req).extract[InboundFXRate])
     }
     // Return result
-    Full(new OutboundFXRate(r))
+    Full(new InboundFXRateCamelCase(r))
   }
   
   messageDocs += MessageDoc(
     action = "obp.get.TransactionRequestTypeCharge",
     connectorVersion = formatVersion,
     description = "getTransactionRequestTypeCharge from kafka",
-    exampleInboundMessage = Extraction.decompose(InboundTransactionRequestTypeCharge(
+    exampleInboundMessage = Extraction.decompose(OutboundTransactionRequestTypeCharge(
       action = "obp.get.TransactionRequestTypeCharge",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -1416,7 +1418,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
 
     // Create request argument list
-    val req = InboundTransactionRequestTypeCharge(
+    val req = OutboundTransactionRequestTypeCharge(
       action = "obp.get.TransactionRequestTypeCharge",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -1429,15 +1431,15 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // send the request to kafka and get response
     // TODO the error handling is not good enough, it should divide the error, empty and no-response.
     val r =  tryo {
-        Full(cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[InboundGetTransactionRequestTypeCharge]))
+        Full(cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[InboundTransactionRequestTypeCharge]))
       }
 
     // Return result
      val result = r match {
-      case Full(f) =>  OutboundTransactionRequestTypeCharge(f.get)
+      case Full(f) =>  InboundTransactionRequestTypeChargeCamelCase(f.get)
       case _ =>
         val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
-        OutboundTransactionRequestTypeCharge(InboundGetTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
+        InboundTransactionRequestTypeChargeCamelCase(InboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
       }
 
     // result
@@ -1449,7 +1451,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   override def getEmptyBankAccount(): Box[AccountType] = {
-    Full(new OutboundBankAccount(InboundAccount(accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    Full(new BankAccount2(InboundAccount(accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
                                                 bankId = "gh.29.uk",
                                                 label = "",
                                                 number = "",
@@ -1505,7 +1507,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: OutboundBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount2, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,

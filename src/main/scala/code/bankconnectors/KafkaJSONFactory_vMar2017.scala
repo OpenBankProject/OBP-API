@@ -59,20 +59,21 @@ case class InboundUser(
   display_name: String
 )
 
+// Only used for import
 case class InboundAccountData(
   banks: List[InboundBank],
   users: List[InboundUser],
   accounts: List[InboundAccount]
 )
 
-case class InboundGetUser(
+case class OutboundUserByUsernamePassword(
   action: String,
   version: String,
   username: String,
   password: String
 )
 
-case class InboundUserAccountViews(
+case class OutboundUserAccountViews(
   action: String,
   version: String,
   username: String,
@@ -80,14 +81,14 @@ case class InboundUserAccountViews(
   bankId: String
 )
 
-case class InboundBanks(
+case class OutboundBanks(
   action: String,
   version: String,
   username: String,
   userId: String
 )
 
-case class InboundGetBank(
+case class OUTTBank(
   action: String,
   version: String,
   bankId: String,
@@ -95,7 +96,7 @@ case class InboundGetBank(
   username: String
 )
 
-case class InboundChallengeThreshold(
+case class OutboundChallengeThreshold(
   action: String,
   version: String,
   bankId: String,
@@ -107,7 +108,7 @@ case class InboundChallengeThreshold(
   username: String
 )
 
-case class InboundChargeLevel(
+case class OutboundChargeLevel(
   action: String,
   version: String,
   bankId: String,
@@ -119,7 +120,7 @@ case class InboundChargeLevel(
   currency: String
 )
 
-case class InboundChallenge(
+case class OutboundChallenge(
   action: String,
   version: String,
   bankId: String,
@@ -130,7 +131,7 @@ case class InboundChallenge(
   transactionRequestId: String
 )
 
-case class InboundChallengeAnswer(
+case class OutboundChallengeAnswer(
   action: String,
   version: String,
   userId: String,
@@ -139,7 +140,7 @@ case class InboundChallengeAnswer(
   hashOfSuppliedAnswer: String
 )
 
-case class InboundTransaction(
+case class OUTTTransaction(
   action: String,
   version: String,
   userId: String,
@@ -149,7 +150,7 @@ case class InboundTransaction(
   transactionId: String
 )
 
-case class InboundTransactions(
+case class OutboundTransactionsQueryWithParams(
   action: String,
   version: String,
   userId: String,
@@ -159,7 +160,7 @@ case class InboundTransactions(
   queryParams: String
 )
 
-case class InboundBankAccount(
+case class OutboundBankAccount(
   action: String,
   version: String,
   userId: String,
@@ -168,7 +169,7 @@ case class InboundBankAccount(
   accountId: String
 )
 
-case class InboundBankAccounts(
+case class OutboundBankAccounts(
   action: String,
   version: String,
   userId: String,
@@ -177,7 +178,7 @@ case class InboundBankAccounts(
   accountId: String
 )
 
-case class InboundAccountByNumber(
+case class OutboundAccountByNumber(
   action: String,
   version: String,
   userId: String,
@@ -186,7 +187,7 @@ case class InboundAccountByNumber(
   number: String
 )
 
-case class InboundSaveTransaction(
+case class OutboundSaveTransaction(
   action: String,
   version: String,
   userId: String,
@@ -218,12 +219,12 @@ case class InboundSaveTransaction(
   toCounterpartyBankRoutingScheme: String
 )
 
-case class InboundTransactionRequestStatusesImpl(
+case class OutboundTransactionRequestStatuses(
   action: String,
   version: String
 )
 
-case class InboundCurrentFxRate(
+case class OutboundCurrentFxRate(
   action: String,
   version: String,
   userId: String,
@@ -232,7 +233,7 @@ case class InboundCurrentFxRate(
   toCurrencyCode: String
 )
 
-case class InboundTransactionRequestTypeCharge(
+case class OutboundTransactionRequestTypeCharge(
   action: String,
   version: String,
   userId: String,
@@ -247,7 +248,7 @@ case class InboundValidatedUser(email: String,
   displayName: String)
 
 
-case class InboundCounterpartyByIban(
+case class OutboundCounterpartyByIban(
   action: String,
   version: String,
   userId: String,
@@ -256,7 +257,7 @@ case class InboundCounterpartyByIban(
   otherAccountRoutingScheme: String
 )
 
-case class InboundCounterpartyByCounterpartyId(
+case class OutboundCounterpartyByCounterpartyId(
   action: String,
   version: String,
   userId: String,
@@ -264,7 +265,9 @@ case class InboundCounterpartyByCounterpartyId(
   counterpartyId: String
 )
 
-case class InboundCounterparty(
+
+// Don't use Snake case for Kafka messages
+case class InboundCounterpartySnake(
   name: String,
   created_by_user_id: String,
   this_bank_id: String,
@@ -278,7 +281,7 @@ case class InboundCounterparty(
   is_beneficiary: Boolean
 )
 
-case class OutboundCounterparty(counterparty: InboundCounterparty) extends CounterpartyTrait {
+case class InboundCounterparty(counterparty: InboundCounterpartySnake) extends CounterpartyTrait {
   
   def createdByUserId: String = counterparty.created_by_user_id
   def name: String = counterparty.name
@@ -293,7 +296,7 @@ case class OutboundCounterparty(counterparty: InboundCounterparty) extends Count
   def isBeneficiary: Boolean = counterparty.is_beneficiary
 }
 
-case class OutboundBank(r: InboundBank) extends Bank {
+case class Bank2(r: InboundBank) extends Bank {
   
   def fullName = r.name
   def shortName = r.name
@@ -306,7 +309,7 @@ case class OutboundBank(r: InboundBank) extends Bank {
   def websiteUrl = r.url
 }
 
-case class OutboundBankAccount(r: InboundAccount) extends BankAccount {
+case class BankAccount2(r: InboundAccount) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.`type`
@@ -330,7 +333,8 @@ case class OutboundBankAccount(r: InboundAccount) extends BankAccount {
   
 }
 
-case class OutboundFXRate(kafkaInboundFxRate: InboundFXRate) extends FXRate {
+// TODO Get rid of Snake Case version of this.
+case class InboundFXRateCamelCase(kafkaInboundFxRate: InboundFXRate) extends FXRate {
   
   def fromCurrencyCode: String = kafkaInboundFxRate.from_currency_code
   def toCurrencyCode: String = kafkaInboundFxRate.to_currency_code
@@ -340,8 +344,8 @@ case class OutboundFXRate(kafkaInboundFxRate: InboundFXRate) extends FXRate {
   def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
 }
 
-case class OutboundTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: InboundGetTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
-  
+case class InboundTransactionRequestTypeChargeCamelCase(kafkaInboundTransactionRequestTypeCharge: InboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
+
   def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transaction_request_type_id
   def bankId: String = kafkaInboundTransactionRequestTypeCharge.bank_id
   def chargeCurrency: String = kafkaInboundTransactionRequestTypeCharge.charge_currency
@@ -349,8 +353,8 @@ case class OutboundTransactionRequestTypeCharge(kafkaInboundTransactionRequestTy
   def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.charge_summary
 }
 
-case class OutboundTransactionRequestStatus(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
-  
+case class InboundTransactionRequestStatus2(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
+
   override def transactionRequestid: String = kafkaInboundTransactionRequestStatus.transactionRequestId
   override def bulkTransactionsStatus: List[TransactionStatus] = kafkaInboundTransactionRequestStatus.bulkTransactionsStatus
 }
@@ -359,7 +363,7 @@ case class OutboundTransactionRequestStatus(kafkaInboundTransactionRequestStatus
 /** Bank Branches
   *
   * @param id       Uniquely identifies the Branch within the Bank. SHOULD be url friendly (no spaces etc.) Used in URLs
-  * @param bank_id  MUST match bank_id in Banks
+  * @param bankId  MUST match bank_id in Banks
   * @param name     Informal name for the Branch
   * @param address  Address
   * @param location Geolocation
@@ -368,14 +372,14 @@ case class OutboundTransactionRequestStatus(kafkaInboundTransactionRequestStatus
   * @param driveUp  Info about when automated facilities are open e.g. cash point machine
   */
 case class InboundBranch(
-  id: String,
-  bank_id: String,
-  name: String,
-  address: InboundAddress,
-  location: InboundLocation,
-  meta: InboundMeta,
-  lobby: Option[InboundLobby],
-  driveUp: Option[InboundDriveUp]
+                          id: String,
+                          bankId: String,
+                          name: String,
+                          address: InboundAddress,
+                          location: InboundLocation,
+                          meta: InboundMeta,
+                          lobby: Option[InboundLobby],
+                          driveUp: Option[InboundDriveUp]
 )
 
 case class InboundLicense(
@@ -526,15 +530,16 @@ case class InboundTransactionStatus(
   transactionTimestamp: String
 ) extends TransactionStatus
 
-case class InboundCreateChallange(challengeId: String)
+case class OutboundCreateChallange(challengeId: String)
 
 case class InboundValidateChallangeAnswer(answer: String)
 
-case class OutboundChargeLevel(
+case class InboundChargeLevel(
   currency: String,
   amount: String
 )
 
+// TODO Don't use snake_case in Kafka else we have to duplicate the case classes
 case class InboundFXRate(
   from_currency_code: String,
   to_currency_code: String,
@@ -543,7 +548,7 @@ case class InboundFXRate(
   effective_date: String
 )
 
-case class InboundGetTransactionRequestTypeCharge(
+case class InboundTransactionRequestTypeCharge(
   transaction_request_type_id: String,
   bank_id: String,
   charge_currency: String,

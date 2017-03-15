@@ -175,7 +175,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
-    // TOOD for now, this is just a quick solution, it will be fixed as ResourceDocs latter
+
     def getMessageDocsKafka: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
         user => {
