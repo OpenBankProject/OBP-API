@@ -4,7 +4,8 @@ import code.api.util.APIUtil
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.model.dataAccess.ResourceUser
-import APIUtil.OAuth.{Token, Consumer}
+import APIUtil.OAuth.{Consumer, Token}
+import code.consumer.Consumers
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
@@ -13,13 +14,7 @@ import code.model.User
 trait DefaultUsers {
 
   //create the application
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, None, None).get
 
   val defaultProvider = Props.get("hostname","")
 

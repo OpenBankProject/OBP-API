@@ -33,10 +33,12 @@
 package code.api.util
 
 import java.io.InputStream
+
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api.v1_2.ErrorMessage
+import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.APIMetrics
@@ -51,6 +53,7 @@ import net.liftweb.json.{Extraction, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
+
 import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
@@ -211,7 +214,7 @@ object APIUtil extends Loggable {
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
-    Consumer.find(By(Consumer.key, consumerKey)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(application) => application.isActive
       case _ => false
     }
@@ -612,6 +615,16 @@ object APIUtil extends Loggable {
     tags: List[ResourceDocTag]
   )
 
+  // Used to document the KafkaMessage calls
+  case class MessageDoc(
+    action: String,
+    connectorVersion: String,
+    description: String,
+    exampleInboundMessage: JValue,
+    exampleOutboundMessage: JValue,
+    errorResponseMessages: List[JValue]
+  )
+  
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(
     fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],

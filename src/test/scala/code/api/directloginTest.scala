@@ -1,6 +1,7 @@
 package code.api
 
 import code.api.util.ErrorMessages
+import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
@@ -37,13 +38,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         lastName(randomString(10)).
         saveMe
 
-    if (OBPConsumer.find(By(OBPConsumer.key, KEY)).isEmpty)
-      OBPConsumer.create.
-        name("test application").
-        isActive(true).
-        key(KEY).
-        secret(SECRET).
-        saveMe
+    if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
+      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
 
 
     if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
@@ -56,13 +52,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         lastName(randomString(10)).
         saveMe
 
-    if (OBPConsumer.find(By(OBPConsumer.key, KEY_DISABLED)).isEmpty)
-      OBPConsumer.create.
-        name("Test application disabled").
-        isActive(false).
-        key(KEY_DISABLED).
-        secret(SECRET_DISABLED).
-        saveMe
+    if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
+      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
   }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
@@ -106,7 +97,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
-      val consumers =  OBPConsumer.findAll()
+      //val consumers =  OBPConsumer.findAll()
       //assert(registeredApplication(KEY) == true)
 
       When("we try to login without an Authorization header")

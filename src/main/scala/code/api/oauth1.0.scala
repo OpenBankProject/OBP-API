@@ -43,8 +43,9 @@ import net.liftweb.util.Helpers
 
 import scala.compat.Platform
 import Helpers._
-import code.api.util.{ErrorMessages, APIUtil}
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.Constant._
+import code.consumer.Consumers
 import code.model.TokenType
 import code.model.User
 import net.liftweb.util.Helpers.tryo
@@ -271,10 +272,8 @@ object OAuthHandshake extends RestHelper with Loggable {
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
-      val comsumer = Consumer.find(
-          By(Consumer.key,OAuthparameters.get("oauth_consumer_key").get)
-        ).get
-      var secret= comsumer.secret.toString
+      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).get
+      var secret= consumer.secret.toString
 
       OAuthparameters.get("oauth_token") match {
         case Some(tokenKey) => Token.find(By(Token.key,tokenKey)) match {
@@ -448,7 +447,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     val token = Token.create
     token.tokenType(TokenType.Request)
-    Consumer.find(By(Consumer.key,oAuthParameters.get("oauth_consumer_key").get)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }
@@ -481,7 +480,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     val token = Token.create
     token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key,oAuthParameters.get("oauth_consumer_key").get)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }

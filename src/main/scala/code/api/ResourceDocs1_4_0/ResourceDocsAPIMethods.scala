@@ -1,7 +1,9 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.util.APIUtil
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
+import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
 import net.liftweb.common.{Box, Empty, Full, Loggable}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -11,6 +13,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
+import scala.collection.mutable
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -157,6 +160,35 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
+    
+    resourceDocs += ResourceDoc(
+      getMessageDocsKafka,
+      apiVersion,
+      "getMessageDocsKafka",
+      "GET",
+      "/message-docs/mar2017",
+      "Get all Kafka request message in Documentation of Json format. Work In Progress!",
+      """Returns documentation about all Kafka message format""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApiInfo)
+    )
+
+    def getMessageDocsKafka: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
+        user => {
+          for {
+            messageDocs <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
+          } yield {
+            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+    
 
 
 
