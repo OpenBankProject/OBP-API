@@ -645,6 +645,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     fields.put("fromAccountName",     fromAccount.name)
     fields.put("fromAccountId",       fromAccount.accountId.value)
     fields.put("fromAccountBankId",   fromAccount.bankId.value)
+    fields.put("fromAccountCurrency", fromAccount.currency)
 
     // transaction details
     fields.put("transactionId",             transactionId)
