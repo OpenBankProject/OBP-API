@@ -34,6 +34,7 @@ Berlin 13359, Germany
 
 import java.util.Date
 
+import code.bankconnectors.OBPQueryParam
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.record.field.StringField
@@ -97,7 +98,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
     MongoAPIMetric.findAll.groupBy[String](_.getUserId)
   }
 
-  override def getAllMetrics(): List[APIMetric] = {
+  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
     MongoAPIMetric.findAll
   }
 }

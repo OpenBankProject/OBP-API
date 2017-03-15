@@ -15,7 +15,7 @@ import code.api.v2_1_0.JSONFactory210._
 import code.api.v2_2_0.JSONFactory220
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector, LocalMappedConnector}
+import code.bankconnectors._
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -31,28 +31,26 @@ import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
-import code.util.Helper._
-import net.liftweb.json.JsonDSL._
-
-import code.api.{ChargePolicy, APIFailure}
 import code.api.util.APIUtil._
+import code.api.{APIFailure, ChargePolicy}
+import code.metadata.counterparties._
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
-import net.liftweb.common.{Full, Box}
+import code.util.Helper._
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Helpers._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{write}
-import code.metadata.counterparties._
+import net.liftweb.util.Helpers._
 
 
 trait APIMethods210 {
@@ -162,8 +160,8 @@ trait APIMethods210 {
     }
 
 
-    import net.liftweb.json.JsonAST._
     import net.liftweb.json.Extraction._
+    import net.liftweb.json.JsonAST._
     import net.liftweb.json.Printer._
     val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
 
@@ -1536,7 +1534,7 @@ trait APIMethods210 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
+            //hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
   
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
@@ -1559,13 +1557,13 @@ trait APIMethods210 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
   
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics())
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate)): _*))
   
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
+            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
             
-            filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(startDate)) && (rd.getDate().before(startDatePlusOneDay))))
+            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(startDate)) && (rd.getDate().before(startDatePlusOneDay))))
   
             /** pages: 
               * eg: total=79
@@ -1576,7 +1574,7 @@ trait APIMethods210 {
               * offset=2, limit =50
               *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
               */
-            filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
+            //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
 
             //Filters Part 2.
             //eg: /management/metrics?start_date=100&end_date=1&limit=200&offset=0
@@ -1602,7 +1600,7 @@ trait APIMethods210 {
               assert(anon.get.equals("true") || anon.get.equals("false"))
             }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
 
-            filterByFields: List[APIMetric] = filterByPages
+            filterByFields: List[APIMetric] = metrics
               .filter(rd => (if (!consumerId.isEmpty) rd.getConsumerId().equals(consumerId.get) else true))
               .filter(rd => (if (!userId.isEmpty) rd.getUserId().equals(userId.get) else true))
               .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
