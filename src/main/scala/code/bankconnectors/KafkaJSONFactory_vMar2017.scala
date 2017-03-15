@@ -140,7 +140,7 @@ case class OutboundChallengeAnswer(
   hashOfSuppliedAnswer: String
 )
 
-case class OUTTTransaction(
+case class OutboundTransactionQuery(
   action: String,
   version: String,
   userId: String,
@@ -575,14 +575,14 @@ object KafkaJSONFactory_vMar2017 {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
   
-  def createMessageDocJson(rd: MessageDoc): MessageDocJson = {
+  def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     MessageDocJson(
-      action = rd.action,
-      connector_version = rd.connectorVersion,
-      description = rd.description,
-      example_inbound_message = rd.exampleInboundMessage,
-      example_outbound_message = rd.exampleOutboundMessage,
-      error_response_messages = rd.errorResponseMessages
+      action = md.action,
+      connector_version = md.connectorVersion,
+      description = md.description,
+      example_inbound_message = md.exampleInboundMessage,
+      example_outbound_message = md.exampleOutboundMessage,
+      error_response_messages = md.errorResponseMessages
     )
   }
   

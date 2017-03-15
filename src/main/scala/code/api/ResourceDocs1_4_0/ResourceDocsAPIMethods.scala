@@ -180,9 +180,9 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
         user => {
           for {
-            resource <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
+            messageDocs <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
           } yield {
-            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(resource)
+            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
           }
         }

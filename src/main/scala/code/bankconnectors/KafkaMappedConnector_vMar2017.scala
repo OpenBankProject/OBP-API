@@ -109,12 +109,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.User",
     connectorVersion = formatVersion,
     description = "getUser from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundUserByUsernamePassword(
+    exampleOutboundMessage = Extraction.decompose(OutboundUserByUsernamePassword(
       action = "obp.get.User",
       version = formatVersion,
       username = "susan.uk.29@example.com",
       password = "2b78e8")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -138,13 +138,13 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "updateUserAccountViews from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundUserAccountViews(
+    exampleOutboundMessage = Extraction.decompose(OutboundUserAccountViews(
       action = "obp.get.Accounts",
       version = formatVersion,
       username = "susan.uk.29@example.com",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       bankId = "gh.29.uk")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -195,13 +195,13 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   messageDocs += MessageDoc(
     action = "obp.get.Banks",
     connectorVersion = formatVersion,
-    description = "getBanks from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundBanks(
+    description = "getBanks",
+    exampleOutboundMessage = Extraction.decompose(OutboundBanks(
       action = "obp.get.Banks",
       version = formatVersion,
       username = "susan.uk.29@example.com",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -236,7 +236,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.ChallengeThreshold",
     connectorVersion = formatVersion,
     description = "getChallengeThreshold from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundChallengeThreshold(
+    exampleOutboundMessage = Extraction.decompose(OutboundChallengeThreshold(
       action = "obp.get.ChallengeThreshold",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -246,7 +246,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       currency = "GBP",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -282,7 +282,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.ChargeLevel",
     connectorVersion = formatVersion,
     description = "ChargeLevel from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundChargeLevel(
+    exampleOutboundMessage = Extraction.decompose(OutboundChargeLevel(
       action = "obp.get.ChargeLevel",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -292,7 +292,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = "susan.uk.29@example.com",
       transactionRequestType = "SANDBOX_TAN",
       currency = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -332,7 +332,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.create.Challenge",
     connectorVersion = formatVersion,
     description = "CreateChallenge from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundChallenge(
+    exampleOutboundMessage = Extraction.decompose(OutboundChallenge(
       action = "obp.create.Challenge",
       version = formatVersion,
       bankId = "gh.29.uk",
@@ -341,7 +341,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = "susan.uk.29@example.com",
       transactionRequestType = "SANDBOX_TAN",
       transactionRequestId = "1234567")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -370,14 +370,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.validate.ChallengeAnswer",
     connectorVersion = formatVersion,
     description = "validateChallengeAnswer from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundChallengeAnswer(
+    exampleOutboundMessage = Extraction.decompose(OutboundChallengeAnswer(
       action = "obp.validate.ChallengeAnswer",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       challengeId = "",
       hashOfSuppliedAnswer = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
@@ -403,13 +403,13 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Bank",
     connectorVersion = formatVersion,
     description = "getBank from kafka ",
-    exampleInboundMessage = Extraction.decompose(OUTTBank(
+    exampleOutboundMessage = Extraction.decompose(OUTTBank(
       action = "obp.get.Bank",
       version = formatVersion,
       bankId = "gh.29.uk",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBank(bankid: BankId): Box[Bank] = {
@@ -432,7 +432,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Transaction",
     connectorVersion = formatVersion,
     description = "getTransaction from kafka ",
-    exampleInboundMessage = Extraction.decompose(OUTTTransaction(
+    exampleOutboundMessage = Extraction.decompose(OutboundTransactionQuery(
       action = "obp.get.Transaction",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -440,12 +440,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = "gh.29.uk",
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
       transactionId = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    val req = OUTTTransaction(
+    val req = OutboundTransactionQuery(
       action = "obp.get.Transaction",
       version = formatVersion,
       userId = currentResourceUserId,
@@ -469,7 +469,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Transactions",
     connectorVersion = formatVersion,
     description = "getTransactions from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundTransactionsQueryWithParams(
+    exampleOutboundMessage = Extraction.decompose(OutboundTransactionsQueryWithParams(
       action = "obp.get.Transactions",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -477,7 +477,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = "gh.29.uk",
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
       queryParams = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   //TODO, this action is different from method name
@@ -526,14 +526,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getBankAccount from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundBankAccount(
+    exampleOutboundMessage = Extraction.decompose(OutboundBankAccount(
       action = "obp.get.Account",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       bankId = "gh.29.uk",
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount2] = {
@@ -565,14 +565,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "getBankAccounts from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundBankAccounts(
+    exampleOutboundMessage = Extraction.decompose(OutboundBankAccounts(
       action = "obp.get.Accounts",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       bankId = "gh.29.uk",
-      accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0")),
-    exampleOutboundMessage = emptyObjectJson,
+      accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0")), // TODO Why do we have accountId here if querying accounts?
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount2] = {
@@ -614,14 +614,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getAccountByNumber from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundAccountByNumber(
+    exampleOutboundMessage = Extraction.decompose(OutboundAccountByNumber(
       action = "obp.get.Account",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       bankId = "gh.29.uk",
       number = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   
@@ -693,18 +693,19 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
 
+
   messageDocs += MessageDoc(
     action = "obp.get.CounterpartyByCounterpartyId",
     connectorVersion = formatVersion,
     description = "getCounterpartyByCounterpartyId from kafka ",
-    Extraction.decompose(OutboundCounterpartyByCounterpartyId(
+    exampleOutboundMessage = Extraction.decompose(OutboundCounterpartyByCounterpartyId(
       action = "obp.get.CounterpartyByCounterpartyId",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       counterpartyId = "")),
-    emptyObjectJson,
-    emptyObjectJson :: Nil
+    exampleInboundMessage = emptyObjectJson,
+    errorResponseMessages  = emptyObjectJson :: Nil
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
@@ -731,14 +732,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.CounterpartyByIban",
     connectorVersion = formatVersion,
     description = "getCounterpartyByIban from kafka ",
-    exampleInboundMessage = Extraction.decompose(OutboundCounterpartyByIban(
+    exampleOutboundMessage = Extraction.decompose(OutboundCounterpartyByIban(
       action = "obp.get.CounterpartyByIban",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       otherAccountRoutingAddress = "",
       otherAccountRoutingScheme = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
 
@@ -823,7 +824,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.put.Transaction",
     connectorVersion = formatVersion,
     description = "saveTransaction from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundSaveTransaction(
+    exampleOutboundMessage = Extraction.decompose(OutboundSaveTransaction(
       action = "",
       version = "",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -853,7 +854,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       toCounterpartyRoutingScheme = "OBP",
       toCounterpartyBankRoutingAddress = "12345",
       toCounterpartyBankRoutingScheme  = "OBP")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   
@@ -955,11 +956,11 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.TransactionRequestStatusesImpl",
     connectorVersion = formatVersion,
     description = "getTransactionRequestStatusesImpl from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundTransactionRequestStatuses(
+    exampleOutboundMessage = Extraction.decompose(OutboundTransactionRequestStatuses(
       action = "obp.get.TransactionRequestStatusesImpl",
       version = formatVersion
       )),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   /*
@@ -1370,14 +1371,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.CurrentFxRate",
     connectorVersion = formatVersion,
     description = "getCurrentFxRate from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundCurrentFxRate(
+    exampleOutboundMessage = Extraction.decompose(OutboundCurrentFxRate(
       action = "obp.get.CurrentFxRate",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       fromCurrencyCode = "",
       toCurrencyCode = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
@@ -1402,7 +1403,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     action = "obp.get.TransactionRequestTypeCharge",
     connectorVersion = formatVersion,
     description = "getTransactionRequestTypeCharge from kafka",
-    exampleInboundMessage = Extraction.decompose(OutboundTransactionRequestTypeCharge(
+    exampleOutboundMessage = Extraction.decompose(OutboundTransactionRequestTypeCharge(
       action = "obp.get.TransactionRequestTypeCharge",
       version = formatVersion,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -1411,7 +1412,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
       viewId = "owner",
       transactionRequestType = "")),
-    exampleOutboundMessage = emptyObjectJson,
+    exampleInboundMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
   //get the current charge specified by bankId, accountId, viewId and transactionRequestType
