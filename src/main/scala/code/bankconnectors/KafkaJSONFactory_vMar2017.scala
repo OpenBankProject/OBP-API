@@ -561,8 +561,8 @@ case class MessageDocJson(
     action: String,
     connector_version: String,
     description: String,
-    example_inbound_message: JValue,
     example_outbound_message: JValue,
+    example_inbound_message: JValue,
     error_response_messages: List[JValue]
 )
 
@@ -580,8 +580,8 @@ object KafkaJSONFactory_vMar2017 {
       action = md.action,
       connector_version = md.connectorVersion,
       description = md.description,
-      example_inbound_message = md.exampleInboundMessage,
       example_outbound_message = md.exampleOutboundMessage,
+      example_inbound_message = md.exampleInboundMessage,
       error_response_messages = md.errorResponseMessages
     )
   }
