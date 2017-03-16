@@ -56,7 +56,7 @@ case class InboundBank(
 case class InboundUser(
   email: String,
   password: String,
-  display_name: String
+  displayName: String
 )
 
 // Only used for import
@@ -265,35 +265,33 @@ case class OutboundCounterpartyByCounterpartyId(
   counterpartyId: String
 )
 
-
-// Don't use Snake case for Kafka messages
 case class InboundCounterpartySnake(
   name: String,
-  created_by_user_id: String,
-  this_bank_id: String,
-  this_account_id: String,
-  this_view_id: String,
-  counterparty_id: String,
-  other_bank_routing_scheme: String,
-  other_account_routing_scheme: String,
-  other_bank_routing_address: String,
-  other_account_routing_address: String,
-  is_beneficiary: Boolean
+  createdByUserId: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  counterpartyId: String,
+  otherBankRoutingScheme: String,
+  otherAccountRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherAccountRoutingAddress: String,
+  isBeneficiary: Boolean
 )
 
 case class InboundCounterparty(counterparty: InboundCounterpartySnake) extends CounterpartyTrait {
   
-  def createdByUserId: String = counterparty.created_by_user_id
+  def createdByUserId: String = counterparty.createdByUserId
   def name: String = counterparty.name
-  def thisBankId: String = counterparty.this_bank_id
-  def thisAccountId: String = counterparty.this_account_id
-  def thisViewId: String = counterparty.this_view_id
-  def counterpartyId: String = counterparty.counterparty_id
-  def otherAccountRoutingScheme: String = counterparty.other_account_routing_scheme
-  def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
-  def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
-  def otherBankRoutingAddress: String = counterparty.other_bank_routing_address
-  def isBeneficiary: Boolean = counterparty.is_beneficiary
+  def thisBankId: String = counterparty.thisBankId
+  def thisAccountId: String = counterparty.thisAccountId
+  def thisViewId: String = counterparty.thisViewId
+  def counterpartyId: String = counterparty.counterpartyId
+  def otherAccountRoutingScheme: String = counterparty.otherAccountRoutingScheme
+  def otherAccountRoutingAddress: String = counterparty.otherAccountRoutingAddress
+  def otherBankRoutingScheme: String = counterparty.otherBankRoutingScheme
+  def otherBankRoutingAddress: String = counterparty.otherBankRoutingAddress
+  def isBeneficiary: Boolean = counterparty.isBeneficiary
 }
 
 case class Bank2(r: InboundBank) extends Bank {
@@ -303,9 +301,7 @@ case class Bank2(r: InboundBank) extends Bank {
   def logoUrl = r.logo
   def bankId = BankId(r.bankId)
   def nationalIdentifier = "None"
-  //TODO
   def swiftBic = "None"
-  //TODO
   def websiteUrl = r.url
 }
 
@@ -316,8 +312,8 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
   def currency: String = r.balanceCurrency
   def name: String = r.owners.head
+  // Note: swift_bic--> swiftBic, but it extends from BankAccount
   def swift_bic: Option[String] = Some("swift_bic")
-  //TODO
   def iban: Option[String] = Some(r.iban)
   def number: String = r.number
   def bankId: BankId = BankId(r.bankId)
@@ -333,24 +329,23 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   
 }
 
-// TODO Get rid of Snake Case version of this.
-case class InboundFXRateCamelCase(kafkaInboundFxRate: InboundFXRate) extends FXRate {
+case class InboundFXRateCamelCase(inboundFxRate: InboundFXRate) extends FXRate {
   
-  def fromCurrencyCode: String = kafkaInboundFxRate.from_currency_code
-  def toCurrencyCode: String = kafkaInboundFxRate.to_currency_code
-  def conversionValue: Double = kafkaInboundFxRate.conversion_value
-  def inverseConversionValue: Double = kafkaInboundFxRate.inverse_conversion_value
+  def fromCurrencyCode: String = inboundFxRate.fromCurrencyCode
+  def toCurrencyCode: String = inboundFxRate.toCurrencyCode
+  def conversionValue: Double = inboundFxRate.conversionValue
+  def inverseConversionValue: Double = inboundFxRate.inverseConversionValue
   //TODO need to add error handling here for String --> Date transfer
-  def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
+  def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(inboundFxRate.effectiveDate)
 }
 
 case class InboundTransactionRequestTypeChargeCamelCase(kafkaInboundTransactionRequestTypeCharge: InboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
 
-  def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transaction_request_type_id
-  def bankId: String = kafkaInboundTransactionRequestTypeCharge.bank_id
-  def chargeCurrency: String = kafkaInboundTransactionRequestTypeCharge.charge_currency
-  def chargeAmount: String = kafkaInboundTransactionRequestTypeCharge.charge_amount
-  def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.charge_summary
+  def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transactionRequestTypeId
+  def bankId: String = kafkaInboundTransactionRequestTypeCharge.bankId
+  def chargeCurrency: String = kafkaInboundTransactionRequestTypeCharge.chargeCurrency
+  def chargeAmount: String = kafkaInboundTransactionRequestTypeCharge.chargeAmount
+  def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.chargeSummary
 }
 
 case class InboundTransactionRequestStatus2(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
@@ -401,24 +396,24 @@ case class InboundDriveUp(
 
 /**
   *
-  * @param line_1       Line 1 of Address
-  * @param line_2       Line 2 of Address
-  * @param line_3       Line 3 of Address
+  * @param line1       Line 1 of Address
+  * @param line2       Line 2 of Address
+  * @param line3       Line 3 of Address
   * @param city         City
   * @param county       County i.e. Division of State
   * @param state        State i.e. Division of Country
-  * @param post_code    Post Code or Zip Code
-  * @param country_code 2 letter country code: ISO 3166-1 alpha-2
+  * @param postCode    Post Code or Zip Code
+  * @param countryCode 2 letter country code: ISO 3166-1 alpha-2
   */
 case class InboundAddress(
-  line_1: String,
-  line_2: String,
-  line_3: String,
+  line1: String,
+  line2: String,
+  line3: String,
   city: String,
   county: String, // Division of State
   state: String, // Division of Country
-  post_code: String,
-  country_code: String
+  postCode: String,
+  countryCode: String
 )
 
 case class InboundLocation(
@@ -426,8 +421,6 @@ case class InboundLocation(
   longitude: Double
 )
 
-
-// TODO Be consistent use camelCase
 
 case class InboundAccount(
   accountId: String,
@@ -439,9 +432,9 @@ case class InboundAccount(
   balanceCurrency: String,
   iban: String,
   owners: List[String],
-  generate_public_view: Boolean,
-  generate_accountants_view: Boolean,
-  generate_auditors_view: Boolean
+  generatePublicView: Boolean,
+  generateAccountantsView: Boolean,
+  generateAuditorsView: Boolean
 )
 
 //InboundTransaction --> InternalTransaction -->OutboundTransaction
@@ -464,7 +457,7 @@ case class InternalTransaction(
 
 case class InboundAtm(
   id: String,
-  bank_id: String,
+  bankId: String,
   name: String,
   address: InboundAddress,
   location: InboundLocation,
@@ -472,25 +465,25 @@ case class InboundAtm(
 )
 
 case class InboundProduct(
-  bank_id: String,
+  bankId: String,
   code: String,
   name: String,
   category: String,
   family: String,
-  super_family: String,
-  more_info_url: String,
+  superFamily: String,
+  moreInfoUrl: String,
   meta: InboundMeta
 )
 
 
 case class InboundCrmEvent(
   id: String, // crmEventId
-  bank_id: String,
+  bankId: String,
   customer: InboundCustomer,
   category: String,
   detail: String,
   channel: String,
-  actual_date: String
+  actualDate: String
 )
 
 case class InboundCustomer(
@@ -539,23 +532,26 @@ case class InboundChargeLevel(
   amount: String
 )
 
-// TODO Don't use snake_case in Kafka else we have to duplicate the case classes
 case class InboundFXRate(
-  from_currency_code: String,
-  to_currency_code: String,
-  conversion_value: Double,
-  inverse_conversion_value: Double,
-  effective_date: String
+  fromCurrencyCode: String,
+  toCurrencyCode: String,
+  conversionValue: Double,
+  inverseConversionValue: Double,
+  effectiveDate: String
 )
 
 case class InboundTransactionRequestTypeCharge(
-  transaction_request_type_id: String,
-  bank_id: String,
-  charge_currency: String,
-  charge_amount: String,
-  charge_summary: String
+  transactionRequestTypeId: String,
+  bankId: String,
+  chargeCurrency: String,
+  chargeAmount: String,
+  chargeSummary: String
 )
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Note: The following are used to create JSON to endpoint, so keep the snake_case 
 // Used to describe the Kafka message requests parameters for documentation in Json
 case class MessageDocJson(
     action: String,
