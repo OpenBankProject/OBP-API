@@ -161,33 +161,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       List(apiTagApiInfo)
     )
     
-    resourceDocs += ResourceDoc(
-      getMessageDocsKafka,
-      apiVersion,
-      "getMessageDocsKafka",
-      "GET",
-      "/message-docs/mar2017",
-      "Get all Kafka request message in Documentation of Json format. Work In Progress!",
-      """Returns documentation about all Kafka message format""",
-      emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApiInfo)
-    )
 
-    def getMessageDocsKafka: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
-        user => {
-          for {
-            messageDocs <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
-          } yield {
-            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
-            successJsonResponse(Extraction.decompose(json))
-          }
-        }
-      }
-    }
     
 
 

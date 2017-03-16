@@ -271,12 +271,18 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.updateViewForBankAccount ::
                           Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
+                          Implementations2_2_0.getMessageDocs ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations2_2_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_2_0.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations2_2_0.resourceDocs
+        if (!disabledVersions.contains("v" + item.apiVersion)
+          && !disabledEndpoints.contains(item.apiFunction)
+          && endpointsOf2_2_0.exists(_ == item.partialFunction)
+          )
+  ) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 2.2.0 - END ###
