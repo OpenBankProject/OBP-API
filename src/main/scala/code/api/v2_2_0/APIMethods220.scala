@@ -15,7 +15,7 @@ import code.api.v2_0_0.{TransactionRequestBodyJSON,_}
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.Connector
+import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017, Connector}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
@@ -276,7 +276,39 @@ trait APIMethods220 {
 
 
 
-    //
+
+
+    resourceDocs += ResourceDoc(
+      getMessageDocs,
+      apiVersion,
+      "getMessageDocs",
+      "GET",
+      "/message-docs/mar2017",
+      "Get Message Docs",
+      """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
+        | Integrators can use these messages to build Adapters that provide core banking services to OBP.
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApiInfo)
+    )
+
+    lazy val getMessageDocs: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
+        user => {
+          for {
+            messageDocs <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
+          } yield {
+            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
 
   }
 }

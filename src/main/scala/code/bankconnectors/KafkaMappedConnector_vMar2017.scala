@@ -86,15 +86,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val cachedTransactionRequestTypeCharge = TTLCache[InboundTransactionRequestTypeCharge](cacheTTL)
 
 
-  //
-  // "Versioning" of the messages sent by this or similar connector might work like this:
+  // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
-  // Probably should be in a separate file e.g. Nov2016_messages.scala
+  // Each connector has a separate file like this one.
   // Once the message format is STABLE, freeze the key/value pair names there. For now, new keys may be added but none modified.
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
   // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
-  //
+
 
   val formatVersion: String  = "Mar2017"
 
@@ -105,7 +104,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-  
+
+
+  // Each Message Doc has an id, description,
+
   messageDocs += MessageDoc(
     action = "obp.get.User",
     connectorVersion = formatVersion,
@@ -189,7 +191,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         :: Nil
     ),
     errorResponseMessages = Extraction.decompose(
-      ErrorMessage(ErrorMessages.InvalidNumber))        
+      ErrorMessage(ErrorMessages.InvalidNumber))  // TODO Under what circumstances does this produce invalid number?
       :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
       :: Nil
   )
