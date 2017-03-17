@@ -332,7 +332,7 @@ trait APIMethods210 {
               createdTransactionRequest <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => {
                   for {
-                    transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! ErrorMessages.InvalidJsonFormat
+                    transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${ErrorMessages.InvalidJsonFormat}, it should be SANDBOX_TAN input format"
                     toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
                     toAccountId <- Full(AccountId(transactionRequestBodySandboxTan.to.account_id))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -351,7 +351,7 @@ trait APIMethods210 {
                 case "COUNTERPARTY" => {
                   for {
                     //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
-                    transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
+                    transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${ErrorMessages.InvalidJsonFormat}, it should be COUNTERPARTY input format"
                     toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                     // Get the Counterparty by id
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
@@ -400,7 +400,7 @@ trait APIMethods210 {
                 case "SEPA" => {
                   for {
                     //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
-                    transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
+                    transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${ErrorMessages.InvalidJsonFormat}, it should be SEPA input format"
                     toIban <- Full(transDetailsSEPAJson.to.iban)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
@@ -437,7 +437,7 @@ trait APIMethods210 {
                 }
                 case "FREE_FORM" => {
                   for {
-                    transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON])
+                    transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${ErrorMessages.InvalidJsonFormat}, it should be FREE_FORM input format"
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
                     transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
