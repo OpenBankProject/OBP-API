@@ -287,14 +287,11 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
-    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
+    Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
   
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
-    MappedCounterparty.find(
-      By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
-      By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
-    )
+    Counterparties.counterparties.vend.getCounterpartyByIban(iban)
   }
 
 
@@ -1019,9 +1016,7 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
-    Full(MappedCounterparty.findAll(By(MappedCounterparty.mThisAccountId, thisAccountId.value),
-                                    By(MappedCounterparty.mThisBankId, thisBankId.value),
-                                    By(MappedCounterparty.mThisViewId, viewId.value)))
+    Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
   
 }

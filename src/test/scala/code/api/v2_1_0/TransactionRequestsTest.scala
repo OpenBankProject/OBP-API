@@ -32,10 +32,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
       val sharedChargePolicy = ChargePolicy.withName("SHARED").toString
       var transactionRequestType: String = transactionRequestTypeInput
-      val testBank = createBank("transactions-test-bank")
+      val testBank = createBank("__transactions-test-bank2")
       val bankId = testBank.bankId
-      val accountId1 = AccountId("__acc1")
-      val accountId2 = AccountId("__acc2")
+      val accountId1 = AccountId("__acc1__")
+      val accountId2 = AccountId("__acc2__")
 
       var amt = BigDecimal("12.50")
       var fromCurrency = "AED"

@@ -469,12 +469,12 @@ trait BankAccount {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.createView(BankAccountUID(this.bankId,this.accountId), v)
-      
+
       if(view.isDefined) {
         log.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
-      
+
       view
     }
   }
@@ -484,12 +484,12 @@ trait BankAccount {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.updateView(BankAccountUID(this.bankId,this.accountId), viewId, v)
-      
+
       if(view.isDefined) {
         log.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
-      
+
       view
     }
   }

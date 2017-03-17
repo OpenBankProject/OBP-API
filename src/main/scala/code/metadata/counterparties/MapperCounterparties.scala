@@ -113,8 +113,17 @@ object MapperCounterparties extends Counterparties with Loggable {
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterPartyId))
   }
   override def getCounterpartyByIban(iban : String): Box[CounterpartyTrait] = {
-      MappedCounterparty.find(By(MappedCounterparty.mOtherAccountRoutingAddress, iban))
-    }
+    MappedCounterparty.find(
+      By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
+      By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
+    )
+  }
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
+    Full(MappedCounterparty.findAll(By(MappedCounterparty.mThisAccountId, thisAccountId.value),
+      By(MappedCounterparty.mThisBankId, thisBankId.value),
+      By(MappedCounterparty.mThisViewId, viewId.value)))
+  }
 
   override def createCounterparty(createdByUserId: String,
                                   thisBankId: String,
@@ -169,6 +178,83 @@ object MapperCounterparties extends Counterparties with Loggable {
    }
 
    available
+  }
+
+
+  private def getCounterpartyMetadata(counterPartyId : String) : Box[MappedCounterpartyMetadata] = {
+    MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterPartyId))
+  }
+
+  override def getPublicAlias(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.publicAlias)
+  }
+
+  override def getPrivateAlias(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.privateAlias)
+  }
+
+  override def getPhysicalLocation(counterPartyId : String): Box[GeoTag] = {
+    getCounterpartyMetadata(counterPartyId).flatMap(_.physicalLocation.obj)
+  }
+
+  override def getOpenCorporatesURL(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.getOpenCorporatesURL)
+  }
+
+  override def getImageURL(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.getImageURL)
+  }
+
+  override def getUrl(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.getUrl)
+  }
+
+  override def getMoreInfo(counterPartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterPartyId).map(_.getMoreInfo)
+  }
+
+  override def getCorporateLocation(counterPartyId : String): Box[GeoTag] = {
+    getCounterpartyMetadata(counterPartyId).flatMap(_.corporateLocation.obj)
+  }
+
+  override def addPublicAlias(counterPartyId : String, alias: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.publicAlias(alias).save())
+  }
+
+  override def addPrivateAlias(counterPartyId : String, alias: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.privateAlias(alias).save())
+  }
+
+  override def addURL(counterPartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.url(url).save())
+  }
+
+  override def addImageURL(counterPartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.imageUrl(url).save())
+  }
+
+  override def addOpenCorporatesURL(counterPartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.openCorporatesUrl(url).save())
+  }
+
+  override def addMoreInfo(counterPartyId : String, moreInfo: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.moreInfo(moreInfo).save())
+  }
+
+  override def addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.setPhysicalLocation(userId, datePosted, longitude, latitude))
+  }
+
+  override def addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).map(_.setCorporateLocation(userId, datePosted, longitude, latitude))
+  }
+
+  override def deletePhysicalLocation(counterPartyId : String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).flatMap(_.physicalLocation.obj).map(_.delete_!)
+  }
+
+  override def deleteCorporateLocation(counterPartyId : String): Box[Boolean] = {
+    getCounterpartyMetadata(counterPartyId).flatMap(_.corporateLocation.obj).map(_.delete_!)
   }
 }
 
