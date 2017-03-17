@@ -369,7 +369,7 @@ trait APIMethods210 {
                     // This is so developers can follow the COUNTERPARTY flow in the sandbox
 
                     //if it is OBP, we call the local database, just for sandbox test case
-                    toAccount <- if(isMapped && toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
+                    toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                     //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
                     else
