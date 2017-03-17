@@ -234,6 +234,16 @@ webui_override_style_sheet =
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
 
+
+# If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
+# Will be displayed on the post Consumer Registration page.
+#webui_post_consumer_registration_more_info_url =
+#webui_post_consumer_registration_more_info_text =
+
+
+
+
+
 ## API Options
 apiOptions.getBranchesIsPublic = true
 apiOptions.getAtmsIsPublic = true

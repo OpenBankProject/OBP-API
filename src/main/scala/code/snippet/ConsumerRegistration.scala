@@ -49,13 +49,22 @@ class ConsumerRegistration extends Loggable {
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
   private object submitButtonDefenseFlag extends RequestVar("")
-  val registrationMoreInfoText = Props.get("post_consumer_registration_more_info_text", "") match {
-    //if empty, set the default value
-    case text if (text.isEmpty) => "Please see the following page"
-    case others => others
+
+
+
+
+  // Can be used to show link to an online form to collect more information about the App / Startup
+  val registrationMoreInfoUrl = Props.get("webui_post_consumer_registration_more_info_url", "")
+
+  val registrationMoreInfoText : String = registrationMoreInfoUrl match {
+    case "" => ""
+    case _  =>  Props.get("webui_post_consumer_registration_more_info_text", "Please provde more information about your Application and / or Startup here:")
   }
-  val registrationMoreInfoUrl = Props.get("post_consumer_registration_more_info_url", "")
-  
+
+
+
+  // TODO make this a clickable link. See directlogin-endpoint below
+
   def consumerRegistrationMoreInfoText: CssSel = {
       ".post_consumer_registration_more_info_text *" #> scala.xml.Unparsed(registrationMoreInfoText)
   }
