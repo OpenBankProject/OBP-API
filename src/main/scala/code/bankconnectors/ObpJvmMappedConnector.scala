@@ -541,9 +541,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =
+    LocalMappedConnector.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId)
   
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
+    LocalMappedConnector.getCounterpartyByIban(iban: String)
 
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()
@@ -628,7 +630,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       fields.put("toCounterpartyRoutingAddress",     toCounterparty.otherAccountRoutingAddress)
       fields.put("toCounterpartyRoutingScheme",      toCounterparty.otherAccountRoutingScheme)
       fields.put("toCounterpartyBankRoutingAddress", toCounterparty.otherBankRoutingAddress)
-      fields.put("toCounterpartyBankRoutingScheme",  toCounterparty.otherBankRoutingAddress)
+      fields.put("toCounterpartyBankRoutingScheme",  toCounterparty.otherBankRoutingScheme)
     } else {
       logger.error(s"error calling saveTransaction: transactionRequestType=${transactionRequestType.value}")
       return Empty
