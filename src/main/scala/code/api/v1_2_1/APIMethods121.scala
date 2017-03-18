@@ -16,6 +16,7 @@ import code.bankconnectors._
 import code.bankconnectors.OBPOffset
 import code.bankconnectors.OBPFromDate
 import code.bankconnectors.OBPToDate
+import code.metadata.counterparties.Counterparties
 import code.model.CreateViewJSON
 import net.liftweb.common.Full
 import code.model.UpdateViewJSON
@@ -954,7 +955,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+            if(added)
           } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias added")), 201)
           }
@@ -989,7 +991,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+            if(added)
           } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias updated")))
           }
@@ -1023,7 +1026,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
-            if(addAlias(""))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
@@ -1090,7 +1094,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("private alias added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1126,7 +1131,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            updated <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("private alias updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1161,7 +1167,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
-            if(addAlias(""))
+            added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
@@ -1193,7 +1200,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-            if(addMoreInfo(moreInfoJson.more_info))
+            added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("more info added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1226,7 +1234,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-            if(addMoreInfo(moreInfoJson.more_info))
+            updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("more info updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1258,7 +1267,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
-            if(addMoreInfo(""))
+            deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1291,7 +1301,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-            if(addUrl(urlJson.URL))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1324,7 +1335,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-            if(addUrl(urlJson.URL))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1356,7 +1368,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
-            if(addUrl(""))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
@@ -1388,7 +1401,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-            if(addImageUrl(imageUrlJson.image_URL))
+            added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("image url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1421,7 +1435,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-            if(addImageUrl(imageUrlJson.image_URL))
+            updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("image url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1453,7 +1468,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
-            if(addImageUrl(""))
+            deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1485,7 +1501,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-            if(addOpenCorpUrl(openCorpUrl.open_corporates_URL))
+            added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("open corporate url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1518,7 +1535,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-            if(addOpenCorpUrl(openCorpUrl.open_corporates_URL))
+            updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("open corporate url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1550,7 +1568,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
-            if(addOpenCorpUrl(""))
+            deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1584,7 +1603,8 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1619,7 +1639,8 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.resourceUserId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1651,9 +1672,9 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-            deleted <- Box(metadata.deleteCorporateLocation)
+            deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
           } yield {
-            if(deleted())
+            if(deleted)
               noContentJsonResponse
             else
               errorJsonResponse("Delete not completed")
@@ -1690,7 +1711,9 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.resourceUserId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
+            added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1725,7 +1748,9 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.resourceUserId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
+            updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1757,9 +1782,9 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-            deleted <- Box(metadata.deletePhysicalLocation)
+            deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
           } yield {
-            if(deleted())
+            if(deleted)
               noContentJsonResponse
             else
               errorJsonResponse("Delete not completed")

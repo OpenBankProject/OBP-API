@@ -8,11 +8,11 @@ import code.accountholder.AccountHolders
 import code.model._
 import code.model.dataAccess._
 import net.liftweb.common.Box
-import net.liftweb.mapper.{By, MappedString, MetaMapper}
+import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.transaction.MappedTransaction
 import code.views.Views
 
@@ -31,17 +31,18 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5)).saveMe
   }
 
-  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait = {
-    MappedCounterparty.create.
-      mCounterPartyId(counterpartyId).
-      mName(UUID.randomUUID().toString).
-      mOtherAccountRoutingAddress(accountRoutingAddress).
-      mOtherAccountRoutingAddress(accountId).
-      mOtherAccountRoutingScheme(otherAccountRoutingScheme).
-      mOtherBankRoutingScheme("OBP").
-      mOtherBankRoutingAddress(bankId).
-      mIsBeneficiary(isBeneficiary).
-      saveMe
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId: String): CounterpartyTrait = {
+    Counterparties.counterparties.vend.createCounterparty(createdByUserId = createdByUserId,
+      thisBankId = bankId,
+      thisAccountId = accountId,
+      thisViewId = "",
+      name = UUID.randomUUID().toString,
+      otherAccountRoutingAddress = accountId,
+      otherAccountRoutingScheme = otherAccountRoutingScheme,
+      otherBankRoutingScheme = "OBP",
+      otherBankRoutingAddress = bankId,
+      isBeneficiary = isBeneficiary
+    ).get
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded

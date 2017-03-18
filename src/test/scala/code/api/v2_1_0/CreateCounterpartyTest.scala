@@ -32,7 +32,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
     scenario("There is a user has the owner view and the BankAccount") {
 
       Given("The user ower access and BankAccount")
-      val testBank = createBank("transactions-test-bank")
+      val testBank = createBank("transactions-test-bank1")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")

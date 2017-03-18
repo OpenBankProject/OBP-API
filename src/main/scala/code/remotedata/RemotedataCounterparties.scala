@@ -33,6 +33,9 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
     extractFutureToBox(actor ? cc.getCounterpartyByIban(iban: String))
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] =
+    extractFutureToBox(actor ? cc.getCounterparties(thisBankId, thisAccountId, viewId))
   
   override def createCounterparty(createdByUserId: String,
                                   thisBankId: String,
@@ -54,5 +57,59 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
 
   override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean =
     extractFuture(actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
+
+  override def getCorporateLocation(counterPartyId: String): Box[GeoTag] =
+    extractFutureToBox(actor ? cc.getCorporateLocation(counterPartyId))
+
+  override def getPublicAlias(counterPartyId: String): Box[String] =
+    extractFutureToBox(actor ? cc.getPublicAlias(counterPartyId))
+
+  override def getPrivateAlias(counterPartyId: String): Box[String] =
+    extractFutureToBox(actor ? cc.getPrivateAlias(counterPartyId))
+
+  override def getPhysicalLocation(counterPartyId: String): Box[GeoTag] =
+    extractFutureToBox(actor ? cc.getPhysicalLocation(counterPartyId))
+
+  override def getOpenCorporatesURL(counterPartyId: String): Box[String] =
+    extractFutureToBox(actor ? cc.getOpenCorporatesURL(counterPartyId))
+
+  override def getImageURL(counterPartyId: String): Box[String] =
+  extractFutureToBox(actor ? cc.getImageURL(counterPartyId))
+
+  override def getUrl(counterPartyId: String): Box[String] =
+  extractFutureToBox(actor ? cc.getUrl(counterPartyId))
+
+  override def getMoreInfo(counterPartyId: String): Box[String] =
+  extractFutureToBox(actor ? cc.getMoreInfo(counterPartyId))
+
+  override def addPublicAlias(counterPartyId: String, alias: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addPublicAlias(counterPartyId, alias))
+
+  override def addPrivateAlias(counterPartyId: String, alias: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addPrivateAlias(counterPartyId, alias))
+
+  override def addURL(counterPartyId: String, url: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addURL(counterPartyId, url))
+
+  override def addImageURL(counterPartyId: String, url: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addImageURL(counterPartyId, url))
+
+  override def addOpenCorporatesURL(counterPartyId: String, url: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addOpenCorporatesURL(counterPartyId, url))
+
+  override def addMoreInfo(counterPartyId : String, moreInfo: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addMoreInfo(counterPartyId, moreInfo))
+
+  override def addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addPhysicalLocation(counterPartyId, userId, datePosted, longitude, latitude))
+
+  override def addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
+    extractFutureToBox(actor ? cc.addCorporateLocation(counterPartyId, userId, datePosted, longitude, latitude))
+
+  override def deletePhysicalLocation(counterPartyId: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.deletePhysicalLocation(counterPartyId))
+
+  override def deleteCorporateLocation(counterPartyId: String): Box[Boolean] =
+    extractFutureToBox(actor ? cc.deleteCorporateLocation(counterPartyId))
 
 }

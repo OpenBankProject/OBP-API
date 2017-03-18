@@ -966,7 +966,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
     if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
-      MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
+      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
     } else {
       val req = OutboundCounterpartyByCounterpartyId(
         action = "obp.get.CounterpartyByCounterpartyId",
@@ -1022,10 +1022,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
     if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
-      MappedCounterparty.find(
-        By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
-        By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
-      )
+      Counterparties.counterparties.vend.getCounterpartyByIban(iban)
     } else {
       val req = OutboundCounterpartyByIban(
         action = "obp.get.CounterpartyByIban",
