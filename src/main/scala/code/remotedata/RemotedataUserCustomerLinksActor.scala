@@ -17,30 +17,30 @@ class RemotedataUserCustomerLinksActor extends Actor with ActorHelper {
   def receive = {
 
     case cc.createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) =>
-      logger.info("createUserCustomerLink(" + userId + ", " + dateInserted + ", " + isActive + ")")
+      logger.debug("createUserCustomerLink(" + userId + ", " + dateInserted + ", " + isActive + ")")
       sender ! extractResult(mapper.createUserCustomerLink(userId, customerId, dateInserted, isActive))
 
     case cc.getUserCustomerLinkByCustomerId(customerId: String) =>
-      logger.info("getUserCustomerLinkByCustomerId(" + customerId + ")")
+      logger.debug("getUserCustomerLinkByCustomerId(" + customerId + ")")
       sender ! extractResult(mapper.getUserCustomerLinkByCustomerId(customerId))
 
     case cc.getUserCustomerLinkByUserId(userId: String) =>
-      logger.info("getUserCustomerLinkByUserId(" + userId + ")")
+      logger.debug("getUserCustomerLinkByUserId(" + userId + ")")
       sender ! extractResult(mapper.getUserCustomerLinkByUserId(userId))
 
     case cc.getUserCustomerLink(userId: String, customerId: String) =>
-      logger.info("getUserCustomerLink(" + userId + ", " + customerId + ")")
+      logger.debug("getUserCustomerLink(" + userId + ", " + customerId + ")")
       sender ! extractResult(mapper.getUserCustomerLink(userId, customerId))
 
     case cc.getUserCustomerLinks() =>
-      logger.info("getUserCustomerLinks()")
+      logger.debug("getUserCustomerLinks()")
       sender ! extractResult(mapper.getUserCustomerLinks)
 
     case cc.bulkDeleteUserCustomerLinks() =>
-      logger.info("bulkDeleteUserCustomerLinks()")
+      logger.debug("bulkDeleteUserCustomerLinks()")
       sender ! extractResult(mapper.bulkDeleteUserCustomerLinks())
 
-    case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

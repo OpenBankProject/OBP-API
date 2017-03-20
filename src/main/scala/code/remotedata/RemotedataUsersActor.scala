@@ -24,54 +24,54 @@ class RemotedataUsersActor extends Actor with ActorHelper {
   def receive = {
 
     case cc.getUserByResourceUserId(id: Long) =>
-      logger.info("getUserByResourceUserId(" + id +")")
+      logger.debug("getUserByResourceUserId(" + id +")")
       sender ! extractResult(mapper.getUserByResourceUserId(id))
 
     case cc.getResourceUserByResourceUserId(id: Long) =>
-      logger.info("getResourceUserByResourceUserId(" + id +")")
+      logger.debug("getResourceUserByResourceUserId(" + id +")")
       sender ! extractResult(mapper.getResourceUserByResourceUserId(id))
 
     case cc.getUserByProviderId(provider : String, idGivenByProvider : String) =>
-      logger.info("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
+      logger.debug("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
       sender ! extractResult(mapper.getUserByProviderId(provider, idGivenByProvider))
 
     case cc.getUserByUserId(userId: String) =>
-      logger.info("getUserByUserId(" + userId +")")
+      logger.debug("getUserByUserId(" + userId +")")
       sender ! extractResult(mapper.getUserByUserId(userId))
 
     case cc.getUserByUserName(userName: String) =>
-      logger.info("getUserByUserName(" + userName +")")
+      logger.debug("getUserByUserName(" + userName +")")
       sender ! extractResult(mapper.getUserByUserName(userName))
 
     case cc.getUserByEmail(email: String) =>
-      logger.info("getUserByEmail(" + email +")")
+      logger.debug("getUserByEmail(" + email +")")
       sender ! extractResult(mapper.getUserByEmail(email))
 
     case cc.getAllUsers() =>
-      logger.info("getAllUsers()")
+      logger.debug("getAllUsers()")
       sender ! extractResult(mapper.getAllUsers())
 
     case cc.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
-      logger.info("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+      logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
       sender ! extractResult(mapper.createResourceUser(provider, providerId, name, email, userId))
 
     case cc.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
-      logger.info("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+      logger.debug("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
       sender ! extractResult(mapper.createUnsavedResourceUser(provider, providerId, name, email, userId))
 
     case cc.saveResourceUser(resourceUser: ResourceUser) =>
-      logger.info("saveResourceUser")
+      logger.debug("saveResourceUser")
       sender ! extractResult(mapper.saveResourceUser(resourceUser))
 
     case cc.deleteResourceUser(id: Long) =>
-      logger.info("deleteResourceUser(" + id +")")
+      logger.debug("deleteResourceUser(" + id +")")
       sender ! extractResult(mapper.deleteResourceUser(id))
 
     case cc.bulkDeleteAllResourceUsers() =>
-      logger.info("bulkDeleteAllResourceUsers()")
+      logger.debug("bulkDeleteAllResourceUsers()")
       sender ! extractResult(mapper.bulkDeleteAllResourceUsers())
 
-    case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 
