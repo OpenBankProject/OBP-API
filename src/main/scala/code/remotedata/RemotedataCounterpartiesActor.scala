@@ -24,12 +24,16 @@ class RemotedataCounterpartiesActor extends Actor with ActorHelper {
     case cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
                                name, otherAccountRoutingScheme,
                                otherAccountRoutingAddress, otherBankRoutingScheme,
+                               otherBranchRoutingScheme, otherBranchRoutingAddress,
                                otherBankRoutingAddress, isBeneficiary) =>
       logger.debug("createCounterparty(" + createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
-                    + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ isBeneficiary+ ")")
-      sender ! extractResult(mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name,
-                                           otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
-                                           isBeneficiary))
+                    + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ otherBranchRoutingScheme+
+                    ", "+ otherBranchRoutingAddress+ ", "+ isBeneficiary+")")
+      sender ! extractResult(mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
+                                                       name, otherAccountRoutingScheme,
+                                                       otherAccountRoutingAddress, otherBankRoutingScheme,
+                                                       otherBranchRoutingScheme, otherBranchRoutingAddress,
+                                                       otherBankRoutingAddress, isBeneficiary))
 
     case cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty) =>
       logger.debug("getOrCreateMetadata(" + originalPartyBankId +", " +originalPartyAccountId+otherParty+")")

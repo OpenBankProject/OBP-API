@@ -16,6 +16,8 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
     other_account_routing_address="DE12 1234 5123 4510 2207 8077 877",
     other_bank_routing_scheme="BIC",
     other_bank_routing_address="123456",
+    other_branch_routing_scheme = "OBP",
+    other_branch_routing_address ="Berlin",
     is_beneficiary = true
   )
 
