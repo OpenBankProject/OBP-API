@@ -43,6 +43,8 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
                                   otherAccountRoutingAddress: String,
                                   otherBankRoutingScheme: String,
                                   otherBankRoutingAddress: String,
+                                  otherBranchRoutingScheme: String,
+                                  otherBranchRoutingAddress: String,
                                   isBeneficiary: Boolean): Box[CounterpartyTrait] =
     extractFutureToBox(actor ? cc.createCounterparty( createdByUserId, thisBankId,
                                                       thisAccountId, thisViewId, name,
@@ -50,6 +52,8 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
                                                       otherAccountRoutingAddress,
                                                       otherBankRoutingScheme,
                                                       otherBankRoutingAddress,
+                                                      otherBranchRoutingScheme,
+                                                      otherBranchRoutingAddress,
                                                       isBeneficiary))
 
   override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean =

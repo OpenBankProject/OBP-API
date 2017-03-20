@@ -956,6 +956,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         otherAccountRoutingScheme = "obp",
         otherBankRoutingAddress = "1234",
         otherAccountRoutingAddress = "1234",
+        otherBranchRoutingScheme = "OBP",
+        otherBranchRoutingAddress ="Berlin",
         isBeneficiary = true
       )
     ),
@@ -1011,6 +1013,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           otherAccountRoutingScheme = "obp",
           otherBankRoutingAddress = "1234",
           otherAccountRoutingAddress = "1234",
+          otherBranchRoutingScheme = "OBP",
+          otherBranchRoutingAddress ="Berlin",
           isBeneficiary = true
         )
       )

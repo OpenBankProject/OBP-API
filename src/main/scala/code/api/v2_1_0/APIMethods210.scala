@@ -1156,6 +1156,8 @@ trait APIMethods210 {
         other_account_routing_address="7987987-2348987-234234",
         other_bank_routing_scheme="BIC",
         other_bank_routing_address="123456",
+        other_branch_routing_scheme = "OBP",
+        other_branch_routing_address ="Berlin",
         is_beneficiary = true
       )),
       emptyObjectJson,
@@ -1190,6 +1192,8 @@ trait APIMethods210 {
               otherAccountRoutingAddress=postJson.other_account_routing_address,
               otherBankRoutingScheme=postJson.other_bank_routing_scheme,
               otherBankRoutingAddress=postJson.other_bank_routing_address,
+              otherBranchRoutingScheme=postJson.other_branch_routing_scheme,
+              otherBranchRoutingAddress=postJson.other_branch_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
 //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".

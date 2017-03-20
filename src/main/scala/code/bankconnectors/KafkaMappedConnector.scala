@@ -1283,6 +1283,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
     def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
     def otherBankRoutingAddress: String = counterparty.other_bank_routing_address
+    def otherBranchRoutingScheme: String = counterparty.other_branch_routing_scheme
+    def otherBranchRoutingAddress: String = counterparty.other_branch_routing_address
     def isBeneficiary : Boolean = counterparty.is_beneficiary
   }
 
@@ -1504,6 +1506,8 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        other_account_routing_scheme: String,
                                        other_bank_routing_address: String,
                                        other_account_routing_address: String,
+                                       other_branch_routing_scheme: String,
+                                       other_branch_routing_address: String,
                                        is_beneficiary: Boolean
                                      )
 

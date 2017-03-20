@@ -276,6 +276,8 @@ case class InboundCounterpartySnake(
   otherAccountRoutingScheme: String,
   otherBankRoutingAddress: String,
   otherAccountRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
   isBeneficiary: Boolean
 )
 
@@ -291,6 +293,8 @@ case class InboundCounterparty(counterparty: InboundCounterpartySnake) extends C
   def otherAccountRoutingAddress: String = counterparty.otherAccountRoutingAddress
   def otherBankRoutingScheme: String = counterparty.otherBankRoutingScheme
   def otherBankRoutingAddress: String = counterparty.otherBankRoutingAddress
+  def otherBranchRoutingScheme: String = counterparty.otherBranchRoutingScheme
+  def otherBranchRoutingAddress: String = counterparty.otherBranchRoutingAddress
   def isBeneficiary: Boolean = counterparty.isBeneficiary
 }
 

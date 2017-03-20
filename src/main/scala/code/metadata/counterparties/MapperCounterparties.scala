@@ -125,6 +125,8 @@ object MapperCounterparties extends Counterparties with Loggable {
                                   otherAccountRoutingAddress : String,
                                   otherBankRoutingScheme : String,
                                   otherBankRoutingAddress : String,
+                                  otherBranchRoutingScheme: String,
+                                  otherBranchRoutingAddress: String,
                                   isBeneficiary: Boolean
                                  ): Box[CounterpartyTrait] = {
     val metadata = MappedCounterpartyMetadata.create
@@ -145,6 +147,8 @@ object MapperCounterparties extends Counterparties with Loggable {
       .mOtherAccountRoutingAddress(otherAccountRoutingAddress)
       .mOtherBankRoutingScheme(otherBankRoutingScheme)
       .mOtherBankRoutingAddress(otherBankRoutingAddress)
+      .mOtherBranchRoutingAddress(otherBranchRoutingAddress)
+      .mOtherBranchRoutingScheme(otherBranchRoutingScheme)
       .mIsBeneficiary(isBeneficiary)
       .saveMe()
     )
@@ -314,6 +318,8 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mOtherAccountRoutingAddress extends MappedString(this, 255)
   object mOtherBankRoutingScheme extends MappedString(this, 255)
   object mOtherBankRoutingAddress extends MappedString(this, 255)
+  object mOtherBranchRoutingScheme extends MappedString(this, 255)
+  object mOtherBranchRoutingAddress extends MappedString(this, 255)
   object mIsBeneficiary extends MappedBoolean(this)
 
 
@@ -327,6 +333,8 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def otherAccountRoutingScheme = mOtherAccountRoutingScheme.get
   override def otherAccountRoutingAddress: String  = mOtherAccountRoutingAddress.get
   override def otherBankRoutingScheme: String = mOtherBankRoutingScheme.get
+  override def otherBranchRoutingScheme: String = mOtherBranchRoutingScheme.get
+  override def otherBranchRoutingAddress: String = mOtherBranchRoutingAddress.get
   override def otherBankRoutingAddress: String = mOtherBankRoutingAddress.get
   override def isBeneficiary: Boolean = mIsBeneficiary.get
 }
