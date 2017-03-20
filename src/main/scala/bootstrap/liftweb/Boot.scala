@@ -438,14 +438,14 @@ object ToSchemify {
     MappedCustomer,
     MappedUserCustomerLink,
     Consumer,
+    MappedCounterparty,
+    MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag,
     MapperAccountHolders
   )
 
   // The following tables are accessed directly via Mapper / JDBC
   val models = List(
-    MappedCounterparty,
-    MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag,
     AuthUser,
     Admin,
     Nonce,

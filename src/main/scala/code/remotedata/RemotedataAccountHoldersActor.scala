@@ -23,18 +23,18 @@ class RemotedataAccountHoldersActor extends Actor with ActorHelper{
   def receive = {
 
     case cc.createAccountHolder(userId: Long, bankId: String, accountId: String, source: String) =>
-      logger.info("createAccountHolder(" + userId +", "+ bankId +", "+ accountId +", "+ source +")")
+      logger.debug("createAccountHolder(" + userId +", "+ bankId +", "+ accountId +", "+ source +")")
       sender ! extractResult(mapper.createAccountHolder(userId, bankId, accountId, source))
 
     case cc.getAccountHolders(bankId: BankId, accountId: AccountId) =>
-      logger.info("getAccountHolders(" + bankId +", "+ accountId +")")
+      logger.debug("getAccountHolders(" + bankId +", "+ accountId +")")
       sender ! extractResult(mapper.getAccountHolders(bankId, accountId))
 
     case cc.bulkDeleteAllAccountHolders() =>
-      logger.info("bulkDeleteAllAccountHolders()")
+      logger.debug("bulkDeleteAllAccountHolders()")
       sender ! extractResult(mapper.bulkDeleteAllAccountHolders())
 
-    case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }
 }
 

@@ -21,22 +21,22 @@ class RemotedataCommentsActor extends Actor with ActorHelper {
   def receive = {
 
     case cc.getComments(bankId, accountId, transactionId, viewId) =>
-      logger.info("getComments(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
+      logger.debug("getComments(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
       sender ! extractResult(mapper.getComments(bankId, accountId, transactionId)(viewId))
 
     case cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
-      logger.info("addComment(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
+      logger.debug("addComment(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
       sender ! extractResult(mapper.addComment(bankId, accountId, transactionId)(userId, viewId, text, datePosted))
 
     case cc.deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, commentId : String) =>
-      logger.info("deleteComment(" + bankId +", "+ accountId +", "+ transactionId + commentId +")")
+      logger.debug("deleteComment(" + bankId +", "+ accountId +", "+ transactionId + commentId +")")
       sender ! extractResult(mapper.deleteComment(bankId, accountId, transactionId)(commentId))
 
     case cc.bulkDeleteComments(bankId: BankId, accountId: AccountId) =>
-      logger.info("bulkDeleteComments(" + bankId +", "+ accountId + ")")
+      logger.debug("bulkDeleteComments(" + bankId +", "+ accountId + ")")
       sender ! extractResult(mapper.bulkDeleteComments(bankId, accountId))
 
-    case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

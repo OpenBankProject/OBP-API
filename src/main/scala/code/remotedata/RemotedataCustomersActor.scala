@@ -19,27 +19,27 @@ class RemotedataCustomersActor extends Actor with ActorHelper {
   def receive = {
 
     case cc.getCustomerByUserId(bankId: BankId, userId: String) =>
-      logger.info("getCustomerByUserId(" + bankId + ", " + userId + ")")
+      logger.debug("getCustomerByUserId(" + bankId + ", " + userId + ")")
       sender ! extractResult(mapper.getCustomerByUserId(bankId, userId))
 
     case cc.getCustomerByCustomerId(customerId: String) =>
-      logger.info("getCustomerByCustomerId(" + customerId + ")")
+      logger.debug("getCustomerByCustomerId(" + customerId + ")")
       sender ! extractResult(mapper.getCustomerByCustomerId(customerId))
 
     case cc.getBankIdByCustomerId(customerId: String) =>
-      logger.info("getBankIdByCustomerId(" + customerId + ")")
+      logger.debug("getBankIdByCustomerId(" + customerId + ")")
       sender ! extractResult(mapper.getBankIdByCustomerId(customerId))
 
     case cc.getCustomerByCustomerNumber(customerNumber: String, bankId: BankId) =>
-      logger.info("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
+      logger.debug("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
       sender ! extractResult(mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getUser(bankId: BankId, customerNumber: String) =>
-      logger.info("getUser(" + bankId + ", " + customerNumber + ")")
+      logger.debug("getUser(" + bankId + ", " + customerNumber + ")")
       sender ! extractResult(mapper.getUser(bankId, customerNumber))
 
     case cc.checkCustomerNumberAvailable(bankId: BankId, customerNumber: String) =>
-      logger.info("checkCustomerNumberAvailable(" + bankId + ", " + customerNumber + ")")
+      logger.debug("checkCustomerNumberAvailable(" + bankId + ", " + customerNumber + ")")
       sender ! extractResult(mapper.checkCustomerNumberAvailable(bankId, customerNumber))
 
     case cc.addCustomer(bankId: BankId,
@@ -59,7 +59,7 @@ class RemotedataCustomersActor extends Actor with ActorHelper {
                         creditRating: Option[CreditRating],
                         creditLimit: Option[AmountOfMoney]
                         ) =>
-      logger.info("addCustomer(" + bankId + ", " + number + ")")
+      logger.debug("addCustomer(" + bankId + ", " + number + ")")
       sender ! extractResult(mapper.addCustomer(bankId,
                                                 number,
                                                 legalName,
@@ -79,10 +79,10 @@ class RemotedataCustomersActor extends Actor with ActorHelper {
                                               ))
 
     case cc.bulkDeleteCustomers() =>
-      logger.info("bulkDeleteCustomers()")
+      logger.debug("bulkDeleteCustomers()")
       sender ! extractResult(mapper.bulkDeleteCustomers())
 
-    case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

@@ -1,7 +1,9 @@
 package code.metadata.counterparties
 
-import code.model.{AccountId, BankId, CounterpartyMetadata, Counterparty}
-import net.liftweb.common.{Box, Loggable, Empty}
+import java.util.Date
+
+import code.model._
+import net.liftweb.common.{Box, Empty, Loggable}
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Full
@@ -126,4 +128,25 @@ object MongoCounterparties extends Counterparties with Loggable {
                                         thisAccountId: String,
                                         thisViewId: String
                                       ): Boolean = false
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = ???
+
+  override def addPublicAlias(counterPartyId : String, alias: String): Box[Boolean] = ???
+  override def addPrivateAlias(counterPartyId : String, alias: String): Box[Boolean] = ???
+  override def addURL(counterPartyId : String, url: String): Box[Boolean] = ???
+  override def addImageURL(counterPartyId : String, imageUrl: String): Box[Boolean] = ???
+  override def addOpenCorporatesURL(counterPartyId : String, url: String): Box[Boolean] = ???
+  override def addMoreInfo(counterPartyId : String, moreInfo: String): Box[Boolean] = ???
+  override def addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
+  override def addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
+  override def deletePhysicalLocation(counterPartyId : String): Box[Boolean] = ???
+  override def deleteCorporateLocation(counterPartyId : String): Box[Boolean] = ???
+  override def getCorporateLocation(counterPartyId : String): Box[GeoTag] = ???
+  override def getPhysicalLocation(counterPartyId : String): Box[GeoTag] = ???
+  override def getOpenCorporatesURL(counterPartyId : String): Box[String] = ???
+  override def getImageURL(counterPartyId : String): Box[String] = ???
+  override def getUrl(counterPartyId : String): Box[String] = ???
+  override def getMoreInfo(counterPartyId : String): Box[String] = ???
+  override def getPublicAlias(counterPartyId : String): Box[String] = ???
+  override def getPrivateAlias(counterPartyId : String): Box[String] = ???
 }
