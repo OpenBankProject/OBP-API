@@ -1550,7 +1550,7 @@ trait APIMethods210 {
             // defaults to current date
             endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
               s"${ErrorMessages.InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
-            // default 200, return 200 items
+            // default 1000, return 1000 items
             // TODO set a maximum of limit of 10000 
             limit <- tryo(S.param("limit").getOrElse("1000").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
