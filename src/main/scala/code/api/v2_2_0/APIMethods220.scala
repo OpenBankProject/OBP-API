@@ -265,7 +265,7 @@ trait APIMethods220 {
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
+            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId) ?~ {"Connector.connector.vend.getCounterparties faild, can not get data from Database or Kafka .." }
           } yield {
             val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
             successJsonResponse(Extraction.decompose(counterpartiesJson))
