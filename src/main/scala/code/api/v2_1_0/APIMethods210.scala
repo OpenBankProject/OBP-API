@@ -1551,9 +1551,13 @@ trait APIMethods210 {
             endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
               s"${ErrorMessages.InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
             // default 1000, return 1000 items
-            // TODO set a maximum of limit of 10000 
-            limit <- tryo(S.param("limit").getOrElse("1000").toInt) ?~!
-              s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
+            limit <- tryo(
+                        S.param("limit") match {
+                          case Full(l) if (l.toInt > 10000) => 10000
+                          case Full(l)                      => l.toInt
+                          case _                            => 1000
+                        }
+                      ) ?~!  s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
