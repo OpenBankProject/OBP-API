@@ -216,7 +216,7 @@ class ConsumerRegistration extends Loggable {
 
   }
 
-
+  // This is to let the system administrators / API managers know that someone has registered a consumer key.
   def notifyRegistrationOccurred(registered : Consumer) = {
     import net.liftweb.util.Mailer
     import net.liftweb.util.Mailer._
