@@ -58,20 +58,9 @@ class ConsumerRegistration extends Loggable {
 
   val registrationMoreInfoText : String = registrationMoreInfoUrl match {
     case "" => ""
-    case _  =>  Props.get("webui_post_consumer_registration_more_info_text", "Please provde more information about your Application and / or Startup here:")
+    case _  =>  Props.get("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
   }
 
-
-
-  // TODO make this a clickable link. See directlogin-endpoint below
-
-  def consumerRegistrationMoreInfoText: CssSel = {
-      ".post_consumer_registration_more_info_text *" #> scala.xml.Unparsed(registrationMoreInfoText)
-  }
-  
-  def consumerRegistrationMoreInfoUrl: CssSel = {
-    ".post_consumer_registration_more_info_url  *" #> scala.xml.Unparsed(registrationMoreInfoUrl)
-  }
   
   def registerForm = {
 
@@ -118,7 +107,9 @@ class ConsumerRegistration extends Loggable {
       ".oauth-endpoint a *" #> urlOAuthEndpoint &
       ".oauth-endpoint a [href]" #> urlOAuthEndpoint &
       ".directlogin-endpoint a *" #> urlDirectLoginEndpoint &
-      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint
+      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
+      ".post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
+      ".post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl
     }
 
     def saveAndShowResults(consumer : Consumer) = {

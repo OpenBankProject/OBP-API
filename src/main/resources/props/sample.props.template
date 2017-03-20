@@ -238,9 +238,7 @@ webui_agree_terms_url =
 # If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
-#webui_post_consumer_registration_more_info_text =
-
-
+#webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
 
 
 
