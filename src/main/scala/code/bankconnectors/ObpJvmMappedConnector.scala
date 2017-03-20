@@ -6,6 +6,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
+import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.fx.{FXRate, fx}
@@ -350,8 +351,16 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
     val parameters = new JHashMap
-
-    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
+    
+    //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
+    //Note: for Socegn, need bankid, accountId and userId. 
+    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
+    // So we links the bankId and UserId in MapperAccountHolders talble.
+    val primaryUserIdentifier = MapperAccountHolders.getAccountHolders(bankId, accountId).toList.length match {
+       //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!") 
+      case 0 => "xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!"
+      case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+    }
 
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
@@ -375,7 +384,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         generate_accountants_view = false,
         generate_auditors_view = false)))
       case None =>
-        logger.info(s"getBankAccount says ! account.isPresent")
+        logger.info(s"getBankAccount says ! account.isPresent and userId is ${primaryUserIdentifier}")
         Empty
     }
   }
@@ -1424,7 +1433,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = 
+  {
+    LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
+  }
 
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new ObpJvmBankAccount(ObpJvmInboundAccount(id = "",

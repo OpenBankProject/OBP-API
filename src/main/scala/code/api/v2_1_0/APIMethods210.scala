@@ -1156,6 +1156,8 @@ trait APIMethods210 {
         other_account_routing_address="7987987-2348987-234234",
         other_bank_routing_scheme="BIC",
         other_bank_routing_address="123456",
+        other_branch_routing_scheme = "OBP",
+        other_branch_routing_address ="Berlin",
         is_beneficiary = true
       )),
       emptyObjectJson,
@@ -1190,6 +1192,8 @@ trait APIMethods210 {
               otherAccountRoutingAddress=postJson.other_account_routing_address,
               otherBankRoutingScheme=postJson.other_bank_routing_scheme,
               otherBankRoutingAddress=postJson.other_bank_routing_address,
+              otherBranchRoutingScheme=postJson.other_branch_routing_scheme,
+              otherBranchRoutingAddress=postJson.other_branch_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
 //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
@@ -1550,10 +1554,14 @@ trait APIMethods210 {
             // defaults to current date
             endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
               s"${ErrorMessages.InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
-            // default 200, return 200 items
-            // TODO set a maximum of limit of 10000 
-            limit <- tryo(S.param("limit").getOrElse("1000").toInt) ?~!
-              s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
+            // default 1000, return 1000 items
+            limit <- tryo(
+                        S.param("limit") match {
+                          case Full(l) if (l.toInt > 10000) => 10000
+                          case Full(l)                      => l.toInt
+                          case _                            => 1000
+                        }
+                      ) ?~!  s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"

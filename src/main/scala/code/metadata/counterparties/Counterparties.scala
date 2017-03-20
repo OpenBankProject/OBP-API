@@ -41,6 +41,8 @@ trait Counterparties {
                           otherAccountRoutingAddress: String,
                           otherBankRoutingScheme: String,
                           otherBankRoutingAddress: String,
+                          otherBranchRoutingScheme: String,
+                          otherBranchRoutingAddress: String,
                           isBeneficiary:Boolean
                         ): Box[CounterpartyTrait]
 
@@ -82,6 +84,8 @@ trait CounterpartyTrait {
   def otherAccountRoutingAddress: String
   def otherBankRoutingScheme: String
   def otherBankRoutingAddress: String
+  def otherBranchRoutingScheme: String
+  def otherBranchRoutingAddress: String
   def isBeneficiary : Boolean
 
 }
@@ -104,6 +108,7 @@ class RemotedataCounterpartiesCaseClasses {
                                  name: String,
                                  otherAccountRoutingScheme: String,
                                  otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
+                                 otherBranchRoutingScheme: String, otherBranchRoutingAddress: String,
                                  otherBankRoutingAddress: String, isBeneficiary: Boolean)
 
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)

@@ -142,6 +142,8 @@ case class CounterpartyJSON(
                              other_account_routing_scheme: String,
                              other_bank_routing_address: String,
                              other_account_routing_address: String,
+                             other_branch_routing_scheme: String,
+                             other_branch_routing_address: String,
                              is_beneficiary: Boolean
                            )
 
@@ -262,6 +264,8 @@ object JSONFactory220{
       other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
       other_bank_routing_address = counterparty.otherBankRoutingAddress,
       other_account_routing_address = counterparty.otherAccountRoutingAddress,
+      other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
+      other_branch_routing_address =counterparty.otherBranchRoutingAddress,
       is_beneficiary = counterparty.isBeneficiary
     )
   }

@@ -117,6 +117,8 @@ object MongoCounterparties extends Counterparties with Loggable {
                                    otherAccountRoutingAddress: String,
                                    otherBankRoutingScheme: String,
                                    otherBankRoutingAddress: String,
+                                   otherBranchRoutingScheme: String,
+                                   otherBranchRoutingAddress: String,
                                    isBeneficiary: Boolean
                                  ): Box[CounterpartyTrait] = Empty
 

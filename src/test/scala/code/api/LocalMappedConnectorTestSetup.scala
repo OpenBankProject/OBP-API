@@ -41,6 +41,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       otherAccountRoutingScheme = otherAccountRoutingScheme,
       otherBankRoutingScheme = "OBP",
       otherBankRoutingAddress = bankId,
+      otherBranchRoutingScheme ="OBP",
+      otherBranchRoutingAddress ="Berlin",
       isBeneficiary = isBeneficiary
     ).get
   }
