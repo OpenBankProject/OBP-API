@@ -14,9 +14,12 @@ object RemotedataConfig {
   val localHostname = "127.0.0.1" 
   val localPort = "2552"
 
+  val loglevel = Props.get("remotedata.loglevel").openOr("INFO")
+
   val commonConf = 
-  """
+  s"""
   akka {
+    loglevel = ${loglevel}
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
       provider = "akka.remote.RemoteActorRefProvider"
