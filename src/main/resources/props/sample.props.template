@@ -296,3 +296,6 @@ consumers_enabled_by_default=true
 # Autocomplete for login form has to be explicitly set
 autocomplete_at_login_form_enabled=false
 
+# Skip Auth User Email validation (defaults to true)
+#authUser.skipEmailValidation=true
+

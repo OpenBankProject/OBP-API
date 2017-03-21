@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+12/03/2017                  Added authUser.skipEmailValidation . This defaults to true to maintain current behaviour
 12/03/2017    c5f6b02       Added mail.api.consumer.registered.notification.send.sensistive to Props (default is false)
 17/03/2017                  Added the following to sample.props.template (name change): #webui_post_consumer_registration_more_info_url =
 17/03/2017                  Added the following to sample.props.template (name change): #webui_post_consumer_registration_more_info_text =
