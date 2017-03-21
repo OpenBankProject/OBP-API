@@ -181,7 +181,7 @@ class ConsumerRegistration extends Loggable {
     import net.liftweb.util.Mailer._
 
     val mailSent = for {
-      send_? : String <- Props.get("mail.api.consumer.registered.notification.send") if send_?.equalsIgnoreCase("true")
+      send : String <- Props.get("mail.api.consumer.registered.notification.send") if send.equalsIgnoreCase("true")
       from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
     } yield {
 
