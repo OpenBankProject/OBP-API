@@ -158,7 +158,7 @@ object ErrorMessages {
 
   val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
-  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password. It should be min 10 characters with mixed numbers + letters + upper+lower case + at least one special character, or longer than 16 characters without validations"
+  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
 
 
