@@ -98,7 +98,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val formatVersion: String  = "Mar2017"
 
   implicit val formats = net.liftweb.json.DefaultFormats
-  val messageDocs = ArrayBuffer[MessageDoc]()
+  override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDateString: String = "22/08/2013"
   val exampleDate = simpleDateFormat.parse(exampleDateString)
