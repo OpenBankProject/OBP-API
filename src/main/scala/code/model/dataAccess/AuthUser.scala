@@ -673,7 +673,7 @@ import net.liftweb.util.Helpers._
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
 
           case Full(user) if !user.validated_? =>
-            S.error(S.?("account.validation.error"))
+            S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
@@ -715,7 +715,7 @@ import net.liftweb.util.Helpers._
               }
           case _ =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin))
+            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
         }
       }
     }
