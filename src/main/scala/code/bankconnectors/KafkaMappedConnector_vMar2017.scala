@@ -82,7 +82,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val cachedPublicAccounts  = TTLCache[List[InboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[InboundAccount]](cacheTTL)
   val cachedFxRate          = TTLCache[InboundFXRate](cacheTTL)
-  val cachedCounterparty    = TTLCache[InboundCounterpartySnake](cacheTTL)
+  val cachedCounterparty    = TTLCache[InboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[InboundTransactionRequestTypeCharge](cacheTTL)
 
 
@@ -98,7 +98,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val formatVersion: String  = "Mar2017"
 
   implicit val formats = net.liftweb.json.DefaultFormats
-  val messageDocs = ArrayBuffer[MessageDoc]()
+  override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDateString: String = "22/08/2013"
   val exampleDate = simpleDateFormat.parse(exampleDateString)
@@ -126,10 +126,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         displayName = "susan"
       )
     ),
-    errorResponseMessages = Extraction.decompose(
-      ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound)) 
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   def getUser(username: String, password: String): Box[InboundUser] = {
@@ -190,10 +187,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           generateAuditorsView = true)
         :: Nil
     ),
-    errorResponseMessages = Extraction.decompose(
-      ErrorMessage(ErrorMessages.InvalidNumber))  // TODO Under what circumstances does this produce invalid number?
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   def updateUserAccountViews( user: ResourceUser ) = {
@@ -264,10 +258,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         logo = "TESOBE",
         url = "https://tesobe.com/")
         :: Nil),
-    errorResponseMessages = Extraction.decompose(
-      ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound)) 
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   //gets banks handled by this connector
@@ -320,9 +311,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         currency = "EUR"
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   // Gets current challenge level for transaction request
@@ -370,14 +359,13 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         currency = "EUR"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(InboundChargeLevel(
-      currency = "EUR",
-      amount = ""
-    )
+    exampleInboundMessage = Extraction.decompose(
+      InboundChargeLevel(
+        currency = "EUR",
+        amount = ""
+      )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   override def getChargeLevel(bankId: BankId,
@@ -440,9 +428,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         transactionRequestId = "1234567"
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   //TODO confused OutboundChallenge used for InboundChallenge, this should be changed ??
@@ -484,9 +470,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleInboundMessage = Extraction.decompose(
       InboundValidateChallangeAnswer(answer = "")
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
     // Create argument list
@@ -528,9 +512,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         url = "https://tesobe.com/"
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBank(bankid: BankId): Box[Bank] = {
     // Create argument list
@@ -581,9 +563,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         userId = "1234"
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
@@ -655,9 +635,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         userId = "1234"
       ) :: Nil
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   //TODO, this action is different from method name
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -731,9 +709,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         generateAuditorsView = true
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount2] = {
     // Generate random uuid to be used as request-response match id
@@ -803,9 +779,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         generateAuditorsView = true
       ) :: Nil
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount2] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -856,10 +830,23 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         number = ""
       )
     ),
-    exampleInboundMessage = emptyObjectJson,
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    exampleInboundMessage = Extraction.decompose(
+      InboundAccount(
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        bankId = "gh.29.uk",
+        label = "Good",
+        number = "123",
+        `type` = "AC",
+        balanceAmount = "50",
+        balanceCurrency = "EUR",
+        iban = "12345",
+        owners = "Susan" :: " Frank" :: Nil,
+        generatePublicView = true,
+        generateAccountantsView = true,
+        generateAuditorsView = true
+      )
+    ),
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
@@ -945,7 +932,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundCounterpartySnake(
+      InboundCounterparty(
         name = "sushan",
         createdByUserId = "12345",
         thisBankId = "gh.29.uk",
@@ -961,9 +948,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         isBeneficiary = true
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
@@ -980,9 +965,9 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       // Since result is single account, we need only first list entry
       implicit val formats = net.liftweb.json.DefaultFormats
       val r = {
-        cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterpartySnake])
+        cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterparty])
       }
-      Full(new InboundCounterparty(r))
+      Full(CounterpartyTrait2(r))
     }
   }
   
@@ -1001,8 +986,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundCounterparty(
-        InboundCounterpartySnake(
+      CounterpartyTrait2(
+        InboundCounterparty(
           name = "sushan",
           createdByUserId = "12345",
           thisBankId = "gh.29.uk",
@@ -1019,9 +1004,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         )
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
@@ -1036,12 +1019,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         otherAccountRoutingAddress = iban,
         otherAccountRoutingScheme = "IBAN"
       )
-      //TODO test whether it is correct , it changed the response class, change kafka side?? 
-      val r = process(req).extract[InboundCounterparty] // Was InboundCounterpartySnake
-
-      Full(r)
-
-      //Full(new InboundCounterparty(r))
+      val r = process(req).extract[InboundCounterparty] 
+      Full(CounterpartyTrait2(r))
     }
   }
 
@@ -1135,10 +1114,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         toCounterpartyBankRoutingScheme = "OBP"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(InboundTransactionId(transactionId = "1234")),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    exampleInboundMessage = Extraction.decompose(
+      InboundTransactionId(transactionId = "1234")
+    ),
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   
   /**
@@ -1259,9 +1238,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         ) :: Nil
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   /*
     Transaction Requests
@@ -1275,7 +1252,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty. 
     val r = try{
       val response = process(req).extract[InboundTransactionRequestStatus]
-      Full(new InboundTransactionRequestStatus2(response))
+      Full(new TransactionRequestStatus2(response))
     }catch {
       case _ => Empty
     }
@@ -1690,9 +1667,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         effectiveDate = ""
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
@@ -1709,7 +1684,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       cachedFxRate.getOrElseUpdate(req.toString, () => process(req).extract[InboundFXRate])
     }
     // Return result
-    Full(new InboundFXRateCamelCase(r))
+    Full(new FXRate2(r))
   }
   
   messageDocs += MessageDoc(
@@ -1730,16 +1705,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundTransactionRequestTypeCharge(
-        transactionRequestTypeId = "",
+        transactionRequestType = "",
         bankId = "gh.29.uk",
         chargeCurrency = "EUR",
         chargeAmount = "2",
         chargeSummary = " charge 1 eur"
       )
     ),
-    errorResponseMessages = Extraction.decompose(ErrorMessage(ErrorMessages.InvalidNumber))
-      :: Extraction.decompose(ErrorMessage(ErrorMessages.BankNotFound))
-      :: Nil
+    errorResponseMessages = emptyObjectJson :: Nil
   )
   //get the current charge specified by bankId, accountId, viewId and transactionRequestType
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
@@ -1763,10 +1736,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     // Return result
      val result = r match {
-      case Full(f) =>  InboundTransactionRequestTypeChargeCamelCase(f.get)
+      case Full(f) => TransactionRequestTypeCharge2(f.get)
       case _ =>
         val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
-        InboundTransactionRequestTypeChargeCamelCase(InboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
+        TransactionRequestTypeCharge2(InboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
       }
 
     // result

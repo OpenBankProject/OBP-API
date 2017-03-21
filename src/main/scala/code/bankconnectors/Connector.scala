@@ -25,6 +25,7 @@ import code.users.Users
 import code.views.Views
 import net.liftweb.mapper.By
 
+import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
 import scala.util.Random
 
@@ -85,12 +86,22 @@ case class OBPFromDate(value: Date) extends OBPQueryParam
 case class OBPToDate(value: Date) extends OBPQueryParam
 case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
 
+//Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
+case class InboundUser(
+  email: String,
+  password: String,
+  displayName: String
+)
+
 trait Connector {
 
   //We have the Connector define its BankAccount implementation here so that it can
   //have access to the implementation details (e.g. the ability to set the balance) in
   //the implementation of makePaymentImpl
   type AccountType <: BankAccount
+
+
+  val messageDocs = ArrayBuffer[MessageDoc]()
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered

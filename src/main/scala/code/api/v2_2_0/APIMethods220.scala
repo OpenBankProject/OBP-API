@@ -1,55 +1,25 @@
 package code.api.v2_2_0
 
 import java.text.SimpleDateFormat
-import java.util.Date
 
-import code.TransactionTypes.TransactionType
 import code.api.util.APIUtil.isValidCurrencyISOCode
-import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
-import code.api.v1_2_1.{JSONFactory, AmountOfMoneyJSON}
-import code.api.v1_3_0.{JSONFactory1_3_0, _}
-import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_0_0.{TransactionRequestBodyJSON,_}
-import code.api.v2_1_0.JSONFactory210._
-import code.atms.Atms
-import code.atms.Atms.AtmId
-import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017, Connector}
-import code.branches.Branches
-import code.branches.Branches.BranchId
-import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
-import code.entitlement.Entitlement
-import code.fx.{MappedFXRate, fx}
-import code.metadata.counterparties.Counterparties
-import code.model.dataAccess.AuthUser
+import code.api.util.ErrorMessages
+import code.bankconnectors.{Connector, KafkaJSONFactory_vMar2017}
 import code.model.{BankId, ViewId, _}
-import code.products.Products.ProductCode
-import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mapper.By
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
-import code.util.Helper._
-import net.liftweb.json.JsonDSL._
-
-import code.api.APIFailure
 import code.api.util.APIUtil._
-import code.sandbox.{OBPDataImport, SandboxDataImport}
-import code.util.Helper
-import net.liftweb.common.{Empty, Full, Box}
+import code.util.Helper._
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.JsonResponse
-import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
-import net.liftweb.json._
-import net.liftweb.json.Serialization.{write}
 
 
 trait APIMethods220 {
@@ -299,7 +269,8 @@ trait APIMethods220 {
       case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
         user => {
           for {
-            messageDocs <- Full(KafkaMappedConnector_vMar2017.messageDocs.toList)
+            connector <- tryo{Connector.getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_vMar2017""")}
+            messageDocs <- tryo{connector.messageDocs.toList}
           } yield {
             val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
