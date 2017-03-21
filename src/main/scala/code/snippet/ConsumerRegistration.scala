@@ -185,6 +185,11 @@ class ConsumerRegistration extends Loggable {
       from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
     } yield {
 
+      // Only send consumer key / secret by email if we explicitly want that.
+      val sendSensitive : Boolean = Props.getBool("mail.api.consumer.registered.notification.send.sensistive", false)
+      val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
+      val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
+
       val thisApiInstance = Props.get("hostname", "unknown host")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
@@ -193,8 +198,8 @@ class ConsumerRegistration extends Loggable {
         s"App name: ${registered.name.get} \n" +
         s"App type: ${registered.appType.get.toString} \n" +
         s"App description: ${registered.description.get} \n" +
-        s"Consumer Key: ${registered.key.get} \n" +
-        s"Consumer Secret : ${registered.secret.get} \n" +
+        s"Consumer Key: ${consumerKeyOrMessage} \n" +
+        s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
         s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
