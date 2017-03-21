@@ -193,7 +193,7 @@ class ConsumerRegistration extends Loggable {
       val thisApiInstance = Props.get("hostname", "unknown host")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
-      val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
+      val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
         s"App name: ${registered.name.get} \n" +
         s"App type: ${registered.appType.get.toString} \n" +
@@ -208,10 +208,14 @@ class ConsumerRegistration extends Loggable {
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 
+      val subject1 : String = "Thank you for registering to use the Open Bank Project API."
+      val subject2 : String = if (sendSensitive) "This email contains your API keys." else "This email does NOT contain your API keys."
+      val subject : String = s"$subject1 $subject2"
+
       //this is an async call
       Mailer.sendMail(
         From(from),
-        Subject("Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location."),
+        Subject(subject1),
         params :_*
       )
     }
