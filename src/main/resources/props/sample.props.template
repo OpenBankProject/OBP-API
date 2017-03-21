@@ -70,6 +70,7 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port
 ## of remote machine
+#remotedata.loglevel=INFO
 #remotedata.timeout=2
 #remotedata.enable=true
 #remotedata.hostname=127.0.0.1
