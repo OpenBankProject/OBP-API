@@ -552,19 +552,17 @@ case class InboundChargeLevel(
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Note: The following are used to create JSON to endpoint, so keep the snake_case 
-// Used to describe the Kafka message requests parameters for documentation in Json
 case class MessageDocJson(
     action: String,
-    connector_version: String,
+    connectorVersion: String,
     description: String,
-    example_outbound_message: JValue,
-    example_inbound_message: JValue,
-    error_response_messages: List[JValue]
+    exampleOutboundMessage: JValue,
+    exampleInboundMessage: JValue,
+    errorResponseMessages: List[JValue]
 )
 
 // Creates the json resource_docs
-case class MessageDocsJson(message_docs: List[MessageDocJson])
+case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
 object KafkaJSONFactory_vMar2017 {
   
@@ -575,11 +573,11 @@ object KafkaJSONFactory_vMar2017 {
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     MessageDocJson(
       action = md.action,
-      connector_version = md.connectorVersion,
+      connectorVersion = md.connectorVersion,
       description = md.description,
-      example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage,
-      error_response_messages = md.errorResponseMessages
+      exampleOutboundMessage = md.exampleOutboundMessage,
+      exampleInboundMessage = md.exampleInboundMessage,
+      errorResponseMessages = md.errorResponseMessages
     )
   }
   
