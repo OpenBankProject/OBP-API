@@ -108,8 +108,10 @@ apiPathZero=obp
 ## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
-# This property allows sending API registration data to developer's email. Please note it can reveal sensitive data.
+# This property allows sending API registration data to developer's email.
 #mail.api.consumer.registered.notification.send=false
+We only send consumer keys and secret if this is true
+#mail.api.consumer.registered.notification.send.sensistive=false
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
@@ -293,4 +295,7 @@ consumers_enabled_by_default=true
 
 # Autocomplete for login form has to be explicitly set
 autocomplete_at_login_form_enabled=false
+
+# Skip Auth User Email validation (defaults to true)
+#authUser.skipEmailValidation=true
 

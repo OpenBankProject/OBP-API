@@ -54,7 +54,7 @@ import net.liftweb.util
  * An O-R mapped "User" class that includes first name, last name, password
   *
   *
-  * // TODO Document the difference between this and User / ResourceUser
+  * // TODO Document the difference between this and AuthUser / ResourceUser
   *
  */
 class AuthUser extends MegaProtoUser[AuthUser] with Logger {
@@ -168,13 +168,13 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
 
   override def save(): Boolean = {
     if(! (user defined_?)){
-      info("user reference is null. We will create an API User")
+      info("user reference is null. We will create a ResourceUser")
       val resourceUser = createUnsavedResourceUser()
       val savedUser = Users.users.vend.saveResourceUser(resourceUser)
       user(savedUser)   //is this saving resourceUser into a user field?
     }
     else {
-      info("user reference is not null. Trying to update the API User")
+      info("user reference is not null. Trying to update the ResourceUser")
       Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
           info("API User found ")
           u.name_(username)
@@ -229,8 +229,8 @@ import net.liftweb.util.Helpers._
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
 
-  // comment this line out to require email validations
-  override def skipEmailValidation = true
+  // If we want to validate email addresses set this to false
+  override def skipEmailValidation = Props.getBool("authUser.skipEmailValidation", true)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
@@ -673,7 +673,7 @@ import net.liftweb.util.Helpers._
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
 
           case Full(user) if !user.validated_? =>
-            S.error(S.?("account.validation.error"))
+            S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
@@ -715,7 +715,7 @@ import net.liftweb.util.Helpers._
               }
           case _ =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin))
+            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
         }
       }
     }

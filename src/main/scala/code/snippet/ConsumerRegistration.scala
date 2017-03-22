@@ -181,20 +181,25 @@ class ConsumerRegistration extends Loggable {
     import net.liftweb.util.Mailer._
 
     val mailSent = for {
-      send_? : String <- Props.get("mail.api.consumer.registered.notification.send") if send_?.equalsIgnoreCase("true")
+      send : String <- Props.get("mail.api.consumer.registered.notification.send") if send.equalsIgnoreCase("true")
       from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
     } yield {
+
+      // Only send consumer key / secret by email if we explicitly want that.
+      val sendSensitive : Boolean = Props.getBool("mail.api.consumer.registered.notification.send.sensistive", false)
+      val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
+      val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = Props.get("hostname", "unknown host")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
-      val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
+      val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
         s"App name: ${registered.name.get} \n" +
         s"App type: ${registered.appType.get.toString} \n" +
         s"App description: ${registered.description.get} \n" +
-        s"Consumer Key: ${registered.key.get} \n" +
-        s"Consumer Secret : ${registered.secret.get} \n" +
+        s"Consumer Key: ${consumerKeyOrMessage} \n" +
+        s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
         s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
@@ -203,10 +208,14 @@ class ConsumerRegistration extends Loggable {
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 
+      val subject1 : String = "Thank you for registering to use the Open Bank Project API."
+      val subject2 : String = if (sendSensitive) "This email contains your API keys." else "This email does NOT contain your API keys."
+      val subject : String = s"$subject1 $subject2"
+
       //this is an async call
       Mailer.sendMail(
         From(from),
-        Subject("Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location."),
+        Subject(subject1),
         params :_*
       )
     }

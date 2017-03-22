@@ -45,19 +45,6 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 
-//TODO this may be moved to connector trait as before : 99348d866c968dcc859c8ac525e06566d630523c
-case class InboundBank(
-  bankId: String,
-  name: String,
-  logo: String,
-  url: String
-)
-
-case class InboundUser(
-  email: String,
-  password: String,
-  displayName: String
-)
 
 // Only used for import
 case class InboundAccountData(
@@ -244,8 +231,10 @@ case class OutboundTransactionRequestTypeCharge(
   transactionRequestType: String
 )
 
-case class InboundValidatedUser(email: String,
-  displayName: String)
+case class InboundValidatedUser(
+  email: String,
+  displayName: String
+)
 
 
 case class OutboundCounterpartyByIban(
@@ -265,7 +254,7 @@ case class OutboundCounterpartyByCounterpartyId(
   counterpartyId: String
 )
 
-case class InboundCounterpartySnake(
+case class InboundCounterparty(
   name: String,
   createdByUserId: String,
   thisBankId: String,
@@ -273,15 +262,15 @@ case class InboundCounterpartySnake(
   thisViewId: String,
   counterpartyId: String,
   otherBankRoutingScheme: String,
-  otherAccountRoutingScheme: String,
   otherBankRoutingAddress: String,
+  otherAccountRoutingScheme: String,
   otherAccountRoutingAddress: String,
   otherBranchRoutingScheme: String,
   otherBranchRoutingAddress: String,
   isBeneficiary: Boolean
 )
 
-case class InboundCounterparty(counterparty: InboundCounterpartySnake) extends CounterpartyTrait {
+case class CounterpartyTrait2(counterparty: InboundCounterparty) extends CounterpartyTrait {
   
   def createdByUserId: String = counterparty.createdByUserId
   def name: String = counterparty.name
@@ -298,6 +287,13 @@ case class InboundCounterparty(counterparty: InboundCounterpartySnake) extends C
   def isBeneficiary: Boolean = counterparty.isBeneficiary
 }
 
+case class InboundBank(
+  bankId: String,
+  name: String,
+  logo: String,
+  url: String
+)
+
 case class Bank2(r: InboundBank) extends Bank {
   
   def fullName = r.name
@@ -308,6 +304,21 @@ case class Bank2(r: InboundBank) extends Bank {
   def swiftBic = "None"
   def websiteUrl = r.url
 }
+
+case class InboundAccount(
+  accountId: String,
+  bankId: String,
+  label: String,
+  number: String,
+  `type`: String,
+  balanceAmount: String,
+  balanceCurrency: String,
+  iban: String,
+  owners: List[String],
+  generatePublicView: Boolean,
+  generateAccountantsView: Boolean,
+  generateAuditorsView: Boolean
+)
 
 case class BankAccount2(r: InboundAccount) extends BankAccount {
   
@@ -333,7 +344,15 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   
 }
 
-case class InboundFXRateCamelCase(inboundFxRate: InboundFXRate) extends FXRate {
+case class InboundFXRate(
+  fromCurrencyCode: String,
+  toCurrencyCode: String,
+  conversionValue: Double,
+  inverseConversionValue: Double,
+  effectiveDate: String
+)
+
+case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
   
   def fromCurrencyCode: String = inboundFxRate.fromCurrencyCode
   def toCurrencyCode: String = inboundFxRate.toCurrencyCode
@@ -343,16 +362,35 @@ case class InboundFXRateCamelCase(inboundFxRate: InboundFXRate) extends FXRate {
   def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(inboundFxRate.effectiveDate)
 }
 
-case class InboundTransactionRequestTypeChargeCamelCase(kafkaInboundTransactionRequestTypeCharge: InboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
+case class InboundTransactionRequestTypeCharge(
+  transactionRequestType: String,
+  bankId: String,
+  chargeCurrency: String,
+  chargeAmount: String,
+  chargeSummary: String
+)
 
-  def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transactionRequestTypeId
-  def bankId: String = kafkaInboundTransactionRequestTypeCharge.bankId
-  def chargeCurrency: String = kafkaInboundTransactionRequestTypeCharge.chargeCurrency
-  def chargeAmount: String = kafkaInboundTransactionRequestTypeCharge.chargeAmount
-  def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.chargeSummary
+case class TransactionRequestTypeCharge2(inboundTransactionRequestTypeCharge: InboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
+
+  def transactionRequestTypeId: String = inboundTransactionRequestTypeCharge.transactionRequestType
+  def bankId: String = inboundTransactionRequestTypeCharge.bankId
+  def chargeCurrency: String = inboundTransactionRequestTypeCharge.chargeCurrency
+  def chargeAmount: String = inboundTransactionRequestTypeCharge.chargeAmount
+  def chargeSummary: String = inboundTransactionRequestTypeCharge.chargeSummary
 }
 
-case class InboundTransactionRequestStatus2(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
+case class InboundTransactionStatus(
+  transactionId: String,
+  transactionStatus: String,
+  transactionTimestamp: String
+) extends TransactionStatus
+
+case class InboundTransactionRequestStatus(
+  transactionRequestId: String,
+  bulkTransactionsStatus: List[InboundTransactionStatus]
+)
+
+case class TransactionRequestStatus2(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
 
   override def transactionRequestid: String = kafkaInboundTransactionRequestStatus.transactionRequestId
   override def bulkTransactionsStatus: List[TransactionStatus] = kafkaInboundTransactionRequestStatus.bulkTransactionsStatus
@@ -425,21 +463,6 @@ case class InboundLocation(
   longitude: Double
 )
 
-
-case class InboundAccount(
-  accountId: String,
-  bankId: String,
-  label: String,
-  number: String,
-  `type`: String,
-  balanceAmount: String,
-  balanceCurrency: String,
-  iban: String,
-  owners: List[String],
-  generatePublicView: Boolean,
-  generateAccountantsView: Boolean,
-  generateAuditorsView: Boolean
-)
 
 //InboundTransaction --> InternalTransaction -->OutboundTransaction
 case class InternalTransaction(
@@ -516,16 +539,7 @@ case class InboundChallengeLevel(
   currency: String
 )
 
-case class InboundTransactionRequestStatus(
-  transactionRequestId: String,
-  bulkTransactionsStatus: List[InboundTransactionStatus]
-)
 
-case class InboundTransactionStatus(
-  transactionId: String,
-  transactionStatus: String,
-  transactionTimestamp: String
-) extends TransactionStatus
 
 case class OutboundCreateChallange(challengeId: String)
 
@@ -536,38 +550,19 @@ case class InboundChargeLevel(
   amount: String
 )
 
-case class InboundFXRate(
-  fromCurrencyCode: String,
-  toCurrencyCode: String,
-  conversionValue: Double,
-  inverseConversionValue: Double,
-  effectiveDate: String
-)
-
-case class InboundTransactionRequestTypeCharge(
-  transactionRequestTypeId: String,
-  bankId: String,
-  chargeCurrency: String,
-  chargeAmount: String,
-  chargeSummary: String
-)
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Note: The following are used to create JSON to endpoint, so keep the snake_case 
-// Used to describe the Kafka message requests parameters for documentation in Json
 case class MessageDocJson(
     action: String,
-    connector_version: String,
+    connectorVersion: String,
     description: String,
-    example_outbound_message: JValue,
-    example_inbound_message: JValue,
-    error_response_messages: List[JValue]
+    exampleOutboundMessage: JValue,
+    exampleInboundMessage: JValue,
+    errorResponseMessages: List[JValue]
 )
 
 // Creates the json resource_docs
-case class MessageDocsJson(message_docs: List[MessageDocJson])
+case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
 object KafkaJSONFactory_vMar2017 {
   
@@ -578,11 +573,11 @@ object KafkaJSONFactory_vMar2017 {
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     MessageDocJson(
       action = md.action,
-      connector_version = md.connectorVersion,
+      connectorVersion = md.connectorVersion,
       description = md.description,
-      example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage,
-      error_response_messages = md.errorResponseMessages
+      exampleOutboundMessage = md.exampleOutboundMessage,
+      exampleInboundMessage = md.exampleInboundMessage,
+      errorResponseMessages = md.errorResponseMessages
     )
   }
   

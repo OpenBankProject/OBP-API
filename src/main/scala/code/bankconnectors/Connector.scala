@@ -86,6 +86,13 @@ case class OBPFromDate(value: Date) extends OBPQueryParam
 case class OBPToDate(value: Date) extends OBPQueryParam
 case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
 
+//Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
+case class InboundUser(
+  email: String,
+  password: String,
+  displayName: String
+)
+
 trait Connector {
 
   //We have the Connector define its BankAccount implementation here so that it can
