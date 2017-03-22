@@ -68,8 +68,8 @@ import code.api.v1_2.ErrorMessage
 
 object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
-  var producer = new KafkaProducer()
-  var consumer = new KafkaConsumer()
+  lazy val producer = new KafkaProducer()
+  lazy val consumer = new KafkaConsumer()
   type AccountType = BankAccount2
 
   // Local TTL Cache
