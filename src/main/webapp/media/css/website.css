@@ -252,17 +252,19 @@ display: block;
 	font-size: small;
 }
 
-#main-about-box #main-about-buttons a{
-      padding: 5px 30px 5px 30px;
+#main-about-box #main-about-buttons {
+      margin: 10px 25px 20px 25px;
+      text-align: left;
+}
+
+#main-about-box #main-about-buttons a {
+      padding: 5px 15px;
       display: inline-block;
       text-decoration: none;
       border-radius: 10px;
       color: black;
       background-color: white;
-      margin-top: 10px;
-      margin-bottom: 20px;
-      margin-right: 10px;
-      margin-left: 30px;
+      margin: 10px 5px;
       font-size: 15px;
 }
 
