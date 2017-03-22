@@ -210,6 +210,9 @@ webui_api_explorer_url = http://apiexplorer.openbankproject.com
 # Sofi url. (AKA Social Finance) Change to your instance
 webui_sofi_url = http://sofi.openbankproject.com
 
+# API Manager url. Change to your instance
+webui_api_manager_url = http://apimanager.openbankproject.com
+
 # Starting page of documentation. Change this if you have a specific landing page.
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 
