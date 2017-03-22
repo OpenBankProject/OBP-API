@@ -96,6 +96,10 @@ class WebUI extends Loggable{
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags")
   }
 
+  // Link to API Manager
+  def apiManagerLink: CssSel = {
+    ".api-manager-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_manager_url", ""))
+  }
 
 
 
