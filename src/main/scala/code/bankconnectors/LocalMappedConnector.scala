@@ -3,26 +3,25 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.BranchJsonPost
-import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
-import code.model.{TransactionRequestType, _}
 import code.model.dataAccess._
+import code.model.{TransactionRequestType, _}
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
-import code.util.{DefaultStringField, Helper}
+import code.transactionrequests._
+import code.util.Helper
 import code.util.Helper._
 import code.views.Views
 import com.tesobe.model.UpdateBankAccount
@@ -31,8 +30,8 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
-import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 import scala.math.BigInt
 
 object LocalMappedConnector extends Connector with Loggable {
@@ -89,7 +88,7 @@ object LocalMappedConnector extends Connector with Loggable {
       positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
     } yield true
   }
-  
+
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
                               viewId: ViewId,
@@ -100,17 +99,17 @@ object LocalMappedConnector extends Connector with Loggable {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
     val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
     logger.info(s"transactionRequests_charge_level is $chargeLevel")
-    
+
     // TODO constrain this to supported currencies.
     //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
     //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
     //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
     //    val convertedThreshold = fx.convert(chargeLevel, rate)
     //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    
+
     Full(AmountOfMoney(currency, chargeLevel.toString))
   }
-  
+
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: ResourceUser): Unit = ???
 
@@ -289,7 +288,7 @@ object LocalMappedConnector extends Connector with Loggable {
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
-  
+
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterpartyByIban(iban)
   }
@@ -448,7 +447,7 @@ object LocalMappedConnector extends Connector with Loggable {
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
     //Note: read the latest data from database
-    //For FREE_FORM, we need make sure always use the latest data 
+    //For FREE_FORM, we need make sure always use the latest data
     val fromAccountUpdate: Box[MappedBankAccount] = getBankAccount(fromAccount.bankId, fromAccount.accountId)
     val transactionTime = now
     val currency = fromAccount.currency
@@ -469,7 +468,7 @@ object LocalMappedConnector extends Connector with Loggable {
       .tStartDate(transactionTime)
       .tFinishDate(transactionTime)
       .description(description)
-       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
       .counterpartyAccountHolder(toAccount.accountHolder)
       .counterpartyAccountNumber(toAccount.number)
       .counterpartyAccountKind(toAccount.accountType)
@@ -484,7 +483,7 @@ object LocalMappedConnector extends Connector with Loggable {
       .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
       .chargePolicy(chargePolicy)
       .saveMe
-    
+
     Full(mappedTransaction.theTransactionId)
   }
 
@@ -493,27 +492,20 @@ object LocalMappedConnector extends Connector with Loggable {
   */
   override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
 
-  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                            account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mTo_BankId(counterparty.bankId.value)
-      .mTo_AccountId(counterparty.accountId.value)
-      .mBody_Value_Currency(body.value.currency)
-      .mBody_Value_Amount(body.value.amount)
-      .mBody_Description(body.description)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now)
-      .mCharge_Summary(charge.summary)
-      .mCharge_Amount(charge.value.amount)
-      .mCharge_Currency(charge.value.currency)
-      .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
+                                            transactionRequestType: TransactionRequestType,
+                                            account : BankAccount,
+                                            counterparty : BankAccount,
+                                            body: TransactionRequestBody,
+                                            status: String,
+                                            charge: TransactionRequestCharge) : Box[TransactionRequest] = {
+    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl(transactionRequestId,
+      transactionRequestType,
+      account,
+      counterparty,
+      body,
+      status,
+      charge)
   }
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
@@ -527,102 +519,42 @@ object LocalMappedConnector extends Connector with Loggable {
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String): Box[TransactionRequest] = {
 
-    // Note: We don't save transaction_ids, status and challenge here.
-    val mappedTransactionRequest = MappedTransactionRequest.create
-
-      //transaction request fields:
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      //transaction fields:
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now)
-      .mCharge_Summary(charge.summary)
-      .mCharge_Amount(charge.value.amount)
-      .mCharge_Currency(charge.value.currency)
-      .mcharge_Policy(chargePolicy)
-
-      //fromAccount fields
-      .mFrom_BankId(fromAccount.bankId.value)
-      .mFrom_AccountId(fromAccount.accountId.value)
-
-      //toAccount fields
-      .mTo_BankId(toAccount.bankId.value)
-      .mTo_AccountId(toAccount.accountId.value)
-
-      //toCounterparty fields
-      .mName(toCounterparty.name)
-      .mThisBankId(toCounterparty.thisBankId)
-      .mThisAccountId(toCounterparty.thisAccountId)
-      .mThisViewId(toCounterparty.thisViewId)
-      .mCounterpartyId(toCounterparty.counterpartyId)
-      .mOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
-      .mOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
-      .mOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .mOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
-      .mIsBeneficiary(toCounterparty.isBeneficiary)
-
-      //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
-      .mBody_Value_Currency(transactionRequestCommonBody.value.currency)
-      .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
-      .mBody_Description(transactionRequestCommonBody.description)
-      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
-
-
-      .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(transactionRequestId,
+      transactionRequestType,
+      fromAccount,
+      toAccount,
+      toCounterparty,
+      transactionRequestCommonBody,
+      details,
+      status,
+      charge,
+      chargePolicy)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
-    // This saves transaction_ids
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-        case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-        case _ => Failure("Couldn't find transaction request ${transactionRequestId}")
-      }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
-    //this saves challenge
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full{
-        tr.mChallenge_Id(challenge.id)
-        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-        tr.mChallenge_ChallengeType(challenge.challenge_type).save
-      }
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
-    //this saves status
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set status")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
   }
 
 
   override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
-                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest))
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest))
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
     // TODO need to pass a status variable so we can return say only INITIATED
-    val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    transactionRequest.flatMap(_.toTransactionRequest)
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
 
@@ -967,7 +899,7 @@ object LocalMappedConnector extends Connector with Loggable {
     */
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
     /**
-      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order  
+      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
       */
     val fxRateFromTo = MappedFXRate.find(
       By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
@@ -986,7 +918,7 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   /**
-    * get the TransactionRequestTypeCharge from the TransactionRequestTypeCharge table 
+    * get the TransactionRequestTypeCharge from the TransactionRequestTypeCharge table
     * In Mapped, we will ignore accountId, viewId for now.
     */
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
@@ -1003,7 +935,7 @@ object LocalMappedConnector extends Connector with Loggable {
         transactionRequestType.chargeSummary
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
-      case _ => 
+      case _ =>
         val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
         TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
@@ -1018,5 +950,5 @@ object LocalMappedConnector extends Connector with Loggable {
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
-  
+
 }

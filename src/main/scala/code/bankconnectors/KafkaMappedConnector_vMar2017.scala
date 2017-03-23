@@ -23,48 +23,42 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.text.{DateFormat, SimpleDateFormat}
-import java.util.{Date, Locale, UUID}
-import java.time.ZoneOffset.UTC
+import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
+import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.{MessageDoc, ResourceDoc}
+import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.{Comments, MappedComment}
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.comments.Comments
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.{MappedTag, Tags}
-import code.metadata.transactionimages.{MappedTransactionImage, TransactionImages}
-import code.metadata.wheretags.{MappedWhereTag, WhereTags}
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.ProductCode
+import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest, TransactionRequestTypeCharge}
 import code.transactionrequests.TransactionRequests._
+import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.util.{Helper, TTLCache}
 import code.views.Views
+import net.liftweb.common._
 import net.liftweb.json
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import net.liftweb.json._
-import net.liftweb.common._
-import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import JsonAST._
-import code.api.v1_2.ErrorMessage
 
 object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
@@ -143,7 +137,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       else null
     }
   }
-  
+
   // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.get.Accounts'
   messageDocs += MessageDoc(
     action = "obp.get.Accounts",
@@ -171,7 +165,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         owners = "Susan" :: " Frank" :: Nil,
         generatePublicView = true,
         generateAccountantsView = true,
-        generateAuditorsView = true) 
+        generateAuditorsView = true)
         :: InboundAccount(
           accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
           bankId = "gh.29.uk",
@@ -202,7 +196,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           username = user.name,
           userId = user.name,
           bankId = bankId))
-        
+
         // Generate random uuid to be used as request-response match id
         } yield {
           cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccount]])
@@ -233,7 +227,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       })
     }
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Banks",
     connectorVersion = formatVersion,
@@ -327,7 +321,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       currency = currency,
       userId = userId,
       username = username)
-    
+
     val r: Option[InboundChallengeLevel] = process(req).extractOpt[InboundChallengeLevel]
     // Return result
     r match {
@@ -341,7 +335,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       }
     }
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.ChargeLevel",
     connectorVersion = formatVersion,
@@ -387,7 +381,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       userId = userId,
       username = username
     )
-   
+
     val r: Option[InboundChargeLevel] = process(req).extractOpt[InboundChargeLevel]
     // Return result
     val chargeValue = r match {
@@ -399,7 +393,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     }
     Full(chargeValue)
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.create.Challenge",
     connectorVersion = formatVersion,
@@ -443,7 +437,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = AuthUser.getCurrentUserUsername,
       transactionRequestType = transactionRequestType.value,
       transactionRequestId = transactionRequestId)
-    
+
     val r: Option[OutboundCreateChallange] = process(req).extractOpt[OutboundCreateChallange]
     // Return result
     r match {
@@ -452,7 +446,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       case _        => Empty
     }
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.validate.ChallengeAnswer",
     connectorVersion = formatVersion,
@@ -490,7 +484,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       case _        => Empty
     }
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Bank",
     connectorVersion = formatVersion,
@@ -522,14 +516,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = bankid.toString,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername)
-    
+
     val r = {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[InboundBank])
     }
     // Return result
     Full(new Bank2(r))
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Transaction",
     connectorVersion = formatVersion,
@@ -575,7 +569,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = bankId.toString,
       accountId = accountId.toString,
       transactionId = transactionId.toString)
-    
+
     // Since result is single account, we need only first list entry
     val r = process(req).extractOpt[InternalTransaction]
     r match {
@@ -586,7 +580,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     }
 
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Transactions",
     connectorVersion = formatVersion,
@@ -662,7 +656,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = bankId.toString,
       accountId = accountId.toString,
       queryParams = queryParams.toString)
-    
+
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
@@ -678,7 +672,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     Full(res)
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Account",
     connectorVersion = formatVersion,
@@ -720,7 +714,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
       accountId = accountId.value)
-    
+
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
@@ -735,7 +729,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     Full(new BankAccount2(r))
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.Accounts",
     connectorVersion = formatVersion,
@@ -795,7 +789,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           username = AuthUser.getCurrentUserUsername,
           bankId = a._1.value,
           accountId = a._2.value)
-      
+
         implicit val formats = net.liftweb.json.DefaultFormats
         val r = {
           cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[InboundAccount]])
@@ -814,8 +808,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
       new BankAccount2(t) }
   }
-  
-  //TODO the method name is different from action 
+
+  //TODO the method name is different from action
   messageDocs += MessageDoc(
     action = "obp.get.Account",
     connectorVersion = formatVersion,
@@ -848,7 +842,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     ),
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
     val req = OutboundAccountByNumber(
@@ -859,7 +853,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       bankId = bankId.toString,
       number = number
     )
-    
+
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
@@ -916,8 +910,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
-  
-  
+
+
   messageDocs += MessageDoc(
     action = "obp.get.CounterpartyByCounterpartyId",
     connectorVersion = formatVersion,
@@ -970,7 +964,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       Full(CounterpartyTrait2(r))
     }
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.CounterpartyByIban",
     connectorVersion = formatVersion,
@@ -1019,7 +1013,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         otherAccountRoutingAddress = iban,
         otherAccountRoutingScheme = "IBAN"
       )
-      val r = process(req).extract[InboundCounterparty] 
+      val r = process(req).extract[InboundCounterparty]
       Full(CounterpartyTrait2(r))
     }
   }
@@ -1075,8 +1069,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     sentTransactionId
   }
-  
-  
+
+
   messageDocs += MessageDoc(
     action = "obp.put.Transaction",
     connectorVersion = formatVersion,
@@ -1087,12 +1081,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         version = formatVersion,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
-        
+
         // fromAccount
         fromAccountName = "OBP",
         fromAccountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         fromAccountBankId = "gh.29.uk",
-        
+
         // transaction details
         transactionId = "1234",
         transactionRequestType = "SANDBOX_TAN",
@@ -1103,7 +1097,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         transactionChargeCurrency = "12",
         transactionDescription = "Tesobe is a good company !",
         transactionPostedDate = "",
-        
+
         // toAccount or toCounterparty
         toCounterpartyId = "1234",
         toCounterpartyName = "obp",
@@ -1119,7 +1113,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     ),
     errorResponseMessages = emptyObjectJson :: Nil
   )
-  
+
   /**
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
@@ -1131,10 +1125,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
-  
+
     val postedDate = ZonedDateTime.now.toString
     val transactionId = UUID.randomUUID().toString
-  
+
     val req =
       if (toAccount != null && toCounterparty == null) {
         OutboundSaveTransaction(
@@ -1142,12 +1136,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           version = formatVersion,
           userId = currentResourceUserId,
           username = AuthUser.getCurrentUserUsername,
-        
+
           // fromAccount
           fromAccountName = fromAccount.name,
           fromAccountId = fromAccount.accountId.value,
           fromAccountBankId = fromAccount.bankId.value,
-        
+
           // transaction details
           transactionId = transactionId,
           transactionRequestType = transactionRequestType.value,
@@ -1155,10 +1149,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           transactionCurrency = fromAccount.currency,
           transactionChargePolicy = chargePolicy,
           transactionChargeAmount = "0.0", // TODO get correct charge amount
-          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency 
+          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency
           transactionDescription = description,
           transactionPostedDate = postedDate,
-        
+
           // toAccount or toCounterparty
           toCounterpartyId = toAccount.accountId.value,
           toCounterpartyName = toAccount.name,
@@ -1173,12 +1167,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           version = formatVersion,
           userId = currentResourceUserId,
           username = AuthUser.getCurrentUserUsername,
-        
+
           // fromAccount
           fromAccountName = fromAccount.name,
           fromAccountId = fromAccount.accountId.value,
           fromAccountBankId = fromAccount.bankId.value,
-        
+
           // transaction details
           transactionId = transactionId,
           transactionRequestType = transactionRequestType.value,
@@ -1186,10 +1180,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           transactionCurrency = fromAccount.currency,
           transactionChargePolicy = chargePolicy,
           transactionChargeAmount = "0.0", // TODO get correct charge amount
-          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency 
+          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency
           transactionDescription = description,
           transactionPostedDate = postedDate,
-        
+
           // toAccount or toCounterparty
           toCounterpartyId = toCounterparty.counterpartyId,
           toCounterpartyName = toCounterparty.name,
@@ -1198,7 +1192,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
           toCounterpartyRoutingScheme = toCounterparty.otherAccountRoutingScheme,
           toCounterpartyBankRoutingAddress = toCounterparty.otherBankRoutingAddress,
           toCounterpartyBankRoutingScheme = toCounterparty.otherBankRoutingScheme)
-      } 
+      }
 
     if ( toAccount == null && toCounterparty == null ) {
         logger.error(s"error calling saveTransaction: toAccount=${toAccount} toCounterparty=${toCounterparty}")
@@ -1210,7 +1204,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     r.extract[InboundTransactionId] match {
       case r: InboundTransactionId => Full(TransactionId(r.transactionId))
-      case _ => Empty 
+      case _ => Empty
     }
 
   }
@@ -1249,35 +1243,28 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       action = "obp.get.TransactionRequestStatusesImpl",
       version = formatVersion
     )
-    //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty. 
+    //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty.
     val r = try{
       val response = process(req).extract[InboundTransactionRequestStatus]
       Full(new TransactionRequestStatus2(response))
     }catch {
       case _ => Empty
     }
-    
-    logger.info(s"Kafka getTransactionRequestStatusesImpl response: ${r.toString}") 
+
+    logger.info(s"Kafka getTransactionRequestStatusesImpl response: ${r.toString}")
     r
   }
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mTo_BankId(counterparty.bankId.value)
-      .mTo_AccountId(counterparty.accountId.value)
-      .mBody_Value_Currency(body.value.currency)
-      .mBody_Value_Amount(body.value.amount)
-      .mBody_Description(body.description)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now).saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl(transactionRequestId,
+      transactionRequestType,
+      account,
+      counterparty,
+      body,
+      status,
+      charge)
   }
 
 
@@ -1308,43 +1295,24 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full{
-        tr.mChallenge_Id(challenge.id)
-        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-        tr.mChallenge_ChallengeType(challenge.challenge_type).save
-      }
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set status")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
   }
 
 
   override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
-                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest))
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest))
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = {
-    val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    transactionRequest.flatMap(_.toTransactionRequest)
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
 
@@ -1643,7 +1611,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.CurrentFxRate",
     connectorVersion = formatVersion,
@@ -1679,14 +1647,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       username = AuthUser.getCurrentUserUsername,
       fromCurrencyCode = fromCurrencyCode,
       toCurrencyCode = toCurrencyCode)
-    
+
     val r = {
       cachedFxRate.getOrElseUpdate(req.toString, () => process(req).extract[InboundFXRate])
     }
     // Return result
     Full(new FXRate2(r))
   }
-  
+
   messageDocs += MessageDoc(
     action = "obp.get.TransactionRequestTypeCharge",
     connectorVersion = formatVersion,
@@ -1727,7 +1695,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       accountId = accountId.value,
       viewId = viewId.value,
       transactionRequestType = transactionRequestType.value)
-    
+
     // send the request to kafka and get response
     // TODO the error handling is not good enough, it should divide the error, empty and no-response.
     val r =  tryo {
@@ -1828,7 +1796,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     )
   }
 
-  
+
   def process(request: scala.Product): json.JValue = {
     val reqId = UUID.randomUUID().toString
     val requestToMap= stransferCaseClassToMap(request)
@@ -1839,7 +1807,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     }
     return json.parse("""{"error":"could not send message to kafka"}""")
   }
-  
+
   /**
     * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
     * In KafkaMappedConnector.scala, we use Map[String, String]. Now we change to case class

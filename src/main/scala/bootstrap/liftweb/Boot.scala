@@ -34,25 +34,26 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.Locale
 import javax.mail.internet.MimeMessage
-import java.util.concurrent.TimeUnit
 
 import code.accountholder.MapperAccountHolders
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.atms.MappedAtm
-import code.loginattempts.MappedBadLoginAttempt
 import code.branches.MappedBranch
+import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
+import code.fx.{MappedCurrency, MappedFXRate}
+import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
-import code.kycchecks.MappedKycCheck
 import code.kycstatuses.MappedKycStatus
-import code.meetings.MappedMeeting
-import code.socialmedia.MappedSocialMedia
+import code.loginattempts.MappedBadLoginAttempt
 import code.management.{AccountsAPI, ImporterAPI}
+import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
@@ -63,8 +64,12 @@ import code.metrics.MappedMetric
 import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
-import code.transaction_types.MappedTransactionType
+import code.remotedata.RemotedataActors
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.socialmedia.MappedSocialMedia
+import code.transaction.MappedTransaction
+import code.transactionStatusScheduler.TransactionStatusScheduler
+import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
@@ -74,13 +79,6 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-import code.api.Constant._
-import code.cards.MappedPhysicalCard
-import code.cards.PinReset
-import code.fx.{MappedCurrency, MappedFXRate}
-import code.remotedata.RemotedataActors
-import code.transaction.MappedTransaction
-import code.transactionStatusScheduler.TransactionStatusScheduler
 
 
 /**
@@ -441,6 +439,7 @@ object ToSchemify {
     MappedCounterparty,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
+    MappedTransactionRequest,
     MapperAccountHolders
   )
 
@@ -453,7 +452,6 @@ object ToSchemify {
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
-    MappedTransactionRequest,
     MappedMetric,
     MappedCustomerMessage,
     MappedBranch,
