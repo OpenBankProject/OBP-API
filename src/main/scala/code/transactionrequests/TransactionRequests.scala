@@ -3,11 +3,15 @@ package code.transactionrequests
 
 import java.util.Date
 
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
-import net.liftweb.common.Logger
+import code.remotedata.RemotedataTransactionRequests
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.{Props, SimpleInjector}
-import TransactionRequests.TransactionRequest
+import org.elasticsearch.common.inject.Inject
 
 object TransactionRequests extends SimpleInjector {
 
@@ -73,7 +77,7 @@ object TransactionRequests extends SimpleInjector {
 
   def buildOne: TransactionRequestProvider  =
     Props.get("transactionRequests_connector", "mapped") match {
-      case "mapped" => MappedTransactionRequestProvider
+      case "mapped" => RemotedataTransactionRequests
       case tc: String => throw new IllegalArgumentException("No such connector for Transaction Requests: " + tc)
     }
 
@@ -92,15 +96,67 @@ trait TransactionRequestProvider {
 
   private val logger = Logger(classOf[TransactionRequestProvider])
 
-  final def getTransactionRequest(transactionRequestId : TransactionRequestId) : Option[TransactionRequest] = {
+  final def getTransactionRequest(transactionRequestId : TransactionRequestId) : Box[TransactionRequest] = {
     getTransactionRequestFromProvider(transactionRequestId)
   }
 
-  final def getTransactionRequests(bankId : BankId, accountId: AccountId, viewId: ViewId) : Option[List[TransactionRequest]] = {
-    getTransactionRequestsFromProvider(bankId, accountId, viewId)
+  final def getTransactionRequests(bankId : BankId, accountId: AccountId) : Box[List[TransactionRequest]] = {
+    getTransactionRequestsFromProvider(bankId, accountId)
   }
 
-  protected def getTransactionRequestsFromProvider(bankId : BankId, accountId: AccountId, viewId: ViewId) : Option[List[TransactionRequest]]
-  protected def getTransactionRequestFromProvider(transactionRequestId : TransactionRequestId) : Option[TransactionRequest]
+  def getMappedTransactionRequest(transactionRequestId: TransactionRequestId): Box[MappedTransactionRequest]
+  def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId): Box[List[TransactionRequest]]
+  def getTransactionRequestFromProvider(transactionRequestId : TransactionRequestId) : Box[TransactionRequest]
+  def updateAllPendingTransactionRequests: Box[Option[Unit]]
+  def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
+                                   transactionRequestType: TransactionRequestType,
+                                   account : BankAccount,
+                                   counterparty : BankAccount,
+                                   body: TransactionRequestBody,
+                                   status: String,
+                                   charge: TransactionRequestCharge) : Box[TransactionRequest]
+  def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                      transactionRequestType: TransactionRequestType,
+                                      fromAccount: BankAccount,
+                                      toAccount: BankAccount,
+                                      toCounterparty: CounterpartyTrait,
+                                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                      details: String,
+                                      status: String,
+                                      charge: TransactionRequestCharge,
+                                      chargePolicy: String): Box[TransactionRequest]
+  def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
+  def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
+  def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
+  def bulkDeleteTransactionRequests(): Boolean
 }
 
+class RemotedataTransactionRequestsCaseClasses {
+  case class getMappedTransactionRequest(transactionRequestId: TransactionRequestId)
+  case class getTransactionRequestsFromProvider(bankId : BankId, accountId: AccountId)
+  case class getTransactionRequestFromProvider(transactionRequestId : TransactionRequestId)
+  case class updateAllPendingTransactionRequests()
+  case class createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
+                                          transactionRequestType: TransactionRequestType,
+                                          account : BankAccount,
+                                          counterparty : BankAccount,
+                                          body: TransactionRequestBody,
+                                          status: String,
+                                          charge: TransactionRequestCharge)
+  case class createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                             transactionRequestType: TransactionRequestType,
+                                             fromAccount: BankAccount,
+                                             toAccount: BankAccount,
+                                             toCounterparty: CounterpartyTrait,
+                                             transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                             details: String,
+                                             status: String,
+                                             charge: TransactionRequestCharge,
+                                             chargePolicy: String)
+  case class saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
+  case class saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
+  case class saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String)
+  case class bulkDeleteTransactionRequests()
+}
+
+object RemotedataTransactionRequestsCaseClasses extends RemotedataTransactionRequestsCaseClasses

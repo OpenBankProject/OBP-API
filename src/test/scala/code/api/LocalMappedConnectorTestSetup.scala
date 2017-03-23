@@ -1,20 +1,20 @@
 package code.api
 
 import java.util.{Date, UUID}
-import java.beans.Introspector
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.model._
-import code.model.dataAccess._
-import net.liftweb.common.Box
-import net.liftweb.mapper.{By, MetaMapper}
-import net.liftweb.util.Props
-import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.model._
+import code.model.dataAccess._
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests
 import code.views.Views
+import net.liftweb.common.Box
+import net.liftweb.mapper.{By, MetaMapper}
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
 import scala.util.Random
 
@@ -133,6 +133,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     } else {
       Views.views.vend.bulkDeleteAllPermissionsAndViews()
       AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+      TransactionRequests.transactionRequestProvider.vend.bulkDeleteTransactionRequests()
     }
   }
 }

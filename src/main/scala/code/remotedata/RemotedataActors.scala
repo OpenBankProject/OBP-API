@@ -5,17 +5,17 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{ActorSystem, Props => ActorProps}
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
+import code.api.APIFailure
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
 import net.liftweb.db.StandardDBVendor
 import net.liftweb.http.LiftRules
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.Props
-import code.api.APIFailure
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ActorInit {
 
@@ -82,18 +82,19 @@ object RemotedataActors extends Loggable {
   def startActors(actorSystem: ActorSystem) = {
 
     val actorsRemotedata = Map(
-      ActorProps[RemotedataAccountHoldersActor]     -> RemotedataAccountHolders.actorName,
-      ActorProps[RemotedataCommentsActor]           -> RemotedataComments.actorName,
-      ActorProps[RemotedataCounterpartiesActor]     -> RemotedataCounterparties.actorName,
-      ActorProps[RemotedataTagsActor]               -> RemotedataTags.actorName,
-      ActorProps[RemotedataUsersActor]              -> RemotedataUsers.actorName,
-      ActorProps[RemotedataViewsActor]              -> RemotedataViews.actorName,
-      ActorProps[RemotedataWhereTagsActor]          -> RemotedataWhereTags.actorName,
-      ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName,
-      ActorProps[RemotedataNarrativesActor]         -> RemotedataNarratives.actorName,
-      ActorProps[RemotedataCustomersActor]          -> RemotedataCustomers.actorName,
-      ActorProps[RemotedataUserCustomerLinksActor]  -> RemotedataUserCustomerLinks.actorName,
-      ActorProps[RemotedataConsumersActor]          -> RemotedataConsumers.actorName
+      ActorProps[RemotedataAccountHoldersActor]       -> RemotedataAccountHolders.actorName,
+      ActorProps[RemotedataCommentsActor]             -> RemotedataComments.actorName,
+      ActorProps[RemotedataCounterpartiesActor]       -> RemotedataCounterparties.actorName,
+      ActorProps[RemotedataTagsActor]                 -> RemotedataTags.actorName,
+      ActorProps[RemotedataUsersActor]                -> RemotedataUsers.actorName,
+      ActorProps[RemotedataViewsActor]                -> RemotedataViews.actorName,
+      ActorProps[RemotedataWhereTagsActor]            -> RemotedataWhereTags.actorName,
+      ActorProps[RemotedataTransactionImagesActor]    -> RemotedataTransactionImages.actorName,
+      ActorProps[RemotedataNarrativesActor]           -> RemotedataNarratives.actorName,
+      ActorProps[RemotedataCustomersActor]            -> RemotedataCustomers.actorName,
+      ActorProps[RemotedataUserCustomerLinksActor]    -> RemotedataUserCustomerLinks.actorName,
+      ActorProps[RemotedataConsumersActor]            -> RemotedataConsumers.actorName,
+      ActorProps[RemotedataTransactionRequestsActor]  -> RemotedataTransactionRequests.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
