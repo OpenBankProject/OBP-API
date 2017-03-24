@@ -471,41 +471,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
-    //because we don't have a db backed model for Counterpartys, we need to construct it from an
-    //CounterpartyMetadata and a transaction
-    val t = getTransactions(thisBankId, thisAccountId).map { t =>
-      t.filter { e =>
-        if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
-          true
-        else
-          false
-      }
-    }.get.head
-
-    val res = new Counterparty(
-      //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-      counterPartyId = metadata.metadataId,
-      label = metadata.getHolder,
-      nationalIdentifier = t.otherAccount.nationalIdentifier,
-      otherBankRoutingAddress = None,
-      otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-      thisAccountId = AccountId(metadata.getAccountNumber),
-      thisBankId = t.otherAccount.thisBankId,
-      kind = t.otherAccount.kind,
-      otherBankId = thisBankId,
-      otherAccountId = thisAccountId,
-      alreadyFoundMetadata = Some(metadata),
-      name = "",
-      otherBankRoutingScheme = "",
-      otherAccountRoutingScheme="",
-      otherAccountProvider = "",
-      isBeneficiary = true
-
-    )
-    Full(res)
-  }
-
   /**
    *
    * refreshes transactions via hbci if the transaction info is sourced from hbci

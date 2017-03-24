@@ -863,40 +863,6 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     Full(new BankAccount2(r))
   }
 
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    val t = getTransactions(thisBankId, thisAccountId).map { t =>
-      t.filter { e =>
-        if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
-          true
-        else
-          false
-      }
-    }.get.head
-
-    val res = new Counterparty(
-      //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-      counterPartyId = metadata.metadataId,
-      label = metadata.getHolder,
-      nationalIdentifier = t.otherAccount.nationalIdentifier,
-      otherBankRoutingAddress = None,
-      otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-      thisAccountId = AccountId(metadata.getAccountNumber),
-      thisBankId = t.otherAccount.thisBankId,
-      kind = t.otherAccount.kind,
-      otherBankId = thisBankId,
-      otherAccountId = thisAccountId,
-      alreadyFoundMetadata = Some(metadata),
-      name = "sushan",
-      otherBankRoutingScheme = "obp",
-      otherAccountRoutingScheme="obp",
-      otherAccountProvider = "obp",
-      isBeneficiary = true
-    )
-    Full(res)
-  }
-
   // Get all counterparties related to an account
   override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
     Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))

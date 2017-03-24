@@ -203,6 +203,45 @@ trait Connector {
     AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
   }
 
+  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
+    //OtherBankAccountMetadata and a transaction
+    for {
+      tlist <-  getTransactions(thisBankId, thisAccountId).map { t =>
+        t.filter { e =>
+          if (e.otherAccount.thisAccountId.value == metadata.getAccountNumber)
+            true
+          else
+            false
+        }
+      }
+    } yield {
+      tlist match {
+        case list: List[Transaction] if list.nonEmpty =>
+          val t = tlist.head
+          new Counterparty(
+            //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+            counterPartyId = metadata.metadataId,
+            label = metadata.getHolder,
+            nationalIdentifier = t.otherAccount.nationalIdentifier,
+            otherBankRoutingAddress = None,
+            otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
+            thisAccountId = AccountId(metadata.getAccountNumber),
+            thisBankId = t.otherAccount.thisBankId,
+            kind = t.otherAccount.kind,
+            otherBankId = thisBankId,
+            otherAccountId = thisAccountId,
+            alreadyFoundMetadata = Some(metadata),
+            name = "",
+            otherBankRoutingScheme = "",
+            otherAccountRoutingScheme="",
+            otherAccountProvider = "",
+            isBeneficiary = true
+          )
+        case _ => return Empty
+      }
+    }
+  }
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
   /**
