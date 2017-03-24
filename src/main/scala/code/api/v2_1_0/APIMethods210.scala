@@ -488,29 +488,45 @@ trait APIMethods210 {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
+              // Check we have a User
               u: User <- user ?~ ErrorMessages.UserNotLoggedIn
-              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
-              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
-              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
-              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(answerJson.id, answerJson.answer)
 
-              //check the transReqId validation.
+              // Check format of bankId supplied in URL
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
+
+              // Check format of accountId supplied in URL
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+
+              // Check the Posted JSON is valid
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"} // TODO OBP message
+
+              // Check Bank exists on this server
+              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+
+              // Check Account exists on this server
+              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"} // TODO OBP message
+
+              // Check User has access to the View
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+
+              // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
 
-              //check the input transactionRequestType is same as when the user create the existingTransactionRequest
+              // Check the Transaction Request is still INITIATED
+              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
+
+              // Check the input transactionRequestType is the same as when the user created the TransactionRequest
               existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
               isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
 
-              //check the changle id is same as when the user create the existingTransactionRequest
+              // Check the challengeId is valid for this existingTransactionRequest
               isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
 
-              //check the change statue wheather is initiated, only retreive INITIATED transaction requests.
-              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
+              // Check answer TODO This should be one call.
+              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
+              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(answerJson.id, answerJson.answer)
 
+              // All Good, proceed with the Transaciton creation...
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
             } yield {
               // Format explicitly as v2.0.0 json

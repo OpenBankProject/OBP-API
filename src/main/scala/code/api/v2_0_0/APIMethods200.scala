@@ -1278,6 +1278,10 @@ trait APIMethods200 {
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+
+
+              // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
+
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //check the transReqId validation.
