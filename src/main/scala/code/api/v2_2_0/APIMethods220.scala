@@ -216,9 +216,10 @@ trait APIMethods220 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties of one Account.",
-      s"""Returns the counterparties for an account plus their associated metadata
-          |${authenticationRequiredMessage(false)}
-          |Authentication is required if the view VIEW_ID is not public.""",
+      s"""Get the counterparties for the account / view.
+          |
+          |${authenticationRequiredMessage(true)}
+          |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,

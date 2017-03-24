@@ -795,13 +795,13 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartiesForBankAccount,
+      getOtherAccountsForBankAccount,
       apiVersion,
-      "getCounterpartiesForBankAccount",
+      "getOtherAccountsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get Counterparties of one Account.",
-      s"""Returns data about all the counterparties (other accounts) that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+      "Get Other Accounts of one Account.",
+      s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
@@ -810,7 +810,7 @@ trait APIMethods121 {
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
-    lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
         user =>
@@ -826,13 +826,13 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyByIdForBankAccount,
+      getOtherAccountByIdForBankAccount,
       apiVersion,
-      "getCounterpartyByIdForBankAccount",
+      "getOtherAccountByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get Counterparty by Id.",
-      s"""Returns data about a counterparty (aka Other Account) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Get Other Account by Id.",
+      s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
@@ -841,7 +841,7 @@ trait APIMethods121 {
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
-    lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
@@ -857,13 +857,13 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyMetadata,
+      getOtherAccountMetadata,
       apiVersion,
-      "getCounterpartyMetadata",
+      "getOtherAccountMetadata",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
-      "Get Counterparty Metadata.",
-      """Get metadata of one counterparty (other account).
+      "Get Other Account Metadata.",
+      """Get metadata of one other account.
         |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
         |Authentication via OAuth is required if the view is not public.""",
@@ -873,7 +873,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
@@ -1033,12 +1033,12 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyPrivateAlias,
+      getOtherAccountPrivateAlias,
       apiVersion,
-      "getCounterpartyPrivateAlias",
+      "getOtherAccountPrivateAlias",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Get Counterparty Private Alias",
+      "Get Other Account Private Alias",
       s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.
         |
         |${authenticationRequiredMessage(false)}
@@ -1049,7 +1049,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
@@ -1067,12 +1067,12 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      addCounterpartyPrivateAlias,
+      addOtherAccountPrivateAlias,
       apiVersion,
-      "addCounterpartyPrivateAlias",
+      "addOtherAccountPrivateAlias",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Create Counterparty Private Alias",
+      "Create Other Account Private Alias",
       s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.
          |
          |${authenticationRequiredMessage(false)}
@@ -1083,7 +1083,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
@@ -2434,12 +2434,12 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyForTransaction,
+      getOtherAccountForTransaction,
       apiVersion,
-      "getCounterpartyForTransaction",
+      "getOtherAccountForTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
-      "Get Counterparty of Transaction",
+      "Get Other Account of Transaction",
       """Get other account of a transaction.
          |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
@@ -2450,7 +2450,7 @@ Authentication via OAuth is required if the view is not public.""",
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
-    lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other account of a transaction
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
         user =>
