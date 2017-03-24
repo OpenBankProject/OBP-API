@@ -65,7 +65,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.addCounterpartyMoreInfo ::
                           Implementations1_2_1.addCounterpartyOpenCorporatesUrl ::
                           Implementations1_2_1.addCounterpartyPhysicalLocation ::
-                          Implementations1_2_1.addCounterpartyPrivateAlias ::
+                          Implementations1_2_1.addOtherAccountPrivateAlias ::
                           Implementations1_2_1.addCounterpartyPublicAlias ::
                           Implementations1_2_1.addCounterpartyUrl ::
                           Implementations1_2_1.addImageForViewOnTransaction ::
@@ -94,11 +94,11 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.deleteWhereTagForViewOnTransaction ::
                           Implementations1_2_1.getBanks ::
                           Implementations1_2_1.getCommentsForViewOnTransaction ::
-                          Implementations1_2_1.getCounterpartiesForBankAccount ::
-                          Implementations1_2_1.getCounterpartyByIdForBankAccount ::
-                          Implementations1_2_1.getCounterpartyForTransaction ::
-                          Implementations1_2_1.getCounterpartyMetadata ::
-                          Implementations1_2_1.getCounterpartyPrivateAlias ::
+                          Implementations1_2_1.getOtherAccountsForBankAccount ::
+                          Implementations1_2_1.getOtherAccountByIdForBankAccount ::
+                          Implementations1_2_1.getOtherAccountForTransaction ::
+                          Implementations1_2_1.getOtherAccountMetadata ::
+                          Implementations1_2_1.getOtherAccountPrivateAlias ::
                           Implementations1_2_1.getCounterpartyPublicAlias ::
                           Implementations1_2_1.getImagesForViewOnTransaction ::
                           Implementations1_2_1.getTagsForViewOnTransaction ::
