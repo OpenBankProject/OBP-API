@@ -139,11 +139,11 @@ case class CounterpartyJSON(
                              this_view_id: String,
                              counterparty_id: String,
                              other_bank_routing_scheme: String,
-                             other_account_routing_scheme: String,
                              other_bank_routing_address: String,
-                             other_account_routing_address: String,
                              other_branch_routing_scheme: String,
                              other_branch_routing_address: String,
+                             other_account_routing_scheme: String,
+                             other_account_routing_address: String,
                              is_beneficiary: Boolean
                            )
 
