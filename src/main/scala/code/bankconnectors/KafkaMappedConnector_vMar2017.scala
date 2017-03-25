@@ -1665,23 +1665,22 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // send the request to kafka and get response
     // TODO the error handling is not good enough, it should divide the error, empty and no-response.
     val r =  tryo {
-        Full(cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[InboundTransactionRequestTypeCharge]))
+        cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[InboundTransactionRequestTypeCharge])
       }
 
     // Return result
-     val result = r match {
-      case Full(f) => TransactionRequestTypeCharge2(f.get)
+    val result = r match {
+      case Full(f) => Full(TransactionRequestTypeCharge2(f))
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
-        TransactionRequestTypeCharge2(InboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
-      }
+        for {
+          fromAccount <- getBankAccount(bankId, accountId)
+          fromAccountCurrency <- tryo{ fromAccount.currency }
+        } yield {
+          TransactionRequestTypeCharge2(InboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
+        }
+    }
 
-    // result
-    Full(result)
-  }
-
-  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId,_).get))
+    result
   }
 
   override def getEmptyBankAccount(): Box[AccountType] = {

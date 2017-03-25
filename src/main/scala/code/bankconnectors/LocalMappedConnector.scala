@@ -911,10 +911,6 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(transactionRequestTypeCharge)
   }
 
-  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
-  }
-
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }

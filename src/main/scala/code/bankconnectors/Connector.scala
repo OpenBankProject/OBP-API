@@ -298,7 +298,7 @@ trait Connector {
       // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+      isMapped: Boolean <- tryo{Props.get("connector", "").equalsIgnoreCase("mapped")}
       toAccount <-if(isMapped || transactionRequestType.value.equals("SANDBOX_TAN")){
         getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       }else{
@@ -332,7 +332,7 @@ trait Connector {
 
 
     //create a new transaction request
-    var result = for {
+    val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
@@ -349,7 +349,7 @@ trait Connector {
     } yield transactionRequest
 
     //make sure we get something back
-    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
+    var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
@@ -357,26 +357,26 @@ trait Connector {
         BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
       //set challenge to null
-      result = Full(result.get.copy(challenge = null))
+      result = result.copy(challenge = null)
 
       //save transaction_id if we have one
       createdTransactionId match {
         case Full(ti) => {
           if (! createdTransactionId.isEmpty) {
-            saveTransactionRequestTransaction(result.get.id, ti)
-            result = Full(result.get.copy(transaction_ids = ti.value))
+            saveTransactionRequestTransaction(result.id, ti)
+            result = result.copy(transaction_ids = ti.value)
           }
         }
         case _ => None
       }
     } else {
       //if challenge necessary, create a new one
-      var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
-      saveTransactionRequestChallenge(result.get.id, challenge)
-      result = Full(result.get.copy(challenge = challenge))
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      saveTransactionRequestChallenge(result.id, challenge)
+      result = result.copy(challenge = challenge)
     }
 
-    result
+    Full(result)
   }
 
 
@@ -392,7 +392,7 @@ trait Connector {
 
 
     // Always create a new Transaction Request
-    var result = for {
+    val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
@@ -402,18 +402,15 @@ trait Connector {
        // isValidTransactionRequestType is checked at API layer. Maybe here too.
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
 
-
       // For now, arbitary charge value to demonstrate PSD2 charge transparency principle. Eventually this would come from Transaction Type? 10 decimal places of scaling so can add small percentage per transaction.
       chargeValue <- tryo {(BigDecimal(body.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${body.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(body.value.currency, chargeValue.toString()))
-
-
 
       transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
     } yield transactionRequest
 
     //make sure we get something back
-    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
+    var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     // If no challenge necessary, create Transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
@@ -430,27 +427,27 @@ trait Connector {
                                                                           "") //Note chargePolicy only support in V210
 
       //set challenge to null
-      result = Full(result.get.copy(challenge = null))
+      result = result.copy(challenge = null)
 
       //save transaction_id if we have one
       createdTransactionId match {
         case Full(ti) => {
           if (! createdTransactionId.isEmpty) {
-            saveTransactionRequestTransaction(result.get.id, ti)
-            result = Full(result.get.copy(transaction_ids = ti.value))
+            saveTransactionRequestTransaction(result.id, ti)
+            result = result.copy(transaction_ids = ti.value)
           }
         }
-        case Failure(message, exception, chain) => result  = Failure(message, exception, chain)
+        case Failure(message, exception, chain) => return Failure(message, exception, chain)
         case _ => None
       }
     } else {
       //if challenge necessary, create a new one
-      var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
-      saveTransactionRequestChallenge(result.get.id, challenge)
-      result = Full(result.get.copy(challenge = challenge))
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      saveTransactionRequestChallenge(result.id, challenge)
+      result = result.copy(challenge = challenge)
     }
 
-    result
+    Full(result)
   }
 
   /**
@@ -505,7 +502,7 @@ trait Connector {
       }
 
     // Always create a new Transaction Request
-    var transactionRequest = for {
+    val transactionReq = for {
       chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId,
                                     initiator.name, transactionRequestType.value, fromAccount.currency)
   
@@ -535,7 +532,7 @@ trait Connector {
     } yield transactionRequest
 
     //make sure we get something back
-    transactionRequest = Full(transactionRequest.openOrThrowException("Exception: Couldn't create transactionRequest"))
+    var transactionRequest = transactionReq.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     // If no challenge necessary, create Transaction immediately and put in data store and object to return
     status match {
@@ -549,24 +546,24 @@ trait Connector {
                                                                             transactionRequestType,
                                                                             chargePolicy)
         //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
-        transactionRequest = Full(transactionRequest.get.copy(challenge = null))
+        transactionRequest = transactionRequest.copy(challenge = null)
         //save transaction_id into database
-        saveTransactionRequestTransaction(transactionRequest.get.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
+        saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
         //update transaction_id filed for varibale 'transactionRequest' 
-        transactionRequest = Full(transactionRequest.get.copy(transaction_ids = createdTransactionId.get.value))
+        transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.get.value)
         
       case TransactionRequests.STATUS_PENDING =>
         transactionRequest = transactionRequest
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.get.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
-        var challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
-        saveTransactionRequestChallenge(transactionRequest.get.id, challenge)
-        transactionRequest = Full(transactionRequest.get.copy(challenge = challenge))
+        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+        saveTransactionRequestChallenge(transactionRequest.id, challenge)
+        transactionRequest = transactionRequest.copy(challenge = challenge)
     }
 
-    transactionRequest
+    Full(transactionRequest)
   }
 
   //place holder for various connector methods that overwrite methods like these, does the actual data access
@@ -626,13 +623,15 @@ trait Connector {
 
     //make sure we return null if no challenge was saved (instead of empty fields)
     if (!transactionRequests.isEmpty) {
-      Full(
-        transactionRequests.get.map(tr => if (tr.challenge.id == "") {
+      for {
+        treq <- transactionRequests
+      } yield {
+        treq.map(tr => if (tr.challenge.id == "") {
           tr.copy(challenge = null)
         } else {
           tr
         })
-      )
+      }
     } else {
       transactionRequests
     }
@@ -649,13 +648,15 @@ trait Connector {
 
     //make sure we return null if no challenge was saved (instead of empty fields)
     if (!transactionRequests.isEmpty) {
-      Full(
-        transactionRequests.get.map(tr => if (tr.challenge.id == "") {
+      for {
+        treq <- transactionRequests
+      } yield {
+        treq.map(tr => if (tr.challenge.id == "") {
           tr.copy(challenge = null)
         } else {
           tr
         })
-      )
+      }
     } else {
       transactionRequests
     }
@@ -953,6 +954,10 @@ trait Connector {
   /**
     * get transaction request type charges
     */
-  def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]]
-  
+  def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
+    val res = for {
+      trt <- transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _))
+    } yield { trt }.toList
+    res.headOption
+  }
 }
