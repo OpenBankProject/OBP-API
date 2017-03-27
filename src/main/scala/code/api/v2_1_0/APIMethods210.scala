@@ -27,7 +27,9 @@ import code.metrics.{APIMetric, APIMetrics}
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
+import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
+import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
@@ -498,16 +500,16 @@ trait APIMethods210 {
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
 
               // Check the Posted JSON is valid
-              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"} // TODO OBP message
+              challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
 
               // Check Bank exists on this server
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
 
               // Check Account exists on this server
-              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"} // TODO OBP message
+              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.BankAccountNotFound}
 
               // Check User has access to the View
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {ErrorMessages.ViewAccessNoPermission}
 
               // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
@@ -520,13 +522,17 @@ trait APIMethods210 {
               isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
 
               // Check the challengeId is valid for this existingTransactionRequest
-              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+            
+              //Check the allowed attemps, Note: not support yet, the default value is 3
+              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),ErrorMessages.allowedAttemptsUsedUp)
 
-              // Check answer TODO This should be one call.
-              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
-              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(answerJson.id, answerJson.answer)
+              //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
+              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),ErrorMessages.allowedAttemptsUsedUp)
+            
+              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
 
-              // All Good, proceed with the Transaciton creation...
+              // All Good, proceed with the Transaction creation...
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
             } yield {
               // Format explicitly as v2.0.0 json
