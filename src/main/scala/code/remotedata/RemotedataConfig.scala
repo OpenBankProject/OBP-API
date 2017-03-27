@@ -23,6 +23,7 @@ object RemotedataConfig {
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
       provider = "akka.remote.RemoteActorRefProvider"
+      allow-java-serialization = off
       kryo  {
       type = "graph"
       idstrategy = "default"

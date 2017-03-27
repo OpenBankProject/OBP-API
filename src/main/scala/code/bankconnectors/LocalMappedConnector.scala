@@ -217,38 +217,6 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
 
-  def getCounterpartyFromTransaction(thisBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    for { //find a transaction with this counterparty
-      t <- MappedTransaction.find(
-        By(MappedTransaction.bank, thisBankId.value),
-        By(MappedTransaction.account, thisAccountId.value),
-        By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
-        By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
-    } yield {
-      new Counterparty(
-        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = metadata.metadataId,
-        label = metadata.getHolder,
-        nationalIdentifier = t.counterpartyNationalId.get,
-        otherBankRoutingAddress = None,
-        otherAccountRoutingAddress = t.getCounterpartyIban(),
-        thisAccountId = AccountId(metadata.getAccountNumber),
-        thisBankId = BankId(t.counterpartyBankName.get),
-        kind = t.counterpartyAccountKind.get,
-        otherBankId = thisBankId,
-        otherAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata),
-        name = "",
-        otherBankRoutingScheme = "",
-        otherAccountRoutingScheme="",
-        otherAccountProvider = "",
-        isBeneficiary = true
-      )
-    }
-  }
-
   // Get all counterparties related to an account
   override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
   Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
@@ -941,10 +909,6 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     Full(transactionRequestTypeCharge)
-  }
-
-  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
   }
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {

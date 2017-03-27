@@ -471,41 +471,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
-    //because we don't have a db backed model for Counterpartys, we need to construct it from an
-    //CounterpartyMetadata and a transaction
-    val t = getTransactions(thisBankId, thisAccountId).map { t =>
-      t.filter { e =>
-        if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
-          true
-        else
-          false
-      }
-    }.get.head
-
-    val res = new Counterparty(
-      //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-      counterPartyId = metadata.metadataId,
-      label = metadata.getHolder,
-      nationalIdentifier = t.otherAccount.nationalIdentifier,
-      otherBankRoutingAddress = None,
-      otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-      thisAccountId = AccountId(metadata.getAccountNumber),
-      thisBankId = t.otherAccount.thisBankId,
-      kind = t.otherAccount.kind,
-      otherBankId = thisBankId,
-      otherAccountId = thisAccountId,
-      alreadyFoundMetadata = Some(metadata),
-      name = "",
-      otherBankRoutingScheme = "",
-      otherAccountRoutingScheme="",
-      otherAccountProvider = "",
-      isBeneficiary = true
-
-    )
-    Full(res)
-  }
-
   /**
    *
    * refreshes transactions via hbci if the transaction info is sourced from hbci
@@ -1090,13 +1055,13 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       dateCompleted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.completed)
 
     for {
-        counterparty <- tryo{r.counterparty}
+        cparty <- r.counterparty
         thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
         //creates a dummy Counterparty without an CounterpartyMetadata, which results in one being generated (in Counterparty init)
-        dummyCounterparty <- tryo{createCounterparty(counterparty.get, thisAccount, None)}
+        dummyCounterparty <- tryo{createCounterparty(cparty, thisAccount, None)}
         //and create the proper Counterparty with the correct "id" attribute set to the metadataId of the CounterpartyMetadata object
         //note: as we are passing in the CounterpartyMetadata we don't incur another db call to get it in Counterparty init
-        counterparty <- tryo{createCounterparty(counterparty.get, thisAccount, Some(dummyCounterparty.metadata))}
+        counterparty <- tryo{createCounterparty(cparty, thisAccount, Some(dummyCounterparty.metadata))}
       } yield {
 
         // Fix balance if null
@@ -1399,24 +1364,25 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       By(MappedTransactionRequestTypeCharge.mTransactionRequestTypeId, transactionRequestType.value))
 
     val transactionRequestTypeCharge = transactionRequestTypeChargeMapper match {
-      case Full(transactionRequestType) => TransactionRequestTypeChargeMock(
+      case Full(transactionRequestType) => Full(TransactionRequestTypeChargeMock(
         transactionRequestType.transactionRequestTypeId,
         transactionRequestType.bankId,
         transactionRequestType.chargeCurrency,
         transactionRequestType.chargeAmount,
         transactionRequestType.chargeSummary
+        )
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
-        TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
+        for {
+          fromAccount <- getBankAccount(bankId, accountId)
+          fromAccountCurrency <- tryo{ fromAccount.currency }
+        } yield {
+          TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
+        }
     }
 
-    Full(transactionRequestTypeCharge)
-  }
-  //TODO need to fix in obpjvm, just mocked result as Mapper
-  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
+    transactionRequestTypeCharge
   }
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] =
