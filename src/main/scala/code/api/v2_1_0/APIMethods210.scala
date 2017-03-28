@@ -1588,7 +1588,7 @@ trait APIMethods210 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
   
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate)): _*))
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
   
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
