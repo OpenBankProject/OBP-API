@@ -1,9 +1,10 @@
 package code.metrics
 
-import net.liftweb.util.{Props, SimpleInjector}
 import java.util.{Calendar, Date}
 
 import code.bankconnectors.OBPQueryParam
+import code.remotedata.RemotedataMetrics
+import net.liftweb.util.{Props, SimpleInjector}
 
 object APIMetrics extends SimpleInjector {
 
@@ -12,7 +13,8 @@ object APIMetrics extends SimpleInjector {
   def buildOne: APIMetrics =
     Props.getBool("allow_elasticsearch", false) &&
       Props.getBool("allow_elasticsearch_metrics", false) match {
-        case false => MappedMetrics
+        // case false => MappedMetrics
+        case false => RemotedataMetrics
         case true => ElasticsearchMetrics
     }
 
@@ -52,9 +54,22 @@ trait APIMetrics {
   //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
-  def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric]
+  def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
+
+  def bulkDeleteMetrics(): Boolean
 
 }
+
+class RemotedataMetricsCaseClasses {
+  case class saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String)
+  case class getAllGroupedByUrl()
+  case class getAllGroupedByDay()
+  case class getAllGroupedByUserId()
+  case class getAllMetrics(queryParams: List[OBPQueryParam])
+  case class bulkDeleteMetrics()
+}
+
+object RemotedataMetricsCaseClasses extends RemotedataMetricsCaseClasses
 
 trait APIMetric {
 

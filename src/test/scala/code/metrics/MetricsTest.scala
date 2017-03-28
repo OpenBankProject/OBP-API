@@ -111,6 +111,6 @@ class MetricsTest extends ServerSetup with WipeMetrics {
  */
 trait WipeMetrics {
   def wipeAllExistingMetrics() = {
-    MappedMetric.bulkDelete_!!()
+    APIMetrics.apiMetrics.vend.bulkDeleteMetrics()
   }
 }

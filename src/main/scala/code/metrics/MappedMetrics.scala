@@ -38,7 +38,7 @@ object MappedMetrics extends APIMetrics {
     MappedMetric.findAll.groupBy(_.getUrl())
   }
 
-  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
@@ -54,6 +54,10 @@ object MappedMetrics extends APIMetrics {
     val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
 
     MappedMetric.findAll(optionalParams: _*)
+  }
+
+  override def bulkDeleteMetrics(): Boolean = {
+    MappedMetric.bulkDelete_!!()
   }
 
 }

@@ -33,7 +33,7 @@ object ElasticsearchMetrics extends APIMetrics {
     MappedMetric.findAll.groupBy(_.getUrl())
   }
 
-  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     //TODO: replace the following with valid ES query
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
@@ -50,5 +50,9 @@ object ElasticsearchMetrics extends APIMetrics {
     val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
 
     MappedMetric.findAll(optionalParams: _*)
+  }
+
+  override def bulkDeleteMetrics(): Boolean = {
+    MappedMetric.bulkDelete_!!()
   }
 }

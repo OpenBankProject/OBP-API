@@ -98,7 +98,9 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
     MongoAPIMetric.findAll.groupBy[String](_.getUserId)
   }
 
-  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     MongoAPIMetric.findAll
   }
+  override def bulkDeleteMetrics(): Boolean = ???
+
 }

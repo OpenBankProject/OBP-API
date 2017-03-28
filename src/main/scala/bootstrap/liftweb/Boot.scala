@@ -440,6 +440,7 @@ object ToSchemify {
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
+    MappedMetric,
     MapperAccountHolders
   )
 
@@ -452,7 +453,6 @@ object ToSchemify {
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
-    MappedMetric,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
