@@ -83,6 +83,16 @@ class WebUI extends Loggable{
     "img [src]" #> Props.get("webui_header_logo_right_url", "")
   }
 
+
+  def footer2LogoLeft = {
+    "img [src]" #> Props.get("webui_footer2_logo_left_url", "")
+  }
+
+  def footer2MiddleText: CssSel = {
+    "#footer2-middle-text *" #> scala.xml.Unparsed(Props.get("webui_footer2_middle_text", ""))
+  }
+
+
   def aboutBackground: CssSel = {
     "#main-about [style]" #> ("background-image: url(" + Props.get("webui_index_page_about_section_background_image_url", "") + ");")
   }

@@ -207,6 +207,13 @@ webui_index_page_about_section_text = <p class="about-text"> \
 webui_top_text=""
 
 
+
+# Bottom Footer logo
+#webui_footer2_logo_left_url=
+# Bottom Footer middle text
+#webui_footer2_middle_text=
+
+
 # API Explorer url. Change to your instance
 webui_api_explorer_url = http://apiexplorer.openbankproject.com
 
