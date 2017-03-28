@@ -203,6 +203,9 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                         Welcome to the API Sandbox powered by the Open Bank Project! <br/> \
                                       </p>
 
+# Top text appears on default.html For branding next to logo(s)
+webui_top_text=""
+
 
 # API Explorer url. Change to your instance
 webui_api_explorer_url = http://apiexplorer.openbankproject.com

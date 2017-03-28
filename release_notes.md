@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+28/03/2017                  Added Props webui_top_text which is used by default.html (default="")
 22/03/2017    51d1742       Added Props webui_api_manager_url which is used by button on home page.
 21/03/2017                  Added Props authUser.skipEmailValidation . This defaults to true to maintain current behaviour
 21/03/2017    c5f6b02       Added mail.api.consumer.registered.notification.send.sensistive to Props (default is false)

@@ -91,6 +91,10 @@ class WebUI extends Loggable{
     "#main-about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
   }
 
+  def topText: CssSel = {
+    "#top-text *" #> scala.xml.Unparsed(Props.get("webui_top_text", ""))
+  }
+
   def apiExplorerLink: CssSel = {
     val tags = S.attr("tags") openOr ""
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags")
