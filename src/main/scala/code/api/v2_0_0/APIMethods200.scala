@@ -881,7 +881,9 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
-
+    
+    //Note: we already have the method: getTransactionsForBankAccount in V121.
+    //The only difference here is "Core implies 'owner' view" 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transactions
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
