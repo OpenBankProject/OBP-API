@@ -13,14 +13,14 @@
 }
 
 #logo-left {
-    margin: 20px 0 0 0;
+    margin: 20px 0 0 20px;
     float: left;
     display: inline-block;
     /* height: 75px; */
 }
 
 #logo-right {
-    margin: 20px 0 0 0;
+    margin: 20px 20px 0 0;
 }
 
 #main-about-box #main-about-buttons a {
@@ -35,7 +35,8 @@
 
 #main-about-text h2 {
     text-transform: uppercase;
-    font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    #font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    font-family: BNPP-IRB-COND;
 }
 
 #main-about-text p {
@@ -43,13 +44,59 @@
 }
  
 #main-about p {
-  color: white;
-  font-family: "bu_light",Arial, Helvetica, sans-serif;
+    color: white;
+    font-family: "bu_light",Arial, Helvetica, sans-serif;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
 }
 
 #main-about h2 {
-  color: white;
-  font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    color: white;
+    #font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    font-family: BNPP-IRB-COND;
+    font-size: 32px;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
+
+}
+
+
+
+#footer2 {
+    overflow: auto;
+    margin: 0 auto;
+    width: 1050px;
+    padding: 0px 0 20px;
+}
+
+
+
+#footer2 #footer2-logo-left {
+    margin: 0 0 0 450px;
+    float: left;
+    display: inline-block;
+
+}
+
+#footer2-logo-left img {
+    max-height: 30px;
+}
+
+#footer2 #footer2-middle-text {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 5px 0 0 650px;
+    color: #000;
+    position: absolute;
+    font-family: BNPP-IRB-LIGHT;
+}
+
+#footer2-font {
+    font-family: BNPP-IRB-LIGHT;
 }
 
 #main-support {
@@ -58,10 +105,9 @@
 
 #webui_top_text {
     position: absolute;
+    font-weight: bold;
     margin: 45px 0 0 20px;
     font-size: 1.4em;
-    font-weight: bold;
-    font-family: "bu_light",Arial, Helvetica, sans-serif;
     padding-left: 10px;
-    font-family: bnpp_sansregular;
+    font-family: BNPP-IRB-LIGHT;
 }
