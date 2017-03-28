@@ -56,25 +56,25 @@ case class APICallsPerDay(
 
 object Metrics extends RestHelper {
 
-  serve("obp" / "metrics" prefix {
-    case "demo-bar" :: Nil JsonGet json => {
-
-      def byUsage(x : APICallAmount, y : APICallAmount) =
-        x.amount > y.amount
-
-      val results = APICallAmounts(APIMetrics.apiMetrics.vend.getAllGroupedByUrl().toSeq.map(t => APICallAmount(t._1,t._2.length)).toList.sortWith(byUsage))
-
-      JsonResponse(Extraction.decompose(results))
-    }
-
-    case "demo-line" :: Nil JsonGet json => {
-
-      def byOldestDate(x : APICallsForDay, y :  APICallsForDay) : Boolean =
-        x.date before y.date
-
-      val results  = APICallsPerDay(APIMetrics.apiMetrics.vend.getAllGroupedByDay().toSeq.map(t => APICallsForDay(t._2.length,t._1)).toList.sortWith(byOldestDate))
-      JsonResponse(Extraction.decompose(results))
-    }
-
-  })
+//  serve("obp" / "metrics" prefix {
+//    case "demo-bar" :: Nil JsonGet json => {
+//
+//      def byUsage(x : APICallAmount, y : APICallAmount) =
+//        x.amount > y.amount
+//
+//      val results = APICallAmounts(APIMetrics.apiMetrics.vend.getAllGroupedByUrl().toSeq.map(t => APICallAmount(t._1,t._2.length)).toList.sortWith(byUsage))
+//
+//      JsonResponse(Extraction.decompose(results))
+//    }
+//
+//    case "demo-line" :: Nil JsonGet json => {
+//
+//      def byOldestDate(x : APICallsForDay, y :  APICallsForDay) : Boolean =
+//        x.date before y.date
+//
+//      val results  = APICallsPerDay(APIMetrics.apiMetrics.vend.getAllGroupedByDay().toSeq.map(t => APICallsForDay(t._2.length,t._1)).toList.sortWith(byOldestDate))
+//      JsonResponse(Extraction.decompose(results))
+//    }
+//
+//  })
 }

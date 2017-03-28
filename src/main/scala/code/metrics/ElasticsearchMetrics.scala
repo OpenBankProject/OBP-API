@@ -18,20 +18,20 @@ object ElasticsearchMetrics extends APIMetrics {
     }
   }
 
-  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
-    //TODO: replace the following with valid ES query
-    MappedMetric.findAll.groupBy(_.getUserId)
-  }
-
-  override def getAllGroupedByDay(): Map[Date, List[APIMetric]] = {
-    //TODO: replace the following with valid ES query
-    MappedMetric.findAll.groupBy(APIMetrics.getMetricDay)
-  }
-
-  override def getAllGroupedByUrl(): Map[String, List[APIMetric]] = {
-    //TODO: replace the following with valid ES query
-    MappedMetric.findAll.groupBy(_.getUrl())
-  }
+//  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
+//    //TODO: replace the following with valid ES query
+//    MappedMetric.findAll.groupBy(_.getUserId)
+//  }
+//
+//  override def getAllGroupedByDay(): Map[Date, List[APIMetric]] = {
+//    //TODO: replace the following with valid ES query
+//    MappedMetric.findAll.groupBy(APIMetrics.getMetricDay)
+//  }
+//
+//  override def getAllGroupedByUrl(): Map[String, List[APIMetric]] = {
+//    //TODO: replace the following with valid ES query
+//    MappedMetric.findAll.groupBy(_.getUrl())
+//  }
 
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     //TODO: replace the following with valid ES query

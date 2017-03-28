@@ -23,20 +23,20 @@ object MappedMetrics extends APIMetrics {
       .save
   }
 
-  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
-    //TODO: do this all at the db level using an actual group by query
-    MappedMetric.findAll.groupBy(_.getUserId)
-  }
-
-  override def getAllGroupedByDay(): Map[Date, List[APIMetric]] = {
-    //TODO: do this all at the db level using an actual group by query
-    MappedMetric.findAll.groupBy(APIMetrics.getMetricDay)
-  }
-
-  override def getAllGroupedByUrl(): Map[String, List[APIMetric]] = {
-    //TODO: do this all at the db level using an actual group by query
-    MappedMetric.findAll.groupBy(_.getUrl())
-  }
+//  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
+//    //TODO: do this all at the db level using an actual group by query
+//    MappedMetric.findAll.groupBy(_.getUserId)
+//  }
+//
+//  override def getAllGroupedByDay(): Map[Date, List[APIMetric]] = {
+//    //TODO: do this all at the db level using an actual group by query
+//    MappedMetric.findAll.groupBy(APIMetrics.getMetricDay)
+//  }
+//
+//  override def getAllGroupedByUrl(): Map[String, List[APIMetric]] = {
+//    //TODO: do this all at the db level using an actual group by query
+//    MappedMetric.findAll.groupBy(_.getUrl())
+//  }
 
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption

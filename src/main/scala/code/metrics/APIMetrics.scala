@@ -45,14 +45,14 @@ trait APIMetrics {
     saveMetric("TODO: userId", url, date, "TODO: userName", "TODO: appName", "TODO: developerEmail","TODO: consumerId" ,"TODO: implementedByPartialFunction" ,"TODO: implementedInVersion" ,"TODO: implementedInVersion" )
   }
 
-  //TODO: ordering of list? should this be by date? currently not enforced
-  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
-
-  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
-  def getAllGroupedByDay() : Map[Date, List[APIMetric]]
-
-  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
-  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
+//  //TODO: ordering of list? should this be by date? currently not enforced
+//  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
+//
+//  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
+//  def getAllGroupedByDay() : Map[Date, List[APIMetric]]
+//
+//  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
+//  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
 
@@ -62,9 +62,9 @@ trait APIMetrics {
 
 class RemotedataMetricsCaseClasses {
   case class saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String)
-  case class getAllGroupedByUrl()
-  case class getAllGroupedByDay()
-  case class getAllGroupedByUserId()
+//  case class getAllGroupedByUrl()
+//  case class getAllGroupedByDay()
+//  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }

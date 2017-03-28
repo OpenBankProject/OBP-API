@@ -21,17 +21,17 @@ class RemotedataMetricsActor extends Actor with ActorHelper {
       logger.debug("saveMetric()")
       sender ! extractResult(mapper.saveMetric(userId, url, date, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
 
-    case cc.getAllGroupedByUrl() =>
-      logger.debug("getAllGroupedByUrl()")
-      sender ! extractResult(mapper.getAllGroupedByUrl())
-
-    case cc.getAllGroupedByDay() =>
-      logger.debug("getAllGroupedByDay()")
-      sender ! extractResult(mapper.getAllGroupedByDay())
-
-    case cc.getAllGroupedByUserId() =>
-      logger.debug("getAllGroupedByUserId()")
-      sender ! extractResult(mapper.getAllGroupedByUserId())
+//    case cc.getAllGroupedByUrl() =>
+//      logger.debug("getAllGroupedByUrl()")
+//      sender ! extractResult(mapper.getAllGroupedByUrl())
+//
+//    case cc.getAllGroupedByDay() =>
+//      logger.debug("getAllGroupedByDay()")
+//      sender ! extractResult(mapper.getAllGroupedByDay())
+//
+//    case cc.getAllGroupedByUserId() =>
+//      logger.debug("getAllGroupedByUserId()")
+//      sender ! extractResult(mapper.getAllGroupedByUserId())
 
     case cc.getAllMetrics(queryParams) =>
       logger.debug("getAllMetrics()")

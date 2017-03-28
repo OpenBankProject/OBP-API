@@ -15,14 +15,14 @@ object RemotedataMetrics extends ActorInit with APIMetrics {
   def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) : Unit =
     extractFuture(actor ? cc.saveMetric(userId, url, date, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
 
-  def getAllGroupedByUrl() : Map[String, List[APIMetric]] =
-    extractFuture(actor ? cc.getAllGroupedByUrl())
-
-  def getAllGroupedByDay() : Map[Date, List[APIMetric]] =
-    extractFuture(actor ? cc.getAllGroupedByDay())
-
-  def getAllGroupedByUserId() : Map[String, List[APIMetric]] =
-    extractFuture(actor ? cc.getAllGroupedByUserId())
+//  def getAllGroupedByUrl() : Map[String, List[APIMetric]] =
+//    extractFuture(actor ? cc.getAllGroupedByUrl())
+//
+//  def getAllGroupedByDay() : Map[Date, List[APIMetric]] =
+//    extractFuture(actor ? cc.getAllGroupedByDay())
+//
+//  def getAllGroupedByUserId() : Map[String, List[APIMetric]] =
+//    extractFuture(actor ? cc.getAllGroupedByUserId())
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] =
     extractFuture(actor ? cc.getAllMetrics(queryParams))
