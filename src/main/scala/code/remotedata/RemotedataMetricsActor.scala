@@ -18,27 +18,27 @@ class RemotedataMetricsActor extends Actor with ActorHelper {
   def receive = {
 
     case cc.saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) =>
-      logger.info("saveMetric()")
+      logger.debug("saveMetric()")
       sender ! extractResult(mapper.saveMetric(userId, url, date, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
 
     case cc.getAllGroupedByUrl() =>
-      logger.info("getAllGroupedByUrl()")
+      logger.debug("getAllGroupedByUrl()")
       sender ! extractResult(mapper.getAllGroupedByUrl())
 
     case cc.getAllGroupedByDay() =>
-      logger.info("getAllGroupedByDay()")
+      logger.debug("getAllGroupedByDay()")
       sender ! extractResult(mapper.getAllGroupedByDay())
 
     case cc.getAllGroupedByUserId() =>
-      logger.info("getAllGroupedByUserId()")
+      logger.debug("getAllGroupedByUserId()")
       sender ! extractResult(mapper.getAllGroupedByUserId())
 
     case cc.getAllMetrics(queryParams) =>
-      logger.info("getAllMetrics()")
+      logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
     case cc.bulkDeleteMetrics() =>
-      logger.info("bulkDeleteMetrics()")
+      logger.debug("bulkDeleteMetrics()")
       sender ! extractResult(mapper.bulkDeleteMetrics())
 
     case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
