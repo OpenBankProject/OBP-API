@@ -646,6 +646,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         }
     }
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    //TODO no filter now.
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     val req = OutboundTransactionsQueryWithParams(
@@ -1092,7 +1093,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
 
-    val postedDate = ZonedDateTime.now.toString
+    val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     val transactionId = UUID.randomUUID().toString
 
     val req =
