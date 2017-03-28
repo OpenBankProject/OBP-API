@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.ServerSetup
+import code.bankconnectors.OBPLimit
 
 
 /*
@@ -26,6 +27,8 @@ class MetricsTest extends ServerSetup with WipeMetrics {
 
   val metrics = APIMetrics.apiMetrics.vend
 
+  val limit = 100
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     wipeAllExistingMetrics()
@@ -46,7 +49,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     scenario("We save a new API metric") {
       metrics.saveMetric(testUrl1, day1)
 
-      val byUrl = metrics.getAllGroupedByUrl()
+      val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
       byUrl.keys.size should equal(1)
       val metricsForUrl = byUrl(testUrl1)
@@ -64,7 +67,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUrl1, day2)
       metrics.saveMetric(testUrl2, day2)
 
-      val byUrl = metrics.getAllGroupedByUrl()
+      val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
 
       val url1Metrics = byUrl(testUrl1)
@@ -85,7 +88,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUrl1, day2)
       metrics.saveMetric(testUrl2, day2)
 
-      val byDay = metrics.getAllGroupedByDay()
+      val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))
 
       val day1Metrics = byDay(startOfDay1)
@@ -111,6 +114,6 @@ class MetricsTest extends ServerSetup with WipeMetrics {
  */
 trait WipeMetrics {
   def wipeAllExistingMetrics() = {
-    MappedMetric.bulkDelete_!!()
+    APIMetrics.apiMetrics.vend.bulkDeleteMetrics()
   }
 }

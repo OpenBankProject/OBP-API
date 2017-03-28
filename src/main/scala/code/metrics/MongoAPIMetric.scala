@@ -86,19 +86,21 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       save
   }
 
-  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {
-    MongoAPIMetric.findAll.groupBy[String](_.url.get)
-  }
+//  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {
+//    MongoAPIMetric.findAll.groupBy[String](_.url.get)
+//  }
+//
+//  def getAllGroupedByDay() : Map[Date, List[APIMetric]] = {
+//    MongoAPIMetric.findAll.groupBy[Date](APIMetrics.getMetricDay)
+//  }
+//
+//  def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
+//    MongoAPIMetric.findAll.groupBy[String](_.getUserId)
+//  }
 
-  def getAllGroupedByDay() : Map[Date, List[APIMetric]] = {
-    MongoAPIMetric.findAll.groupBy[Date](APIMetrics.getMetricDay)
-  }
-
-  def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
-    MongoAPIMetric.findAll.groupBy[String](_.getUserId)
-  }
-
-  override def getAllMetrics(queryParams: OBPQueryParam*): List[APIMetric] = {
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     MongoAPIMetric.findAll
   }
+  override def bulkDeleteMetrics(): Boolean = ???
+
 }

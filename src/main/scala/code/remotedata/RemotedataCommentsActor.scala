@@ -1,14 +1,9 @@
 package code.remotedata
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.Actor
 import akka.event.Logging
-
 import code.metadata.comments.{MappedComments, RemotedataCommentsCaseClasses}
 import code.model._
-
-import scala.concurrent.duration._
 
 
 class RemotedataCommentsActor extends Actor with ActorHelper {
