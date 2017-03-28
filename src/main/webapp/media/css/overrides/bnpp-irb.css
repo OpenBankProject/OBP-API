@@ -12,21 +12,56 @@
 	text-decoration: underline;
 }
 
+#logo-left {
+    margin: 20px 0 0 0;
+    float: left;
+    display: inline-block;
+    /* height: 75px; */
+}
+
+#logo-right {
+    margin: 20px 0 0 0;
+}
+
 #main-about-box #main-about-buttons a {
   font-family: BNPP-IRB-Rounded2;
   font-size: 18px;
 }
  
 #main-about-box {
-  background-color: green;
+  opacity: 1;
+  background-color: #00965E;
+}
+
+#main-about-text h2 {
+    text-transform: uppercase;
+    font-family: "bu_sans", Arial, Helvetica, sans-serif;
+}
+
+#main-about-text p {
+    font-family: "bu_light",Arial, Helvetica, sans-serif;
 }
  
 #main-about p {
   color: white;
-  font-family: BNPP-IRB-Rounded1;
+  font-family: "bu_light",Arial, Helvetica, sans-serif;
 }
 
 #main-about h2 {
   color: white;
-  font-family: BNPP-IRB-Rounded2;
+  font-family: "bu_sans", Arial, Helvetica, sans-serif;
+}
+
+#main-support {
+    background-color: #24b3c7;
+}
+
+#webui_top_text {
+    position: absolute;
+    margin: 45px 0 0 20px;
+    font-size: 1.4em;
+    font-weight: bold;
+    font-family: "bu_light",Arial, Helvetica, sans-serif;
+    padding-left: 10px;
+    font-family: bnpp_sansregular;
 }
