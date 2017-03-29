@@ -283,9 +283,16 @@ import net.liftweb.util.Helpers._
     return ""
   }
   /**
-    * Find current ResourceUser_UserId from AuthUser, it is only used for Consumer registration form to save the USER_ID when register new consumer.
+    * Find current ResourceUser_UserId from AuthUser, reference the @getCurrentUserUsername
+    * This method has no parameters, it depends on different login types:
+    *  AuthUser:  AuthUser.currentUser
+    *  OAuthHandshake: OAuthHandshake.getUser
+    *  DirectLogin: DirectLogin.getUser
+    * to get the current Resourceuser.userId feild.
+    * 
+    * Note: resourceuser has two ids: id(Long) and userid_(String),
+    * This method return userid_(String).
     */
-  //TODO may not be a good idea, need modify after refactoring User Models.
   def getCurrentResourceUserUserId: String = {
     for {
       current <- AuthUser.currentUser

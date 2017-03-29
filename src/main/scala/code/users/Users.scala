@@ -16,12 +16,15 @@ object Users  extends SimpleInjector {
 }
 
 trait Users {
+  //resourceuser has two ids: id(Long)and userid_(String), this method use id(Long)
   def getUserByResourceUserId(id : Long) : Box[User]
 
+  //resourceuser has two ids: id(Long)and userid_(String), this method use id(Long)
   def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser]
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
 
+  //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
 
   def getUserByUserName(userName: String) : Box[ResourceUser]
