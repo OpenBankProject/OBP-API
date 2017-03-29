@@ -1,15 +1,14 @@
 package code.api
 
-import code.api.util.APIUtil
-import code.model.TokenType._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.ResourceUser
-import APIUtil.OAuth.{Consumer, Token}
+import code.Token.Tokens
+import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
+import code.model.TokenType._
+import code.model.dataAccess.ResourceUser
+import code.model.{User, Consumer => OBPConsumer, Token => OBPToken}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
-import code.model.User
 
 trait DefaultUsers {
 
@@ -26,17 +25,16 @@ trait DefaultUsers {
 
   lazy val authuser1: ResourceUser = User.createResourceUser(defaultProvider, None, None, None, None).get
 
-  lazy val testToken =
-    OBPToken.create.
-      tokenType(Access).
-      consumerId(testConsumer.id).
-      userForeignKey(authuser1.id.toLong).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      duration(tokenDuration).
-      expirationDate({(now : TimeSpan) + tokenDuration}).
-      insertDate(now).
-      saveMe
+  lazy val testToken = Tokens.tokens.vend.createToken(Access,
+                                                      Some(testConsumer.id),
+                                                      Some(authuser1.id.toLong),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(tokenDuration),
+                                                      Some({(now : TimeSpan) + tokenDuration}),
+                                                      Some(now),
+                                                      None
+                                                    ).get
 
   lazy val token = new Token(testToken.key, testToken.secret)
 
@@ -44,17 +42,16 @@ trait DefaultUsers {
   lazy val authuser2 = User.createResourceUser(defaultProvider, None, None, None, None).get
 
   //we create an access token for the other user
-  lazy val testToken2 =
-    OBPToken.create.
-      tokenType(Access).
-      consumerId(testConsumer.id).
-      userForeignKey(authuser2.id.toLong).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      duration(tokenDuration).
-      expirationDate({(now : TimeSpan) + tokenDuration}).
-      insertDate(now).
-      saveMe
+  lazy val testToken2 = Tokens.tokens.vend.createToken(Access,
+                                                      Some(testConsumer.id),
+                                                      Some(authuser2.id.toLong),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(tokenDuration),
+                                                      Some({(now : TimeSpan) + tokenDuration}),
+                                                      Some(now),
+                                                      None
+                                                    ).get
 
   lazy val token2 = new Token(testToken2.key, testToken2.secret)
 
@@ -62,17 +59,16 @@ trait DefaultUsers {
   lazy val authuser3 = User.createResourceUser(defaultProvider, None, None, None, None).get
 
   //we create an access token for the other user
-  lazy val testToken3 =
-    OBPToken.create.
-      tokenType(Access).
-      consumerId(testConsumer.id).
-      userForeignKey(authuser3.id.toLong).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      duration(tokenDuration).
-      expirationDate({(now : TimeSpan) + tokenDuration}).
-      insertDate(now).
-      saveMe
+  lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
+                                                      Some(testConsumer.id),
+                                                      Some(authuser3.id.toLong),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(randomString(40).toLowerCase),
+                                                      Some(tokenDuration),
+                                                      Some({(now : TimeSpan) + tokenDuration}),
+                                                      Some(now),
+                                                      None
+                                                    ).get
 
   lazy val token3 = new Token(testToken3.key, testToken3.secret)
 

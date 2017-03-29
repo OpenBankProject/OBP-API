@@ -32,15 +32,14 @@
 package code.api
 
 
+import code.Token.Tokens
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
-import code.model.{Consumer, Token}
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 import scala.collection.JavaConverters._
@@ -129,7 +128,7 @@ trait SendServerRequests {
   }
 
   def getTokenSecret(token : String ) : String = {
-    Token.find(By(Token.key, token)) match {
+    Tokens.tokens.vend.getTokenByKey(token) match {
       case Full(t) => t.secret
       case _ => ""
     }
