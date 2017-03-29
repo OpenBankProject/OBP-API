@@ -1823,7 +1823,7 @@ trait APIMethods200 {
                                   CanCreateEntitlementAtAnyBank ::
                                   Nil
             isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~ {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
-            bank <- booleanToBox(Bank(BankId(postedData.bank_id)).isEmpty == false || postedData.bank_id.nonEmpty == false) ?~! {ErrorMessages.BankNotFound}
+            bank <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false) ?~! {ErrorMessages.BankNotFound}
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
             hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
