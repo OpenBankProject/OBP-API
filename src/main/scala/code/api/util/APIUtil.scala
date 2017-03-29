@@ -636,7 +636,7 @@ object APIUtil extends Loggable {
   // Used to document the KafkaMessage calls
   case class MessageDoc(
                          process: String,
-                         connectorVersion: String,
+                         messageFormat: String,
                          description: String,
                          exampleOutboundMessage: JValue, // TODO make this more formal see above.
                          exampleInboundMessage: JValue, // TODO Ditto: should probably always include errorCode, see above.

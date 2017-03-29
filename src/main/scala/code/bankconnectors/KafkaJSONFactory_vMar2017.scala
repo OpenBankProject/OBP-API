@@ -554,7 +554,7 @@ case class InboundChargeLevel(
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 case class MessageDocJson(
                            process: String, // Should be unique
-                           connector_version: String,
+                           message_format: String,
                            description: String,
                            example_outbound_message: JValue,
                            example_inbound_message: JValue,
@@ -573,7 +573,7 @@ object KafkaJSONFactory_vMar2017 {
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     MessageDocJson(
       process = md.process,
-      connector_version = md.connectorVersion,
+      message_format = md.messageFormat,
       description = md.description,
       example_outbound_message = md.exampleOutboundMessage,
       example_inbound_message = md.exampleInboundMessage,

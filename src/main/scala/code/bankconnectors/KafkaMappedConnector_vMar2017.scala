@@ -89,7 +89,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
 
 
-  val formatVersion: String  = "Mar2017"
+  val messageFormat: String  = "Mar2017"
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
@@ -104,12 +104,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.User",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getUser from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundUserByUsernamePassword(
         action = "obp.get.User",
-        version = formatVersion,
+        version = messageFormat,
         username = "susan.uk.29@example.com",
         password = "2b78e8"
       )
@@ -127,7 +127,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     for {
       req <- Full(OutboundUserByUsernamePassword(
         action = "obp.get.User",
-        version = formatVersion,
+        version = messageFormat,
         username = username,
         password = password))
       u <- tryo { cachedUser.getOrElseUpdate(req.toString, () => process(req).extract[InboundValidatedUser]) }
@@ -141,12 +141,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.get.Accounts'
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "updateUserAccountViews from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundUserAccountViews(
       action = "obp.get.Accounts",
-      version = formatVersion,
+      version = messageFormat,
       username = "susan.uk.29@example.com",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       bankId = "gh.29.uk"
@@ -192,7 +192,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         username <- tryo {user.name}
         req <- Full(OutboundUserAccountViews(
           action = "obp.get.Accounts",
-          version = formatVersion,
+          version = messageFormat,
           username = user.name,
           userId = user.name,
           bankId = bankId))
@@ -230,12 +230,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Banks",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getBanks",
     exampleOutboundMessage = Extraction.decompose(
       OutboundBanks(
         action = "obp.get.Banks",
-        version = formatVersion,
+        version = messageFormat,
         username = "susan.uk.29@example.com",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a"
       )
@@ -259,7 +259,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getBanks: List[Bank] = {
     val req = OutboundBanks(
       action = "obp.get.Banks",
-      version = formatVersion,
+      version = messageFormat,
       username = currentResourceUserId,
       userId = AuthUser.getCurrentUserUsername)
 
@@ -284,12 +284,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
   messageDocs += MessageDoc(
     process = "obp.get.ChallengeThreshold",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getChallengeThreshold from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundChallengeThreshold(
         action = "obp.get.ChallengeThreshold",
-        version = formatVersion,
+        version = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         viewId = "owner",
@@ -313,7 +313,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create argument list
     val req = OutboundChallengeThreshold(
       action = "obp.get.ChallengeThreshold",
-      version = formatVersion,
+      version = messageFormat,
       bankId = bankId,
       accountId = accountId,
       viewId = viewId,
@@ -338,12 +338,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.ChargeLevel",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "ChargeLevel from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundChargeLevel(
         action = "obp.get.ChargeLevel",
-        version = formatVersion,
+        version = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         viewId = "owner",
@@ -372,7 +372,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create argument list
     val req = OutboundChargeLevel(
       action = "obp.get.ChargeLevel",
-      version = formatVersion,
+      version = messageFormat,
       bankId = bankId.value,
       accountId = accountId.value,
       viewId = viewId.value,
@@ -396,12 +396,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.create.Challenge",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundChallenge(
         action = "obp.create.Challenge",
-        version = formatVersion,
+        version = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -413,7 +413,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     exampleInboundMessage = Extraction.decompose(
       OutboundChallenge(
         action = "obp.create.Challenge",
-        version = formatVersion,
+        version = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -430,7 +430,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create argument list
     val req = OutboundChallenge(
       action = "obp.create.Challenge",
-      version = formatVersion,
+      version = messageFormat,
       bankId = bankId.value,
       accountId = accountId.value,
       userId = userId,
@@ -449,12 +449,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.validate.ChallengeAnswer",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "validateChallengeAnswer from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundChallengeAnswer(
         action = "obp.validate.ChallengeAnswer",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         challengeId = "1234",
@@ -470,7 +470,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create argument list
     val req = OutboundChallengeAnswer(
       action = "obp.validate.ChallengeAnswer",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       challengeId = challengeId,
@@ -487,12 +487,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getBank from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OUTTBank(
         action = "obp.get.Bank",
-        version = formatVersion,
+        version = messageFormat,
         bankId = "gh.29.uk",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com"
@@ -512,7 +512,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create argument list
     val req = OUTTBank(
       action = "obp.get.Bank",
-      version = formatVersion,
+      version = messageFormat,
       bankId = bankid.toString,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername)
@@ -526,12 +526,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Transaction",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getTransaction from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundTransactionQuery(
         action = "obp.get.Transaction",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -563,7 +563,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = OutboundTransactionQuery(
       action = "obp.get.Transaction",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -583,12 +583,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Transactions",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getTransactions from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundTransactionsQueryWithParams(
         action = "obp.get.Transactions",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -651,7 +651,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     val req = OutboundTransactionsQueryWithParams(
       action = "obp.get.Transactions",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -676,12 +676,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Account",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getBankAccount from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundBankAccount(
         action = "obp.get.Account",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -710,7 +710,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccount(
       action = "obp.get.Account",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -733,12 +733,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundBankAccounts(
         action = "obp.get.Accounts",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -785,7 +785,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
         val req = OutboundBankAccounts(
           action = "obp.get.Accounts",
-          version = formatVersion,
+          version = messageFormat,
           userId = currentResourceUserId,
           username = AuthUser.getCurrentUserUsername,
           bankId = a._1.value,
@@ -813,12 +813,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   //TODO the method name is different from action
   messageDocs += MessageDoc(
     process = "obp.get.Account",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getAccountByNumber from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundAccountByNumber(
         action = "obp.get.Account",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -848,7 +848,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Generate random uuid to be used as request-respose match id
     val req = OutboundAccountByNumber(
       action = "obp.get.Account",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -881,12 +881,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundCounterpartyByCounterpartyId(
         action = "obp.get.CounterpartyByCounterpartyId",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         counterpartyId = ""
@@ -918,7 +918,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     } else {
       val req = OutboundCounterpartyByCounterpartyId(
         action = "obp.get.CounterpartyByCounterpartyId",
-        version = formatVersion,
+        version = messageFormat,
         userId = currentResourceUserId,
         username = AuthUser.getCurrentUserUsername,
         counterpartyId = counterpartyId.toString
@@ -934,12 +934,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByIban",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getCounterpartyByIban from kafka ",
     exampleOutboundMessage = Extraction.decompose(
       OutboundCounterpartyByIban(
         action = "obp.get.CounterpartyByIban",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         otherAccountRoutingAddress = "1234",
@@ -974,7 +974,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     } else {
       val req = OutboundCounterpartyByIban(
         action = "obp.get.CounterpartyByIban",
-        version = formatVersion,
+        version = messageFormat,
         userId = currentResourceUserId,
         username = AuthUser.getCurrentUserUsername,
         otherAccountRoutingAddress = iban,
@@ -1040,12 +1040,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.put.Transaction",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "saveTransaction from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundSaveTransaction(
         action = "obp.put.Transaction",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
 
@@ -1100,7 +1100,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       if (toAccount != null && toCounterparty == null) {
         OutboundSaveTransaction(
           action = "obp.put.Transaction",
-          version = formatVersion,
+          version = messageFormat,
           userId = currentResourceUserId,
           username = AuthUser.getCurrentUserUsername,
 
@@ -1131,7 +1131,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       } else {
         OutboundSaveTransaction(
           action = "obp.put.Transaction",
-          version = formatVersion,
+          version = messageFormat,
           userId = currentResourceUserId,
           username = AuthUser.getCurrentUserUsername,
 
@@ -1177,12 +1177,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
   messageDocs += MessageDoc(
     process = "obp.get.TransactionRequestStatusesImpl",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getTransactionRequestStatusesImpl from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundTransactionRequestStatuses(
         action = "obp.get.TransactionRequestStatusesImpl",
-        version = formatVersion
+        version = messageFormat
       )
     ),
     exampleInboundMessage = Extraction.decompose(
@@ -1208,7 +1208,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     logger.info(s"tKafka getTransactionRequestStatusesImpl sart: ")
     val req = OutboundTransactionRequestStatuses(
       action = "obp.get.TransactionRequestStatusesImpl",
-      version = formatVersion
+      version = messageFormat
     )
     //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty.
     val r = try{
@@ -1581,12 +1581,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.CurrentFxRate",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getCurrentFxRate from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundCurrentFxRate(
         action = "obp.get.CurrentFxRate",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         fromCurrencyCode = "1234",
@@ -1609,7 +1609,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create request argument list
     val req = OutboundCurrentFxRate(
       action = "obp.get.CurrentFxRate",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       fromCurrencyCode = fromCurrencyCode,
@@ -1624,12 +1624,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   messageDocs += MessageDoc(
     process = "obp.get.TransactionRequestTypeCharge",
-    connectorVersion = formatVersion,
+    messageFormat = messageFormat,
     description = "getTransactionRequestTypeCharge from kafka",
     exampleOutboundMessage = Extraction.decompose(
       OutboundTransactionRequestTypeCharge(
         action = "obp.get.TransactionRequestTypeCharge",
-        version = formatVersion,
+        version = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -1655,7 +1655,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     // Create request argument list
     val req = OutboundTransactionRequestTypeCharge(
       action = "obp.get.TransactionRequestTypeCharge",
-      version = formatVersion,
+      version = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.value,
