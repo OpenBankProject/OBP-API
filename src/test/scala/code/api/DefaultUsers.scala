@@ -1,6 +1,6 @@
 package code.api
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
 import code.model.TokenType._

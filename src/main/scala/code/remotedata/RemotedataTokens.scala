@@ -3,7 +3,7 @@ package code.remotedata
 import java.util.Date
 
 import akka.pattern.ask
-import code.Token.{RemotedataTokensCaseClasses, TokensProvider}
+import code.token.{RemotedataTokensCaseClasses, TokensProvider}
 import code.model.Token
 import code.model.TokenType.TokenType
 import net.liftweb.common._

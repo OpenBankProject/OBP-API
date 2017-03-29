@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import akka.event.Logging
-import code.Token.RemotedataTokensCaseClasses
+import code.token.RemotedataTokensCaseClasses
 import code.model.TokenType.TokenType
 import code.model._
 

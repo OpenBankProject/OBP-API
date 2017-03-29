@@ -30,7 +30,7 @@ import java.util.Date
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.Constant._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers

@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
-import code.Token.TokensProvider
+import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.TokenType.TokenType
 import code.model.dataAccess.ResourceUser

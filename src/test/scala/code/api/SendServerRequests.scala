@@ -32,7 +32,7 @@
 package code.api
 
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
 import dispatch.Defaults._

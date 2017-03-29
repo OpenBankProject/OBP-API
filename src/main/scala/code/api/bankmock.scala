@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.model.{Token, TokenType}
 import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.{JsonResponse, S}

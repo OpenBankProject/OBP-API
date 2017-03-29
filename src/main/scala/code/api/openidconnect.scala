@@ -30,7 +30,7 @@ import java.net.HttpURLConnection
 import java.util.Date
 import javax.net.ssl.HttpsURLConnection
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.util.APIUtil._
 import code.model.User
 import code.model.dataAccess.{AuthUser, ResourceUser}
