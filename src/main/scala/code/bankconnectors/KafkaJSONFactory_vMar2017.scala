@@ -553,31 +553,31 @@ case class InboundChargeLevel(
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 case class MessageDocJson(
-    action: String,
-    connectorVersion: String,
-    description: String,
-    exampleOutboundMessage: JValue,
-    exampleInboundMessage: JValue,
-    errorResponseMessages: List[JValue]
+                           process: String, // Should be unique
+                           connector_version: String,
+                           description: String,
+                           example_outbound_message: JValue,
+                           example_inbound_message: JValue,
+                           possible_error_messages: List[JValue]
 )
 
 // Creates the json resource_docs
 case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
 object KafkaJSONFactory_vMar2017 {
-  
+
   def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
-  
+
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     MessageDocJson(
-      action = md.action,
-      connectorVersion = md.connectorVersion,
+      process = md.process,
+      connector_version = md.connectorVersion,
       description = md.description,
-      exampleOutboundMessage = md.exampleOutboundMessage,
-      exampleInboundMessage = md.exampleInboundMessage,
-      errorResponseMessages = md.errorResponseMessages
+      example_outbound_message = md.exampleOutboundMessage,
+      example_inbound_message = md.exampleInboundMessage,
+      possible_error_messages = md.errorResponseMessages
     )
   }
   

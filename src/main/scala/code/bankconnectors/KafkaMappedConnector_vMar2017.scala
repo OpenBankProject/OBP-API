@@ -103,7 +103,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   // Each Message Doc has an id, description,
 
   messageDocs += MessageDoc(
-    action = "obp.get.User",
+    process = "obp.get.User",
     connectorVersion = formatVersion,
     description = "getUser from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -140,7 +140,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.get.Accounts'
   messageDocs += MessageDoc(
-    action = "obp.get.Accounts",
+    process = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "updateUserAccountViews from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -229,7 +229,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Banks",
+    process = "obp.get.Banks",
     connectorVersion = formatVersion,
     description = "getBanks",
     exampleOutboundMessage = Extraction.decompose(
@@ -283,7 +283,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     res
   }
   messageDocs += MessageDoc(
-    action = "obp.get.ChallengeThreshold",
+    process = "obp.get.ChallengeThreshold",
     connectorVersion = formatVersion,
     description = "getChallengeThreshold from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -337,7 +337,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.ChargeLevel",
+    process = "obp.get.ChargeLevel",
     connectorVersion = formatVersion,
     description = "ChargeLevel from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -395,7 +395,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.create.Challenge",
+    process = "obp.create.Challenge",
     connectorVersion = formatVersion,
     description = "CreateChallenge from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -448,7 +448,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.validate.ChallengeAnswer",
+    process = "obp.validate.ChallengeAnswer",
     connectorVersion = formatVersion,
     description = "validateChallengeAnswer from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -486,7 +486,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Bank",
+    process = "obp.get.Bank",
     connectorVersion = formatVersion,
     description = "getBank from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -525,7 +525,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Transaction",
+    process = "obp.get.Transaction",
     connectorVersion = formatVersion,
     description = "getTransaction from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -582,7 +582,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Transactions",
+    process = "obp.get.Transactions",
     connectorVersion = formatVersion,
     description = "getTransactions from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -675,7 +675,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Account",
+    process = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getBankAccount from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -732,7 +732,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.Accounts",
+    process = "obp.get.Accounts",
     connectorVersion = formatVersion,
     description = "getBankAccounts from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -812,7 +812,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   //TODO the method name is different from action
   messageDocs += MessageDoc(
-    action = "obp.get.Account",
+    process = "obp.get.Account",
     connectorVersion = formatVersion,
     description = "getAccountByNumber from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -880,7 +880,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
 
   messageDocs += MessageDoc(
-    action = "obp.get.CounterpartyByCounterpartyId",
+    process = "obp.get.CounterpartyByCounterpartyId",
     connectorVersion = formatVersion,
     description = "getCounterpartyByCounterpartyId from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -933,7 +933,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.CounterpartyByIban",
+    process = "obp.get.CounterpartyByIban",
     connectorVersion = formatVersion,
     description = "getCounterpartyByIban from kafka ",
     exampleOutboundMessage = Extraction.decompose(
@@ -1039,7 +1039,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
 
   messageDocs += MessageDoc(
-    action = "obp.put.Transaction",
+    process = "obp.put.Transaction",
     connectorVersion = formatVersion,
     description = "saveTransaction from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -1176,7 +1176,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
   }
   messageDocs += MessageDoc(
-    action = "obp.get.TransactionRequestStatusesImpl",
+    process = "obp.get.TransactionRequestStatusesImpl",
     connectorVersion = formatVersion,
     description = "getTransactionRequestStatusesImpl from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -1580,7 +1580,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
   messageDocs += MessageDoc(
-    action = "obp.get.CurrentFxRate",
+    process = "obp.get.CurrentFxRate",
     connectorVersion = formatVersion,
     description = "getCurrentFxRate from kafka",
     exampleOutboundMessage = Extraction.decompose(
@@ -1623,7 +1623,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   }
 
   messageDocs += MessageDoc(
-    action = "obp.get.TransactionRequestTypeCharge",
+    process = "obp.get.TransactionRequestTypeCharge",
     connectorVersion = formatVersion,
     description = "getTransactionRequestTypeCharge from kafka",
     exampleOutboundMessage = Extraction.decompose(

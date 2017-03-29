@@ -635,12 +635,12 @@ object APIUtil extends Loggable {
 
   // Used to document the KafkaMessage calls
   case class MessageDoc(
-    action: String,
-    connectorVersion: String,
-    description: String,
-    exampleOutboundMessage: JValue, // TODO make this more formal see above.
-    exampleInboundMessage: JValue, // TODO Ditto: should probably always include errorCode, see above.
-    errorResponseMessages: List[JValue]
+                         process: String,
+                         connectorVersion: String,
+                         description: String,
+                         exampleOutboundMessage: JValue, // TODO make this more formal see above.
+                         exampleInboundMessage: JValue, // TODO Ditto: should probably always include errorCode, see above.
+                         errorResponseMessages: List[JValue]
   )
   
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
