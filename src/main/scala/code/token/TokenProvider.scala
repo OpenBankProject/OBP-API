@@ -1,4 +1,4 @@
-package code.Token
+package code.token
 
 import java.util.Date
 
