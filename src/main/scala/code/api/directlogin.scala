@@ -29,21 +29,21 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.Token.Tokens
+import code.api.util.APIUtil._
+import code.api.util.{APIUtil, ErrorMessages}
+import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}
+import code.util.Helper.SILENCE_IS_GOLDEN
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
-import net.liftweb.mapper.By
-import net.liftweb.util.{Helpers, Props}
 import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Props}
 
 import scala.compat.Platform
-import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages}
-import code.consumer.Consumers
-import code.util.Helper.SILENCE_IS_GOLDEN
 
 /**
 * This object provides the API calls necessary to
@@ -182,7 +182,7 @@ object DirectLogin extends RestHelper with Loggable {
     }
 
     def validAccessToken(tokenKey: String) = {
-      Token.find(By(Token.key, tokenKey), By(Token.tokenType, TokenType.Access)) match {
+      Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
         case Full(token) => token.isValid
         case _ => false
       }
@@ -274,23 +274,27 @@ object DirectLogin extends RestHelper with Loggable {
 
   private def saveAuthorizationToken(directLoginParameters: Map[String, String], tokenKey: String, tokenSecret: String, userId: Long) =
   {
-    import code.model.{Token, TokenType}
-    val token = Token.create
-    token.tokenType(TokenType.Access)
-    Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
-      case Full(consumer) => token.consumerId(consumer.id)
+    import code.model.TokenType
+    val consumerId = consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
+      case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    token.userForeignKey(userId)
-    token.key(tokenKey)
-    token.secret(tokenSecret)
     val currentTime = Platform.currentTime
     val tokenDuration : Long = Helpers.weeks(4)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
-    tokenSaved
+    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
+                                                    consumerId,
+                                                    Some(userId),
+                                                    Some(tokenKey),
+                                                    Some(tokenSecret),
+                                                    Some(tokenDuration),
+                                                    Some(new Date(currentTime+tokenDuration)),
+                                                    Some(new Date(currentTime)),
+                                                    None
+                                                    )
+    tokenSaved match {
+      case Full(_) => true
+      case _       => false
+    }
   }
 
   def getUser : Box[User] = {
@@ -331,7 +335,7 @@ object DirectLogin extends RestHelper with Loggable {
 
   def getUserFromToken(tokenID : Box[String]) : Box[User] = {
     logger.info("DirectLogin header correct ")
-    Token.find(By(Token.key, tokenID.getOrElse(""))) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID.getOrElse("")) match {
       case Full(token) => {
         logger.info("access token: " + token + " found")
         val user = token.user
@@ -360,7 +364,7 @@ object DirectLogin extends RestHelper with Loggable {
 
     val consumer: Option[Consumer] = for {
       tokenId: String <- directLoginParameters.get("token")
-      token: Token <- Token.find(By(Token.key, tokenId))
+      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
       consumer: Consumer <- token.consumer
     } yield {
       consumer

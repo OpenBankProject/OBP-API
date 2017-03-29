@@ -30,7 +30,11 @@ Berlin 13359, Germany
 
  */
 package code.model
+import java.util.Date
+
+import code.Token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
+import code.model.TokenType.TokenType
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import net.liftweb.common._
@@ -310,6 +314,88 @@ class Nonce extends LongKeyedMapper[Nonce] {
 
 }
 object Nonce extends Nonce with LongKeyedMetaMapper[Nonce]{}
+
+object MappedTokenProvider extends TokensProvider {
+  override def getTokenByKey(key: String): Box[Token] = {
+    Token.find(By(Token.key, key))
+  }
+  override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
+    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType))
+    println("token: " + token)
+    token
+  }
+
+  override def createToken(tokenType: TokenType,
+                           consumerId: Option[Long],
+                           userId: Option[Long],
+                           key: Option[String],
+                           secret: Option[String],
+                           duration: Option[Long],
+                           expirationDate: Option[Date],
+                           insertDate: Option[Date],
+                           callbackURL: Option[String]): Box[Token] = {
+    tryo {
+      val t = Token.create
+      t.tokenType(tokenType)
+      consumerId match {
+        case Some(v) => t.consumerId(v)
+        case None =>
+      }
+      userId match {
+        case Some(v) => t.userForeignKey(v)
+        case None =>
+      }
+      key match {
+        case Some(v) => t.key(v)
+        case None =>
+      }
+      secret match {
+        case Some(v) => t.secret(v)
+        case None =>
+      }
+      duration match {
+        case Some(v) => t.duration(v)
+        case None =>
+      }
+      expirationDate match {
+        case Some(v) => t.expirationDate(v)
+        case None =>
+      }
+      insertDate match {
+        case Some(v) => t.insertDate(v)
+        case None =>
+      }
+      callbackURL match {
+        case Some(v) => t.callbackURL(v)
+        case None =>
+      }
+      val token = t.saveMe()
+      token
+    }
+  }
+
+  override def updateToken(id: Long, userId: Long): Boolean = {
+    Token.find(By(Token.id, id)) match {
+      case Full(t) => t.userForeignKey(userId).save()
+      case _       => false
+    }
+  }
+
+  override def gernerateVerifier(id: Long): String = {
+    Token.find(By(Token.id, id)).map(_.gernerateVerifier).getOrElse("")
+  }
+
+  override def deleteToken(id: Long): Boolean = {
+    Token.find(By(Token.id, id)) match {
+      case Full(t) => t.delete_!
+      case _       => false
+    }
+  }
+
+  override def deleteExpiredTokens(currentDate: Date): Boolean = {
+    Token.findAll(By_<(Token.expirationDate, currentDate)).forall(_.delete_!)
+  }
+}
 
 
 class Token extends LongKeyedMapper[Token]{

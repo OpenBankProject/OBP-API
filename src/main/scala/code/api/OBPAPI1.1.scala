@@ -31,19 +31,20 @@ Berlin 13359, Germany
  */
 package code.api.v1_1
 
+import java.net.URL
+import java.util.Date
+
+import _root_.net.liftweb.util.Helpers._
+import code.Token.Tokens
+import code.api.OAuthHandshake._
+import code.metrics.APIMetrics
+import code.model._
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest._
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
-import net.liftweb.common.{Failure,Full,Empty, Box, Loggable}
-import _root_.net.liftweb.mapper._
-import _root_.net.liftweb.util.Helpers._
-import code.model._
-import java.util.Date
-import code.api.OAuthHandshake._
-import java.net.URL
-import code.metrics.{APIMetrics}
+import net.liftweb.json.JsonDSL._
 
 case class TagJSON(
   value : String,
@@ -110,9 +111,8 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
   if(httpCode==200)
   {
-    import code.model.Token
     logger.info("OAuth header correct ")
-    Token.find(By(Token.key, tokenID.get)) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
       case Full(token) => {
         logger.info("access token: "+ token + " found")
         val user = User.findByResourceUserId(token.userForeignKey.get)

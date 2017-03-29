@@ -26,30 +26,23 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api
 
-import java.io.IOException
-import java.security.cert.Certificate
+import java.net.HttpURLConnection
 import java.util.Date
-import javax.net.ssl.{HttpsURLConnection, SSLPeerUnverifiedException}
-import javax.security.cert.Certificate
+import javax.net.ssl.HttpsURLConnection
 
-import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.Token.Tokens
 import code.api.util.APIUtil._
-import code.model.dataAccess.{ResourceUser, AuthUser}
-import code.model.{Consumer, Token, TokenType, User}
+import code.model.User
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, JObject, JValue}
+import net.liftweb.json
+import net.liftweb.json.{JObject, JValue}
 import net.liftweb.mapper.By
-import net.liftweb.util.{Helpers, Props}
 import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Props}
 
 import scala.compat.Platform
-import code.api.util.{APIUtil, ErrorMessages}
-import kafka.utils.Json
-import java.net.HttpURLConnection
-import net.liftweb.{http, json}
-import code.model.User
 
 /**
   * This object provides the API calls necessary to authenticate
@@ -158,25 +151,29 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
 
   private def saveAuthorizationToken(tokenKey: String, tokenSecret: String, userId: Long) =
   {
-    import code.model.{Token, TokenType}
-    val token = Token.create
-    token.tokenType(TokenType.Access)
+    import code.model.TokenType
     // TODO Consumer is not needed with oauth2/openid or is it?
     //Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
     //  case Full(consumer) => token.consumerId(consumer.id)
     //  case _ => None
     //}
     //token.consumerId(0)
-    token.userForeignKey(userId)
-    token.key(tokenKey)
-    token.secret(tokenSecret)
     val currentTime = Platform.currentTime
     val tokenDuration : Long = Helpers.weeks(4)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
-    tokenSaved
+    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
+                                                    None,
+                                                    Some(userId),
+                                                    Some(tokenKey),
+                                                    Some(tokenSecret),
+                                                    Some(tokenDuration),
+                                                    Some(new Date(currentTime+tokenDuration)),
+                                                    Some(new Date(currentTime)),
+                                                    None
+                                                  )
+    tokenSaved match {
+      case Full(_) => true
+      case _       => false
+    }
   }
 
   def fromUrl( url: String,

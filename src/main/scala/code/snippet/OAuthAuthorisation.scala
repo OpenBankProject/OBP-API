@@ -36,6 +36,7 @@ package code.snippet
 
 import java.util.Date
 
+import code.Token.Tokens
 import code.api.util.APIUtil
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
@@ -45,7 +46,6 @@ import code.util.Helper
 import code.util.Helper.NOOP_SELECTOR
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.S
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Helpers, Props}
 
@@ -90,19 +90,19 @@ object OAuthAuthorisation {
         var verifier = ""
         // if the user is logged in and no verifier have been generated
         if (appToken.verifier.isEmpty) {
-          val randomVerifier = appToken.gernerateVerifier
+          val randomVerifier = Tokens.tokens.vend.gernerateVerifier(appToken.id)
           //the user is logged in so we have the current user
           val authUser = AuthUser.currentUser.get
 
           //link the token with the concrete API User
-          Users.users.vend.getResourceUserByResourceUserId(authUser.user.get).map {
+          val saved = Users.users.vend.getResourceUserByResourceUserId(authUser.user.get).map {
             u => {
               //We want ResourceUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"
-              appToken.userForeignKey(u.id.get)
+              Tokens.tokens.vend.updateToken(appToken.id, u.id.get)
             }
           }
-          if (appToken.save())
+          if (saved.getOrElse(false))
             verifier = randomVerifier
         } else
           verifier = appToken.verifier
@@ -164,7 +164,7 @@ object OAuthAuthorisation {
     //TODO: improve error messages
     val cssSel = for {
       tokenParam <- S.param("oauth_token") ?~! "There is no Token."
-      token <- Token.find(By(Token.key, Helpers.urlDecode(tokenParam.toString)), By(Token.tokenType, TokenType.Request)) ?~! "This token does not exist"
+      token <- Tokens.tokens.vend.getTokenByKeyAndType(Helpers.urlDecode(tokenParam.toString), TokenType.Request) ?~! "This token does not exist"
       tokenValid <- Helper.booleanToBox(token.isValid, "Token expired")
     } yield {
       validTokenCase(token, tokenParam)
@@ -207,6 +207,7 @@ object OAuthAuthorisation {
     val timeLimit = new Date(currentDate.getTime + 180000)
 
     //delete expired tokens and nonces
-    (Token.findAll(By_<(Token.expirationDate, currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp, timeLimit))).foreach(t => t.delete_!)
+    Tokens.tokens.vend.deleteExpiredTokens(currentDate)
+    Nonce.findAll(By_<(Nonce.timestamp, timeLimit)).foreach(t => t.delete_!)
   }
 }

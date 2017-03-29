@@ -25,31 +25,24 @@ TESOBE (http://www.tesobe.com/)
   
  */
 package code.api
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.Req
-import net.liftweb.http.PostRequest
-import net.liftweb.common.Box
-import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.{Empty, Full, Loggable}
-import net.liftweb.http.S
-import code.model.{Consumer, Nonce, Token}
-import net.liftweb.mapper.By
-import java.util.Date
 import java.net.{URLDecoder, URLEncoder}
-import javax.crypto.spec.SecretKeySpec
+import java.util.Date
 import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
+import code.Token.Tokens
+import code.api.Constant._
+import code.api.util.{APIUtil, ErrorMessages}
+import code.consumer.Consumers
+import code.model.{Consumer, Nonce, TokenType, User}
+import net.liftweb.common._
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.{tryo, _}
 
 import scala.compat.Platform
-import Helpers._
-import code.api.util.{APIUtil, ErrorMessages}
-import code.api.Constant._
-import code.consumer.Consumers
-import code.model.TokenType
-import code.model.User
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.common.ParamFailure
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -96,9 +89,12 @@ object OAuthHandshake extends RestHelper with Loggable {
         if(saveAuthorizationToken(oAuthParameters,token, secret))
         //remove the request token so the application could not exchange it
         //again to get an other access token
-        Token.find(By(Token.key,oAuthParameters.get("oauth_token").get)) match {
-            case Full(requestToken) => requestToken.delete_!
-            case _ => None
+         Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
+            case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id) match {
+              case true  =>
+              case false => logger.warn("Request token: " + requestToken + " is not deleted. The application could exchange it again to get an other access token!")
+            }
+            case _ => logger.warn("Request token is not deleted due to absence in database!")
           }
 
         message="oauth_token="+token+"&oauth_token_secret="+secret
@@ -276,7 +272,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       var secret= consumer.secret.toString
 
       OAuthparameters.get("oauth_token") match {
-        case Some(tokenKey) => Token.find(By(Token.key,tokenKey)) match {
+        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
             case Full(token) => secret+= "&" +token.secret.toString()
             case _ => secret+= "&"
           }
@@ -306,7 +302,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     //check if the token exists and is still valid
     def validToken(tokenKey : String, verifier : String) ={
-      Token.find(By(Token.key, tokenKey),By(Token.tokenType,TokenType.Request)) match {
+      Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Request) match {
         case Full(token) =>
           token.isValid && token.verifier == verifier
         case _ => false
@@ -314,7 +310,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
 
     def validToken2(tokenKey : String) = {
-      Token.find(By(Token.key, tokenKey),By(Token.tokenType,TokenType.Access)) match {
+      Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
         case Full(token) => token.isValid
           case _ => false
       }
@@ -437,7 +433,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
   private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
-    import code.model.{Nonce, Token, TokenType}
+    import code.model.{Nonce, TokenType}
 
     val nonce = Nonce.create
     nonce.consumerkey(oAuthParameters.get("oauth_consumer_key").get)
@@ -445,31 +441,38 @@ object OAuthHandshake extends RestHelper with Loggable {
     nonce.value(oAuthParameters.get("oauth_nonce").get)
     val nonceSaved = nonce.save()
 
-    val token = Token.create
-    token.tokenType(TokenType.Request)
-    Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
-      case Full(consumer) => token.consumerId(consumer.id)
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
+      case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    token.key(tokenKey)
-    token.secret(tokenSecret)
-    if(! oAuthParameters.get("oauth_callback").get.isEmpty)
-      token.callbackURL(URLDecoder.decode(oAuthParameters.get("oauth_callback").get,"UTF-8"))
-    else
-      token.callbackURL("oob")
+    val callbackURL =
+      if(! oAuthParameters.get("oauth_callback").get.isEmpty)
+        URLDecoder.decode(oAuthParameters.get("oauth_callback").get,"UTF-8")
+      else
+        "oob"
     val currentTime = Platform.currentTime
     val tokenDuration : Long = Helpers.minutes(30)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
+
+    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Request,
+      consumerId,
+      None,
+      Some(tokenKey),
+      Some(tokenSecret),
+      Some(tokenDuration),
+      Some(new Date(currentTime+tokenDuration)),
+      Some(new Date(currentTime)),
+      Some(callbackURL)
+    ) match {
+      case Full(_) => true
+      case _       => false
+    }
 
     nonceSaved && tokenSaved
   }
 
   private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
-    import code.model.{Nonce, Token, TokenType}
+    import code.model.{Nonce, TokenType}
 
     val nonce = Nonce.create
     nonce.consumerkey(oAuthParameters.get("oauth_consumer_key").get)
@@ -478,24 +481,31 @@ object OAuthHandshake extends RestHelper with Loggable {
     nonce.value(oAuthParameters.get("oauth_nonce").get)
     val nonceSaved = nonce.save()
 
-    val token = Token.create
-    token.tokenType(TokenType.Access)
-    Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
-      case Full(consumer) => token.consumerId(consumer.id)
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
+      case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    Token.find(By(Token.key, oAuthParameters.get("oauth_token").get)) match {
-      case Full(requestToken) => token.userForeignKey(requestToken.userForeignKey)
+    val userId = Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
+      case Full(requestToken) => Some(requestToken.userForeignKey.get)
       case _ => None
     }
-    token.key(tokenKey)
-    token.secret(tokenSecret)
+
     val currentTime = Platform.currentTime
     val tokenDuration : Long = Helpers.weeks(4)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
+
+    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
+      consumerId,
+      userId,
+      Some(tokenKey),
+      Some(tokenSecret),
+      Some(tokenDuration),
+      Some(new Date(currentTime+tokenDuration)),
+      Some(new Date(currentTime)),
+      None
+    ) match {
+      case Full(_) => true
+      case _       => false
+    }
 
     nonceSaved && tokenSaved
   }
@@ -509,7 +519,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     import code.model.Token
     val consumer: Option[Consumer] = for {
       tokenId: String <- oAuthParameters.get("oauth_token")
-      token: Token <- Token.find(By(Token.key, tokenId))
+      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
       consumer: Consumer <- token.consumer
     } yield {
       consumer
@@ -532,9 +542,8 @@ object OAuthHandshake extends RestHelper with Loggable {
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
     if(httpCode==200)
     {
-      import code.model.Token
       logger.info("OAuth header correct ")
-      Token.find(By(Token.key, tokenID.get)) match {
+      Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
         case Full(token) => {
           logger.info("access token: "+ token + " found")
           val user = token.user

@@ -32,9 +32,10 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.Locale
+import java.util.{Date, Locale}
 import javax.mail.internet.MimeMessage
 
+import code.Token.Tokens
 import code.accountholder.MapperAccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
@@ -436,6 +437,7 @@ object ToSchemify {
     MappedCustomer,
     MappedUserCustomerLink,
     Consumer,
+    Token,
     MappedCounterparty,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
@@ -449,7 +451,6 @@ object ToSchemify {
     AuthUser,
     Admin,
     Nonce,
-    Token,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
