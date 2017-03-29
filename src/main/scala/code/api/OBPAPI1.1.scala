@@ -35,7 +35,7 @@ import java.net.URL
 import java.util.Date
 
 import _root_.net.liftweb.util.Helpers._
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.OAuthHandshake._
 import code.metrics.APIMetrics
 import code.model._

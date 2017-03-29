@@ -34,8 +34,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Date, Locale}
 import javax.mail.internet.MimeMessage
-
-import code.Token.Tokens
 import code.accountholder.MapperAccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs

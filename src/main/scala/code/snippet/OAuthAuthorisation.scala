@@ -36,7 +36,7 @@ package code.snippet
 
 import java.util.Date
 
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.util.APIUtil
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser

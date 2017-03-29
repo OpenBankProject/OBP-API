@@ -29,7 +29,7 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.Token.Tokens
+import code.token.Tokens
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers._
