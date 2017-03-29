@@ -100,7 +100,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
 
-  // Each Message Doc has an id, description,
+  // Each Message Doc has a process, description, example outbound and inbound messages.
 
   messageDocs += MessageDoc(
     process = "obp.get.User",

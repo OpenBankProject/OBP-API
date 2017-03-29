@@ -624,7 +624,7 @@ object APIUtil extends Loggable {
   // Would we have to have a detail key? or can we keep it flat?
   abstract class OutboundMessageBase {
     def action: String
-    def version: String
+    def messageFormat: String
   }
 
   abstract class ExampleOutboundMessage  (
