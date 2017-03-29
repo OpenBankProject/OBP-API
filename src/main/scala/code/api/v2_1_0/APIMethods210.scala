@@ -29,6 +29,7 @@ import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
+import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -716,8 +717,7 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong)
           } yield {
-            // Format the data as json
-            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.createdByUserId, consumer.isActive, consumer.createdAt)
+            val json = createConsumerJSON(consumer)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }

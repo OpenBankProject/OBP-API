@@ -67,7 +67,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   type AccountType = BankAccount2
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
+  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "10").toInt
   val cachedUser            = TTLCache[InboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[InboundBank](cacheTTL)
   val cachedAccount         = TTLCache[InboundAccount](cacheTTL)

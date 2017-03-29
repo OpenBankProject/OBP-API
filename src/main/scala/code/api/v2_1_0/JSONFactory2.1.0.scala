@@ -49,6 +49,7 @@ import code.metrics.APIMetric
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
+import code.users.Users
 
 
 
@@ -173,6 +174,14 @@ case class TransactionRequestWithChargeJSONs210(
                                             )
 case class PutEnabledJSON(enabled: Boolean)
 
+
+case class ResourceUserJSON(user_id: String,
+                            email: String,
+                            provider_id: String,
+                            provider: String,
+                            username: String
+                           )
+
 case class ConsumerJSON(consumer_id: Long,
                         app_name: String,
                         app_type: String,
@@ -180,6 +189,7 @@ case class ConsumerJSON(consumer_id: Long,
                         developer_email: String,
                         redirect_url: String,
                         created_by_user_id: String,
+                        created_by_user: ResourceUserJSON,
                         enabled: Boolean,
                         created: Date
                        )
@@ -480,6 +490,18 @@ object JSONFactory210{
   }
 
   def createConsumerJSON(c: Consumer): ConsumerJSON = {
+    
+    val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+    
     ConsumerJSON(consumer_id=c.id,
       app_name=c.name,
       app_type=c.appType.toString(),
@@ -487,6 +509,7 @@ object JSONFactory210{
       developer_email=c.developerEmail,
       redirect_url=c.redirectURL,
       created_by_user_id =c.createdByUserId,
+      created_by_user =resourceUserJSON,
       enabled=c.isActive,
       created=c.createdAt
     )
