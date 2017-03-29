@@ -12,21 +12,108 @@
 	text-decoration: underline;
 }
 
+#logo-left {
+    margin: 20px 0 0 20px;
+    float: left;
+    display: inline-block;
+    /* height: 75px; */
+}
+
+#logo-right {
+    margin: 20px 20px 0 0;
+}
+
 #main-about-box #main-about-buttons a {
   font-family: BNPP-IRB-Rounded2;
   font-size: 18px;
 }
  
 #main-about-box {
-  background-color: green;
+  opacity: 1;
+  background-color: #00965E;
+}
+
+#main-about-text h2 {
+    text-transform: uppercase;
+    #font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    font-family: BNPP-IRB-COND;
+}
+
+#main-about-text p {
+    font-family: "bu_light",Arial, Helvetica, sans-serif;
 }
  
 #main-about p {
-  color: white;
-  font-family: BNPP-IRB-Rounded1;
+    color: white;
+    font-family: "bu_light",Arial, Helvetica, sans-serif;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
 }
 
 #main-about h2 {
-  color: white;
-  font-family: BNPP-IRB-Rounded2;
+    color: white;
+    #font-family: "bu_sans", Arial, Helvetica, sans-serif;
+    font-family: BNPP-IRB-COND;
+    font-size: 32px;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
+
+}
+
+#footer {
+    border-bottom: 4px solid #00935E;
+
+}
+
+
+
+#footer2 {
+
+    overflow: auto;
+    margin: 0 auto;
+    width: 1050px;
+    padding: 0px 0 20px;
+}
+
+
+
+#footer2 #footer2-logo-left {
+    margin: 0 0 0 450px;
+    float: left;
+    display: inline-block;
+}
+
+#footer2-logo-left img {
+    max-height: 30px;
+
+}
+
+#footer2 #footer2-middle-text {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 5px 0 0 650px;
+    color: #000;
+    position: absolute;
+    font-family: BNPP-IRB-LIGHT;
+}
+
+#footer2-font {
+    font-family: BNPP-IRB-LIGHT;
+}
+
+#main-support {
+    background-color: #24b3c7;
+}
+
+#webui_top_text {
+    position: absolute;
+    font-weight: bold;
+    margin: 45px 0 0 20px;
+    font-size: 1.4em;
+    padding-left: 10px;
+    font-family: BNPP-IRB-LIGHT;
 }

@@ -589,13 +589,13 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     // toCounterparty
     if( transactionRequestType.value == "SANDBOX_TAN" ) {
-      fields.put("toCounterpartyId",                 toAccount.accountId.value)
-      fields.put("toCounterpartyName",               toAccount.name)
+      fields.put("toCounterpartyId",                 toAccount.accountId.value)//not used 
+      fields.put("toCounterpartyName",               toAccount.name)//optional name, no need to be correct
       fields.put("toCounterpartyCurrency",           toAccount.currency)
-      fields.put("toCounterpartyRoutingAddress",     toAccount.accountId.value)
-      fields.put("toCounterpartyRoutingScheme",      "OBP")
+      fields.put("toCounterpartyRoutingAddress",     toAccount.accountId.value) //BENEFICIARY_ACCOUNT_NUMBER
+      fields.put("toCounterpartyRoutingScheme",      "BKCOM_ACCOUNT")
       fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
-      fields.put("toCounterpartyBankRoutingScheme",  "OBP")
+      fields.put("toCounterpartyBankRoutingScheme",  "BKCOM_ACCOUNT")
     } else if(  transactionRequestType.value == "SEPA" ||
                 transactionRequestType.value == "COUNTERPARTY") {
       fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
@@ -618,8 +618,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val transactionId   = transactionUUID.patch(transactionUUID.lastIndexOf('-'), "", 1)
 
     // fromAccount
-    fields.put("fromAccountName",     fromAccount.name)
-    fields.put("fromAccountId",       fromAccount.accountId.value)
+    fields.put("fromAccountName",     fromAccount.name) //optional name, no need to be correct
+    fields.put("fromAccountId",       fromAccount.accountId.value)//DEBTOR_ACCOUNT_NUMBER
     fields.put("fromAccountBankId",   fromAccount.bankId.value)
     fields.put("fromAccountCurrency", fromAccount.currency)
 
@@ -629,10 +629,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     fields.put("transactionAmount",         amount.bigDecimal.toString)
     fields.put("transactionCurrency",       fromAccount.currency)
     fields.put("transactionChargePolicy",   chargePolicy)
-    fields.put("transactionChargeAmount",   "0.0") // TODO get correct charge amount
+    fields.put("transactionChargeAmount",   "7155.0000")  // TODO this maybe change
     fields.put("transactionChargeCurrency", fromAccount.currency) // TODO get correct charge currency
     fields.put("transactionDescription",    description)
-    fields.put("transactionPostedDate",     postedDate)
+    fields.put("transactionPostedDate",     "2016-01-21T18:46:19.056Z")//postedDate) // TODO get correct charge currency, details in TAG_EXECUTION_DATE 
 
     // might be useful, e.g. for tracking purpose, to
     // send id of the user requesting transaction
