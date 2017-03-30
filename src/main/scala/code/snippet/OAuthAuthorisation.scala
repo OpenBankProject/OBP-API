@@ -36,11 +36,12 @@ package code.snippet
 
 import java.util.Date
 
-import code.token.Tokens
 import code.api.util.APIUtil
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
-import code.model.{Nonce, Token, TokenType}
+import code.model.{Token, TokenType}
+import code.nonce.Nonces
+import code.token.Tokens
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.NOOP_SELECTOR
@@ -193,7 +194,6 @@ object OAuthAuthorisation {
 
   //looks for expired tokens and nonces and deletes them
   def dataBaseCleaner: Unit = {
-    import net.liftweb.mapper.By_<
     import net.liftweb.util.Schedule
     Schedule.schedule(dataBaseCleaner _, 1 hour)
 
@@ -208,6 +208,6 @@ object OAuthAuthorisation {
 
     //delete expired tokens and nonces
     Tokens.tokens.vend.deleteExpiredTokens(currentDate)
-    Nonce.findAll(By_<(Nonce.timestamp, timeLimit)).foreach(t => t.delete_!)
+    Nonces.nonces.vend.deleteExpiredNonces(currentDate)
   }
 }

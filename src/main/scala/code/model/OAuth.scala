@@ -36,6 +36,7 @@ import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.TokenType.TokenType
 import code.model.dataAccess.ResourceUser
+import code.nonce.NoncesProvider
 import code.users.Users
 import net.liftweb.common._
 import net.liftweb.http.S
@@ -294,7 +295,56 @@ object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer
   </lift:crud.all>
 }
 
+object MappedNonceProvider extends NoncesProvider {
+  override def createNonce(id: Option[Long],
+                           consumerKey: Option[String],
+                           tokenKey: Option[String],
+                           timestamp: Option[Date],
+                           value: Option[String]): Box[Nonce] = {
+    tryo {
+      val n = Nonce.create
+      id match {
+        case Some(v) => n.id(v)
+        case None =>
+      }
+      consumerKey match {
+        case Some(v) => n.consumerkey(v)
+        case None =>
+      }
+      tokenKey match {
+        case Some(v) => n.tokenKey(v)
+        case None =>
+      }
+      timestamp match {
+        case Some(v) => n.timestamp(v)
+        case None =>
+      }
+      value match {
+        case Some(v) => n.value(v)
+        case None =>
+      }
+      val nonce = n.saveMe()
+      nonce
+    }
+  }
 
+  override def deleteExpiredNonces(currentDate: Date): Boolean = {
+    Nonce.findAll(By_<(Nonce.timestamp, currentDate)).forall(_.delete_!)
+  }
+
+  override def countNonces(consumerKey: String,
+                           tokenKey: String,
+                           timestamp: Date,
+                           value: String): Long = {
+    Nonce.count(
+      By(Nonce.value, value),
+      By(Nonce.tokenKey, tokenKey),
+      By(Nonce.consumerkey, consumerKey),
+      By(Nonce.timestamp, timestamp)
+    )
+  }
+
+}
 class Nonce extends LongKeyedMapper[Nonce] {
 
   def getSingleton = Nonce
