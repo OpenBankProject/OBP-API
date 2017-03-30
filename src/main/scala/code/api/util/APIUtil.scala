@@ -616,31 +616,34 @@ object APIUtil extends Loggable {
     catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )
-
-
-
-
-  // TODO How to ensure that all outbound messages contain action and version - yet have other free form fields?
-  // Would we have to have a detail key? or can we keep it flat?
-  abstract class OutboundMessageBase {
+  
+  
+  /**
+    * 
+    * This is the base class for all kafka outbound case class
+    * action and messageFormat are mandatory 
+    * The optionalFields can be any other new fields .
+    */
+  abstract class OutboundMessageBase(
+    optionalFields: String*
+  ) {
     def action: String
     def messageFormat: String
   }
-
-  abstract class ExampleOutboundMessage  (
-  detail: JValue
-  ) extends OutboundMessageBase
-
-  // Similar to above, how would we ensure we have messageId and errorCode in the exampleInboundMessage?
+  
+  abstract class InboundMessageBase(
+    optionalFields: String*
+  ) {
+    def errorCode: String
+  }
 
   // Used to document the KafkaMessage calls
   case class MessageDoc(
-                         process: String,
-                         messageFormat: String,
-                         description: String,
-                         exampleOutboundMessage: JValue, // TODO make this more formal see above.
-                         exampleInboundMessage: JValue, // TODO Ditto: should probably always include errorCode, see above.
-                         errorResponseMessages: List[JValue]
+    process: String,
+    messageFormat: String,
+    description: String,
+    exampleOutboundMessage: JValue,
+    exampleInboundMessage: JValue  
   )
   
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
