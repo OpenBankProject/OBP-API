@@ -1,0 +1,54 @@
+package code.remotedata
+
+import java.util.Date
+
+import akka.actor.Actor
+import akka.event.Logging
+import code.model._
+import code.nonce.RemotedataNoncesCaseClasses
+
+
+class RemotedataNoncesActor extends Actor with ActorHelper {
+
+  val logger = Logging(context.system, this)
+
+  val mapper = MappedNonceProvider
+  val cc = RemotedataNoncesCaseClasses
+
+  def receive = {
+
+    case cc.createNonce(id: Option[Long],
+                        consumerKey: Option[String],
+                        tokenKey: Option[String],
+                        timestamp: Option[Date],
+                        value: Option[String]) =>
+      logger.debug("createNonce(" + id + ", " +
+                                    consumerKey+ ", " +
+                                    tokenKey + ", " +
+                                    timestamp + ", " +
+                                    value + ")")
+      sender ! extractResult(mapper.createNonce(id, consumerKey, tokenKey, timestamp, value))
+
+    case cc.deleteExpiredNonces(currentDate: Date) =>
+      logger.debug("deleteExpiredNonces(" + currentDate +")")
+      sender ! extractResult(mapper.deleteExpiredNonces(currentDate))
+
+    case cc.countNonces(consumerKey: String,
+                        tokenKey: String,
+                        timestamp: Date,
+                        value: String) =>
+      logger.debug("countNonces(" + consumerKey + ", " +
+                                    tokenKey+ ", " +
+                                    timestamp + ", " +
+                                    value + ", " +
+                                    ")")
+      sender ! extractResult(mapper.countNonces(consumerKey, tokenKey, timestamp, value))
+
+
+    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+
+  }
+
+}
+
+

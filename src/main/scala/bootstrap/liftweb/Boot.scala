@@ -436,6 +436,7 @@ object ToSchemify {
     MappedUserCustomerLink,
     Consumer,
     Token,
+    Nonce,
     MappedCounterparty,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
@@ -448,7 +449,6 @@ object ToSchemify {
   val models = List(
     AuthUser,
     Admin,
-    Nonce,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
