@@ -258,6 +258,7 @@ trait APIMethods220 {
       "Get Message Docs",
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
+        | Note: To enable Kafka connector and this message format, you must set conenctor=kafka_vMar2017 in your Props
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,

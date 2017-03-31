@@ -10,6 +10,7 @@
 connector=mapped
 #connector=mongodb
 #connector=kafka
+#conenctor=kafka_vMar2017
 #connector=obpjvm
 #connector=...
 
