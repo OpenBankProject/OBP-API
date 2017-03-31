@@ -96,7 +96,8 @@ object RemotedataActors extends Loggable {
       ActorProps[RemotedataConsumersActor]            -> RemotedataConsumers.actorName,
       ActorProps[RemotedataTransactionRequestsActor]  -> RemotedataTransactionRequests.actorName,
       ActorProps[RemotedataMetricsActor]              -> RemotedataMetrics.actorName,
-      ActorProps[RemotedataTokensActor]               -> RemotedataTokens.actorName
+      ActorProps[RemotedataTokensActor]               -> RemotedataTokens.actorName,
+      ActorProps[RemotedataNoncesActor]               -> RemotedataNonces.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }

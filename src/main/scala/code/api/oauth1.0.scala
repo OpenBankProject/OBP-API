@@ -30,15 +30,15 @@ import java.util.Date
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-import code.token.Tokens
 import code.api.Constant._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
-import code.model.{Consumer, Nonce, TokenType, User}
+import code.model.{Consumer, TokenType, User}
+import code.nonce.Nonces
+import code.token.Tokens
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{tryo, _}
 
@@ -219,13 +219,11 @@ object OAuthHandshake extends RestHelper with Loggable {
       * same timestamp, client credentials, and token combinations.
       */
       val token = parameters.get("oauth_token") getOrElse ""
-
-      Nonce.count(
-        By(Nonce.value,parameters.get("oauth_nonce").get),
-        By(Nonce.tokenKey, token),
-        By(Nonce.consumerkey,parameters.get("oauth_consumer_key").get),
-        By(Nonce.timestamp, new Date(parameters.get("oauth_timestamp").get.toLong))
-       ) !=0
+      Nonces.nonces.vend.countNonces(consumerKey = parameters.get("oauth_consumer_key").get,
+        tokenKey = token,
+        timestamp = new Date(parameters.get("oauth_timestamp").get.toLong),
+        value = parameters.get("oauth_nonce").get
+      ) !=0
     }
 
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
@@ -433,13 +431,18 @@ object OAuthHandshake extends RestHelper with Loggable {
 
   private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
-    import code.model.{Nonce, TokenType}
+    import code.model.TokenType
 
-    val nonce = Nonce.create
-    nonce.consumerkey(oAuthParameters.get("oauth_consumer_key").get)
-    nonce.timestamp(new Date(oAuthParameters.get("oauth_timestamp").get.toLong))
-    nonce.value(oAuthParameters.get("oauth_nonce").get)
-    val nonceSaved = nonce.save()
+    val nonceSaved = Nonces.nonces.vend.createNonce(
+      id = None,
+      consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
+      tokenKey = None,
+      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
+      value = Some(oAuthParameters.get("oauth_nonce").get)
+    ) match {
+      case Full(_) => true
+      case _ => false
+    }
 
     val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
       case Full(consumer) => Some(consumer.id.get)
@@ -472,14 +475,18 @@ object OAuthHandshake extends RestHelper with Loggable {
 
   private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
-    import code.model.{Nonce, TokenType}
+    import code.model.TokenType
 
-    val nonce = Nonce.create
-    nonce.consumerkey(oAuthParameters.get("oauth_consumer_key").get)
-    nonce.timestamp(new Date(oAuthParameters.get("oauth_timestamp").get.toLong))
-    nonce.tokenKey(oAuthParameters.get("oauth_token").get)
-    nonce.value(oAuthParameters.get("oauth_nonce").get)
-    val nonceSaved = nonce.save()
+    val nonceSaved = Nonces.nonces.vend.createNonce(
+      id = None,
+      consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
+      tokenKey = Some(oAuthParameters.get("oauth_token").get),
+      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
+      value = Some(oAuthParameters.get("oauth_nonce").get)
+    ) match {
+      case Full(_) => true
+      case _ => false
+    }
 
     val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
       case Full(consumer) => Some(consumer.id.get)

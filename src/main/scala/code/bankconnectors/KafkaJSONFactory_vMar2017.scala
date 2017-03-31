@@ -34,7 +34,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.{MessageDoc}
+import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
@@ -53,39 +53,40 @@ case class InboundAccountData(
   accounts: List[InboundAccount]
 )
 
-case class OutboundUserByUsernamePassword(
+case class OutboundUserByUsernamePasswordBase(
+  messageFormat: String,
   action: String,
-  version: String,
   username: String,
   password: String
-)
+)extends OutboundMessageBase
 
-case class OutboundUserAccountViews(
+case class OutboundUserAccountViewsBase(
+  messageFormat: String,
   action: String,
-  version: String,
   username: String,
   userId: String,
   bankId: String
-)
+)extends OutboundMessageBase
 
-case class OutboundBanks(
+
+case class OutboundBanksBase(
+  messageFormat: String,
   action: String,
-  version: String,
   username: String,
   userId: String
-)
+) extends OutboundMessageBase
 
 case class OUTTBank(
+  messageFormat: String,
   action: String,
-  version: String,
   bankId: String,
   userId: String,
   username: String
-)
+)extends OutboundMessageBase
 
-case class OutboundChallengeThreshold(
+case class OutboundChallengeThresholdBase(
+  messageFormat: String,
   action: String,
-  version: String,
   bankId: String,
   accountId: String,
   viewId: String,
@@ -93,11 +94,11 @@ case class OutboundChallengeThreshold(
   currency: String,
   userId: String,
   username: String
-)
+) extends OutboundMessageBase
 
-case class OutboundChargeLevel(
+case class OutboundChargeLevelBase(
+  messageFormat: String,
   action: String,
-  version: String,
   bankId: String,
   accountId: String,
   viewId: String,
@@ -105,78 +106,95 @@ case class OutboundChargeLevel(
   username: String,
   transactionRequestType: String,
   currency: String
-)
+) extends OutboundMessageBase
 
-case class OutboundChallenge(
+case class OutboundChallengeBase(
+  messageFormat: String,
   action: String,
-  version: String,
   bankId: String,
   accountId: String,
   userId: String,
   username: String,
   transactionRequestType: String,
   transactionRequestId: String
-)
+) extends OutboundMessageBase
 
-case class OutboundChallengeAnswer(
+case class OutboundChallengeAnswerBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   challengeId: String,
   hashOfSuppliedAnswer: String
-)
+) extends OutboundMessageBase
 
-case class OutboundTransactionQuery(
+case class OutboundTransactionQueryBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   accountId: String,
   transactionId: String
-)
+) extends OutboundMessageBase
 
-case class OutboundTransactionsQueryWithParams(
+case class OutboundTransactionsQueryWithParamsBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   accountId: String,
   queryParams: String
-)
+) extends OutboundMessageBase
 
-case class OutboundBankAccount(
+case class OutboundBankAccountBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   accountId: String
-)
+) extends OutboundMessageBase
 
-case class OutboundBankAccounts(
+case class OutboundBankAccountsBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   accountId: String
-)
+) extends OutboundMessageBase
 
-case class OutboundAccountByNumber(
+case class OutboundAccountByNumberBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   number: String
-)
+) extends OutboundMessageBase
 
-case class OutboundSaveTransaction(
+case class OutboundCounterpartyByIbanBase(
+  messageFormat: String,
   action: String,
-  version: String,
+  userId: String,
+  username: String,
+  otherAccountRoutingAddress: String,
+  otherAccountRoutingScheme: String
+)  extends OutboundMessageBase
+
+case class OutboundCounterpartyByCounterpartyIdBase(
+  messageFormat: String,
+  action: String,
+  userId: String,
+  username: String,
+  counterpartyId: String
+) extends OutboundMessageBase
+
+case class OutboundSaveTransactionBase(
+  messageFormat: String,
+  action: String,
   userId: String,
   username: String,
   
@@ -204,57 +222,41 @@ case class OutboundSaveTransaction(
   toCounterpartyRoutingScheme: String,
   toCounterpartyBankRoutingAddress: String,
   toCounterpartyBankRoutingScheme: String
-)
+) extends OutboundMessageBase
 
-case class OutboundTransactionRequestStatuses(
-  action: String,
-  version: String
-)
+case class OutboundTransactionRequestStatusesBase(
+  messageFormat: String,
+  action: String
+) extends OutboundMessageBase
 
-case class OutboundCurrentFxRate(
+case class OutboundCurrentFxRateBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   fromCurrencyCode: String,
   toCurrencyCode: String
-)
+) extends OutboundMessageBase
 
-case class OutboundTransactionRequestTypeCharge(
+case class OutboundTransactionRequestTypeChargeBase(
+  messageFormat: String,
   action: String,
-  version: String,
   userId: String,
   username: String,
   bankId: String,
   accountId: String,
   viewId: String,
   transactionRequestType: String
-)
+) extends OutboundMessageBase
 
 case class InboundValidatedUser(
+  errorCode: String,
   email: String,
   displayName: String
-)
-
-
-case class OutboundCounterpartyByIban(
-  action: String,
-  version: String,
-  userId: String,
-  username: String,
-  otherAccountRoutingAddress: String,
-  otherAccountRoutingScheme: String
-)
-
-case class OutboundCounterpartyByCounterpartyId(
-  action: String,
-  version: String,
-  userId: String,
-  username: String,
-  counterpartyId: String
-)
+) extends InboundMessageBase
 
 case class InboundCounterparty(
+  errorCode: String,
   name: String,
   createdByUserId: String,
   thisBankId: String,
@@ -268,7 +270,7 @@ case class InboundCounterparty(
   otherBranchRoutingScheme: String,
   otherBranchRoutingAddress: String,
   isBeneficiary: Boolean
-)
+) extends InboundMessageBase
 
 case class CounterpartyTrait2(counterparty: InboundCounterparty) extends CounterpartyTrait {
   
@@ -288,11 +290,12 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
 }
 
 case class InboundBank(
+  errorCode: String,
   bankId: String,
   name: String,
   logo: String,
   url: String
-)
+)extends InboundMessageBase
 
 case class Bank2(r: InboundBank) extends Bank {
   
@@ -306,6 +309,7 @@ case class Bank2(r: InboundBank) extends Bank {
 }
 
 case class InboundAccount(
+  errorCode: String,
   accountId: String,
   bankId: String,
   label: String,
@@ -318,7 +322,7 @@ case class InboundAccount(
   generatePublicView: Boolean,
   generateAccountantsView: Boolean,
   generateAuditorsView: Boolean
-)
+)extends InboundMessageBase
 
 case class BankAccount2(r: InboundAccount) extends BankAccount {
   
@@ -345,12 +349,13 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
 }
 
 case class InboundFXRate(
+  errorCode: String,
   fromCurrencyCode: String,
   toCurrencyCode: String,
   conversionValue: Double,
   inverseConversionValue: Double,
   effectiveDate: String
-)
+)extends InboundMessageBase
 
 case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
   
@@ -363,12 +368,13 @@ case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
 }
 
 case class InboundTransactionRequestTypeCharge(
+  errorCode: String,
   transactionRequestType: String,
   bankId: String,
   chargeCurrency: String,
   chargeAmount: String,
   chargeSummary: String
-)
+)extends InboundMessageBase
 
 case class TransactionRequestTypeCharge2(inboundTransactionRequestTypeCharge: InboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge {
 
@@ -466,6 +472,7 @@ case class InboundLocation(
 
 //InboundTransaction --> InternalTransaction -->OutboundTransaction
 case class InternalTransaction(
+  errorCode: String,
   transactionId: String,
   accountId: String,
   amount: String,
@@ -480,7 +487,7 @@ case class InternalTransaction(
   postedDate: String,
   `type`: String,
   userId: String
-)
+)extends InboundMessageBase
 
 case class InboundAtm(
   id: String,
@@ -519,8 +526,9 @@ case class InboundCustomer(
 )
 
 case class InboundTransactionId(
+  errorCode: String,
   transactionId: String
-)
+)extends InboundMessageBase
 
 case class OutboundTransaction(
   action: String,
@@ -535,20 +543,27 @@ case class OutboundTransaction(
   transactionType: String)
 
 case class InboundChallengeLevel(
+  errorCode: String,
   limit: String,
   currency: String
-)
+)extends InboundMessageBase
 
 
+case class InboundCreateChallange(
+  errorCode: String,
+  challengeId: String
+)extends InboundMessageBase
 
-case class OutboundCreateChallange(challengeId: String)
-
-case class InboundValidateChallangeAnswer(answer: String)
+case class InboundValidateChallangeAnswer(
+  answer: String,
+  errorCode: String
+)extends InboundMessageBase
 
 case class InboundChargeLevel(
+  errorCode: String,
   currency: String,
   amount: String
-)
+)extends InboundMessageBase
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -557,8 +572,7 @@ case class MessageDocJson(
                            message_format: String,
                            description: String,
                            example_outbound_message: JValue,
-                           example_inbound_message: JValue,
-                           possible_error_messages: List[JValue]
+                           example_inbound_message: JValue
 )
 
 // Creates the json resource_docs
@@ -576,8 +590,7 @@ object KafkaJSONFactory_vMar2017 {
       message_format = md.messageFormat,
       description = md.description,
       example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage,
-      possible_error_messages = md.errorResponseMessages
+      example_inbound_message = md.exampleInboundMessage
     )
   }
   
