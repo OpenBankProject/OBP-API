@@ -312,3 +312,7 @@ autocomplete_at_login_form_enabled=false
 # Skip Auth User Email validation (defaults to true)
 #authUser.skipEmailValidation=true
 
+# If using Kafka but want to get counterparties from OBP, set this to true
+#get_counterparties_from_OBP_DB=true
+
+
