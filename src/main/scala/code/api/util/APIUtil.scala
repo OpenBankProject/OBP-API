@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  * Copyright (C) 2011-2016, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
 *along with this program.  If not, see <http://www.gnu.org/licenses/>.
   **
  *Email: contact@tesobe.com
-*TESOBE / Music Pictures Ltd
+*TESOBE Ltd
 *Osloerstrasse 16/17
 *Berlin 13359, Germany
   **
@@ -32,10 +32,13 @@
 
 package code.api.util
 
+import java.io.InputStream
+
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api.v1_2.ErrorMessage
+import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.APIMetrics
@@ -44,15 +47,17 @@ import dispatch.url
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.http.{CurrentReq, JsonResponse, Req, S}
+import net.liftweb.http._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
 
+import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
+import code.util.Helper.SILENCE_IS_GOLDEN
 
 
 object ErrorMessages {
@@ -63,6 +68,9 @@ object ErrorMessages {
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
+  val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
+  val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
+  val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
@@ -73,12 +81,32 @@ object ErrorMessages {
 
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
 
-  val UserNotFoundById = "OBP-20005: User not found by User Id."
+  val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
   val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
+  val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
+  val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
 
+  val InvalidValueLength = "OBP-20010: Value too long"
+  val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"
+
+  val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
+
+  val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
+
+  val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
+  
+  val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
+
+  val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
+
+  val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
+
+  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+
+  
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
@@ -90,8 +118,19 @@ object ErrorMessages {
   val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
-  val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at BANK_ID"
-  val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at BANK_ID"
+  val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
+  val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at the bank specified by BANK_ID"
+  val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
+  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
+  val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
+  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. Please specify a valid value for IBAN."
+  val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty. Please set the Counterparty 'isBeneficiary' true first"
+  val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
+  val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
+  val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
+  val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
+  val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
+  val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -99,14 +138,15 @@ object ErrorMessages {
   val MeetingNotFound = "OBP-30104: Meeting not found."
 
 
-  val InvalidAccountInitalBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
   val InvalidAccountBalanceAmount = "OBP-30106: Invalid Balance Amount."
 
   val InvalidUserId = "OBP-30107: Invalid User Id."
   val InvalidAccountType = "OBP-30108: Invalid Account Type."
   val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
-
+  val InvalidAccountIdFormat = "OBP-30110: Invalid Account Id. The ACCOUNT_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
+  val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
+  val InvalidAccountInitialBalance = "OBP-30112: Invalid Number. Initial balance must be a number, e.g 1000.00"
 
   val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
@@ -118,18 +158,26 @@ object ErrorMessages {
 
   val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
+  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
 
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
-  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
-
-
-
-
-
-
+  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account or you don't have access to canCreateAnyTransactionRequest."
+  val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
+  val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
+  val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
+  val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique BANK_ID / SHORT_CODE"
+  val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
+  val NotPositiveAmount = "OBP-40008: Can't send a payment with a value of 0 or less."
+  val TransactionRequestTypeHasChanged = "OBP-40009: The TRANSACTION_REQUEST_TYPE has changed."
+  val InvalidTransactionRequesChallengeId = "OBP-40010: Invalid Challenge Id. Please specify a valid value for CHALLENGE_ID."
+  val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not INITIATED."
+  val CounterpartyNotFoundOtherAccountProvider = "OBP-40012: Please set up the otherAccountRoutingScheme and otherBankRoutingScheme fields of the Counterparty to 'OBP'"
+  val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
+  val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
+  val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
 }
 
 
@@ -168,8 +216,7 @@ object APIUtil extends Loggable {
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
-    println(Consumer.findAll())
-    Consumer.find(By(Consumer.key, consumerKey)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(application) => application.isActive
       case _ => false
     }
@@ -191,17 +238,43 @@ object APIUtil extends Loggable {
         } else {
             Empty
         }
+
+      val consumer =
+        if (isThereAnOAuthHeader) {
+          getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+          DirectLogin.getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } else {
+          Empty
+        }
+
       // TODO This should use Elastic Search or Kafka not an RDBMS
-      val u = user.orNull
+      val u: User = user.orNull
       val userId = if (u != null) u.userId else "null"
       val userName = if (u != null) u.name else "null"
-      var appName = "null"
-      var developerEmail = "null"
-      for (c <- getConsumer) {
-        appName = c.name.get
-        developerEmail = c.developerEmail.get
-      }
-      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan), userName, appName, developerEmail)
+
+      val c: Consumer = consumer.orNull
+      //The consumerId, not key
+      val consumerId = if (u != null) c.id.toString() else "null"
+      var appName = if (u != null) c.name.toString() else "null"
+      var developerEmail = if (u != null) c.developerEmail.toString() else "null"
+
+      //TODO no easy way to get it, make it later
+      //name of the Scala Partial Function being used for the endpoint
+      val implementedByPartialFunction = ""
+      //name of version where the call is implemented) -- S.request.get.view
+      val implementedInVersion = S.request.get.view
+      //(GET, POST etc.) --S.request.get.requestType.method
+      val verb = S.request.get.requestType.method
+
+
+      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan), userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
     }
   }
 
@@ -247,6 +320,99 @@ object APIUtil extends Loggable {
 
   def oauthHeaderRequiredJsonResponse : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
+
+  /** check the currency ISO code from the ISOCurrencyCodes.xml file */
+  def isValidCurrencyISOCode(currencyCode: String): Boolean = {
+    //just for initialization the Elem variable
+    var xml: Elem = <html/>
+    LiftRules.getResource("/media/xml/ISOCurrencyCodes.xml").map{ url =>
+      val input: InputStream = url.openStream()
+      xml = XML.load(input)
+    }
+    val stringArray = (xml \ "Currency" \ "CurrencyCode").map(_.text).mkString(" ").split("\\s+")
+    stringArray.contains(currencyCode)
+  }
+
+  /** Check the id values from GUI, such as ACCOUNT_ID, BANK_ID ...  */
+  def isValidID(id :String):Boolean= {
+    val regex = """^([A-Za-z0-9\-_.]+)$""".r
+    id match {
+      case regex(e) if(e.length<256) => true
+      case _ => false
+    }
+  }
+
+  /** enforce the password. 
+    * The rules : 
+    * 1) length is >16 characters without validations
+    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character. 
+    * */
+  def isValidStrongPassword(password: String): Boolean = {
+    /**
+      * (?=.*\d)                    //should contain at least one digit
+      * (?=.*[a-z])                 //should contain at least one lower case
+      * (?=.*[A-Z])                 //should contain at least one upper case
+      * (?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])              //should contain at least one special character
+      * ([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})  //should contain 10 to 16 valid characters
+      **/
+    val regex =
+      """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})$""".r
+    password match {
+      case password if (password.length > 16) => true
+      case regex(password) => true
+      case _ => false
+    }
+  }
+  
+
+
+  /** These three functions check rather than assert. I.e. they are silent if OK and return an error message if not.
+    * They do not throw an exception on failure thus they are not assertions
+    */
+
+  /** only  A-Z, a-z and max length <= 512  */
+  def checkMediumAlpha(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
+  /** only  A-Z, a-z, 0-9 and max length <= 512  */
+  def checkMediumAlphaNumeric(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
+  /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
+  def checkMediumPassword(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
+  /** only  A-Z, a-z, 0-9, -, _, ., @, and max length <= 512  */
+  def checkMediumString(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9\-._@]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
@@ -426,6 +592,14 @@ object APIUtil extends Loggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
+  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
+
+  val Core = true
+  val PSD2 = true
+  val OBWG = true
+  val notCore = false
+  val notPSD2 = false
+  val notOBWG = false
 
   // Used to document the API calls
   case class ResourceDoc(
@@ -439,12 +613,39 @@ object APIUtil extends Loggable {
     exampleRequestBody: JValue, // An example of the body required (maybe empty)
     successResponseBody: JValue, // A successful response body
     errorResponseBodies: List[JValue], // Possible error responses
-    isCore: Boolean,
-    isPSD2: Boolean,
-    isOBWG: Boolean,
+    catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )
+  
+  
+  /**
+    * 
+    * This is the base class for all kafka outbound case class
+    * action and messageFormat are mandatory 
+    * The optionalFields can be any other new fields .
+    */
+  abstract class OutboundMessageBase(
+    optionalFields: String*
+  ) {
+    def action: String
+    def messageFormat: String
+  }
+  
+  abstract class InboundMessageBase(
+    optionalFields: String*
+  ) {
+    def errorCode: String
+  }
 
+  // Used to document the KafkaMessage calls
+  case class MessageDoc(
+    process: String,
+    messageFormat: String,
+    description: String,
+    exampleOutboundMessage: JValue,
+    exampleInboundMessage: JValue  
+  )
+  
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(
     fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -656,6 +857,24 @@ Returns a string showed to the developer
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
+  // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned at least one role from the list
+  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    val list: List[Boolean] = for (role <- roles) yield {
+      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
+    }
+    list.exists(_ == true)
+  }
+
+  // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned all roles from the list
+  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    val list: List[Boolean] = for (role <- roles) yield {
+      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
+    }
+    list.forall(_ == true)
+  }
+
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
       for {id <- ids
@@ -666,6 +885,14 @@ Returns a string showed to the developer
       }
     }
     customers
+  }
+
+  def getAutocompleteValue: String = {
+    Props.get("autocomplete_at_login_form_enabled", "false") match {
+      case "true"  => "on"
+      case "false" => "off"
+      case _       => "off"
+    }
   }
 
 }

@@ -16,6 +16,7 @@ import code.bankconnectors._
 import code.bankconnectors.OBPOffset
 import code.bankconnectors.OBPFromDate
 import code.bankconnectors.OBPToDate
+import code.metadata.counterparties.Counterparties
 import code.model.CreateViewJSON
 import net.liftweb.common.Full
 import code.model.UpdateViewJSON
@@ -71,10 +72,17 @@ trait APIMethods121 {
     } yield metadata
   }
 
-  private def getApiInfoJSON(apiVersion : String) = {
+  private def getApiInfoJSON(apiVersion : String, apiVersionStatus : String) = {
     val apiDetails: JValue = {
-      val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-      val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+
+      val organisation = Props.get("hosted_by.organisation", "TESOBE")
+      val email = Props.get("hosted_by.email", "contact@tesobe.com")
+      val phone = Props.get("hosted_by.phone", "+49 (0)30 8145 3994")
+
+      val connector = Props.get("connector").openOrThrowException("no connector set")
+
+      val hostedBy = new HostedBy(organisation, email, phone)
+      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy)
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
@@ -87,9 +95,10 @@ trait APIMethods121 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_2_1"
+    val apiVersionStatus : String = "STABLE"
 
     resourceDocs += ResourceDoc(
-      root(apiVersion),
+      root(apiVersion, apiVersionStatus),
       apiVersion,
       "root",
       "GET",
@@ -103,21 +112,19 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
-    def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
-      case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
+    def root(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }
 
 
     resourceDocs += ResourceDoc(
       getBanks,
       apiVersion,
-      "allBanks",
+      "getBanks",
       "GET",
       "/banks",
       "Get Banks",
@@ -131,9 +138,7 @@ trait APIMethods121 {
       emptyObjectJson,
       decompose(BanksJSON(List(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")))),
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
     lazy val getBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -169,9 +174,7 @@ trait APIMethods121 {
       emptyObjectJson,
       decompose(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")),
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
 
@@ -210,9 +213,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -237,9 +238,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -267,9 +266,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -300,9 +297,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -332,9 +327,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -364,9 +357,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -406,9 +397,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      true,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -439,9 +428,7 @@ trait APIMethods121 {
       Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData))
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -494,9 +481,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -537,9 +522,7 @@ trait APIMethods121 {
       Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -574,9 +557,7 @@ trait APIMethods121 {
       Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -606,9 +587,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -636,9 +615,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
 
@@ -671,9 +648,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -706,9 +681,7 @@ trait APIMethods121 {
       Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -742,9 +715,7 @@ trait APIMethods121 {
       emptyObjectJson, // No Json body required
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -778,9 +749,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -809,9 +778,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -828,24 +795,22 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartiesForBankAccount,
+      getOtherAccountsForBankAccount,
       apiVersion,
-      "getCounterpartiesForBankAccount",
+      "getOtherAccountsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get counterparties of one account.",
-      s"""Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+      "Get Other Accounts of one Account.",
+      s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
-    lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
         user =>
@@ -861,24 +826,22 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyByIdForBankAccount,
+      getOtherAccountByIdForBankAccount,
       apiVersion,
-      "getCounterpartyByIdForBankAccount",
+      "getOtherAccountByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get counterparty by id.",
-      s"""Returns data about one other counterparty (bank account) (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Get Other Account by Id.",
+      s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
-    lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
@@ -894,25 +857,23 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyMetadata,
+      getOtherAccountMetadata,
       apiVersion,
-      "getCounterpartyMetadata",
+      "getOtherAccountMetadata",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
-      "Get Counterparty Metadata.",
-      """Get metadata of one counterparty (other account).
+      "Get Other Account Metadata.",
+      """Get metadata of one other account.
         |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
@@ -941,9 +902,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -982,9 +941,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -998,7 +955,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+            if(added)
           } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias added")), 201)
           }
@@ -1019,9 +977,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1035,7 +991,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+            if(added)
           } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias updated")))
           }
@@ -1056,9 +1013,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1071,18 +1026,19 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
-            if(addAlias(""))
+            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyPrivateAlias,
+      getOtherAccountPrivateAlias,
       apiVersion,
-      "getCounterpartyPrivateAlias",
+      "getOtherAccountPrivateAlias",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Get Counterparty Private Alias",
+      "Get Other Account Private Alias",
       s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.
         |
         |${authenticationRequiredMessage(false)}
@@ -1090,12 +1046,10 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
@@ -1113,12 +1067,12 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      addCounterpartyPrivateAlias,
+      addOtherAccountPrivateAlias,
       apiVersion,
-      "addCounterpartyPrivateAlias",
+      "addOtherAccountPrivateAlias",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Create Counterparty Private Alias",
+      "Create Other Account Private Alias",
       s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.
          |
          |${authenticationRequiredMessage(false)}
@@ -1126,12 +1080,10 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
@@ -1142,7 +1094,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("private alias added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1164,9 +1117,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1180,7 +1131,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-            if(addAlias(aliasJson.alias))
+            updated <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("private alias updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1202,9 +1154,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1217,7 +1167,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
-            if(addAlias(""))
+            added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
@@ -1235,9 +1186,7 @@ trait APIMethods121 {
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1251,7 +1200,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-            if(addMoreInfo(moreInfoJson.more_info))
+            added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("more info added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1270,9 +1220,7 @@ trait APIMethods121 {
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1286,7 +1234,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-            if(addMoreInfo(moreInfoJson.more_info))
+            updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("more info updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1305,9 +1254,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1320,7 +1267,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
-            if(addMoreInfo(""))
+            deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1338,9 +1286,7 @@ trait APIMethods121 {
       Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
 
@@ -1355,7 +1301,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-            if(addUrl(urlJson.URL))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1374,9 +1321,7 @@ trait APIMethods121 {
       Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1390,7 +1335,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-            if(addUrl(urlJson.URL))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1409,9 +1355,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1424,7 +1368,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
-            if(addUrl(""))
+            added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(added)
           } yield noContentJsonResponse
       }
     }
@@ -1442,9 +1387,7 @@ trait APIMethods121 {
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1458,7 +1401,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-            if(addImageUrl(imageUrlJson.image_URL))
+            added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("image url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1477,9 +1421,7 @@ trait APIMethods121 {
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1493,7 +1435,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-            if(addImageUrl(imageUrlJson.image_URL))
+            updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("image url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1512,9 +1455,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1527,7 +1468,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
-            if(addImageUrl(""))
+            deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1545,9 +1487,7 @@ trait APIMethods121 {
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1561,7 +1501,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-            if(addOpenCorpUrl(openCorpUrl.open_corporates_URL))
+            added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("open corporate url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1580,9 +1521,7 @@ trait APIMethods121 {
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1596,7 +1535,8 @@ trait APIMethods121 {
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-            if(addOpenCorpUrl(openCorpUrl.open_corporates_URL))
+            updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("open corporate url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1615,9 +1555,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1630,7 +1568,8 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
-            if(addOpenCorpUrl(""))
+            deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            if(deleted)
           } yield noContentJsonResponse
       }
     }
@@ -1648,9 +1587,7 @@ trait APIMethods121 {
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1666,7 +1603,8 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.apiId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1685,9 +1623,7 @@ trait APIMethods121 {
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1703,7 +1639,8 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.apiId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1722,9 +1659,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1737,9 +1672,9 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-            deleted <- Box(metadata.deleteCorporateLocation)
+            deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
           } yield {
-            if(deleted())
+            if(deleted)
               noContentJsonResponse
             else
               errorJsonResponse("Delete not completed")
@@ -1760,9 +1695,7 @@ trait APIMethods121 {
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1778,7 +1711,9 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
+            added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
+            if(added)
           } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1797,9 +1732,7 @@ trait APIMethods121 {
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1815,7 +1748,9 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
+            updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
+            if(updated)
           } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1834,9 +1769,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1849,9 +1782,9 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-            deleted <- Box(metadata.deletePhysicalLocation)
+            deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
           } yield {
-            if(deleted())
+            if(deleted)
               noContentJsonResponse
             else
               errorJsonResponse("Delete not completed")
@@ -1883,9 +1816,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      true,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1911,16 +1842,18 @@ trait APIMethods121 {
       "getTransactionByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get transaction by id.",
-      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      "Get Transaction by Id.",
+      s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
-         |Authentication via OAuth is required if the view is not public.""",
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.
+         |
+         |
+         |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      true,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1951,9 +1884,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1988,9 +1919,7 @@ trait APIMethods121 {
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2023,9 +1952,7 @@ trait APIMethods121 {
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2058,9 +1985,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2090,9 +2015,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2124,9 +2047,7 @@ trait APIMethods121 {
       Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2138,7 +2059,7 @@ trait APIMethods121 {
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-            postedComment <- addCommentFunc(u.apiId, viewId, commentJson.value, now)
+            postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
           }
@@ -2160,9 +2081,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2192,9 +2111,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2226,9 +2143,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionTagJSON("holiday")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2241,7 +2156,7 @@ Authentication via OAuth is required if the view is not public.""",
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} // TODO Error handling
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-            postedTag <- addTagFunc(u.apiId, viewId, tagJson.value, now)
+            postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
           }
@@ -2263,9 +2178,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2296,9 +2209,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2330,9 +2241,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2345,7 +2254,7 @@ Authentication via OAuth is required if the view is not public.""",
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
             url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-            postedImage <- addImageFunc(u.apiId, viewId, imageJson.label, now, url)
+            postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
           }
@@ -2365,9 +2274,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2398,9 +2305,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2433,9 +2338,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2449,7 +2352,7 @@ Authentication via OAuth is required if the view is not public.""",
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -2472,9 +2375,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2488,7 +2389,7 @@ Authentication via OAuth is required if the view is not public.""",
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -2511,9 +2412,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2535,12 +2434,12 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartyForTransaction,
+      getOtherAccountForTransaction,
       apiVersion,
-      "getCounterpartyForTransaction",
+      "getOtherAccountForTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
-      "Get Counterparty of Transaction",
+      "Get Other Account of Transaction",
       """Get other account of a transaction.
          |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
@@ -2548,12 +2447,10 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
-    lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other account of a transaction
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
         user =>
@@ -2588,9 +2485,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

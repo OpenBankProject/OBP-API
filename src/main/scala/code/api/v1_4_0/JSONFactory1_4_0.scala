@@ -3,22 +3,21 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
-import code.common.{Meta, License, Location, Address}
+import code.common.{Address, License, Location, Meta}
 import code.atms.Atms.Atm
-import code.branches.Branches.{Branch}
+import code.branches.Branches.Branch
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
-import code.products.Products.{Product}
-
-
-import code.customer.{CustomerMessage, Customer}
+import code.products.Products.Product
+import code.customer.{Customer, CustomerMessage}
 import code.model._
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.json.JsonAST.{JValue, JObject}
+import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
-
-import code.api.v1_2_1.{AmountOfMoneyJSON}
-
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.transactionrequests.{TransactionRequestTypeCharge}
+import net.liftweb.common.Full
 
 object JSONFactory1_4_0 {
 
@@ -309,9 +308,9 @@ object JSONFactory1_4_0 {
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
-      is_core = rd.isCore,
-      is_psd2 = rd.isPSD2,
-      is_obwg = rd.isOBWG, // No longer tracking isCore
+      is_core = rd.catalogs.core,
+      is_psd2 = rd.catalogs.psd2,
+      is_obwg = rd.catalogs.obwg,// No longer tracking isCore
       tags = rd.tags.map(i => i.tag)
       )
   }
@@ -357,16 +356,44 @@ object JSONFactory1_4_0 {
       id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
+      details = null,
       body = getTransactionRequestBodyFromJson(json.body),
       transaction_ids = json.transaction_ids,
       status = json.status,
       start_date = json.start_date,
       end_date = json.end_date,
       challenge = challenge,
-      charge = charge
+      charge = charge,
+      charge_policy ="",// Note: charge_policy only used in V210. For V140 just set it empty
+      counterparty_id =  CounterpartyId(""),// Note: counterparty only used in V210. For V140 just set it empty
+      name = "",
+      this_bank_id = BankId(""),
+      this_account_id = AccountId(""),
+      this_view_id = ViewId(""),
+      other_account_routing_scheme = "",
+      other_account_routing_address = "",
+      other_bank_routing_scheme = "",
+      other_bank_routing_address = "",
+      is_beneficiary = true
     )
   }
 
+  /**
+    * package the transactionRequestTypeCharge
+    */
+  def createTransactionRequestTypesJSON(transactionRequestTypeCharges: TransactionRequestTypeCharge): TransactionRequestTypeJSON = {
+    TransactionRequestTypeJSON(transactionRequestTypeCharges.transactionRequestTypeId,
+      TransactionRequestChargeJSON(transactionRequestTypeCharges.chargeSummary,
+        AmountOfMoneyJSON(transactionRequestTypeCharges.chargeCurrency, transactionRequestTypeCharges.chargeAmount)))
+  }
+  
+  /**
+    * package the transactionRequestTypeCharges
+    */
+  def createTransactionRequestTypesJSONs(transactionRequestTypeCharges: List[TransactionRequestTypeCharge]): TransactionRequestTypeJSONs = {
+    TransactionRequestTypeJSONs(transactionRequestTypeCharges.map(createTransactionRequestTypesJSON))
+  }
+  
   case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String
@@ -407,4 +434,8 @@ object JSONFactory1_4_0 {
                           message: String
                         )
   */
+
+  case class TransactionRequestTypeJSON(value: String, charge: TransactionRequestChargeJSON)
+
+  case class TransactionRequestTypeJSONs(transaction_request_types: List[TransactionRequestTypeJSON])
 }

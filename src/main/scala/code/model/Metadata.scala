@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -103,7 +103,7 @@ trait TransactionImage {
 /*
 Counterparty metadata
  */
-trait OtherBankAccountMetadata {
+trait CounterpartyMetadata {
   def metadataId: String
   def getHolder: String
   def getAccountNumber: String
@@ -142,7 +142,7 @@ trait OtherBankAccountMetadata {
 
 class TransactionMetadata(
   val ownerComment : () => String,
-  val addOwnerComment : String => Unit,
+  val addOwnerComment : String => Boolean,
   val comments: (ViewId) => List[Comment],
   /**
   * @param: userId
@@ -154,7 +154,7 @@ class TransactionMetadata(
   /**
   * @param: commentId
   */
-  val deleteComment : (String) => Box[Unit],
+  val deleteComment : (String) => Box[Boolean],
 
   val tags: (ViewId) => List[TransactionTag],
   /**
@@ -167,7 +167,7 @@ class TransactionMetadata(
   /**
   * @param: tagId
   */
-  val deleteTag : (String) => Box[Unit],
+  val deleteTag : (String) => Box[Boolean],
   val images : (ViewId) => List[TransactionImage],
   /**
   * @param: userId
@@ -176,11 +176,11 @@ class TransactionMetadata(
   * @param: datePosted
   * @param: imageURL
   */
-  val addImage : (UserId, ViewId, String, Date, URL) => Box[TransactionImage],
+  val addImage : (UserId, ViewId, String, Date, String) => Box[TransactionImage],
   /**
   * @param: imageId
   */
-  val deleteImage : String => Unit,
+  val deleteImage : String => Box[Boolean],
   /**
   * @param: userId
   * @param: viewId

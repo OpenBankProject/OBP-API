@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -31,29 +31,47 @@ Berlin 13359, Germany
  */
 package code.snippet
 
+import code.model._
+import code.model.dataAccess.AuthUser
+import net.liftweb.common.{Empty, Full, Loggable}
+import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
-import code.model.Consumer
-import net.liftweb.http.S
-import net.liftweb.http.RequestVar
-import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers
-import net.liftweb.util.Props
-import net.liftweb.common.Loggable
-import code.util.Helper.NOOP_SELECTOR
+import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
+import code.consumer.Consumers
 
 class ConsumerRegistration extends Loggable {
 
-  //TODO: for security reasons this snippet and the template must be re-factored
-  //to use the lift built-in form function(SHtml._) so we can hide to what
-  //the input fields are mapped to in the server side !!
-
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
+  private object authenticationURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[Consumer.appType.enum.AppType](Consumer.appType.enum.values.head)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
+  private object appType extends RequestVar("Web")
+  private object submitButtonDefenseFlag extends RequestVar("")
 
+
+
+
+  // Can be used to show link to an online form to collect more information about the App / Startup
+  val registrationMoreInfoUrl = Props.get("webui_post_consumer_registration_more_info_url", "")
+
+  val registrationMoreInfoText : String = registrationMoreInfoUrl match {
+    case "" => ""
+    case _  =>  Props.get("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
+  }
+
+  
   def registerForm = {
+
+    val appTypes = Consumer.appType.enum.values.toList.map { appType =>
+      val id = appType.toString
+      (id, id)
+    }
+
+    def submitButtonDefense: Unit = {
+      submitButtonDefenseFlag("true")
+    }
 
     def registerWithoutWarnings =
       register &
@@ -61,24 +79,13 @@ class ConsumerRegistration extends Loggable {
 
     def register = {
       ".register" #> {
-        ".app-type-option" #> {
-          val appTypes = Consumer.appType.enum.values.map(appType => appType.toString)
-            appTypes.map(t => {
-              val selected = appTypeVar.get.toString == t
-
-              def markIfSelected =
-                if(selected) "* [selected]" #> "selected"
-                else NOOP_SELECTOR
-
-              markIfSelected &
-              "* *" #> t &
-              "* [value]" #> t
-            })
-          } &
-      	"name=app-name [value]" #> nameVar.get &
-        "name=app-user-authentication-url [value]" #> redirectionURLVar.get &
-      	"name=app-description *" #> descriptionVar.get &
-      	"name=app-developer [value]" #> devEmailVar.get
+          ".appTypeClass" #> SHtml.select(appTypes, Empty, appType(_)) &
+          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) & 
+          ".appRedirectUrlClass" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
+          ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
+          ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
+          "type=submit" #> SHtml.submit("Send", () => submitButtonDefense)
       } &
       ".success" #> ""
     }
@@ -87,7 +94,9 @@ class ConsumerRegistration extends Loggable {
       val urlOAuthEndpoint = Props.get("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = Props.get("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
+      ".app-consumer_id *" #> consumer.id.get &
       ".app-name *" #> consumer.name.get &
+      ".app-redirect-url *" #> consumer.redirectURL &
       ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
       ".app-type *" #> consumer.appType.get.toString &
       ".app-description *" #> consumer.description.get &
@@ -98,18 +107,21 @@ class ConsumerRegistration extends Loggable {
       ".oauth-endpoint a *" #> urlOAuthEndpoint &
       ".oauth-endpoint a [href]" #> urlOAuthEndpoint &
       ".directlogin-endpoint a *" #> urlDirectLoginEndpoint &
-      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint
+      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
+      ".post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
+      ".post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl
     }
 
     def saveAndShowResults(consumer : Consumer) = {
-      consumer.isActive(true).
-        key(Helpers.randomString(40).toLowerCase).
-        secret(Helpers.randomString(40).toLowerCase).
-        save
+      val c = Consumers.consumers.vend.updateConsumer(consumer.id, Some(Helpers.randomString(40).toLowerCase), Some(Helpers.randomString(40).toLowerCase), Some(true), None, None, None, None, None, None)
+      val result = c match {
+        case Full(x) => x
+        case _       => consumer
+      }
+      notifyRegistrationOccurred(result)
+      sendEmailToDeveloper(result)
 
-      notifyRegistrationOccurred(consumer)
-
-      showResults(consumer)
+      showResults(result)
     }
 
     def showErrors(errors : List[FieldError]) = {
@@ -123,34 +135,38 @@ class ConsumerRegistration extends Loggable {
       }
     }
 
+    //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
+    def showErrorsForDescription (descriptioinError : String) = {
+      register &
+        "#registration-errors *" #> {
+          ".error *" #>
+            List(descriptioinError).map({ e=>
+              ".errorContent *" #> e
+            })
+        }
+    }
+
     def analyseResult = {
-      val name = S.param("app-name") getOrElse ""
-      val appType =
-        S.param("app-type").flatMap(
-          typeString => Consumer.appType.enum.values.find(_.toString == typeString)
-        ) getOrElse Consumer.appType.enum.values.head
 
-      val appDescription = S.param("app-description") getOrElse ""
-      val appRedirectionUrl = S.param("app-user-authentication-url") getOrElse ""
-      val developerEmail = S.param("app-developer") getOrElse ""
+      def withNameOpt(s: String): Option[Consumer.appType.enum.AppType] = Consumer.appType.enum.values.find(_.toString == s)
 
-      val consumer =
-        Consumer.create.
-          name(name).
-          appType(appType).
-          description(appDescription).
-          developerEmail(developerEmail).
-          userAuthenticationURL(appRedirectionUrl)
+      val appTypeSelected = withNameOpt(appType.is)
 
-      val errors = consumer.validate
-      nameVar.set(name)
-      appTypeVar.set(appType)
-      descriptionVar.set(appDescription)
-      devEmailVar.set(developerEmail)
-      redirectionURLVar.set(appRedirectionUrl)
+      val consumer = Consumers.consumers.vend.createConsumer(None, None, None, Some(nameVar.is), Some(appTypeSelected.get), Some(descriptionVar.is), Some(devEmailVar.is), Some(redirectionURLVar.is), Some(AuthUser.getCurrentResourceUserUserId))
 
-      if(errors.isEmpty)
-        saveAndShowResults(consumer)
+      val errors = consumer.get.validate
+      nameVar.set(nameVar.is)
+      appTypeVar.set(appTypeSelected.get)
+      descriptionVar.set(descriptionVar.is)
+      devEmailVar.set(devEmailVar.is)
+      redirectionURLVar.set(redirectionURLVar.is)
+
+      if(submitButtonDefenseFlag.isEmpty)
+        showErrorsForDescription("The 'Send' button random name has been modified !")
+      else if(descriptionVar.isEmpty)
+        showErrorsForDescription("Description of the application can not be empty !")
+      else if(errors.isEmpty)
+        saveAndShowResults(consumer.get)
       else
         showErrors(errors)
     }
@@ -160,7 +176,56 @@ class ConsumerRegistration extends Loggable {
 
   }
 
+  def sendEmailToDeveloper(registered : Consumer) = {
+    import net.liftweb.util.Mailer
+    import net.liftweb.util.Mailer._
 
+    val mailSent = for {
+      send : String <- Props.get("mail.api.consumer.registered.notification.send") if send.equalsIgnoreCase("true")
+      from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+    } yield {
+
+      // Only send consumer key / secret by email if we explicitly want that.
+      val sendSensitive : Boolean = Props.getBool("mail.api.consumer.registered.notification.send.sensistive", false)
+      val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
+      val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
+
+      val thisApiInstance = Props.get("hostname", "unknown host")
+      val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
+      val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
+      val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
+        s"Email: ${registered.developerEmail.get} \n" +
+        s"App name: ${registered.name.get} \n" +
+        s"App type: ${registered.appType.get.toString} \n" +
+        s"App description: ${registered.description.get} \n" +
+        s"Consumer Key: ${consumerKeyOrMessage} \n" +
+        s"Consumer Secret : ${consumerSecretOrMessage} \n" +
+        s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
+        s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
+        s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
+        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login \n" +
+        s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
+
+      val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
+
+      val subject1 : String = "Thank you for registering to use the Open Bank Project API."
+      val subject2 : String = if (sendSensitive) "This email contains your API keys." else "This email does NOT contain your API keys."
+      val subject : String = s"$subject1 $subject2"
+
+      //this is an async call
+      Mailer.sendMail(
+        From(from),
+        Subject(subject1),
+        params :_*
+      )
+    }
+
+    if(mailSent.isEmpty)
+      this.logger.warn(s"Sending email with API consumer registration data is omitted: $mailSent")
+
+  }
+
+  // This is to let the system administrators / API managers know that someone has registered a consumer key.
   def notifyRegistrationOccurred(registered : Consumer) = {
     import net.liftweb.util.Mailer
     import net.liftweb.util.Mailer._

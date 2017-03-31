@@ -1,26 +1,23 @@
 package code.api.v1_4_0
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
+import code.api.util.APIUtil.isValidCurrencyISOCode
+import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.metadata.comments.MappedComment
-import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
+import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.common.{Failure, Loggable, Box, Full}
+import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
+import net.liftweb.json.{Extraction}
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-
-
-import code.api.v1_2_1.{AmountOfMoneyJSON}
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v2_0_0.CreateCustomerJson
 
 import scala.collection.immutable.Nil
 
@@ -60,6 +57,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
+    val apiVersionStatus : String = "STABLE"
 
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -79,9 +77,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -117,9 +113,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -128,7 +122,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            //au <- APIUser.find(By(APIUser.id, u.apiId))
+            //au <- ResourceUser.find(By(ResourceUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)
@@ -151,9 +145,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
     )
 
@@ -164,7 +156,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
             user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
@@ -198,9 +190,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -244,9 +234,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -298,9 +286,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      true,
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -337,9 +323,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
 
@@ -390,9 +374,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -404,11 +386,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
+              transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
-                val successJson = Extraction.decompose(transactionRequestTypes)
-                successJsonResponse(successJson)
+                val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)
+                successJsonResponse(Extraction.decompose(json))
               }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
@@ -427,9 +411,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -471,7 +453,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |
         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
         |
-        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
+        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
+        |
+        |Please see later versions of this call in 2.0.0 or 2.1.0.
+        |""",
       Extraction.decompose(TransactionRequestBodyJSON (
                                 TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
                                 AmountOfMoneyJSON("EUR", "100.53"),
@@ -481,9 +467,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                           ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -531,9 +515,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -579,14 +561,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(true)}
         |Note: This call is depreciated in favour of v.2.0.0 createCustomer
         |""",
-      Extraction.decompose(PostCustomerJson("687687678", "Joe David Bloggs",
+      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -596,11 +576,14 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! "User must be logged in to post Customer"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            requiredEntitlements = CanCreateCustomer :: CanCreateUserCustomerLink :: Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            user_id <- tryo{if (postedData.user_id.nonEmpty) postedData.user_id else u.userId} ?~ s"Problem getting user_id"
+            customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
-                u,
                 postedData.customer_number,
                 postedData.legal_name,
                 postedData.mobile_phone_number,
@@ -613,7 +596,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.highest_education_attained,
                 postedData.employment_status,
                 postedData.kyc_status,
-                postedData.last_ok_date) ?~! "Could not create customer"
+                postedData.last_ok_date,
+                None,
+                None) ?~! "Could not create customer"
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)
             successJsonResponse(Extraction.decompose(successJson))
@@ -625,7 +611,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion),
+        dummy(apiVersion, apiVersionStatus),
         apiVersion,
         "testResourceDoc",
         "GET",
@@ -660,20 +646,18 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           emptyObjectJson,
           emptyObjectJson,
         emptyObjectJson :: Nil,
-        false,
-        false,
-        false,
+        Catalogs(notCore, notPSD2, notOBWG),
         Nil)
       }
 
 
 
-    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
-            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 

@@ -1,26 +1,27 @@
 package code.api.v1_4_0
 
 import java.text.SimpleDateFormat
+import java.util.Date
 
 import code.api.DefaultUsers
-import code.api.util.APIUtil
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, AddCustomerMessageJson, CustomerMessagesJson, CustomerJson}
-import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJson, CustomerMessagesJson}
+import code.customer.{Customer, MappedCustomerMessage, MockCustomerFaceImage}
 import code.model.BankId
-import code.usercustomerlinks.{MappedUserCustomerLink}
-import dispatch._
+import code.usercustomerlinks.UserCustomerLink
 import code.api.util.APIUtil.OAuth._
+import code.api.v2_0_0.CreateCustomerJson
+import code.entitlement.Entitlement
 import net.liftweb.common.Box
-import net.liftweb.json.Serialization.{read, write}
-import net.liftweb.mapper.By
-import net.liftweb.common.{Full, Empty}
+import net.liftweb.json.Serialization.write
+import net.liftweb.common.{Empty, Full}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
   implicit val format = APIUtil.formats
 
-  val mockBankId = BankId("testBank1")
-  val mockCustomerNumber = "9393490320"
+  val mockBankId = createBank("testBank1").bankId
+  val mockCustomerNumber = "93934903208565488"
   val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
 
 
@@ -49,40 +50,38 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     scenario("Adding a message") {
       //first add a customer to send message to
       var request = (v1_4Request / "banks" / mockBankId.value / "customer").POST <@ user1
-      var customerJson = CustomerJson(
-              customer_id = mockCustomerId,
-              customer_number = mockCustomerNumber,
-              legal_name = "Someone",
-              mobile_phone_number = "125245",
-              email = "hello@hullo.com",
-              face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-              date_of_birth = exampleDate,
-              relationship_status = "Single",
-              dependants = 1,
-              dob_of_dependants = List(exampleDate),
-              highest_education_attained = "Bachelor’s Degree",
-              employment_status = "Employed",
-              kyc_status = true,
-              last_ok_date = exampleDate
-      )
+      val customerJson = CreateCustomerJson(
+                                            user_id = authuser1.userId,
+                                            customer_number = mockCustomerNumber,
+                                            legal_name = "Someone",
+                                            mobile_phone_number = "125245",
+                                            email = "hello@hullo.com",
+                                            face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+                                            date_of_birth = exampleDate,
+                                            relationship_status = "Single",
+                                            dependants = 1,
+                                            dob_of_dependants = List(exampleDate),
+                                            highest_education_attained = "Bachelor’s Degree",
+                                            employment_status = "Employed",
+                                            kyc_status = true,
+                                            last_ok_date = exampleDate)
+
+      When("We add all required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(mockBankId.value, authuser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       var response = makePostRequest(request, write(customerJson))
 
-      val customer: Box[MappedCustomer] = MappedCustomer.find(
-        By(MappedCustomer.mBank, mockBankId.value),
-        By(MappedCustomer.mNumber, mockCustomerNumber)
-      )
+      val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId)
       val customerId = customer match {
         case Full(c) => c.customerId
         case Empty => "Empty"
         case _ => "Failure"
       }
-      MappedUserCustomerLink.createUserCustomerLink(obpuser1.userId, customerId, exampleDate, true)
 
       When("We add a message")
       request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       response = makePostRequest(request, write(messageJson))
-
       Then("We should get a 201")
       response.code should equal(201)
 
@@ -103,17 +102,16 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    //TODO: this shouldn't be tied to an implementation
-    //need to create a customer info obj since the customer messages call needs to find user by customer number
-    MappedCustomer.create
-      .mBank(mockBankId.value)
-      .mUser(obpuser1)
-      .mNumber(mockCustomerNumber).save()
+    MappedCustomerMessage.bulkDelete_!!()
+    UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
+    Customer.customerProvider.vend.bulkDeleteCustomers()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     MappedCustomerMessage.bulkDelete_!!()
+    UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
+    Customer.customerProvider.vend.bulkDeleteCustomers()
   }
 
 }

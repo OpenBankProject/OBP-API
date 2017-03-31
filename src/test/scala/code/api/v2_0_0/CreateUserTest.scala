@@ -2,6 +2,7 @@ package code.api.v2_0_0
 
 import code.api.OAuthResponse
 import code.api.util.APIUtil.OAuth.{Consumer, _}
+import code.consumer.Consumers
 import code.model.{Consumer => OBPConsumer}
 import dispatch._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
@@ -29,12 +30,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
   val SECRET = randomString(40).toLowerCase
 
   before {
-    val testConsumer = OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(KEY).
-      secret(SECRET).
-      saveMe
+    val testConsumer = Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None)
   }
 
   val consumer = new Consumer(KEY, SECRET)
@@ -73,7 +69,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   feature("we can create an user and login as newly created user using both directLogin and OAuth") {
 
-    scenario("we create an user with email, first name, last name , username and password", CreateUser) {
+    scenario("we create an user with email, first name, last name, username and password", CreateUser) {
       When("we create a new user")
       val params = Map("email" -> EMAIL,
         "username" -> USERNAME,

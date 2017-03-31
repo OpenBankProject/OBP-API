@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -35,20 +35,24 @@ import code.api.util.APIUtil
 import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
-import net.liftweb.common.{Failure,Full,Empty, Box, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import net.liftweb.mongodb._
 import _root_.java.math.MathContext
+
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.util.Helpers._
+
 import _root_.scala.xml._
 import _root_.net.liftweb.http.S._
 import net.liftweb.mongodb.Skip
 import com.mongodb._
-import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
+import code.bankconnectors.{OBPFromDate, OBPLimit, OBPOffset, OBPOrder, OBPOrdering, OBPQueryParam, OBPToDate}
 import code.model._
 import java.net.URL
+
 import APIUtil._
 import code.api.OBPRestHelper
+import code.metadata.counterparties.Counterparties
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {
@@ -57,7 +61,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both
   //provider and id from the provider as arguments, we just use this value here as the provider.
   val authProvider = Props.get("hostname","")
-  val VERSION = "1.2"
+  val version = "1.2"
+  val versionStatus = "DEPRECIATED"
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
@@ -403,7 +408,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
           aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-          if(addAlias(aliasJson.alias))
+          added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+          if(added)
         } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias added")), 201)
         }
@@ -421,7 +427,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
           aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-          if(addAlias(aliasJson.alias))
+          added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+          if(added)
         } yield {
             successJsonResponse(Extraction.decompose(SuccessMessage("public alias updated")))
         }
@@ -438,7 +445,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
-          if(addAlias(""))
+          added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+          if(added)
         } yield noContentJsonResponse
     }
   })
@@ -472,7 +480,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
           aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-          if(addAlias(aliasJson.alias))
+          added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("private alias added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -491,7 +500,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
           aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
-          if(addAlias(aliasJson.alias))
+          added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("private alias updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -509,7 +519,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
-          if(addAlias(""))
+          added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
+          if(added)
         } yield noContentJsonResponse
     }
   })
@@ -525,7 +536,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
           moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-          if(addMoreInfo(moreInfoJson.more_info))
+          added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("more info added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -544,7 +556,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
           moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
-          if(addMoreInfo(moreInfoJson.more_info))
+          updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
+          if(updated)
         } yield {
             val successJson = SuccessMessage("more info updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -562,7 +575,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
-          if(addMoreInfo(""))
+          deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
+          if(deleted)
         } yield noContentJsonResponse
     }
   })
@@ -578,7 +592,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
           urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-          if(addUrl(urlJson.URL))
+          added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -597,7 +612,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
           urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
-          if(addUrl(urlJson.URL))
+          added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -615,7 +631,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
-          if(addUrl(""))
+          added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+          if(added)
         } yield noContentJsonResponse
     }
   })
@@ -631,7 +648,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
           imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-          if(addImageUrl(imageUrlJson.image_URL))
+          added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("image url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -650,7 +668,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
           imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
-          if(addImageUrl(imageUrlJson.image_URL))
+          updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
+          if(updated)
         } yield {
             val successJson = SuccessMessage("image url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -668,7 +687,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
-          if(addImageUrl(""))
+          deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+          if(deleted)
         } yield noContentJsonResponse
     }
   })
@@ -683,8 +703,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
-          opernCoprUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-          if(addOpenCorpUrl(opernCoprUrl.open_corporates_URL))
+          openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+          added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("open corporate url added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -702,8 +723,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
-          opernCoprUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
-          if(addOpenCorpUrl(opernCoprUrl.open_corporates_URL))
+          openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+          updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
+          if(updated)
         } yield {
             val successJson = SuccessMessage("open corporate url updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -721,7 +743,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
-          if(addOpenCorpUrl(""))
+          deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+          if(deleted)
         } yield noContentJsonResponse
     }
   })
@@ -739,7 +762,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.apiId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -760,7 +784,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.apiId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
+          if(updated)
         } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -778,9 +803,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-          deleted <- Box(metadata.deleteCorporateLocation)
+          deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
         } yield {
-          if(deleted())
+          if(deleted)
             noContentJsonResponse
           else
             errorJsonResponse("Delete not completed")
@@ -808,7 +833,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-          if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+          added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
+          if(added)
         } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -829,7 +855,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-         if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+          updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
+          if(updated)
         } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -847,9 +874,9 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
-          deleted <- Box(metadata.deletePhysicalLocation)
+          deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
         } yield {
-            if(deleted())
+            if(deleted)
               noContentJsonResponse
             else
               errorJsonResponse("Delete not completed")
@@ -975,7 +1002,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           u <- user
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-          postedComment <- addCommentFunc(u.apiId, viewId, commentJson.value, now)
+          postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
         }
@@ -1020,7 +1047,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           u <- user
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-          postedTag <- addTagFunc(u.apiId, viewId, tagJson.value, now)
+          postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
         }
@@ -1066,7 +1093,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-          postedImage <- addImageFunc(u.apiId, viewId, imageJson.label, now, url)
+          postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
         }
@@ -1112,7 +1139,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-          if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+          if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1130,7 +1157,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-         if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+         if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))

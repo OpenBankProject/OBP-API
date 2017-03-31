@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,26 +32,29 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.Locale
+import java.util.{Date, Locale}
 import javax.mail.internet.MimeMessage
-
+import code.accountholder.MapperAccountHolders
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.atms.MappedAtm
 import code.branches.MappedBranch
+import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
+import code.fx.{MappedCurrency, MappedFXRate}
+import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
-import code.kycchecks.MappedKycCheck
 import code.kycstatuses.MappedKycStatus
-import code.meetings.MappedMeeting
-import code.socialmedia.MappedSocialMedia
+import code.loginattempts.MappedBadLoginAttempt
 import code.management.{AccountsAPI, ImporterAPI}
+import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -60,9 +63,13 @@ import code.metrics.MappedMetric
 import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
-import code.transaction_types.MappedTransactionType
+import code.remotedata.RemotedataActors
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.socialmedia.MappedSocialMedia
+import code.transaction.MappedTransaction
+import code.transactionStatusScheduler.TransactionStatusScheduler
+import code.transaction_types.MappedTransactionType
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
 import net.liftweb.http._
@@ -71,8 +78,6 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-import code.api.Constant._
-import code.transaction.MappedTransaction
 
 
 /**
@@ -107,7 +112,7 @@ class Boot extends Loggable{
      *
      * api2.example.com with context path /api2
      *
-     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api2, following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *
@@ -166,12 +171,12 @@ class Boot extends Loggable{
     }
 
     // ensure our relational database's tables are created/fit the schema
-    if(Props.get("connector").getOrElse("") == "mapped" ||
-       Props.get("connector").getOrElse("") == "kafka" )
+    val connector = Props.get("connector").openOrThrowException("no connector set")
+    if(connector != "mongodb")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
-    if(Props.get("connector").getOrElse("") == "mongodb")
+    if( connector == "mongodb")
       MongoConfig.init
 
     val runningMode = Props.mode match {
@@ -185,6 +190,10 @@ class Boot extends Loggable{
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
+
+    logger.debug(s"If you can read this, logging level is debug")
+
+
     // where to search snippets
     LiftRules.addToPackages("code")
 
@@ -196,16 +205,25 @@ class Boot extends Loggable{
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
+    // Get disbled API versions from props
+    val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
+
+    //  OpenIdConnect endpoint and validator
+    if(Props.getBool("allow_openidconnect", false)) {
+      LiftRules.dispatch.append(OpenIdConnect)
+    }
+
     // Add the various API versions
-    LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-    LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-    LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    if (!disabledVersions.contains("v1_0")) LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+    if (!disabledVersions.contains("v1_1")) LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+    if (!disabledVersions.contains("v1_2")) LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
     // Can we depreciate the above?
-    LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
-    LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
-    LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
-    LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
-    LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+    if (!disabledVersions.contains("v1_2_1")) LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
+    if (!disabledVersions.contains("v1_3_0")) LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
+    if (!disabledVersions.contains("v1_4_0")) LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+    if (!disabledVersions.contains("v2_0_0")) LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
+    if (!disabledVersions.contains("v2_1_0")) LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+    if (!disabledVersions.contains("v2_2_0")) LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
@@ -216,7 +234,7 @@ class Boot extends Loggable{
 
 
 
-    // Add Resource Docs
+    // Add Resource Docs These are treated separately else we have circular dependency.
     LiftRules.statelessDispatch.append(ResourceDocs)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
@@ -235,7 +253,7 @@ class Boot extends Loggable{
       if(Props.getBool("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
         // Not mentioning test and sandbox for App store purposes right now.
-        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> OBPUser.loginFirst)
+        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> AuthUser.loginFirst)
       } else {
         Nil
       }
@@ -255,19 +273,19 @@ class Boot extends Loggable{
           Menu.i("Home") / "index",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> OBPUser.loginFirst,
+          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
     ) ++ accountCreation ++ Admin.menus
 
-    def sitemapMutators = OBPUser.sitemapMutator
+    def sitemapMutators = AuthUser.sitemapMutator
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
     LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
     // Use jQuery 1.4
-    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
+    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
 
     //Show the spinny image when an Ajax call starts
     LiftRules.ajaxStart =
@@ -281,7 +299,7 @@ class Boot extends Loggable{
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     // What is the function to test if a user is logged in?
-    LiftRules.loggedInTest = Full(() => OBPUser.loggedIn_?)
+    LiftRules.loggedInTest = Full(() => AuthUser.loggedIn_?)
 
     // Template(/Response?) encoding
     LiftRules.early.append(_.setCharacterEncoding("utf-8"))
@@ -301,6 +319,9 @@ class Boot extends Loggable{
       case _ => Locale.ENGLISH
     }
 
+    //for XSS vulnerability, set X-Frame-Options header as DENY
+    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
@@ -330,6 +351,21 @@ class Boot extends Loggable{
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
     }
+
+    if (!Props.getBool("remotedata.enable", false)) {
+      try {
+        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
+        RemotedataActors.startLocalWorkerSystem()
+      } catch {
+        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
+      }
+    }
+
+    if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
+      val delay = Props.getLong("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
+      TransactionStatusScheduler.start(delay)
+    }
+
   }
 
   def schemifyAll() = {
@@ -386,29 +422,36 @@ class Boot extends Loggable{
 }
 
 object ToSchemify {
-  val models = List(OBPUser,
-    Admin,
-    Nonce,
-    Token,
-    Consumer,
-    ViewPrivileges,
+  // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
+  val modelsRemotedata = List(
     ViewImpl,
-    APIUser,
-    MappedAccountHolder,
+    ViewPrivileges,
+    ResourceUser,
     MappedComment,
-    MappedNarrative,
     MappedTag,
     MappedWhereTag,
+    MappedTransactionImage,
+    MappedNarrative,
+    MappedCustomer,
+    MappedUserCustomerLink,
+    Consumer,
+    Token,
+    Nonce,
+    MappedCounterparty,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
+    MappedTransactionRequest,
+    MappedMetric,
+    MapperAccountHolders
+  )
+
+  // The following tables are accessed directly via Mapper / JDBC
+  val models = List(
+    AuthUser,
+    Admin,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
-    MappedTransactionRequest,
-    MappedTransactionRequest210,
-    MappedTransactionImage,
-    MappedMetric,
-    MappedCustomer,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
@@ -421,7 +464,13 @@ object ToSchemify {
     MappedSocialMedia,
     MappedTransactionType,
     MappedMeeting,
-    MappedUserCustomerLink,
-    MappedKafkaBankAccountData,
-    MappedEntitlement)
+    MappedBankAccountData,
+    MappedEntitlement,
+    MappedPhysicalCard,
+    PinReset,
+    MappedBadLoginAttempt,
+    MappedFXRate,
+    MappedCurrency,
+    MappedTransactionRequestTypeCharge
+  )
 }

@@ -2,16 +2,17 @@ package code.bankaccountcreation
 
 import code.api.DefaultConnectorTestSetup
 import code.api.ServerSetup
-import code.model.{User, BankId}
+import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
-import code.model.dataAccess.{APIUser, BankAccountCreationListener}
+import code.model.dataAccess.{BankAccountCreationListener, ResourceUser}
 import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
+import code.users.Users
 
 class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorTestSetup {
 
@@ -34,11 +35,8 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
-      APIUser.find(By(APIUser.provider_, userProvider), By(APIUser.providerId, userId)).getOrElse {
-        APIUser.create.
-          provider_(userProvider).
-          providerId(userId).
-          saveMe
+      Users.users.vend.getUserByProviderId(userProvider, userId).getOrElse {
+        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None).get
       }
 
     val expectedBankId = "quxbank"
@@ -54,7 +52,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       createdAccount.accountId.value.nonEmpty should be(true)
 
       createdAccount.bankId.value should equal(expectedBankId)
-      createdAccount.number should equal(accountNumber)
+      createdAccount.accountId should equal(accountNumber)
 
       And("The account holder should be set correctly")
       Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))

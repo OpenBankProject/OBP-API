@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -96,7 +96,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
       existingOwnerView match {
         case Full(v) => {
           logger.info(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.apiId == user.apiId) match {
+          v.users.toList.find(_.resourceUserId == user.resourceUserId) match {
             case Some(u) => {
               logger.info(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }
@@ -111,7 +111,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
           {
             //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
             logger.info(s"creating owner view on account account $accountId at bank $bankId")
-            val view = ViewImpl.createAndSaveOwnerView(bankId, accountId, "")
+            val view = Views.views.vend.createOwnerView(bankId, accountId, "Owner View")
 
             logger.info(s"creating owner view access to user ${user.emailAddress}")
             Views.views.vend.addPermission(ownerViewUID, user)

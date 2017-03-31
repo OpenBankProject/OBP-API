@@ -3,15 +3,21 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.accountholder.MapperAccountHolders$
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
+import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable, _}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -19,13 +25,43 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.bson.types.ObjectId
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
+import code.transactionrequests.TransactionRequestTypeCharge
 
 private object LocalConnector extends Connector with Loggable {
 
   type AccountType = Account
+
+  // Gets current challenge level for transaction request
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+    val limit = BigDecimal("50")
+    val rate = fx.exchangeRate ("EUR", currency)
+    val convertedLimit = fx.convert(limit, rate)
+    AmountOfMoney(currency,convertedLimit.toString())
+  }
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
+                                        transactionRequestType: String, currency: String)
+  }
+
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+  def updateUserAccountViews(user: ResourceUser): Unit = ???
 
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
@@ -42,7 +78,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override def getOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String): Box[OtherBankAccount] = {
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -50,7 +86,7 @@ private object LocalConnector extends Connector with Loggable {
      */
 
       for{
-        objId <- tryo{ new ObjectId(otherAccountID) }
+        objId <- tryo{ new ObjectId(counterpartyID) }
         otherAccountmetadata <- {
           //"otherAccountID" is actually the mongodb id of the other account metadata" object.
           val query = QueryBuilder.
@@ -75,7 +111,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getOtherBankAccounts(bankId: BankId, accountId : AccountId): List[OtherBankAccount] = {
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -102,6 +138,12 @@ private object LocalConnector extends Connector with Loggable {
     })
   }
 
+  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
+  
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
+
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
@@ -124,21 +166,38 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCards(user : User) : List[PhysicalCard] = {
+    List()
   }
 
-  override def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard] = {
+    List()
   }
 
-  override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
-    MappedAccountHolder.findAll(
-      By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
+  def AddPhysicalCard(bankCardNumber: String,
+                      nameOnCard: String,
+                      issueNumber: String,
+                      serialNumber: String,
+                      validFrom: Date,
+                      expires: Date,
+                      enabled: Boolean,
+                      cancelled: Boolean,
+                      onHotList: Boolean,
+                      technology: String,
+                      networks: List[String],
+                      allows: List[String],
+                      accountId: String,
+                      bankId: String,
+                      replacement: Option[CardReplacementInfo],
+                      pinResets: List[PinResetInfo],
+                      collected: Option[CardCollectionInfo],
+                      posted: Option[CardPostedInfo]
+                     ) : Box[PhysicalCard] = {
+    Empty
   }
 
-  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal, description: String) : Box[TransactionId] = {
+
+  override protected def makePaymentImpl(fromAccount: Account, toAccount: Account, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -181,18 +240,23 @@ private object LocalConnector extends Connector with Loggable {
         otherAccount_.number.get)
     }
 
-    val otherAccount = new OtherBankAccount(
-      id = metadata.metadataId,
+    val otherAccount = new Counterparty(
+      counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccount_.bank.get.IBAN.get),
-      number = otherAccount_.number.get,
-      bankName = otherAccount_.bank.get.name.get,
+      otherBankRoutingAddress = None, 
+      otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
+      thisAccountId = AccountId(otherAccount_.number.get),
+      thisBankId = BankId(otherAccount_.bank.get.name.get),
       kind = otherAccount_.kind.get,
-      originalPartyBankId = theAccount.bankId,
-      originalPartyAccountId = theAccount.accountId,
-      alreadyFoundMetadata = Some(metadata)
+      otherBankId = theAccount.bankId,
+      otherAccountId = theAccount.accountId,
+      alreadyFoundMetadata = Some(metadata),
+      name = "",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
     val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
@@ -203,17 +267,17 @@ private object LocalConnector extends Connector with Loggable {
     val balance = transaction.details.get.new_balance.get.amount.get
 
     new Transaction(
-      uuid,
-      id,
-      theAccount,
-      otherAccount,
-      transactionType,
-      amount,
-      currency,
-      label,
-      startDate,
-      finishDate,
-      balance)
+                     uuid,
+                     id,
+                     theAccount,
+                     otherAccount,
+                     transactionType,
+                     amount,
+                     currency,
+                     label,
+                     startDate,
+                     finishDate,
+                     balance)
   }
 
   private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
@@ -303,7 +367,7 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-
+  override def getTransactionRequestStatusesImpl() :  Box[TransactionRequestStatus] = Empty
   /*
    Transaction Requests
  */
@@ -312,14 +376,18 @@ private object LocalConnector extends Connector with Loggable {
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                            account : BankAccount, details: String,
-                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = ???
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String, status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String): Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
   override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
@@ -330,19 +398,24 @@ private object LocalConnector extends Connector with Loggable {
 
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-    otherAccount : OtherBankAccountMetadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
-    new OtherBankAccount(
-      id = otherAccount.metadataId,
+    otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
+    new Counterparty(
+      counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccountFromTransaction.bank.get.IBAN.get),
-      number = otherAccountFromTransaction.number.get,
-      bankName = otherAccountFromTransaction.bank.get.name.get,
+      otherBankRoutingAddress = None, 
+      otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
+      thisAccountId = AccountId(otherAccountFromTransaction.number.get),
+      thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
       kind = "",
-      originalPartyBankId = originalPartyBankId,
-      originalPartyAccountId = originalPartyAccountId,
-      alreadyFoundMetadata = Some(otherAccount)
+      otherBankId = originalPartyBankId,
+      otherAccountId = originalPartyAccountId,
+      alreadyFoundMetadata = Some(otherAccount),
+      name = "",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
   }
 
@@ -418,10 +491,6 @@ private object LocalConnector extends Connector with Loggable {
     (hostedBank, createdAccount)
   }
 
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
-  }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
@@ -551,4 +620,23 @@ private object LocalConnector extends Connector with Loggable {
         false
     }
   }
+
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+
+  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
+
+  override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
+
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+  
+  override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+  override def getEmptyBankAccount(): Box[AccountType] = Empty
+
 }

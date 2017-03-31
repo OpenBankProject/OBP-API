@@ -14,6 +14,10 @@ object Atms extends SimpleInjector {
 
   case class AtmId(value : String)
 
+  object AtmId {
+    def unapply(id : String) = Some(AtmId(id))
+  }
+
   trait Atm {
     def atmId : AtmId
     def name : String

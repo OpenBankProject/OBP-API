@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  * Copyright (C) 2011-2016, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
 *along with this program.  If not, see <http://www.gnu.org/licenses/>.
   **
  *Email: contact@tesobe.com
-*TESOBE / Music Pictures Ltd
+*TESOBE Ltd
 *Osloerstrasse 16/17
 *Berlin 13359, Germany
   **
@@ -39,13 +39,14 @@ import net.liftweb.common.Loggable
 object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
 
-  val VERSION = "2.0.0"
+  val version = "2.0.0"
+  val versionStatus = "DRAFT"
 
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
   var routes = List(
-    Implementations1_2_1.root(VERSION),
+    Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     // Now in 2_0_0
@@ -67,15 +68,15 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.addPermissionForUserForBankAccountForOneView,
     Implementations1_2_1.removePermissionForUserForBankAccountForOneView,
     Implementations1_2_1.removePermissionForUserForBankAccountForAllViews,
-    Implementations1_2_1.getCounterpartiesForBankAccount,
-    Implementations1_2_1.getCounterpartyByIdForBankAccount,
-    Implementations1_2_1.getCounterpartyMetadata,
+    Implementations1_2_1.getOtherAccountsForBankAccount,
+    Implementations1_2_1.getOtherAccountByIdForBankAccount,
+    Implementations1_2_1.getOtherAccountMetadata,
     Implementations1_2_1.getCounterpartyPublicAlias,
     Implementations1_2_1.addCounterpartyPublicAlias,
     Implementations1_2_1.updateCounterpartyPublicAlias,
     Implementations1_2_1.deleteCounterpartyPublicAlias,
-    Implementations1_2_1.getCounterpartyPrivateAlias,
-    Implementations1_2_1.addCounterpartyPrivateAlias,
+    Implementations1_2_1.getOtherAccountPrivateAlias,
+    Implementations1_2_1.addOtherAccountPrivateAlias,
     Implementations1_2_1.updateCounterpartyPrivateAlias,
     Implementations1_2_1.deleteCounterpartyPrivateAlias,
     Implementations1_2_1.addCounterpartyMoreInfo,
@@ -115,7 +116,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getCounterpartyForTransaction,
+    Implementations1_2_1.getOtherAccountForTransaction,
     Implementations1_2_1.makePayment,
 
     // New in 1.3.0
@@ -137,10 +138,11 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // Updated in 2.0.0 (less info about the views)
     Implementations2_0_0.allAccountsAllBanks,
-    Implementations2_0_0.privateAccountsAllBanks,
+    Implementations2_0_0.corePrivateAccountsAllBanks,
     Implementations2_0_0.publicAccountsAllBanks,
     Implementations2_0_0.allAccountsAtOneBank,
-    Implementations2_0_0.privateAccountsAtOneBank,
+    Implementations2_0_0.corePrivateAccountsAtOneBank, // this is /my accounts
+    Implementations2_0_0.privateAccountsAtOneBank, // This was missing for a while from v2.0.0
     Implementations2_0_0.publicAccountsAtOneBank,
     Implementations2_0_0.createTransactionRequest,
     Implementations2_0_0.answerTransactionRequestChallenge,

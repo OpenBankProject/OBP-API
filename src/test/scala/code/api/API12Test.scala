@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -1234,7 +1234,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 201 ok code")
       reply.code should equal (201)
@@ -1259,7 +1259,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 404 code")
@@ -1272,7 +1272,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
@@ -1287,7 +1287,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1320,7 +1320,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1334,7 +1334,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1348,7 +1348,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
@@ -1364,7 +1364,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1382,8 +1382,8 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val userId1 = obpuser2.idGivenByProvider
-      val userId2 = obpuser2.idGivenByProvider
+      val userId1 = authuser2.idGivenByProvider
+      val userId2 = authuser2.idGivenByProvider
       grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
       grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
@@ -1401,19 +1401,19 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
       val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
-      if(view.users.length == 0){
-        val userId = obpuser2.idGivenByProvider
+      if(Views.views.vend.getOwners(view).toList.length == 0){
+        val userId = authuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
       }
-      while(view.users.length > 1){
-        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId.value, user1)
+      while(Views.views.vend.getOwners(view).toList.length > 1){
+        revokeUserAccessToView(bankId, bankAccount.id, Views.views.vend.getOwners(view).toList(0).idGivenByProvider, viewId.value, user1)
       }
-      val viewUsersBefore = view.users
+      val viewUsersBefore = Views.views.vend.getOwners(view).toList
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId.value, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
-      val viewUsersAfter = view.users
+      val viewUsersAfter = Views.views.vend.getOwners(view).toList
       viewUsersAfter.length should equal(viewUsersBefore.length)
     }
 
@@ -1431,7 +1431,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId =obpuser2.idGivenByProvider
+      val userId =authuser2.idGivenByProvider
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 404 code")
@@ -1442,19 +1442,20 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
     }
   }
+
   feature("Revoke a user access to all the views on a bank account"){
     scenario("we will revoke the access of a user to all the views on an bank account", API1_2, DeletePermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1463,7 +1464,6 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Then("we should get a 204 no content code")
       reply.code should equal (204)
     }
-
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermissions) {
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
@@ -1478,7 +1478,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)

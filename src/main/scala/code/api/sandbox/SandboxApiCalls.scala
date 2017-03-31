@@ -2,6 +2,7 @@ package code.api.sandbox
 
 import code.api.{APIFailure, OBPRestHelper}
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
 import net.liftweb.common.{Box, Full, Failure, Loggable}
@@ -16,7 +17,8 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
   logger.debug("Hello from SandboxApiCalls")
-  val VERSION = "sandbox"
+  val version = "sandbox"
+  val versionStatus = "DEPRECIATED"
 
   oauthServe(apiPrefix{
 
@@ -27,7 +29,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
           correctToken <- Props.get("sandbox_data_import_secret") ~> APIFailure("Data import is disabled for this API instance.", 403)
           providedToken <- S.param("secret_token") ~> APIFailure("secret_token parameter required", 403)
           tokensMatch <- Helper.booleanToBox(providedToken == correctToken) ~> APIFailure("incorrect secret token", 403)
-          importData <- tryo{json.extract[SandboxDataImport]} ?~ "invalid json"
+          importData <- tryo{json.extract[SandboxDataImport]} ?~ ErrorMessages.InvalidJsonFormat
           importWorked <- OBPDataImport.importer.vend.importData(importData)
         } yield {
           successJsonResponse(JsRaw("{}"), 201)

@@ -41,6 +41,9 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   object mFamily extends DefaultStringField(this)
   object mSuperFamily extends DefaultStringField(this)
   object mMoreInfoUrl extends DefaultStringField(this) // use URL field?
+  object mDetails extends DefaultStringField(this)
+  object mDescription extends DefaultStringField(this)
+
 
   // Exposed inside meta.license See below
   object mLicenseId extends DefaultStringField(this)
@@ -55,6 +58,8 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def family : String = mFamily.get
   override def superFamily : String = mSuperFamily.get
   override def moreInfoUrl: String = mMoreInfoUrl.get
+  override def details: String = mDetails.get
+  override def description: String = mDescription.get
 
   override def meta: Meta = new Meta {
     override def license: License = new License {
@@ -62,7 +67,6 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
       override def name: String = mLicenseName.get
     }
   }
-
 
 
 }

@@ -13,7 +13,9 @@
   <properties>
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
+    <akka.version>2.4.10</akka.version>
     <lift.version>2.6.3</lift.version>
+    <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -38,6 +40,11 @@
       <id>scala-tools.snapshots</id>
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+    </repository>
+    <repository>
+      <id>git-OpenBankProject</id>
+      <name>OpenBankProject Git based repo</name>
+      <url>https://raw.githubusercontent.com/OpenBankProject/OBP-M2-REPO/master/</url>
     </repository>
   </repositories>
 
@@ -124,7 +131,7 @@
     <dependency>
         <groupId>net.manub</groupId>
         <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
-        <version>0.7.1</version>
+        <version>0.9.0</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -175,12 +182,23 @@
     <dependency>
       <groupId>com.jason-goodwin</groupId>
       <artifactId>authentikat-jwt_${scala.version}</artifactId>
-      <version>0.4.1</version>
+      <version>0.4.5</version>
     </dependency>
     <dependency>
       <groupId>com.tokbox</groupId>
       <artifactId>opentok-server-sdk</artifactId>
-      <version>3.0.0-beta.1</version>
+      <version>3.0.0-beta.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.8.6</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
@@ -209,6 +227,37 @@
       <artifactId>signpost-commonshttp4</artifactId>
       <version>1.2.1.2</version>
     </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-core</artifactId>
+      <version>${obp-ri.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-kafka</artifactId>
+      <version>${obp-ri.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-transport</artifactId>
+      <version>${obp-ri.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-actor_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-remote_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+     <groupId>com.github.romix.akka</groupId>
+      <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
+      <version>0.4.1</version>
+    </dependency>
+
   </dependencies>
 
   <build>

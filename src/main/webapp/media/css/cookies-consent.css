@@ -1,0 +1,11 @@
+#cookies-consent {
+    background-color:#ffffe1;
+    display:none;
+    text-align: center;
+    position: absolute;
+    width: 1050px;
+    margin:auto;
+    left: 0;
+    top: 0;
+    right: 0;
+}

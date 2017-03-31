@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -38,7 +38,8 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
 import code.views.Views
-import code.bankconnectors.Connector
+import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.users.Users
 
 case class UserId(val value : Long) {
@@ -46,11 +47,11 @@ case class UserId(val value : Long) {
 }
 
 
-// TODO Document clearly the difference between this and OBPUser
+// TODO Document clearly the difference between this and AuthUser
 
 trait User {
 
-  def apiId : UserId
+  def resourceUserId : UserId
   def userId: String
 
   def idGivenByProvider: String
@@ -60,7 +61,7 @@ trait User {
   def name : String
 
   def permittedViews(bankAccount: BankAccount) : List[View] =
-    Views.views.vend.permittedViews(this, bankAccount)
+    Views.views.vend.permittedViews(this, BankAccountUID(bankAccount.bankId, bankAccount.accountId))
 
   def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
     if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){
@@ -82,7 +83,18 @@ trait User {
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
-  def nonPublicAccounts : List[BankAccount] = Views.views.vend.getNonPublicBankAccounts(this)
+  def nonPublicAccounts : List[BankAccount] = {
+    Views.views.vend.getNonPublicBankAccounts(this).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
+  }
+
+  def assignedEntitlements : List[Entitlement] = {
+    Entitlement.entitlement.vend.getEntitlements(userId) match {
+      case Full(l) => l.sortWith(_.roleName < _.roleName)
+      case _ => List()
+    }
+  }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject =
@@ -92,8 +104,11 @@ trait User {
 }
 
 object User {
-  def findByApiId(id : Long) : Box[User] =
-    Users.users.vend.getUserByApiId(id)
+  def findByResourceUserId(id : Long) : Box[User] =
+    Users.users.vend.getUserByResourceUserId(id)
+
+  def findResourceUserByResourceUserId(id : Long) : Box[ResourceUser] =
+    Users.users.vend.getResourceUserByResourceUserId(id)
 
   def findByProviderId(provider : String, idGivenByProvider : String) =
     //if you change this, think about backwards compatibility! All existing
@@ -101,6 +116,42 @@ object User {
     //that all stable versions retain the same behavior
     Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
 
-  def findByUserId(userId : String) =
-    Users.users.vend.getUserByUserId(userId)
+  def findByUserId(userId : String) = {
+    val usr = Users.users.vend.getUserByUserId(userId)
+    usr
+  }
+
+  def findByUserName(userName: String) = {
+    Users.users.vend.getUserByUserName(userName)
+  }
+
+  def findByEmail(email: String) = {
+    Users.users.vend.getUserByEmail(email) match {
+      case Full(list) => list
+      case _ => List()
+    }
+  }
+
+  def findAll() = {
+    Users.users.vend.getAllUsers() match {
+      case Full(list) => list
+      case _          => List()
+    }
+  }
+
+  def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
+     Users.users.vend.createResourceUser(provider, providerId, name, email, userId)
+  }
+
+  def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
+    Users.users.vend.createUnsavedResourceUser(provider, providerId, name, email, userId)
+  }
+
+  def saveResourceUser(ru: ResourceUser) = {
+    Users.users.vend.saveResourceUser(ru)
+  }
+
+  //def bulkDeleteAllResourceUsers(): Box[Boolean] = {
+  //  Users.users.vend.bulkDeleteAllResourceUsers()
+  //}
 }

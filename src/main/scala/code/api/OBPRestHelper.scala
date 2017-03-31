@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.Req
 import net.liftweb.common._
@@ -79,8 +79,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
-  val VERSION : String
-  def vPlusVersion = "v" + VERSION
+  val version : String
+  val versionStatus : String
+  def vPlusVersion = "v" + version
 
   def apiPrefix = (ApiPathZero / vPlusVersion).oPrefix(_)
 
@@ -123,7 +124,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
       case true =>
         //logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Error: Invalid JSON: $msg"))
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)
         }
       case false => h(r)

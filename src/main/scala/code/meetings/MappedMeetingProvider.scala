@@ -3,7 +3,7 @@ package code.meetings
 import java.util.Date
 
 import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{MappedUUID, DefaultStringField}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -37,7 +37,7 @@ object MappedMeetingProvider extends MeetingProvider {
     val createdMeeting = MappedMeeting.create
       .mBankId(bankId.value.toString)
       //.mStaffUserId(staffUser.apiId.value)
-      .mCustomerUserId(customerUser.apiId.value)
+      .mCustomerUserId(customerUser.resourceUserId.value)
       .mProviderId(providerId)
       .mPurposeId(purposeId)
       .mWhen(when)
@@ -66,8 +66,8 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
 
   // With
   object mBankId extends DefaultStringField(this)
-  object mCustomerUserId extends MappedLongForeignKey(this, APIUser)
-  object mStaffUserId extends MappedLongForeignKey(this, APIUser)
+  object mCustomerUserId extends MappedLongForeignKey(this, ResourceUser)
+  object mStaffUserId extends MappedLongForeignKey(this, ResourceUser)
 
   // What
   object mProviderId extends DefaultStringField(this)

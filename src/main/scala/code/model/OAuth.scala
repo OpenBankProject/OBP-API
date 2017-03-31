@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -30,15 +30,19 @@ Berlin 13359, Germany
 
  */
 package code.model
-import net.liftweb._
-import net.liftweb.mapper.{LongKeyedMetaMapper, _}
-import net.liftweb.util.FieldError
-import net.liftweb.common.{Full,Failure,Box,Empty}
-import net.liftweb.util.{Helpers, SecurityHelpers}
-import Helpers.now
-import code.model.dataAccess.APIUser
+import java.util.Date
+
+import code.token.TokensProvider
+import code.consumer.{Consumers, ConsumersProvider}
+import code.model.TokenType.TokenType
+import code.model.dataAccess.ResourceUser
+import code.nonce.NoncesProvider
+import code.users.Users
+import net.liftweb.common._
 import net.liftweb.http.S
-import net.liftweb.util.Helpers._
+import net.liftweb.mapper.{LongKeyedMetaMapper, _}
+import net.liftweb.util.Helpers.{now, _}
+import net.liftweb.util.{FieldError, Helpers, Props}
 
 object AppType extends Enumeration {
   type AppType = Value
@@ -48,6 +52,107 @@ object AppType extends Enumeration {
 object TokenType extends Enumeration {
   type TokenType=Value
   val Request, Access = Value
+}
+
+
+object MappedConsumersProvider extends ConsumersProvider {
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, consumerId))
+  }
+
+  override def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
+    Consumer.find(By(Consumer.key, consumerKey))
+  }
+
+  override def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+    tryo {
+      val c = Consumer.create
+      key match {
+        case Some(v) => c.key(v)
+        case None =>
+      }
+      secret match {
+        case Some(v) => c.secret(v)
+        case None =>
+      }
+      isActive match {
+        case Some(v) => c.isActive(v)
+        case None =>
+      }
+      name match {
+        case Some(v) => c.name(v)
+        case None =>
+      }
+      appType match {
+        case Some(v) => c.appType(v)
+        case None =>
+      }
+      description match {
+        case Some(v) => c.description(v)
+        case None =>
+      }
+      developerEmail match {
+        case Some(v) => c.developerEmail(v)
+        case None =>
+      }
+      redirectURL match {
+        case Some(v) => c.redirectURL(v)
+        case None =>
+      }
+      createdByUserId match {
+        case Some(v) => c.createdByUserId(v)
+        case None =>
+      }
+      c.saveMe()
+    }
+  }
+
+  override def updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+    val consumer = Consumer.find(By(Consumer.id, consumerId))
+    consumer match {
+      case Full(c) => tryo {
+        key match {
+          case Some(v) => c.key(v)
+          case None =>
+        }
+        secret match {
+          case Some(v) => c.secret(v)
+          case None =>
+        }
+        isActive match {
+          case Some(v) => c.isActive(v)
+          case None =>
+        }
+        name match {
+          case Some(v) => c.name(v)
+          case None =>
+        }
+        appType match {
+          case Some(v) => c.appType(v)
+          case None =>
+        }
+        description match {
+          case Some(v) => c.description(v)
+          case None =>
+        }
+        developerEmail match {
+          case Some(v) => c.developerEmail(v)
+          case None =>
+        }
+        redirectURL match {
+          case Some(v) => c.redirectURL(v)
+          case None =>
+        }
+        createdByUserId match {
+          case Some(v) => c.createdByUserId(v)
+          case None =>
+        }
+        c.saveMe()
+      }
+      case _ => consumer
+    }
+  }
+
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
@@ -62,6 +167,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 
   private def validUrl(field: MappedString[Consumer])(s: String) = {
     import java.net.URL
+
     import Helpers.tryo
     if(s.isEmpty)
       Nil
@@ -76,7 +182,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
 
   object secret extends MappedString(this, 250)
-  object isActive extends MappedBoolean(this)
+  object isActive extends MappedBoolean(this){
+    override def defaultValue = Props.getBool("consumers_enabled_by_default", false)
+  }
   object name extends MappedString(this, 100){
     override def validations = minLength3(this) _ :: super.validations
     override def dbIndexed_? = true
@@ -91,7 +199,10 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object developerEmail extends MappedEmail(this, 100) {
     override def displayName = "Email:"
   }
-
+  object redirectURL extends MappedString(this, 250){
+    override def displayName = "Redirect URL:"
+    override def validations = validUrl(this) _ :: super.validations
+  }
   //if the application needs to delegate the user authentication
   //to a third party application (probably it self) rather than using
   //the default authentication page of the API, then this URL will be used.
@@ -99,6 +210,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def displayName = "User authentication URL:"
     override def validations = validUrl(this) _ :: super.validations
   }
+  object createdByUserId extends MappedString(this, 36)
 
 }
 
@@ -107,7 +219,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  * their urls are not persistent. So if you copy paste a url and email it to someone, don't count on it
  * working for long.
  */
-object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
+object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
 
@@ -131,6 +243,13 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
 
   //show more than the default of 20
   override def rowsPerPage = 100
+  
+  def getRedirectURLByConsumerKey(consumerKey: String): String = {
+    logger.debug("hello from getRedirectURLByConsumerKey")
+    val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
+    logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}" )
+    consumer.redirectURL.toString()
+  }
 
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
@@ -176,7 +295,56 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   </lift:crud.all>
 }
 
+object MappedNonceProvider extends NoncesProvider {
+  override def createNonce(id: Option[Long],
+                           consumerKey: Option[String],
+                           tokenKey: Option[String],
+                           timestamp: Option[Date],
+                           value: Option[String]): Box[Nonce] = {
+    tryo {
+      val n = Nonce.create
+      id match {
+        case Some(v) => n.id(v)
+        case None =>
+      }
+      consumerKey match {
+        case Some(v) => n.consumerkey(v)
+        case None =>
+      }
+      tokenKey match {
+        case Some(v) => n.tokenKey(v)
+        case None =>
+      }
+      timestamp match {
+        case Some(v) => n.timestamp(v)
+        case None =>
+      }
+      value match {
+        case Some(v) => n.value(v)
+        case None =>
+      }
+      val nonce = n.saveMe()
+      nonce
+    }
+  }
 
+  override def deleteExpiredNonces(currentDate: Date): Boolean = {
+    Nonce.findAll(By_<(Nonce.timestamp, currentDate)).forall(_.delete_!)
+  }
+
+  override def countNonces(consumerKey: String,
+                           tokenKey: String,
+                           timestamp: Date,
+                           value: String): Long = {
+    Nonce.count(
+      By(Nonce.value, value),
+      By(Nonce.tokenKey, tokenKey),
+      By(Nonce.consumerkey, consumerKey),
+      By(Nonce.timestamp, timestamp)
+    )
+  }
+
+}
 class Nonce extends LongKeyedMapper[Nonce] {
 
   def getSingleton = Nonce
@@ -197,6 +365,88 @@ class Nonce extends LongKeyedMapper[Nonce] {
 }
 object Nonce extends Nonce with LongKeyedMetaMapper[Nonce]{}
 
+object MappedTokenProvider extends TokensProvider {
+  override def getTokenByKey(key: String): Box[Token] = {
+    Token.find(By(Token.key, key))
+  }
+  override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
+    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType))
+    println("token: " + token)
+    token
+  }
+
+  override def createToken(tokenType: TokenType,
+                           consumerId: Option[Long],
+                           userId: Option[Long],
+                           key: Option[String],
+                           secret: Option[String],
+                           duration: Option[Long],
+                           expirationDate: Option[Date],
+                           insertDate: Option[Date],
+                           callbackURL: Option[String]): Box[Token] = {
+    tryo {
+      val t = Token.create
+      t.tokenType(tokenType)
+      consumerId match {
+        case Some(v) => t.consumerId(v)
+        case None =>
+      }
+      userId match {
+        case Some(v) => t.userForeignKey(v)
+        case None =>
+      }
+      key match {
+        case Some(v) => t.key(v)
+        case None =>
+      }
+      secret match {
+        case Some(v) => t.secret(v)
+        case None =>
+      }
+      duration match {
+        case Some(v) => t.duration(v)
+        case None =>
+      }
+      expirationDate match {
+        case Some(v) => t.expirationDate(v)
+        case None =>
+      }
+      insertDate match {
+        case Some(v) => t.insertDate(v)
+        case None =>
+      }
+      callbackURL match {
+        case Some(v) => t.callbackURL(v)
+        case None =>
+      }
+      val token = t.saveMe()
+      token
+    }
+  }
+
+  override def updateToken(id: Long, userId: Long): Boolean = {
+    Token.find(By(Token.id, id)) match {
+      case Full(t) => t.userForeignKey(userId).save()
+      case _       => false
+    }
+  }
+
+  override def gernerateVerifier(id: Long): String = {
+    Token.find(By(Token.id, id)).map(_.gernerateVerifier).getOrElse("")
+  }
+
+  override def deleteToken(id: Long): Boolean = {
+    Token.find(By(Token.id, id)) match {
+      case Full(t) => t.delete_!
+      case _       => false
+    }
+  }
+
+  override def deleteExpiredTokens(currentDate: Date): Boolean = {
+    Token.findAll(By_<(Token.expirationDate, currentDate)).forall(_.delete_!)
+  }
+}
+
 
 class Token extends LongKeyedMapper[Token]{
   def getSingleton = Token
@@ -204,7 +454,7 @@ class Token extends LongKeyedMapper[Token]{
   object id extends MappedLongIndex(this)
   object tokenType extends MappedEnum(this, TokenType)
   object consumerId extends MappedLongForeignKey(this, Consumer)
-  object userForeignKey extends MappedLongForeignKey(this, APIUser)
+  object userForeignKey extends MappedLongForeignKey(this, ResourceUser)
   object key extends MappedString(this,250)
   object secret extends MappedString(this,250)
   object callbackURL extends MappedString(this,250)
@@ -212,7 +462,9 @@ class Token extends LongKeyedMapper[Token]{
   object duration extends MappedLong(this)//expressed in milliseconds
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
-  def user = userForeignKey.obj
+  def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
+  //The the consumer from Token by consumerId
+  def consumer = Consumers.consumers.vend.getConsumerByConsumerId(consumerId.get)
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){

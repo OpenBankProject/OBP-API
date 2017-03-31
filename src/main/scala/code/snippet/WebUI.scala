@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,9 +32,8 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import net.liftweb.common.Loggable
-import net.liftweb.http.S
-
+import net.liftweb.common.{Loggable, Logger}
+import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.{CssSel, Props}
 
 import net.liftweb.util._
@@ -44,6 +43,38 @@ import Helpers._
 
 
 class WebUI extends Loggable{
+
+  @transient protected val log = Logger(this.getClass)
+
+  // Cookie Consent button.
+  // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
+  // If a deployment does make more use of cookies we would need to add a No button and we might want to make use of the
+  // cookie consent kit available at:
+  // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
+  def cookieConsent = {
+    var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
+    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
+    val button  = scala.xml.Unparsed(s"""$buttonString""")
+    "#clickMe" #> button
+  }
+
+  private object firstKnownIPAddress extends SessionVar("")
+  private object updateIPaddressEachtime extends SessionVar("")
+
+  //get the IP Address when the user first open the webpage.
+  if (firstKnownIPAddress.isEmpty)
+    firstKnownIPAddress(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+
+  def concurrentLoginsCookiesCheck = {
+    updateIPaddressEachtime(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+
+    if(!firstKnownIPAddress.isEmpty & !firstKnownIPAddress.get.equals(updateIPaddressEachtime.get)) {
+      log.warn("Warning! The Session ID is used in another IP address, it maybe be stolen or you change the network. Please check it first ! ")
+      S.error("Warning! Another IP address is also using your Session ID. Did you change your network? ")
+    }
+    "#cookie-ipaddress-concurrent-logins" #> ""
+  }
+
   def headerLogoLeft = {
     "img [src]" #> Props.get("webui_header_logo_left_url", "")
   }
@@ -52,12 +83,26 @@ class WebUI extends Loggable{
     "img [src]" #> Props.get("webui_header_logo_right_url", "")
   }
 
+
+  def footer2LogoLeft = {
+    "img [src]" #> Props.get("webui_footer2_logo_left_url", "")
+  }
+
+  def footer2MiddleText: CssSel = {
+    "#footer2-middle-text *" #> scala.xml.Unparsed(Props.get("webui_footer2_middle_text", ""))
+  }
+
+
   def aboutBackground: CssSel = {
     "#main-about [style]" #> ("background-image: url(" + Props.get("webui_index_page_about_section_background_image_url", "") + ");")
   }
 
   def aboutText: CssSel = {
-    ".about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
+    "#main-about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
+  }
+
+  def topText: CssSel = {
+    "#top-text *" #> scala.xml.Unparsed(Props.get("webui_top_text", ""))
   }
 
   def apiExplorerLink: CssSel = {
@@ -65,6 +110,10 @@ class WebUI extends Loggable{
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags")
   }
 
+  // Link to API Manager
+  def apiManagerLink: CssSel = {
+    ".api-manager-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_manager_url", ""))
+  }
 
 
 

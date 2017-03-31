@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -29,19 +29,21 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.token.Tokens
 import code.api.util.APIUtil._
-import code.model.dataAccess.OBPUser
+import code.api.util.{APIUtil, ErrorMessages}
+import code.consumer.Consumers._
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}
+import code.util.Helper.SILENCE_IS_GOLDEN
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
-import net.liftweb.mapper.By
-import net.liftweb.util.{Helpers, Props}
 import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Props}
 
 import scala.compat.Platform
-import code.api.util.{APIUtil, ErrorMessages}
 
 /**
 * This object provides the API calls necessary to
@@ -99,6 +101,9 @@ object DirectLogin extends RestHelper with Loggable {
         if (userId == 0) {
           message = ErrorMessages.InvalidLoginCredentials
           httpCode = 401
+        } else if (userId == AuthUser.usernameLockedStateCode) {
+            message = ErrorMessages.UsernameHasBeenLocked
+            httpCode = 401
         } else {
           val claims = Map("" -> "")
           val (token:String, secret:String) = generateTokenAndSecret(claims)
@@ -177,9 +182,28 @@ object DirectLogin extends RestHelper with Loggable {
     }
 
     def validAccessToken(tokenKey: String) = {
-      Token.find(By(Token.key, tokenKey), By(Token.tokenType, TokenType.Access)) match {
+      Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
         case Full(token) => token.isValid
         case _ => false
+      }
+    }
+
+    /**Validate user supplied Direct Login parameters before they are used further,
+      * guard maximum length and content of strings (a-z, 0-9 etc.) */
+    def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
+      for (key <- parameters.keys) yield {
+        val parameterValue = parameters.get(key).get
+        key match {
+          case "username" =>
+            checkMediumString(parameterValue)
+          case "password" =>
+            checkMediumPassword(parameterValue)
+          case "consumer_key" =>
+            checkMediumAlphaNumeric(parameterValue)
+          case "token" =>
+            checkMediumString(parameterValue)
+          case _ => ErrorMessages.InvalidDirectLoginParameters
+        }
       }
     }
 
@@ -202,8 +226,15 @@ object DirectLogin extends RestHelper with Loggable {
 
     //are all the necessary directLogin parameters present?
     val missingParams = missingDirectLoginParameters(parameters, requestType)
+    //guard maximum length and content of strings (a-z, 0-9 etc.) for parameters
+    val validParams = validDirectLoginParameters(parameters)
+
     if (missingParams.nonEmpty) {
       message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
+      httpCode = 400
+    }
+    else if(SILENCE_IS_GOLDEN != validParams.mkString("")){
+      message = validParams.mkString("")
       httpCode = 400
     }
     else if (
@@ -243,23 +274,27 @@ object DirectLogin extends RestHelper with Loggable {
 
   private def saveAuthorizationToken(directLoginParameters: Map[String, String], tokenKey: String, tokenSecret: String, userId: Long) =
   {
-    import code.model.{Token, TokenType}
-    val token = Token.create
-    token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key, directLoginParameters.getOrElse("consumer_key", ""))) match {
-      case Full(consumer) => token.consumerId(consumer.id)
+    import code.model.TokenType
+    val consumerId = consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
+      case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    token.userForeignKey(userId)
-    token.key(tokenKey)
-    token.secret(tokenSecret)
     val currentTime = Platform.currentTime
     val tokenDuration : Long = Helpers.weeks(4)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
-    tokenSaved
+    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
+                                                    consumerId,
+                                                    Some(userId),
+                                                    Some(tokenKey),
+                                                    Some(tokenSecret),
+                                                    Some(tokenDuration),
+                                                    Some(new Date(currentTime+tokenDuration)),
+                                                    Some(new Date(currentTime)),
+                                                    None
+                                                    )
+    tokenSaved match {
+      case Full(_) => true
+      case _       => false
+    }
   }
 
   def getUser : Box[User] = {
@@ -269,26 +304,29 @@ object DirectLogin extends RestHelper with Loggable {
     }
     val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
 
-    val user = for {
-      u <- getUserFromToken(if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty)
-    } yield u
-
-    if (user.isEmpty )
+    if (httpCode == 400 || httpCode == 401)
       ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
-    else
-      user
-  }
+    else {
+      val user = for {
+        u <- getUserFromToken(if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty)
+      } yield u
 
+      if (user.isEmpty)
+        ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
+      else
+        user
+    }
+  }
 
   private def getUserId(directLoginParameters: Map[String, String]): Box[Long] = {
     val username = directLoginParameters.getOrElse("username", "")
     val password = directLoginParameters.getOrElse("password", "")
 
-    var userId = for {id <- OBPUser.getUserId(username, password)} yield id
+    var userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id
 
     if (userId.isEmpty) {
-      OBPUser.externalUserHelper(username, password)
-      userId = for {id <- OBPUser.getUserId(username, password)} yield id
+      if ( ! AuthUser.externalUserHelper(username, password).isEmpty)
+      	userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id
     }
 
     userId
@@ -297,7 +335,7 @@ object DirectLogin extends RestHelper with Loggable {
 
   def getUserFromToken(tokenID : Box[String]) : Box[User] = {
     logger.info("DirectLogin header correct ")
-    Token.find(By(Token.key, tokenID.getOrElse(""))) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID.getOrElse("")) match {
       case Full(token) => {
         logger.info("access token: " + token + " found")
         val user = token.user
@@ -315,5 +353,22 @@ object DirectLogin extends RestHelper with Loggable {
     }
   }
 
+  def getConsumer: Box[Consumer] = {
+    logger.info("DirectLogin header correct ")
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
 
+    val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
+
+    val consumer: Option[Consumer] = for {
+      tokenId: String <- directLoginParameters.get("token")
+      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
+      consumer: Consumer <- token.consumer
+    } yield {
+      consumer
+    }
+    consumer
+  }
 }

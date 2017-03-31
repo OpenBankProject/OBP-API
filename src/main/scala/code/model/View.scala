@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -34,6 +34,8 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
+
+import code.metadata.counterparties.Counterparties
 import code.util.Helper
 import net.liftweb.common._
 import code.views.Views
@@ -174,6 +176,7 @@ case class UpdateViewJSON(
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
   * @define canInitiateTransaction If true, view can initiate Transaction Request. Note. Owner view may be required. TODO check this.
+  * @define canAddCounterparty If true, view can add counterparty / create counterparty.
 
 
   */
@@ -262,6 +265,7 @@ trait View {
   def canAddPhysicalLocation : Boolean
   def canAddPublicAlias : Boolean
   def canAddPrivateAlias : Boolean
+  def canAddCounterparty : Boolean
   def canDeleteCorporateLocation : Boolean
   def canDeletePhysicalLocation : Boolean
 
@@ -307,7 +311,7 @@ trait View {
               Some(transaction.metadata.deleteComment)
             else
               None
-          val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
+          val addOwnerCommentFunc:Option[String=> Boolean] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
           val tags =
             if(canSeeTags)
               Some(transaction.metadata.tags(viewId))
@@ -404,18 +408,18 @@ trait View {
         else ""
 
       new ModeratedTransaction(
-        UUID = transactionUUID,
-        id = transactionId,
-        bankAccount = moderatedAccount,
-        otherBankAccount = otherBankAccount,
-        metadata = transactionMetadata,
-        transactionType = transactionType,
-        amount = transactionAmount,
-        currency = transactionCurrency,
-        description = transactionDescription,
-        startDate = transactionStartDate,
-        finishDate = transactionFinishDate,
-        balance = transactionBalance
+                                UUID = transactionUUID,
+                                id = transactionId,
+                                bankAccount = moderatedAccount,
+                                otherBankAccount = otherBankAccount,
+                                metadata = transactionMetadata,
+                                transactionType = transactionType,
+                                amount = transactionAmount,
+                                currency = transactionCurrency,
+                                description = transactionDescription,
+                                startDate = transactionStartDate,
+                                finishDate = transactionFinishDate,
+                                balance = transactionBalance
       )
     }
 
@@ -489,24 +493,24 @@ trait View {
       None
   }
 
-  def moderate(otherBankAccount : OtherBankAccount) : Option[ModeratedOtherBankAccount] = {
+  def moderate(otherBankAccount : Counterparty) : Option[ModeratedOtherBankAccount] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
-      val otherAccountId = otherBankAccount.id
+      val otherAccountId = otherBankAccount.counterPartyId
       val otherAccountLabel: AccountName = {
         val realName = otherBankAccount.label
 
         if (usePublicAliasIfOneExists) {
 
-          val publicAlias = otherBankAccount.metadata.getPublicAlias
+          val publicAlias = Counterparties.counterparties.vend.getPublicAlias(otherBankAccount.counterPartyId).getOrElse("Unknown")
 
           if (! publicAlias.isEmpty ) AccountName(publicAlias, PublicAlias)
           else AccountName(realName, NoAlias)
 
         } else if (usePrivateAliasIfOneExists) {
 
-          val privateAlias = otherBankAccount.metadata.getPrivateAlias
+          val privateAlias = Counterparties.counterparties.vend.getPrivateAlias(otherBankAccount.counterPartyId).getOrElse("Unknown")
 
           if (! privateAlias.isEmpty) AccountName(privateAlias, PrivateAlias)
           else AccountName(realName, PrivateAlias)
@@ -531,28 +535,28 @@ trait View {
 
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.swift_bic else None
-      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.iban else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.bankName) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.number) else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.otherBankRoutingAddress else None
+      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.otherAccountRoutingAddress else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){
           //other bank account metadata
-          val moreInfo = moderateField(canSeeMoreInfo,otherBankAccount.metadata.getMoreInfo)
-          val url = moderateField(canSeeUrl, otherBankAccount.metadata.getUrl)
-          val imageUrl = moderateField(canSeeImageUrl, otherBankAccount.metadata.getImageURL)
-          val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, otherBankAccount.metadata.getOpenCorporatesURL)
-          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.getCorporateLocation)
-          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.getPhysicalLocation)
+          val moreInfo = moderateField(canSeeMoreInfo, Counterparties.counterparties.vend.getMoreInfo(otherBankAccount.counterPartyId).getOrElse("Unknown"))
+          val url = moderateField(canSeeUrl, Counterparties.counterparties.vend.getUrl(otherBankAccount.counterPartyId).getOrElse("Unknown"))
+          val imageUrl = moderateField(canSeeImageUrl, Counterparties.counterparties.vend.getImageURL(otherBankAccount.counterPartyId).getOrElse("Unknown"))
+          val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, Counterparties.counterparties.vend.getOpenCorporatesURL(otherBankAccount.counterPartyId).getOrElse("Unknown"))
+          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, Counterparties.counterparties.vend.getCorporateLocation(otherBankAccount.counterPartyId).toOption)
+          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, Counterparties.counterparties.vend.getPhysicalLocation(otherBankAccount.counterPartyId).toOption)
           val addMoreInfo = moderateField(canAddMoreInfo, otherBankAccount.metadata.addMoreInfo)
           val addURL = moderateField(canAddURL, otherBankAccount.metadata.addURL)
           val addImageURL = moderateField(canAddImageURL, otherBankAccount.metadata.addImageURL)
           val addOpenCorporatesUrl = moderateField(canAddOpenCorporatesUrl, otherBankAccount.metadata.addOpenCorporatesURL)
           val addCorporateLocation = moderateField(canAddCorporateLocation, otherBankAccount.metadata.addCorporateLocation)
           val addPhysicalLocation = moderateField(canAddPhysicalLocation, otherBankAccount.metadata.addPhysicalLocation)
-          val publicAlias = moderateField(canSeePublicAlias, otherBankAccount.metadata.getPublicAlias)
-          val privateAlias = moderateField(canSeePrivateAlias, otherBankAccount.metadata.getPrivateAlias)
+          val publicAlias = moderateField(canSeePublicAlias, Counterparties.counterparties.vend.getPublicAlias(otherBankAccount.counterPartyId).getOrElse("Unknown"))
+          val privateAlias = moderateField(canSeePrivateAlias, Counterparties.counterparties.vend.getPrivateAlias(otherBankAccount.counterPartyId).getOrElse("Unknown"))
           val addPublicAlias = moderateField(canAddPublicAlias, otherBankAccount.metadata.addPublicAlias)
           val addPrivateAlias = moderateField(canAddPrivateAlias, otherBankAccount.metadata.addPrivateAlias)
           val deleteCorporateLocation = moderateField(canDeleteCorporateLocation, otherBankAccount.metadata.deleteCorporateLocation)
@@ -612,7 +616,7 @@ trait View {
 
 object View {
   def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewId, account)
+    Views.views.vend.view(viewId, BankAccountUID(account.bankId, account.accountId))
   def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
     Views.views.vend.view(ViewUID(viewId, bankId, accountId))
 

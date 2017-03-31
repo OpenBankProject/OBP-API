@@ -80,11 +80,11 @@ object ImporterAPI extends RestHelper with Loggable {
       JObject(List(
         JField("holder", JString(otherAcc.label)),
         JField("alias", JString("no"))))),
-      JField("number", JString(otherAcc.number)),
-      JField("kind", JString(otherAcc.kind)),
-      JField("bank", JObject(List( JField("IBAN", JString(otherAcc.iban.getOrElse(""))),
+        JField("number", JString(otherAcc.thisAccountId.value)),
+        JField("kind", JString(otherAcc.kind)),
+        JField("bank", JObject(List( JField("IBAN", JString(otherAcc.otherAccountRoutingAddress.getOrElse(""))),
         JField("national_identifier", JString(otherAcc.nationalIdentifier)),
-        JField("name", JString(otherAcc.bankName)))))))
+        JField("name", JString(otherAcc.thisBankId.value)))))))
 
     val detailsJson = JObject(List( JField("type_en", JString(t.transactionType)),
       JField("type", JString(t.transactionType)),
@@ -98,9 +98,9 @@ object ImporterAPI extends RestHelper with Loggable {
 
     val transactionJson = {
       JObject(List(JField("obp_transaction_uuid", JString(t.uuid)),
-        JField("this_account", thisAccJson),
-        JField("other_account", otherAccJson),
-        JField("details", detailsJson)))
+                   JField("this_account", thisAccJson),
+                   JField("other_account", otherAccJson),
+                   JField("details", detailsJson)))
     }
 
     JObject(

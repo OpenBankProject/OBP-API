@@ -3,14 +3,16 @@ package code.snippet
 import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.{Bank, AccountId, BankId, BankAccount}
+import code.model.{AccountId, Bank, BankAccount, BankId}
 import code.util.Helper._
-import net.liftweb.common.{Empty, Full, Failure, Box}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
+
 import scala.xml.NodeSeq
-import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
-import code.model.dataAccess.{OBPUser, BankAccountCreation}
+import net.liftweb.http.js.jquery.JqJsCmds.{Hide, Show}
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.users.Users
 
 object CreateTestAccountForm{
 
@@ -69,15 +71,19 @@ object CreateTestAccountForm{
    * @return a box containing the created account or reason for account creation failure
    */
   def createAccount(accountId : AccountId, bankId : BankId, accountType: String, accountLabel: String, currency : String, initialBalance : String) : Box[BankAccount] =  {
+
+    val currencies = code.fx.fx.exchangeRates.keys.toList
+
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
     else if(initialBalance == "") Failure("Initial balance cannot be empty")
+    else if(!currencies.exists(_ == currency)) Failure("Allowed currencies are: " + currencies.mkString(", "))
     else {
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
-        currentObpUser <- OBPUser.currentUser ?~! "You need to be logged in to create an account"
-        user <- currentObpUser.user.obj ?~ "Server error: could not identify user"
+        currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
+        user <- Users.users.vend.getResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")

@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  * Copyright (C) 2011-2016, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
 *along with this program.  If not, see <http://www.gnu.org/licenses/>.
   **
  *Email: contact@tesobe.com
-*TESOBE / Music Pictures Ltd
+*TESOBE Ltd
 *Osloerstrasse 16/17
 *Berlin 13359, Germany
   **
@@ -32,14 +32,14 @@
 package code.api
 
 
+import code.token.Tokens
 import code.api.util.APIUtil.OAuth
-import code.model.{Consumer, Token}
+import code.consumer.Consumers
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 import scala.collection.JavaConverters._
@@ -121,14 +121,14 @@ trait SendServerRequests {
   }
 
   def getConsumerSecret(consumerKey : String ) : String = {
-    Consumer.find(By(Consumer.key,consumerKey)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(c) => c.secret
       case _ => ""
     }
   }
 
   def getTokenSecret(token : String ) : String = {
-    Token.find(By(Token.key, token)) match {
+    Tokens.tokens.vend.getTokenByKey(token) match {
       case Full(t) => t.secret
       case _ => ""
     }

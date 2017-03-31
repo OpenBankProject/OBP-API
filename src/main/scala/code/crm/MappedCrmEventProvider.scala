@@ -4,14 +4,12 @@ import java.util.Date
 
 import code.crm.CrmEvent._
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
-
 import code.customer.CustomerMessage
 import code.model.BankId
-
 import code.common.{Address, License, Location, Meta}
-import code.model.dataAccess.APIUser
-
-import code.util.{MappedUUID, DefaultStringField}
+import code.model.dataAccess.ResourceUser
+import code.users.Users
+import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import org.joda.time.Hours
@@ -29,7 +27,7 @@ object MappedCrmEventProvider extends CrmEventProvider {
   }
 
   // Get events at a bank for one user
-  override protected def getEventsFromProvider(bankId: BankId, user: APIUser): Option[List[CrmEvent]] =
+  override protected def getEventsFromProvider(bankId: BankId, user: ResourceUser): Option[List[CrmEvent]] =
     Some(MappedCrmEvent.findAll(
       By(MappedCrmEvent.mBankId, bankId.toString),
       By(MappedCrmEvent.mUserId, user)
@@ -51,7 +49,7 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def getSingleton = MappedCrmEvent
 
   object mBankId extends DefaultStringField(this) // Should be a foreign key
-  object mUserId extends MappedLongForeignKey(this, APIUser) // The customer
+  object mUserId extends MappedLongForeignKey(this, ResourceUser) // The customer
   object mCrmEventId extends  MappedUUID(this)
   object mCategory extends DefaultStringField(this)
   object mDetail extends DefaultStringField(this)
@@ -70,7 +68,7 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def scheduledDate: Date = mScheduledDate.get
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
-  override def user: APIUser = mUserId.obj.get
+  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).get
   override def customerName : String = mCustomerName.get
   override def customerNumber : String = mCustomerNumber.get
 }

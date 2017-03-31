@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -48,20 +48,20 @@ object Moderation {
 }
 
 class ModeratedTransaction(
-  val UUID : String,
-  val id: TransactionId,
-  val bankAccount: Moderated[ModeratedBankAccount],
-  val otherBankAccount: Moderated[ModeratedOtherBankAccount],
-  val metadata : Moderated[ModeratedTransactionMetadata],
-  val transactionType: Moderated[String],
-  val amount: Moderated[BigDecimal],
-  val currency: Moderated[String],
-  val description: Moderated[String],
-  val startDate: Moderated[Date],
-  val finishDate: Moderated[Date],
-  //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
-  //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
-  val balance : String
+                            val UUID: String,
+                            val id: TransactionId,
+                            val bankAccount: Moderated[ModeratedBankAccount],
+                            val otherBankAccount: Moderated[ModeratedOtherBankAccount],
+                            val metadata : Moderated[ModeratedTransactionMetadata],
+                            val transactionType: Moderated[String],
+                            val amount: Moderated[BigDecimal],
+                            val currency: Moderated[String],
+                            val description: Moderated[String],
+                            val startDate: Moderated[Date],
+                            val finishDate: Moderated[Date],
+                            //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
+                            //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
+                            val balance : String
 ) {
 
   def dateOption2JString(date: Option[Date]) : JString = {
@@ -93,16 +93,16 @@ class ModeratedTransaction(
 
 class ModeratedTransactionMetadata(
   val ownerComment : Moderated[String],
-  val addOwnerComment : Moderated[(String => Unit)],
+  val addOwnerComment : Moderated[(String => Boolean)],
   val comments : Moderated[List[Comment]],
   val addComment: Moderated[(UserId, ViewId, String, Date) => Box[Comment]],
-  private val deleteComment: Moderated[(String) => Box[Unit]],
+  private val deleteComment: Moderated[(String) => Box[Boolean]],
   val tags : Moderated[List[TransactionTag]],
   val addTag : Moderated[(UserId, ViewId, String, Date) => Box[TransactionTag]],
-  private val deleteTag : Moderated[(String) => Box[Unit]],
+  private val deleteTag : Moderated[(String) => Box[Boolean]],
   val images : Moderated[List[TransactionImage]],
-  val addImage : Moderated[(UserId, ViewId, String, Date, URL) => Box[TransactionImage]],
-  private val deleteImage : Moderated[String => Unit],
+  val addImage : Moderated[(UserId, ViewId, String, Date, String) => Box[TransactionImage]],
+  private val deleteImage : Moderated[String => Box[Boolean]],
   val whereTag : Moderated[Option[GeoTag]],
   val addWhereTag : Moderated[(UserId, ViewId, Date, Double, Double) => Boolean],
   private val deleteWhereTag : Moderated[(ViewId) => Boolean]

@@ -8,7 +8,37 @@
                 The application <span id="applicationName"> web app </span> is
                 asking for access to your account data.
                 <!-- LOGGED OUT -->
-                <div class="lift:embed?what=_login_form"></div>
+                <div data-lift="Login.customiseLogin">
+                    <link href="/media/css/responsive_login.css" rel="stylesheet" property="stylesheet" type="text/css" />
+                    <form class="login" action="/user_mgt/login" method="post">
+                        <div data-lift="Login.openIdConnectScripts" class="openid_scripts" id="openid_scripts"></div>
+                        <div class="login_special_instructions" id="login_special_instructions">Special Instructions</div>
+                        <div class="field username">
+                            <input class="username" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
+                        </div>
+                        <div class="field password">
+                            <input class="password" type="password" placeholder="Password"  name="password" tabindex=2 autocomplete="off"/>
+                        </div>
+                        <div id="recoverPasswordLink" class="field password" style="height: 1em;">
+                            <a href="/user_mgt/lost_password" class="forgot" tabindex=3>Forgot your password?</a>
+                        </div>
+                        <div class="field buttons">
+                            <div class="button button-field">
+                                <input class="submit" type="submit" value="Login" tabindex=4 name="submitButton"/>
+                            </div>
+                            <div id="SignUpLink" class="button button-field" style="margin-left: auto;">
+                                <a href="/user_mgt/sign_up" class="signup" tabindex=6>Register</a>
+                            </div>
+                        </div>
+                    </form>
+                    <div data-lift="Login.openIdConnectButton">
+                        <div class="field buttons">
+                            <div class="button button-field">
+                                <div class="openid_button" id="openid_button"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="verifierBloc">

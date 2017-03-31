@@ -2,26 +2,38 @@ package code.kycstatuses
 
 import java.util.Date
 
-import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
-import code.util.{DefaultStringField}
-import net.liftweb.mapper._
+import code.model.dataAccess.ResourceUser
+import code.util.DefaultStringField
+import net.liftweb.common.{Box, Full}
+import net.liftweb.mapper.{By, _}
 
 object MappedKycStatusesProvider extends KycStatusProvider {
 
-  override def getKycStatuses(customerNumber: String): List[MappedKycStatus] = {
+  override def getKycStatuses(customerId: String): List[MappedKycStatus] = {
     MappedKycStatus.findAll(
-      By(MappedKycStatus.mCustomerNumber, customerNumber),
+      By(MappedKycStatus.mCustomerId, customerId),
       OrderBy(MappedKycStatus.updatedAt, Descending))
   }
 
 
-  override def addKycStatus(customerNumber: String, ok: Boolean, date: Date): Boolean = {
-    MappedKycStatus.create
-      .mCustomerNumber(customerNumber)
-      .mOk(ok)
-      .mDate(date)
-      .save()
+  override def addKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date): Box[KycStatus] = {
+    val kyc_status = MappedKycStatus.find(By(MappedKycStatus.mBankId, bankId), By(MappedKycStatus.mCustomerId, customerId)) match {
+      case Full(status) => status
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mCustomerNumber(customerNumber)
+        .mOk(ok)
+        .mDate(date)
+        .saveMe()
+      case _ => MappedKycStatus.create
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mCustomerNumber(customerNumber)
+        .mOk(ok)
+        .mDate(date)
+        .saveMe()
+    }
+    Full(kyc_status)
   }
 }
 
@@ -30,15 +42,17 @@ with LongKeyedMapper[MappedKycStatus] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedKycStatus
 
-  object user extends MappedLongForeignKey(this, APIUser)
-  object bank extends DefaultStringField(this)
+  object user extends MappedLongForeignKey(this, ResourceUser)
+  object mBankId extends MappedString(this, 255)
+  object mCustomerId extends MappedString(this, 255)
 
   object mCustomerNumber extends DefaultStringField(this)
   object mOk extends MappedBoolean(this)
   object mDate extends MappedDateTime(this)
 
 
-
+  override def bankId: String = mBankId.get
+  override def customerId: String = mCustomerId.get
   override def customerNumber: String = mCustomerNumber.get
   override def ok: Boolean = mOk.get
   override def date: Date = mDate.get
@@ -46,5 +60,5 @@ with LongKeyedMapper[MappedKycStatus] with IdPK with CreatedUpdated {
 }
 
 object MappedKycStatus extends MappedKycStatus with LongKeyedMetaMapper[MappedKycStatus] {
-  override def dbIndexes = UniqueIndex(mCustomerNumber) :: super.dbIndexes
+  override def dbIndexes = super.dbIndexes
 }

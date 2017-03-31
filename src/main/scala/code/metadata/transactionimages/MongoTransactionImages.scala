@@ -20,7 +20,7 @@ private object MongoTransactionImages extends TransactionImages with Loggable {
   }
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
+  (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
     OBPTransactionImage.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
@@ -32,13 +32,15 @@ private object MongoTransactionImages extends TransactionImages with Loggable {
       url(imageURL.toString).saveTheRecord()
   }
   
-  def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Unit] = {
+  def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] = {
     //use delete with find query to avoid concurrency issues
     OBPTransactionImage.delete(OBPTransactionImage.getFindQuery(bankId, accountId, transactionId, imageId))
 
     //we don't have any useful information here so just assume it worked
-    Full()
+    Full(true)
   }
+
+  def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = ???
   
 }
 
@@ -61,7 +63,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
 
   def id_ = id.is.toString
   def datePosted = date.get
-  def postedBy = User.findByApiId(userId.get)
+  def postedBy = User.findByResourceUserId(userId.get)
   def viewId = ViewId(forView.get)
   def description = imageComment.get
   def imageUrl = {

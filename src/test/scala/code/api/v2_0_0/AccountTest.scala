@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AmountOfMoneyJSON => AmountOfMoneyJSON121}
 import code.model.BankId
 import code.model.dataAccess.MappedBankAccount
@@ -37,7 +38,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -85,7 +86,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(authuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -126,6 +127,27 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
         }
       And("The new created account has to be private")
       isPublicAll.forall(_ == false) should equal(true)
+    }
+
+    scenario("We create an account, but with wrong format of account_id ") {
+      Given("The bank")
+      val testBank = mockBankId
+      val newAccountIdWithSpaces = "account%20with%20spaces"
+
+      Then("We create an private account at the bank")
+      val accountPutJSON = CreateAccountJSON(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+
+      And("We should get a 400")
+      responsePut.code should equal(400)
+      And("We should have the error massage")
+      val error: String = (responsePut.body \ "error") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
+      error should equal(ErrorMessages.InvalidAccountIdFormat)
     }
   }
 

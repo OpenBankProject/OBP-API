@@ -2,33 +2,116 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
-import code.fx.fx
+import code.api.util.ErrorMessages
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
+import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.MappedComment
-import code.metadata.counterparties.Counterparties
-import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.MappedTag
-import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
-import code.model._
+import code.metadata.comments.Comments
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.narrative.Narrative
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 import code.model.dataAccess._
-import code.tesobe.CashTransaction
+import code.model.{TransactionRequestType, _}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
 import code.transactionrequests.TransactionRequests._
+import code.transactionrequests._
 import code.util.Helper
+import code.util.Helper._
+import code.views.Views
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Failure, Full, Loggable}
-import net.liftweb.mapper._
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.common._
+import net.liftweb.mapper.{By, _}
+import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
-import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
+import scala.math.BigInt
 
 object LocalMappedConnector extends Connector with Loggable {
 
   type AccountType = MappedBankAccount
+  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
+
+  // Gets current challenge level for transaction request
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+    val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
+    val threshold = BigDecimal(Props.get(propertyName, "1000"))
+    logger.info(s"threshold is $threshold")
+
+    // TODO constrain this to supported currencies.
+    val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    logger.info(s"thresholdCurrency is $thresholdCurrency")
+
+    val rate = fx.exchangeRate (thresholdCurrency, currency)
+    val convertedThreshold = fx.convert(threshold, rate)
+    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    AmountOfMoney(currency, convertedThreshold.toString())
+  }
+
+  /**
+    * Steps To Create, Store and Send Challenge
+    * 1. Generate a random challenge
+    * 2. Generate a long random salt
+    * 3. Prepend the salt to the challenge and hash it with a standard password hashing function like Argon2, bcrypt, scrypt, or PBKDF2.
+    * 4. Save both the salt and the hash in the user's database record.
+    * 5. Send the challenge over an separate communication channel.
+    */
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = {
+    val challengeId = UUID.randomUUID().toString
+    val challenge = StringHelpers.randomString(6) // Random string. For instance: EONXOA
+    val salt = BCrypt.gensalt()
+    val hash = BCrypt.hashpw(challenge, salt).substring(0,44)
+    // TODO Extend database model in order to store users salt and hash
+    // Store salt and hash and bind to challengeId
+    // TODO Send challenge to the user over an separate communication channel
+    //Return id of challenge
+    Full(challengeId)
+  }
+  /**
+    * To Validate A Challenge Answer
+    * 1. Retrieve the user's salt and hash from the database.
+    * 2. Prepend the salt to the given password and hash it using the same hash function.
+    * 3. Compare the hash of the given answer with the hash from the database. If they match, the answer is correct. Otherwise, the answer is incorrect.
+    */
+  // TODO Extend database model in order to get users salt and hash it
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = {
+    for {
+      nonEmpty <- booleanToBox(hashOfSuppliedAnswer.nonEmpty) ?~ "Need a non-empty answer"
+      answerToNumber <- tryo(BigInt(hashOfSuppliedAnswer)) ?~! "Need a numeric TAN"
+      positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
+    } yield true
+  }
+
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
+    val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
+    logger.info(s"transactionRequests_charge_level is $chargeLevel")
+
+    // TODO constrain this to supported currencies.
+    //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
+    //    val convertedThreshold = fx.convert(chargeLevel, rate)
+    //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+
+    Full(AmountOfMoney(currency, chargeLevel.toString))
+  }
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+  def updateUserAccountViews(user: ResourceUser): Unit = ???
 
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] =
@@ -41,17 +124,17 @@ object LocalMappedConnector extends Connector with Loggable {
   override def getBanks: List[Bank] =
     MappedBank.findAll
 
-  override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
-    updateAccountTransactions(bankId, accountID)
+    updateAccountTransactions(bankId, accountId)
 
     MappedTransaction.find(
       By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountID.value),
+      By(MappedTransaction.account, accountId.value),
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
   }
 
-  override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
@@ -66,13 +149,13 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
-    updateAccountTransactions(bankId, accountID)
+    updateAccountTransactions(bankId, accountId)
 
-    for (account <- getBankAccount(bankId, accountID))
+    for (account <- getBankAccount(bankId, accountId))
       yield mappedTransactions.flatMap(_.toTransaction(account))
   }
 
@@ -106,69 +189,200 @@ object LocalMappedConnector extends Connector with Loggable {
     }
   }
 
-  // Question: Why is this called getBankAccountType? Why not getBankAccount? TODO rename
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value))
   }
 
-  //gets the users who are the legal owners/holders of the account
-  override def getAccountHolders(bankId: BankId, accountID: AccountId): Set[User] =
-    MappedAccountHolder.findAll(
-      By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new MappedBankAccount())
+  }
+
+  /**
+    * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
+    * details in createTransactionRequest - V210 ,case "COUNTERPARTY"
+    *
+    */
+  def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
+
+    val mappedBankAccount = getBankAccount(bankId, accountId) match {
+      case Full(f) =>
+        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+      case _ =>
+        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+    }
+
+    Full(mappedBankAccount)
+  }
 
 
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    for { //find a transaction with this counterparty
-      t <- MappedTransaction.find(
-        By(MappedTransaction.bank, thisAccountBankId.value),
-        By(MappedTransaction.account, thisAccountId.value),
-        By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
-        By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
+  // Get all counterparties related to an account
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+  Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+
+  // Get one counterparty related to a bank account
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
+  // Get the metadata and pass it to getOtherBankAccount to construct the other account.
+  Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+
+
+  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+    for {
+      t <- Counterparties.counterparties.vend.getMetadata(thisBankId, thisAccountId, couterpartyId)
     } yield {
-      new OtherBankAccount(
+      new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = metadata.metadataId,
-        label = metadata.getHolder,
-        nationalIdentifier = t.counterpartyNationalId.get,
-        swift_bic = None,
-        iban = t.getCounterpartyIban(),
-        number = metadata.getAccountNumber,
-        bankName = t.counterpartyBankName.get,
-        kind = t.counterpartyAccountKind.get,
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata)
+        counterPartyId = t.metadataId,
+        label = t.getHolder,
+        nationalIdentifier = "",
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = None,
+        thisAccountId = AccountId(t.getAccountNumber),
+        thisBankId = BankId(""),
+        kind = "",
+        otherBankId = thisBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(t),
+        name = "",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
       )
     }
   }
 
-  // Get all counterparties related to an account
-  override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[OtherBankAccount] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
+    Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
+  }
 
-  // Get one counterparty related to a bank account
-  override def getOtherBankAccount(bankId: BankId, accountID: AccountId, otherAccountID: String): Box[OtherBankAccount] =
-    // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, otherAccountID).flatMap(getOtherBankAccount(bankId, accountID, _))
-
-  override def getPhysicalCards(user: User): Set[PhysicalCard] =
-    Set.empty
-
-  override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
+    Counterparties.counterparties.vend.getCounterpartyByIban(iban)
+  }
 
 
-  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal, description : String): Box[TransactionId] = {
+  override def getPhysicalCards(user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
 
-    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
+  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
 
+  def AddPhysicalCard(bankCardNumber: String,
+                              nameOnCard: String,
+                              issueNumber: String,
+                              serialNumber: String,
+                              validFrom: Date,
+                              expires: Date,
+                              enabled: Boolean,
+                              cancelled: Boolean,
+                              onHotList: Boolean,
+                              technology: String,
+                              networks: List[String],
+                              allows: List[String],
+                              accountId: String,
+                              bankId: String,
+                              replacement: Option[CardReplacementInfo],
+                              pinResets: List[PinResetInfo],
+                              collected: Option[CardCollectionInfo],
+                              posted: Option[CardPostedInfo]
+                             ) : Box[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+                                                                              bankCardNumber,
+                                                                              nameOnCard,
+                                                                              issueNumber,
+                                                                              serialNumber,
+                                                                              validFrom,
+                                                                              expires,
+                                                                              enabled,
+                                                                              cancelled,
+                                                                              onHotList,
+                                                                              technology,
+                                                                              networks,
+                                                                              allows,
+                                                                              accountId,
+                                                                              bankId: String,
+                                                                              replacement,
+                                                                              pinResets,
+                                                                              collected,
+                                                                              posted
+                                                                            )
+    for (l <- list) yield
+    new PhysicalCard(
+      bankCardNumber = l.mBankCardNumber,
+      nameOnCard = l.mNameOnCard,
+      issueNumber = l.mIssueNumber,
+      serialNumber = l.mSerialNumber,
+      validFrom = l.validFrom,
+      expires = l.expires,
+      enabled = l.enabled,
+      cancelled = l.cancelled,
+      onHotList = l.onHotList,
+      technology = "",
+      networks = List(),
+      allows = l.allows,
+      account = l.account,
+      replacement = l.replacement,
+      pinResets = l.pinResets,
+      collected = l.collected,
+      posted = l.posted
+    )
+  }
 
+  /**
+    * Perform a payment (in the sandbox) Store one or more transactions
+   */
+  override def makePaymentImpl(fromAccount: MappedBankAccount,
+                               toAccount: MappedBankAccount,
+                               toCounterparty: CounterpartyTrait,
+                               amount: BigDecimal,
+                               description: String,
+                               transactionRequestType: TransactionRequestType,
+                               chargePolicy: String): Box[TransactionId] = {
 
+    // Note: These are guards. Values are calculated in makePaymentv200
     val rate = tryo {
       fx.exchangeRate(fromAccount.currency, toAccount.currency)
     } ?~! {
@@ -176,49 +390,67 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     // Is it better to pass these into this function ?
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = fx.convert(amt, rate.get)
+    val fromTransAmt = -amount//from fromAccount balance should decrease
+    val toTransAmt = fx.convert(amount, rate.get)
 
     // From
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
 
     // To
-    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toTransAmt, description)
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
 
     // Return the sent transaction id
     sentTransactionId
   }
 
   /**
-   * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
-   * of the saved transaction.
-   */
-  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal, description : String) : Box[TransactionId] = {
-
+    * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
+    * Returns the id of the saved transactionId.<br>
+    */
+  private def saveTransaction(fromAccount: MappedBankAccount,
+                              toAccount: MappedBankAccount,
+                              toCounterparty: CounterpartyTrait,
+                              amount: BigDecimal,
+                              description: String,
+                              transactionRequestType: TransactionRequestType,
+                              chargePolicy: String): Box[TransactionId] = {
+    //Note: read the latest data from database
+    //For FREE_FORM, we need make sure always use the latest data
+    val fromAccountUpdate: Box[MappedBankAccount] = getBankAccount(fromAccount.bankId, fromAccount.accountId)
     val transactionTime = now
-    val currency = account.currency
+    val currency = fromAccount.currency
 
 
-    //update the balance of the account for which a transaction is being created
-    val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
-    account.accountBalance(newAccountBalance).save()
+    //update the balance of the fromAccount for which a transaction is being created
+    val newAccountBalance: Long = fromAccountUpdate.get.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.get.currency)
+    fromAccountUpdate.get.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType("sandbox-payment")
-      .amount(Helper.convertToSmallestCurrencyUnits(amt, currency))
+      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
+      .bank(fromAccountUpdate.get.bankId.value)
+      .account(fromAccountUpdate.get.accountId.value)
+      .transactionType(transactionRequestType.value)
+      .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
       .currency(currency)
       .tStartDate(transactionTime)
       .tFinishDate(transactionTime)
       .description(description)
-      .counterpartyAccountHolder(counterparty.accountHolder)
-      .counterpartyAccountNumber(counterparty.number)
-      .counterpartyAccountKind(counterparty.accountType)
-      .counterpartyBankName(counterparty.bankName)
-      .counterpartyIban(counterparty.iban.getOrElse(""))
-      .counterpartyNationalId(counterparty.nationalIdentifier).saveMe
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
+      .counterpartyAccountHolder(toAccount.accountHolder)
+      .counterpartyAccountNumber(toAccount.number)
+      .counterpartyAccountKind(toAccount.accountType)
+      .counterpartyBankName(toAccount.bankName)
+      .counterpartyIban(toAccount.iban.getOrElse(""))
+      .counterpartyNationalId(toAccount.nationalIdentifier)
+       //New data: real counterparty (toCounterparty: CounterpartyTrait)
+      .CPCounterPartyId(toCounterparty.counterpartyId)
+      .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
+      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
+      .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .chargePolicy(chargePolicy)
+      .saveMe
 
     Full(mappedTransaction.theTransactionId)
   }
@@ -226,95 +458,71 @@ object LocalMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
+  override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
 
-  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                            account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
-      .mBody_Value_Currency(body.value.currency)
-      .mBody_Value_Amount(body.value.amount)
-      .mBody_Description(body.description)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now)
-      .mCharge_Summary(charge.summary)
-      .mCharge_Amount(charge.value.amount)
-      .mCharge_Currency(charge.value.currency)
-      .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
+                                            transactionRequestType: TransactionRequestType,
+                                            account : BankAccount,
+                                            counterparty : BankAccount,
+                                            body: TransactionRequestBody,
+                                            status: String,
+                                            charge: TransactionRequestCharge) : Box[TransactionRequest] = {
+    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl(transactionRequestId,
+      transactionRequestType,
+      account,
+      counterparty,
+      body,
+      status,
+      charge)
   }
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                               account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
-    val mappedTransactionRequest = MappedTransactionRequest210.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mDetails(details)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now)
-      .mCharge_Summary(charge.summary)
-      .mCharge_Amount(charge.value.amount)
-      .mCharge_Currency(charge.value.currency)
-      .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                               transactionRequestType: TransactionRequestType,
+                                               fromAccount: BankAccount,
+                                               toAccount: BankAccount,
+                                               toCounterparty: CounterpartyTrait,
+                                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                               details: String,
+                                               status: String,
+                                               charge: TransactionRequestCharge,
+                                               chargePolicy: String): Box[TransactionRequest] = {
+
+    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(transactionRequestId,
+      transactionRequestType,
+      fromAccount,
+      toAccount,
+      toCounterparty,
+      transactionRequestCommonBody,
+      details,
+      status,
+      charge,
+      chargePolicy)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-        case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-        case _ => Failure("Couldn't find transaction request ${transactionRequestId}")
-      }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full{
-        tr.mChallenge_Id(challenge.id)
-        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-        tr.mChallenge_ChallengeType(challenge.challenge_type).save
-      }
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set status")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
   }
 
 
   override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
-                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest))
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
-    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
-
-    Full(transactionRequests.flatMap(_.toTransactionRequest210))
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
-    val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    transactionRequest.flatMap(_.toTransactionRequest)
+    // TODO need to pass a status variable so we can return say only INITIATED
+    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
 
@@ -364,34 +572,19 @@ object LocalMappedConnector extends Connector with Loggable {
   //remove an account and associated transactions
   override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
     //delete comments on transactions of this account
-    val commentsDeleted = MappedComment.bulkDelete_!!(
-      By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountId.value)
-    )
+    val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
     //delete narratives on transactions of this account
-    val narrativesDeleted = MappedNarrative.bulkDelete_!!(
-      By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountId.value)
-    )
+    val narrativesDeleted = Narrative.narrative.vend.bulkDeleteNarratives(bankId, accountId)
 
     //delete narratives on transactions of this account
-    val tagsDeleted = MappedTag.bulkDelete_!!(
-      By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountId.value)
-    )
+    val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)
 
     //delete WhereTags on transactions of this account
-    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
-      By(MappedWhereTag.bank, bankId.value),
-      By(MappedWhereTag.account, accountId.value)
-    )
+    val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
-    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
-      By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
-    )
+    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(
@@ -399,23 +592,11 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedTransaction.account, accountId.value)
     )
 
-    //remove view privileges (get views first)
-    val views = ViewImpl.findAll(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
-    )
-
-    //loop over them and delete
-    var privilegesDeleted = true
-    views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
-    })
+    //remove view privileges
+    val privilegesDeleted = Views.views.vend.removeAllPermissions(bankId, accountId)
 
     //delete views of account
-    val viewsDeleted = ViewImpl.bulkDelete_!!(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
-    )
+    val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
     val account = MappedBankAccount.find(
@@ -447,10 +628,6 @@ object LocalMappedConnector extends Connector with Loggable {
 
   }
 
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
-  }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
@@ -611,6 +788,131 @@ object LocalMappedConnector extends Connector with Loggable {
       }
 
     result.getOrElse(false)
+  }
+
+  override def getProducts(bankId: BankId): Box[List[Product]] = {
+    Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
+  }
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+    MappedProduct.find(
+      By(MappedProduct.mBankId, bankId.value),
+      By(MappedProduct.mCode, productCode.value)
+    )
+  }
+
+  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = {
+
+    //check the branch existence and update or insert data
+    getBranch(BankId(branch.bank_id), BranchId(branch.id)) match {
+      case Full(mappedBranch) =>
+        tryo {
+          mappedBranch
+            .mBranchId(branch.id)
+            .mBankId(branch.bank_id)
+            .mName(branch.name)
+            .mLine1(branch.address.line_1)
+            .mLine2(branch.address.line_2)
+            .mLine3(branch.address.line_3)
+            .mCity(branch.address.city)
+            .mCounty(branch.address.country)
+            .mState(branch.address.state)
+            .mPostCode(branch.address.postcode)
+            .mlocationLatitude(branch.location.latitude)
+            .mlocationLongitude(branch.location.longitude)
+            .mLicenseId(branch.meta.license.id)
+            .mLicenseName(branch.meta.license.name)
+            .mLobbyHours(branch.lobby.hours)
+            .mDriveUpHours(branch.driveUp.hours)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchUpdateError
+      case _ =>
+        tryo {
+          MappedBranch.create
+            .mBranchId(branch.id)
+            .mBankId(branch.bank_id)
+            .mName(branch.name)
+            .mLine1(branch.address.line_1)
+            .mLine2(branch.address.line_2)
+            .mLine3(branch.address.line_3)
+            .mCity(branch.address.city)
+            .mCounty(branch.address.country)
+            .mState(branch.address.state)
+            .mPostCode(branch.address.postcode)
+            .mlocationLatitude(branch.location.latitude)
+            .mlocationLongitude(branch.location.longitude)
+            .mLicenseId(branch.meta.license.id)
+            .mLicenseName(branch.meta.license.name)
+            .mLobbyHours(branch.lobby.hours)
+            .mDriveUpHours(branch.driveUp.hours)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchInsertError
+    }
+  }
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
+    MappedBranch.find(
+      By(MappedBranch.mBankId, bankId.value),
+      By(MappedBranch.mBranchId, branchId.value)
+    )
+  }
+
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, consumerId))
+  }
+
+  /**
+    * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
+    * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
+    */
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+    /**
+      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
+      */
+    val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
+    )
+    /**
+      * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
+      */
+    val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
+    )
+
+    // if the result of normal order is empty, then return the reverse order result
+    fxRateFromTo.orElse(fxRateToFrom)
+  }
+
+  /**
+    * get the TransactionRequestTypeCharge from the TransactionRequestTypeCharge table
+    * In Mapped, we will ignore accountId, viewId for now.
+    */
+  override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
+    val transactionRequestTypeChargeMapper = MappedTransactionRequestTypeCharge.find(
+      By(MappedTransactionRequestTypeCharge.mBankId, bankId.value),
+      By(MappedTransactionRequestTypeCharge.mTransactionRequestTypeId, transactionRequestType.value))
+
+    val transactionRequestTypeCharge = transactionRequestTypeChargeMapper match {
+      case Full(transactionRequestType) => TransactionRequestTypeChargeMock(
+        transactionRequestType.transactionRequestTypeId,
+        transactionRequestType.bankId,
+        transactionRequestType.chargeCurrency,
+        transactionRequestType.chargeAmount,
+        transactionRequestType.chargeSummary
+      )
+      //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
+      case _ =>
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
+        TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
+    }
+
+    Full(transactionRequestTypeCharge)
+  }
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
+    Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
 
 }

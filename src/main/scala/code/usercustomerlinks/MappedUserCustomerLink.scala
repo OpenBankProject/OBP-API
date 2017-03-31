@@ -1,13 +1,51 @@
 package code.usercustomerlinks
 
 import java.util.Date
-import code.util.{MappedUUID, DefaultStringField}
-import net.liftweb.common.Box
+import code.util.{DefaultStringField, MappedUUID}
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 /**
  * Created by markom on 5/30/16.
  */
+
+object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
+  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+
+    val createUserCustomerLink = MappedUserCustomerLink.create
+      .mUserId(userId)
+      .mCustomerId(customerId)
+      .mDateInserted(new Date())
+      .mIsActive(isActive)
+      .saveMe()
+
+    Some(createUserCustomerLink)
+  }
+
+  override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = {
+    MappedUserCustomerLink.find(
+      By(MappedUserCustomerLink.mCustomerId, customerId))
+  }
+
+  override def getUserCustomerLinkByUserId(userId: String): List[UserCustomerLink] = {
+    MappedUserCustomerLink.findAll(
+      By(MappedUserCustomerLink.mUserId, userId)).sortWith(_.id < _.id)
+  }
+
+  override def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
+    MappedUserCustomerLink.find(
+      By(MappedUserCustomerLink.mUserId, userId),
+      By(MappedUserCustomerLink.mCustomerId, customerId))
+  }
+
+  override def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
+    Full(MappedUserCustomerLink.findAll())
+  }
+
+  override def bulkDeleteUserCustomerLinks(): Boolean = {
+    MappedUserCustomerLink.bulkDelete_!!()
+  }
+}
 
 class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[MappedUserCustomerLink] with IdPK with CreatedUpdated {
 
@@ -26,39 +64,6 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
   override def userId: String = mUserId.get
   override def dateInserted: Date = mDateInserted.get
   override def isActive: Boolean = mIsActive
-
-  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
-
-    val createUserCustomerLink = MappedUserCustomerLink.create
-      .mUserId(userId)
-      .mCustomerId(customerId)
-      .mDateInserted(new Date())
-      .mIsActive(isActive)
-      .saveMe()
-
-    Some(createUserCustomerLink)
-  }
-
-  override def getUserCustomerLink(customerId: String): Box[UserCustomerLink] = {
-    MappedUserCustomerLink.find(
-      By(MappedUserCustomerLink.mCustomerId, customerId))
-  }
-
-  override def getUserCustomerLinkByUserId(userId: String): List[UserCustomerLink] = {
-    MappedUserCustomerLink.findAll(
-      By(MappedUserCustomerLink.mUserId, userId))
-  }
-
-  override def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
-    MappedUserCustomerLink.find(
-      By(MappedUserCustomerLink.mUserId, userId),
-      By(MappedUserCustomerLink.mCustomerId, customerId))
-  }
-
-  override def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
-    Some(MappedUserCustomerLink.findAll())
-  }
-
 }
 
 object MappedUserCustomerLink extends MappedUserCustomerLink with LongKeyedMetaMapper[MappedUserCustomerLink] {

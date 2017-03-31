@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -31,19 +31,20 @@ Berlin 13359, Germany
  */
 package code.api.v1_1
 
+import java.net.URL
+import java.util.Date
+
+import _root_.net.liftweb.util.Helpers._
+import code.token.Tokens
+import code.api.OAuthHandshake._
+import code.metrics.APIMetrics
+import code.model._
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest._
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
-import net.liftweb.common.{Failure,Full,Empty, Box, Loggable}
-import _root_.net.liftweb.mapper._
-import _root_.net.liftweb.util.Helpers._
-import code.model._
-import java.util.Date
-import code.api.OAuthHandshake._
-import java.net.URL
-import code.metrics.{APIMetrics}
+import net.liftweb.json.JsonDSL._
 
 case class TagJSON(
   value : String,
@@ -110,12 +111,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
   if(httpCode==200)
   {
-    import code.model.Token
     logger.info("OAuth header correct ")
-    Token.find(By(Token.key, tokenID.get)) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
       case Full(token) => {
         logger.info("access token: "+ token + " found")
-        val user = User.findByApiId(token.userForeignKey.get)
+        val user = User.findByResourceUserId(token.userForeignKey.get)
         //just a log
         user match {
           case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")
@@ -692,7 +692,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
                 addComment.map(
                   func =>{
-                    func(user.apiId, viewId, text, datePosted)
+                    func(user.resourceUserId, viewId, text, datePosted)
                     Full(text)
                   }
                 )
@@ -789,7 +789,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
                   addTag.map(
                     func =>{
-                      Full(func(user.apiId, viewId, tag, datePosted))
+                      Full(func(user.resourceUserId, viewId, tag, datePosted))
                     }
                   )
                 }
@@ -881,7 +881,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
             json.extract[ImageJSON]
           } match {
             case Full(imageJson) => {
-              def addImage(user : User, viewId : ViewId, label: String, url : URL) : Box[String] = {
+              def addImage(user : User, viewId : ViewId, label: String, url : String) : Box[String] = {
                 val addImage = for {
                   metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,Full(user))
                   addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding comment"}
@@ -890,7 +890,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addImage.flatMap(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, label, datePosted, url).map(_.id_)
+                    func(user.resourceUserId, viewId, label, datePosted, url).map(_.id_)
                   }
                 )
               }
@@ -899,7 +899,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
                   view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-                  postedImageId <- addImage(user, viewId, imageJson.label, url)
+                  postedImageId <- addImage(user, viewId, imageJson.label, url.toString)
                 } yield postedImageId
 
               imageId match {
@@ -972,7 +972,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addWhereTag.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, viewId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1024,7 +1024,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addWhereTag.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, viewId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1589,7 +1589,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1648,7 +1648,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1707,7 +1707,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1766,7 +1766,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, datePosted, longitude, latitude)
+                    func(user.resourceUserId, datePosted, longitude, latitude)
                   }
                 )
               }

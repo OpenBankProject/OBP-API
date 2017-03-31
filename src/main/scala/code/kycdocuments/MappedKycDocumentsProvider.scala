@@ -2,31 +2,47 @@ package code.kycdocuments
 
 import java.util.Date
 
-import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
+import net.liftweb.common.{Box, Full}
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField}
 import net.liftweb.mapper._
 
 object MappedKycDocumentsProvider extends KycDocumentProvider {
 
   // TODO Add bankId (customerNumber is not unique)
-  override def getKycDocuments(customerNumber: String): List[MappedKycDocument] = {
+  override def getKycDocuments(customerId: String): List[MappedKycDocument] = {
     MappedKycDocument.findAll(
-      By(MappedKycDocument.mCustomerNumber, customerNumber),
+      By(MappedKycDocument.mCustomerId, customerId),
       OrderBy(MappedKycDocument.updatedAt, Descending))
   }
 
 
-  override def addKycDocuments(id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date): Boolean = {
-    MappedKycDocument.create
-      .mId(id)
-      .mCustomerNumber(customerNumber)
-      .mType(`type`)
-      .mNumber(number)
-      .mIssueDate(issueDate)
-      .mIssuePlace(issuePlace)
-      .mExpiryDate(expiryDate)
-      .save()
+  override def addKycDocuments(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date): Box[MappedKycDocument] = {
+    val kyc_document = MappedKycDocument.find(By(MappedKycDocument.mId, id)) match {
+      case Full(document) => document
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mId(id)
+        .mCustomerNumber(customerNumber)
+        .mType(`type`)
+        .mNumber(number)
+        .mIssueDate(issueDate)
+        .mIssuePlace(issuePlace)
+        .mExpiryDate(expiryDate)
+        .saveMe()
+      case _ => MappedKycDocument.create
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mId(id)
+        .mCustomerNumber(customerNumber)
+        .mType(`type`)
+        .mNumber(number)
+        .mIssueDate(issueDate)
+        .mIssuePlace(issuePlace)
+        .mExpiryDate(expiryDate)
+        .saveMe()
+    }
+    Full(kyc_document)
   }
 }
 
@@ -35,8 +51,9 @@ with LongKeyedMapper[MappedKycDocument] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedKycDocument
 
-  object user extends MappedLongForeignKey(this, APIUser)
-  object bank extends DefaultStringField(this)
+  object user extends MappedLongForeignKey(this, ResourceUser)
+  object mBankId extends MappedString(this, 255)
+  object mCustomerId extends MappedString(this, 255)
 
   object mId extends DefaultStringField(this)
   object mCustomerNumber extends DefaultStringField(this)
@@ -47,6 +64,8 @@ with LongKeyedMapper[MappedKycDocument] with IdPK with CreatedUpdated {
   object mExpiryDate extends MappedDateTime(this)
 
 
+  override def bankId: String = mBankId.get
+  override def customerId: String = mCustomerId.get
   override def idKycDocument: String = mId.get
   override def customerNumber: String = mCustomerNumber.get
   override def `type`: String = mType.get

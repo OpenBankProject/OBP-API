@@ -26,7 +26,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
   def createCrmEvent1() = MappedCrmEvent.create
     .mCrmEventId("ASDFIUHUIUYFD444")
     .mBankId(testBankId1.value)
-    .mUserId(obpuser1)
+    .mUserId(authuser1)
     .mScheduledDate(new Date(12340000))
     .mActualDate(new Date(12340000))
     .mChannel("PHONE")
@@ -39,7 +39,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
   def createCrmEvent2() = MappedCrmEvent.create
     .mCrmEventId("YYASDFYYGYHUIURR")
     .mBankId(testBankId2.value)
-    .mUserId(obpuser2)
+    .mUserId(authuser2)
     .mScheduledDate(new Date(12340000))
     .mActualDate(new Date(12340000))
     .mChannel("PHONE")
@@ -51,7 +51,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
   def createCrmEvent3() = MappedCrmEvent.create
     .mCrmEventId("HY677SRDD")
     .mBankId(testBankId2.value)
-    .mUserId(obpuser2)
+    .mUserId(authuser2)
     .mScheduledDate(new Date(12340000))
     .mActualDate(new Date(12340000))
     .mChannel("PHONE")
@@ -64,10 +64,10 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
 
     scenario("No crm events exist for user and we try to get them") {
       Given("No MappedCrmEvent exists for a user (any bank)")
-      MappedCrmEvent.find(By(MappedCrmEvent.mUserId, obpuser2)).isDefined should equal(false) // (Would find on any bank)
+      MappedCrmEvent.find(By(MappedCrmEvent.mUserId, authuser2)).isDefined should equal(false) // (Would find on any bank)
 
       When("We try to get it by bank and user")
-      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId1, obpuser2)
+      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId1, authuser2)
       val foundList = foundOpt.get
 
       Then("We don't")
@@ -79,11 +79,11 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       Given("MappedCrmEvent exists for a user on a bank")
       MappedCrmEvent.find(
         By(MappedCrmEvent.mBankId, testBankId1.toString),
-        By(MappedCrmEvent.mUserId, obpuser1.apiId.value)
+        By(MappedCrmEvent.mUserId, authuser1.resourceUserId.value)
       ).isDefined should equal(true)
 
       When("We try to get it by bank and user")
-      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId1, obpuser1)
+      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId1, authuser1)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
@@ -117,11 +117,11 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       Given("MappedCrmEvent exists for a user")
       MappedCrmEvent.find(
         By(MappedCrmEvent.mBankId, testBankId2.toString),
-        By(MappedCrmEvent.mUserId, obpuser2.apiId.value)
+        By(MappedCrmEvent.mUserId, authuser2.resourceUserId.value)
       ).isDefined should equal(true)
 
       When("We try to get them")
-      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId2, obpuser2)
+      val foundOpt = MappedCrmEventProvider.getCrmEvents(testBankId2, authuser2)
 
       Then("We do")
       foundOpt.isDefined should equal(true)

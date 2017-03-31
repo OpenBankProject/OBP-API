@@ -2,6 +2,7 @@ package code.kycchecks
 
 import java.util.Date
 import net.liftweb.util.SimpleInjector
+import net.liftweb.common.{Box}
 
 
 object KycChecks extends SimpleInjector {
@@ -14,13 +15,15 @@ object KycChecks extends SimpleInjector {
 
 trait KycCheckProvider {
 
-  def getKycChecks(customerNumber: String) : List[KycCheck]
+  def getKycChecks(customerId: String) : List[KycCheck]
 
-  def addKycChecks(id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String) : Boolean
+  def addKycChecks(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String) : Box[KycCheck]
 
 }
 
 trait KycCheck {
+  def bankId: String
+  def customerId: String
   def idKycCheck : String
   def customerNumber : String
   def date : Date

@@ -3,7 +3,8 @@ package code.metadata.wheretags
 import java.util.Date
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
+import code.users.Users
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -47,8 +48,16 @@ object MapperWhereTags extends WhereTags {
     found.map(_.delete_!).getOrElse(false)
   }
 
-  override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Option[GeoTag] = {
+  override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Box[GeoTag] = {
     findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, viewId: ViewId)
+  }
+
+  override def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
+    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
+      By(MappedWhereTag.bank, bankId.value),
+      By(MappedWhereTag.account, accountId.value)
+    )
+    whereTagsDeleted
   }
 }
 
@@ -61,7 +70,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object transaction extends MappedString(this, 255)
   object view extends MappedString(this, 255)
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
 
   //TODO: require these to be valid latitude/longitudes
@@ -69,7 +78,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object geoLongitude extends MappedDouble(this)
 
   override def datePosted: Date = date.get
-  override def postedBy: Box[User] = user.obj
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def latitude: Double = geoLatitude.get
   override def longitude: Double = geoLongitude.get
 }

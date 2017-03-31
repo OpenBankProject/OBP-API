@@ -1,15 +1,16 @@
 package code.metadata.comments
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
-import net.liftweb.common.{Failure, Full, Box}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
-private object MappedComments extends Comments {
+object MappedComments extends Comments {
   override def getComments(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[Comment] = {
     MappedComment.findAll(
       By(MappedComment.bank, bankId.value),
@@ -18,7 +19,7 @@ private object MappedComments extends Comments {
       By(MappedComment.view, viewId.value))
   }
 
-  override def deleteComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(commentId: String): Box[Unit] = {
+  override def deleteComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(commentId: String): Box[Boolean] = {
     val deleted = for {
       comment <- MappedComment.find(By(MappedComment.bank, bankId.value),
         By(MappedComment.account, accountId.value),
@@ -27,7 +28,7 @@ private object MappedComments extends Comments {
     } yield comment.delete_!
 
     deleted match {
-      case Full(true) => Full(Unit)
+      case Full(true) => Full(true)
       case _ => Failure("Could not delete comment")
     }
   }
@@ -44,6 +45,15 @@ private object MappedComments extends Comments {
         .date(datePosted).saveMe
     }
   }
+
+  override def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
+    val commentsDeleted = MappedComment.bulkDelete_!!(
+      By(MappedComment.bank, bankId.value),
+      By(MappedComment.account, accountId.value)
+    )
+    commentsDeleted
+  }
+
 }
 
 class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdPK with CreatedUpdated {
@@ -53,7 +63,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
   object apiId extends MappedUUID(this)
 
   object text_ extends DefaultStringField(this)
-  object poster extends MappedLongForeignKey(this, APIUser)
+  object poster extends MappedLongForeignKey(this, ResourceUser)
   object replyTo extends MappedUUID(this) {
     override def defaultValue = ""
   }
@@ -67,7 +77,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
 
   override def id_ : String = apiId.get
   override def text: String = text_.get
-  override def postedBy: Box[User] = poster.obj
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(poster.get)
   override def replyToID: String = replyTo.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

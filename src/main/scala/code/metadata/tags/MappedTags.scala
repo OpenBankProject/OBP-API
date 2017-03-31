@@ -3,7 +3,8 @@ package code.metadata.tags
 import java.util.Date
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
@@ -28,9 +29,17 @@ object MappedTags extends Tags {
     }
   }
 
-  override def deleteTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(tagId: String): Box[Unit] = {
+  override def deleteTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(tagId: String): Box[Boolean] = {
     //tagId is always unique so we actually don't need to use bankId, accountId, or transactionId
-    MappedTag.find(By(MappedTag.tagId, tagId)).map(_.delete_!).map(x => ()) //TODO: this should return something more useful than Box[Unit]
+    MappedTag.find(By(MappedTag.tagId, tagId)).map(_.delete_!)
+  }
+
+  override def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
+    val tagsDeleted = MappedTag.bulkDelete_!!(
+      By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value)
+    )
+    tagsDeleted
   }
 }
 
@@ -44,12 +53,12 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
 
   object tagId extends MappedUUID(this)
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object tag extends DefaultStringField(this)
   object date extends MappedDateTime(this)
 
   override def id_ : String = tagId.get
-  override def postedBy: Box[User] = user.obj
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def value: String = tag.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

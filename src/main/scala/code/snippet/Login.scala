@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,7 +32,8 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.model.dataAccess.{Admin, OBPUser}
+import code.api.OpenIdConnectConfig
+import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
@@ -42,29 +43,29 @@ import scala.xml.NodeSeq
 class Login {
 
   def loggedIn = {
-    if(!OBPUser.loggedIn_?){
+    if(!AuthUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     }else{
       ".logout [href]" #> {
-        OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
+        AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.username.get
+      ".username *" #> AuthUser.getCurrentUserUsername
     }
   }
 
   def loggedOut = {
-    if(OBPUser.loggedIn_?){
+    if(AuthUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     } else {
-      ".login [href]" #> OBPUser.loginPageURL &
+      ".login [href]" #> AuthUser.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
-          menu <- OBPUser.lostPasswordMenuLoc
+          menu <- AuthUser.lostPasswordMenuLoc
         } yield menu.loc.calcDefaultHref
         href getOrElse "#"
       } & {
         ".signup [href]" #> {
-         OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+         AuthUser.signUpPath.foldLeft("")(_ + "/" + _)
         }
       }
     }
@@ -94,8 +95,89 @@ class Login {
     }
 
 
+  def openIdConnectButton : CssSel = {
+    if(Props.getBool("allow_openidconnect", false)){
+      val config = OpenIdConnectConfig.get()
+      var onclick = "getCode();"
+      if (config.url_login.endsWith(".js") )
+        onclick = "openIdUI.show();"
+      val but =
+        """
+          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="%s" src="%s" />
+        """.format(
+          onclick,
+          config.url_button
+        )
+      val button  = scala.xml.Unparsed(s"""$but""")
+      "#openid_button" #> button
+    } else {
+      "#openid_button" #> ""
+	   }
+  }
+
+  def openIdConnectScripts : CssSel = {
+    if(Props.getBool("allow_openidconnect", false)){
+      val config = OpenIdConnectConfig.get()
+      val url = config.url_login
+
+      val ext =
+        if (config.url_login.endsWith(".js") )
+          """
+            <script src="%s"></script>
+          """.format( url )
+        else
+          """"""
+
+      val scr =
+        if (config.url_login.endsWith(".js") )
+        """
+        <script type="text/javascript">
+          var openIdUI = new Auth0Lock('%s', '%s', {
+            auth: {
+              redirectUrl: '%s',
+              responseType: 'code',
+              params: {
+                scope: 'openid email'
+              }
+            }
+          });
+        </script>
+        """.format(
+          config.clientId,
+          config.domain,
+          config.callbackURL
+        )
+        else
+          """
+            <script type="text/javascript">
+            var request = new XMLHttpRequest();
+            function getCode() {
+                request.open("GET", "%s", true);
+                request.setRequestHeader("Content-type", "application/json");
+                request.send("grant_type=client_credentials&client_id=%s&client_secret=%s");
+                request.onreadystatechange = function () {
+                    if (request.readyState == request.DONE) {
+                        var response = request.responseText;
+                        //alert(response);
+                        var obj = JSON.parse(response);
+                        return (obj.code);
+                    }
+                }
+            }
+            </script>
+          """.format(
+            config.url_login,
+            config.clientId,
+            config.clientSecret
+          )
+
+      val scripts = scala.xml.Unparsed(s"""$ext $scr""")
+      "#openid_scripts" #> scripts
+    } else {
+      "#openid_scripts" #> ""
+    }
+  }
 
 
-
-// End of class
+  // End of class
 }

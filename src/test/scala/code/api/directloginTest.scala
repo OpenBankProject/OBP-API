@@ -1,7 +1,9 @@
 package code.api
 
 import code.api.util.ErrorMessages
-import code.model.dataAccess.OBPUser
+import code.consumer.Consumers
+import code.loginattempts.LoginAttempt
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
@@ -19,9 +21,15 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val USERNAME = randomString(10).toLowerCase
   val PASSWORD = randomString(20)
 
+  val KEY_DISABLED = randomString(40).toLowerCase
+  val SECRET_DISABLED = randomString(40).toLowerCase
+  val EMAIL_DISABLED = randomString(10).toLowerCase + "@example.com"
+  val USERNAME_DISABLED = randomString(10).toLowerCase
+  val PASSWORD_DISABLED = randomString(20)
+
   before {
-    if (OBPUser.find(By(OBPUser.username, USERNAME)).isEmpty)
-      OBPUser.create.
+    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
+      AuthUser.create.
         email(EMAIL).
         username(USERNAME).
         password(PASSWORD).
@@ -30,19 +38,34 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         lastName(randomString(10)).
         saveMe
 
-    if (OBPConsumer.find(By(OBPConsumer.key, KEY)).isEmpty)
-      OBPConsumer.create.
-        name("test application").
-        isActive(true).
-        key(KEY).
-        secret(SECRET).
+    if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
+      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
+
+
+    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
+      AuthUser.create.
+        email(EMAIL_DISABLED).
+        username(USERNAME_DISABLED).
+        password(PASSWORD_DISABLED).
+        validated(true).
+        firstName(randomString(10)).
+        lastName(randomString(10)).
         saveMe
+
+    if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
+      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
   }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
 
-  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"does-not-exist\", " +
+  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"notExistingUser\", " +
+    "password=\"notExistingPassword\", consumer_key=%s").format(KEY))
+
+  val invalidUsernamePasswordCharaterHeader = ("Authorization", ("DirectLogin username=\" a#s \", " +
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
+
+  val validUsernameInvalidPasswordHeader = ("Authorization", ("DirectLogin username=%s," +
+    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME, KEY))
 
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
     "password=%s, consumer_key=%s").format(USERNAME, PASSWORD, "invalid"))
@@ -50,11 +73,20 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val validHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
     format(USERNAME, PASSWORD, KEY))
 
+  val disabledConsumerValidHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
+    format(USERNAME_DISABLED, PASSWORD_DISABLED, KEY_DISABLED))
+
+  val invalidUsernamePasswordCharaterHeaders = List(accessControlOriginHeader, invalidUsernamePasswordCharaterHeader)
+
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
+
+  val validUsernameInvalidPasswordHeaders = List(accessControlOriginHeader, validUsernameInvalidPasswordHeader)
 
   val invalidConsumerKeyHeaders = List(accessControlOriginHeader, invalidConsumerKeyHeader)
 
   val validHeaders = List(accessControlOriginHeader, validHeader)
+
+  val disabledConsumerKeyHeaders = List(accessControlOriginHeader, disabledConsumerValidHeader)
 
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
@@ -65,7 +97,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
-      val consumers =  OBPConsumer.findAll()
+      //val consumers =  OBPConsumer.findAll()
       //assert(registeredApplication(KEY) == true)
 
       When("we try to login without an Authorization header")
@@ -92,6 +124,52 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
+    }
+
+    scenario("Invalid Characters") {
+      When("we try to login with an invalid username Characters and invalid password Characters")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
+
+      Then("We should get a 400 - Invalid Characters")
+      response.code should equal(400)
+      assertResponse(response, ErrorMessages.InvalidValueCharacters)
+    }
+
+    scenario("valid Username, invalid password, login in too many times. The username will be locked") {
+      When("login with an valid username and invalid password, failed more than 5 times.")
+      val request = directLoginRequest
+      var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+
+      Then("We should get a 401 - the username has been locked")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
+
+      Then("We login in with the valid username and valid passpord, the username still be locked ")
+      response = makePostRequestAdditionalHeader(request, "", validHeaders)
+      Then("We should get a 401 - the username has been locked")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
+
+      Then("We unlock the username")
+      LoginAttempt.resetBadLoginAttempts(USERNAME)
+    }
+
+    scenario("Consumer API key is disabled") {
+      Given("The app we are testing is registered and disabled")
+      When("We try to login with username/password")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", disabledConsumerKeyHeaders)
+      Then("We should get a 401")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
     scenario("Missing DirecLogin header") {

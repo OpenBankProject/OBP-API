@@ -1,0 +1,1415 @@
+@import url('reset.css');
+
+html {
+    height: 100%
+}
+
+
+body, div, h1, h2, h3, h4, p, span {
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+	font-weight: 400;
+}
+
+a {
+	color: #666666;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #156759;
+}
+
+a.sort {
+	overflow: hidden;
+	display: inline-block;
+	width: 7px;
+	height: 9px;
+	background: transparent url(../images/sort.png) no-repeat 50% 0;
+	text-indent: -9999em;
+}
+
+a.add {
+	display: inline-block;
+	padding: 0 0 0 20px;
+	background: transparent url(../images/add-off.png) no-repeat 0 0;
+	line-height: 16px;
+	font-size: 12px;
+	text-decoration: none;
+	color: #999999;
+}
+
+a.add:hover {
+	background-image: url(../images/add-on.png);
+	text-decoration: underline;
+	color: #666666;
+}
+
+a.edit {
+	overflow: hidden;
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background: transparent url(../images/edit-off.png) no-repeat 0 0;
+	text-indent: -9999em;
+}
+
+a.edit:hover {
+	background-image: url(../images/edit-on.png);
+}
+
+input.edit {
+	float: left;
+	vertical-align: middle;
+	background: #ffffff;
+	border: 1px solid #aaaaaa;
+	border-radius: 2px;
+	padding: 1px;
+	font-size: 10px;
+	width: 60%;
+}
+
+input.submit {
+	float: left;
+	margin: 0 0 0 2px;
+	cursor: pointer;
+}
+
+#wrapper {
+	width: 100%;
+	min-width: 320px;
+	margin:0 auto;
+}
+
+#header {
+	overflow: auto;
+	margin:0 auto;
+	width: 1050px;
+	padding: 0px 0 20px;
+}
+
+#header-decoration {
+    background-color: #53C4EF;
+    width: 1050px;
+    height: 35px;
+}
+
+#lift__noticesContainer__ {
+    display: none;
+}
+
+#social {
+	float: right;
+}
+
+#nav {
+    padding: 4px 10px 0 10px;
+    background: #EEEEEE;
+    margin:auto;
+    height: 40px;
+    width: 1030px;
+}
+
+#nav ul {
+    height: 40px;
+    margin-left: 20px;
+    width: 1050px;
+}
+
+#nav ul li {
+	float: left;
+	margin: 3px 0 0 3px;
+	height: 100%;
+}
+
+#nav ul li:nth-child(1):before {
+    background-image: url(../images/nav-home-icon.png);
+    content: " ";
+    height: 25px;
+    width: 25px;
+    display: inline-block;
+    margin-right: -5px;
+    float: left;
+}
+
+#nav ul li:nth-child(2) a:after,
+#nav ul li:nth-child(3) a:after,
+#nav ul li:nth-child(4) a:after,
+#nav ul li:nth-child(5) a:after,
+#nav ul li:nth-child(6) a:after {
+    position: absolute;
+    display: block;
+    width: 2px;
+    height: 39px;
+    margin-top: -26px; /* position ::after item vertically */
+    margin-left: -20px; /* position ::after item horizontally */
+    content: " ";
+    background-image: url(../images/nav-separator.png);
+}
+
+#nav ul li a {
+	display: inline-block;
+	padding: 8px 25px 10px;
+	border-radius: 5px 5px 0 0;
+	color: black;
+	text-decoration: none;
+	font-size: 14px;
+}
+
+#nav ul li a.selected {
+	float: left;
+	text-shadow: none;
+	color: #101010;
+}
+
+#nav .nav-login-state-item {
+    float: right;
+    margin-right: 10px;
+    color: darkgray;
+}
+
+#nav .nav-login-state-item .logout {
+    color: black;
+}
+
+#logo-left {
+	margin: 20px 0 0 120px;
+	float: left;
+	display: inline-block;
+	/* height: 75px; */
+}
+
+#logo-left img {
+    max-height: 80px;
+}
+
+#logo-right {
+	margin: 20px 120px 0 0;
+	float: right;
+	display: inline-block;
+}
+
+#logo-right img {
+    max-height: 80px;
+}
+
+#main {
+    color: #333333;
+}
+
+/*#main-about {
+    padding-top: 80px;
+    background-image: url('../Images/about-background.jpg');*/
+    /*position: relative;*/
+    /* background-image: url(../images/bnpp/bnpp-background.jpg); */
+    /*width:1050px;*/
+    /*margin:0px auto;
+    width:100%;
+    background-size:cover;
+    background-repeat:no-repeat;
+}
+*/
+.main-about {
+    
+}
+.main-about img {
+    width: 100%;
+    /*max-width: 1050px;*/ /* corresponds to max height of 450px */
+    
+}
+.main-about h1 {
+       position: absolute;
+       text-align: center;
+       bottom: 0;
+       left: 0;
+       right: 0;
+       color: white;
+}
+
+.main-about .box{
+    
+    	display: inline-block;
+    	background-color:#53C4EF;
+        position: absolute;
+        right:0;
+        bottom:0;
+        /*height: 390px;*/
+    	font-size: small;
+    	
+}
+.nav, .main {
+    background-color: #f6f6f6;
+    text-align: center;
+}
+
+
+
+.myBackground {
+  
+  background: url('../Images/about-background.jpg') no-repeat ;
+  -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+
+ 
+.box{
+    
+    	opacity: 0.7;
+    	background-color:#53C4EF;
+        max-width: 600px;
+        max-height: 390px;
+    	font-size: small;
+    	display: inline-block;
+    	position: absolute;
+        right: 0px;
+        bottom: 0px;
+        }
+
+#bg {
+background:url('../Images/about-background.jpg') no-repeat center center ;
+           
+            background-size:cover;
+            max-width: 100%; /* corresponds to max height of 450px */
+            
+            height:600px;
+          
+                
+                /*width: 1050px;*/
+                 /*margin:0 auto;*/
+            }
+
+#bgsmall {
+background:url('../Images/about-background.jpg') no-repeat center center ;
+           
+            background-size:cover;
+            width: 400px; /* corresponds to max height of 450px */
+             
+            height:240px;
+            
+            }
+.smallbox{
+    
+    	opacity: 0.7;
+    	background-color:#53C4EF;
+        width:400px;
+        height: 160px;
+       
+    	font-size: small;
+    	display: inline-block;
+    	position: absolute;
+        bottom: 0px;
+        }   
+               
+ @media only screen and (max-width: 480px) {
+    #bg {
+    background:url('../Images/about-background.jpg') no-repeat center center ;
+               
+                background-size:cover;
+               /* max-width: 480px;*/
+                   width:100%;         
+                height:300px;
+               
+                margin: auto;
+                
+              
+                 /* corresponds to max height of 450px */
+                 
+                
+                }
+    .box{
+        
+        	opacity: 0.7;
+        	background-color:#53C4EF;
+        	
+            width:100%;
+            height:200px;
+            
+           
+        	
+        	display: inline-block;
+        	font-size: small;
+        	
+            bottom: 0px;
+            margin: auto;
+            
+            }
+            
+    .h3,h3{
+    font-size:17px;
+    padding-bottom:5px;
+    padding-left:4px;
+    }   
+         
+    .btn{
+    font-size:12px;
+    
+    }     
+            
+            
+          
+            
+  }             
+
+#main-about h1 {
+    color: white;
+	font-size: 36px;
+}
+
+#main-about h2 {
+    padding: 20px 10px 2px 10px;
+    color: white;
+    margin-left: 20px;
+    margin-right: 10px;
+	margin-bottom: 20px;
+	margin-top:20;
+	line-height:45px;
+	font-size: 42px;
+	text-align: left;
+	/*font-family: "Times New Roman", Georgia, Serif;*/
+}
+
+#main-about p {
+ padding: 0px 10px 10px 30px;
+
+display: block;
+    margin-top: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    color: white;
+    font-size: 17px;
+    text-align: left;
+    line-height: 20px;
+}
+
+#main-about-box a {
+    text-decoration: underline;
+    color: white;
+}
+
+#main-about-box {
+    opacity: 0.7;
+	display: inline-block;
+	background-color:#53C4EF;
+	margin-top: 240px ;
+    margin-left: 450px ;
+    width: 600px;
+    /*height: 390px;*/
+	font-size: small;
+}
+
+#main-about-box #main-about-buttons a{
+      padding: 5px 30px 5px 30px;
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 10px;
+      color: black;
+      background-color: white;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      margin-right: 10px;
+      margin-left: 30px;
+      font-size: 15px;
+}
+
+#main-links {
+    background-color: #3C3C3C;
+    text-align: center;
+    height: 105px;
+}
+
+#main-links a {
+    padding: 5px 25px 5px 25px;
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+    border: 2px solid gray;
+    border-radius: 25px;
+    margin: 30px 20px 0px 20px;
+	font-size: 24px;
+}
+
+#main-sandbox {
+  background-color: #9A9A9A;
+  color: #333333;
+  padding: 25px 50px 100px 100px;
+  text-align: left;
+}
+
+#main-sandbox h1 {
+    color: white;
+    font-size: 36px;
+    margin-bottom: 15px;
+    margin-left: -5px;
+    margin-top: 15px;
+}
+
+
+#main-get_started {
+	
+}
+
+.main-get_started-row {
+	display: table-row;
+}
+.main-get_started-cell {
+	display: table-cell;
+	vertical-align: top;
+	color: #838b98;
+}
+.main-get_started-cell:nth-child(1) {
+	width: 45%;
+	
+}
+
+.main-get_started-cell:nth-child(2) {
+	width: 95px;
+	height: 300px;
+}
+.main-get_started-cell:nth-child(2) img {
+	margin: 0 10px;
+	display: block;
+}
+
+.main-get_started-cell:nth-child(3) {
+	width: 45%;
+	padding: 0 10px 0 1px;
+	
+}
+
+.main-get_started-icon {
+	text-align: center;
+}
+
+#main-get_started h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	margin: 30px 0 30px 0;
+	
+}
+ 
+#main-get_started h2 {
+	font-weight: bold;
+	font-size: 24px;
+	color: #333333;
+}
+
+#main-get_started .green-button {
+	padding-bottom: 40px;
+}
+
+#main-get_started .btn-primary {
+    background: #0099cc;
+    color: #ffffff;
+}
+
+
+
+@media only screen and (max-width: 480px) {
+    .main-get_started-cell .imag1 {display:none;}
+    .main-get_started-cell .imag2 {display:none;}
+    .main-get_started-cell .imag3 {display:none;}
+  
+}
+
+@media only screen and (min-width:1200px){
+     .main-get_started-cell .imag1 {display:block;}
+     .main-get_started-cell .imag2 {display:block;}
+     .main-get_started-cell .imag3 {display:block;}
+  
+}
+
+
+
+#main-apis {
+	text-align: left;
+	position:center;
+	margin: 50px auto;
+	display: table;
+	width:1050px;
+}
+.main-apis-row {
+	display: table-row;
+}
+.main-apis-cell {
+    margin:50px auto;
+	display: table-cell;
+	vertical-align: top;
+	padding-bottom: 30px;
+}
+.main-apis-cell:nth-child(1) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(2) {
+	width: 40%;
+}
+.main-apis-cell:nth-child(3) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(4) {
+	width: 40%;
+}
+
+#main-apis h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	padding:40px 0px 40px 0px;
+	display: table-caption;
+}
+#main-apis h2 {
+	font-weight: bold;
+	font-size: 24px;
+	margin-top: 13px;
+}
+
+
+#main-showcases {
+    
+	
+	padding: 60px 0;
+	color: white;
+	background-color: #31b9ce;
+	
+}
+
+#main-showcases h1 {
+	margin-bottom: 60px;
+	font-size: 36px;
+}
+
+#main-showcases h2 {
+	font-size: 24px;
+}
+
+.main-showcases-item {
+	display: inline-block;
+	margin: 30px 10px;
+	width: 230px;
+	font-size: small;
+	text-align:center;
+}
+
+.main-showcases-item a {
+	color: white;
+}
+.main-showcases-item a:hover {
+	text-decoration: underline;
+}
+
+
+#main-faq {
+	text-align: left;
+	
+	margin: 50px auto;
+	padding:0px 0px 0px 80px;
+	background-color: #f1f4f8;
+}
+
+#main-faq h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	margin: 30px 40px 30px 0px;
+	/*display: table-caption;*/
+}
+ 
+#main-faq h2 {
+	font-size: 18px; /* text won't fit on line with 24px */
+	font-weight: bold;
+	color: #333333;
+}
+ 
+#main-faq .collapse {
+	background-repeat:no-repeat;
+	padding-left: 30px;
+	margin-bottom: 30px;
+	list-style: none;
+}
+#main-faq .collapse.plus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/plus.png');
+}
+#main-faq .collapse.minus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/minus.png');
+}
+#main-faq .collapse h2:hover {
+	cursor: pointer;
+}
+
+#main-faq ol {
+	list-style-type: decimal;
+	display: none;
+}
+
+#main-faq p {
+	display: none;
+}
+
+.main-faq-row {
+	display: table-row;
+}
+
+.main-faq-cell {
+	display: table-cell;
+	vertical-align: top;
+	color: #838b98;
+	font-size: 16px;
+	width:485px;
+}
+
+
+
+
+#main-start_building {
+	
+	padding: 0 80px;
+}
+#main-start_building h1 {
+   
+	font-size: 36px;
+	font-weight: bold;
+	line-height: 40px;
+}
+
+
+#main-partners {
+	margin: 50px auto;
+	text-align: center;
+	width:1080px;
+}
+
+#main-partners img {
+	width: 160px;
+}
+
+#main-partners a {
+    margin:auto;
+    display: inline-block;
+    /* *display: inline; */
+    /* zoom: 1; */
+    padding:30px 30px 30px 30px;
+}
+
+
+
+#main-support {
+	/*margin: auto;
+	width:930px;
+	margin-bottom: -20px;*/ /* touch footer */
+	padding: 60px;
+	color: white;
+	background-color: #31b9ce;
+	text-align: center;
+}
+
+#main-support h2 {
+	font-size: 24px;
+}
+
+.main-support-item {
+	display: inline-block;
+	margin: 30px 10px;
+	width: 280px;
+}
+.main-support-item a {
+	color: white;
+}
+
+
+
+.green-button {
+	width: 300px;
+	margin: 30px auto;
+	text-align: center;
+}
+.green-button a {
+	border: 3px solid green;
+	border-radius: 25px;
+	color: green;
+	padding: 10px;
+	font-size: 24px;
+}
+
+
+
+
+
+
+.stretch {
+    width: 100%;
+    display: inline-block;
+    font-size: 0;
+    line-height: 0
+}
+
+.account-upper{
+	height: 100%;
+	padding: 2px 0 0;
+	float: right;
+}
+
+.account-in-content{
+	height: 100%;
+	padding: 10px 20px 30px 10px;
+    text-align: center;
+}
+
+.account .profile-info {
+	float: right;
+	margin: 0 10px 0 0;
+	font-size: 12px;
+}
+
+.account .account-info {
+	padding: 7px 15px 8px;
+	border: 1px solid #dddddd;
+	border-radius: 10px;
+	background: #ffffff;
+	font-size: 17px;
+	color: #666666;
+}
+
+.account .logout {
+	font-size: 12px;
+}
+
+.account form.login .field {
+	width: 164px;
+}
+
+.account form.login .buttons {
+	margin-top: 30px;
+	height: 2em;
+	display: flex;
+}
+
+.account form.login .field input {
+  clear: left;
+  width: 150px;
+  background: #ffffff;
+  border: 1px solid #999999;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.account form.login .field .signup {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account form.login .button-field {
+    height: 2em;
+}
+
+.account form.login .button .submit {
+  float: left;
+  background: #c1e7e1;
+  border: 1px solid #22a890;
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: #58988e;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 14px 0 0;
+}
+
+.account form.login .field .forgot {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account-in-content form.login .field input {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #CCC;
+  border-radius: 6px;
+  padding: 2px;
+  height: 1.8em;
+}
+
+.account-in-content form.login .button .signup, #openid-button {
+    border: 1px solid white;
+    border-radius: 20px;
+    padding: 2px 18px;
+    color: #535456;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    float: right;
+    margin: 0;
+    text-transform: uppercase;
+    background-color: white;
+    font-weight: 500;
+    height: 26px;
+}
+
+.account-in-content form.login .button .submit {
+  background: white;
+  border: gray;
+  border-radius: 20px;
+  padding: 7px 20px;
+  color: #535456;
+  font-size: 18px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  height: initial;
+  margin: 0;
+  width: inherit;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.account-in-content form.login .field .forgot {
+	float: right;
+	margin: 1px 6px 0 0;
+	padding: 2px 0 0;
+	font-size: 12px;
+	color: white;
+}
+
+.account-upper form.login {
+	float: right;
+}
+
+.account-upper form.login .field,
+.account-upper form.login .button {
+	float: left;
+}
+
+.account-upper form.login .field label {
+	font-size: 11px;
+}
+
+.account-upper form.login .field input {
+	float: left;
+	font-size: 12px;
+}
+
+.account-in-content form.login{
+	/* width: 555px;*/
+	margin:0 auto
+}
+
+.account-in-content form.login .field{
+	margin-top: 15px;
+	width: 100%;
+}
+
+.account-in-content form.login .field label {
+	/* font-size: 12px; */
+}
+
+.account-in-content form.login .field input {
+	font-size: 14px;
+}
+
+.account-in-content form.forgotPassword {
+    padding-top: 20px;
+    width: 470px;
+}
+
+.account-in-content form.forgotPassword .buttons {
+	margin-top: 30px;
+	height: 2em;
+	display: flex;
+}
+
+table {
+	width: 90%;
+	margin: 0 0 20px;
+	border-collapse: collapse;
+	clear: both;
+	color: black;
+	/* border: none; */
+	margin-left: auto;
+	margin-right: auto;
+}
+
+table th,
+table td {
+	text-align: left;
+}
+
+table tbody tr {
+	/* background: #459860; */
+}
+
+table tbody tr:nth-child(even) {
+	/* background: #459860; */
+}
+
+table td {
+	padding: 15px 0px 15px 14px;
+	/* border-top: 2px solid #ffffff; */
+	line-height: 1em;
+	font-size: 15px;
+	/* vertical-align: top; */
+	/* color: white; */
+}
+
+table th {
+	overflow: auto;
+	padding: 0 0 10px 8px;
+	border-bottom: 2px solid #cbcbcb;
+}
+
+section#content {
+     font-size: 20px;
+     line-height: 1.5em;
+     text-align: center;
+     color: white;
+}
+
+/* don't add spacing after last table in a transaction list */
+section#content div div:last-of-type table {
+    margin-bottom: 0px;
+}
+
+section#content form {
+    color: white;
+    /* width: 85%; */
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 16px;
+    margin-top: 0px;
+}
+
+/* for lift generated forms */
+section#content>form>table {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 50%;
+    margin-top: 50px;
+}
+
+#verifier {
+	margin-top: 30px;
+	font-weight: bold;
+	font-size: 18px;
+	text-align: center;
+}
+
+#signupForm tr:first-child td {
+    width: 150px;
+    font-size: 18px;
+    color: white;
+}
+
+#signupForm td span input{
+    display:block;
+    clear:both;
+}
+#signupForm td span input:first-child {
+    margin-bottom:10px;
+}
+#signupForm td span input:last-child {
+    margin-top:5px;
+}
+
+#signupForm td input[type=submit]{
+    /* width:85px; */
+}
+
+.signup-error {
+	margin-bottom: 10px;
+	color: red;
+}
+
+#registerAppSection {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#registerAppSection h1 {
+    text-align: left;
+    margin-left: 2%;
+    margin-bottom: 40px;
+    font-size: 20px;
+    line-height: 1.5em;
+}
+
+#registerAppSection .success {
+    /* font-size: 20px !important; */
+    margin-bottom: 25px;
+}
+
+div.registration {
+    padding: 30px 0 50px 0;
+    /* width: 84%; */
+}
+
+form.register {
+    /* color: #555555; */
+    width: 96%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px;
+}
+
+form div.form-column {
+    float: left;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    /* color: #555555; */
+}
+
+form div.form-column div {
+    display: inline-flex;
+    margin-bottom: 16px;
+}
+
+form label {
+    font-size: 16px;
+    min-width: 144px;
+    display: inline-flex;
+    text-align: left;
+    margin-right: 5px;
+}
+
+form input[type=text], form select {
+    width: 60%;
+}
+
+form input, form select {
+    border-radius: 5px;
+    border: solid 1px white;
+    height: 28px;
+    /* margin-bottom: 16px; */
+    color: #535456;
+    background-color: white;
+    font-size: 17px;
+    display: inline-block;
+}
+
+form.register textarea {
+    width: 80%;
+    border-radius: 5px;
+    border: solid 1px white;
+    height: 100px;
+}
+
+form.register div.submit {
+    margin-left: auto;
+    margin-top: 25px;
+}
+
+form input[type=submit] {
+    font-size: 18px;
+    height: 30px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 2px 20px 0px 20px;
+}
+
+div.extra_account_logo {
+    float: left;
+}
+
+div.extra_account_logo img {
+    max-width: 200px;
+    max-height: 100px;
+}
+
+div.extra_info_and_links {
+    float: left;
+    margin-left: 10px;
+}
+
+span.alias_indicator_public {
+    color: green;
+    padding: 2px;
+}
+
+span.alias_indicator_private {
+    color: purple;
+    padding: 2px;
+}
+
+
+#footer {
+	
+	
+	/*padding: 50px 0px 50px 0px;*/
+    color: #999999;
+    background-color: #3C3C3C;
+    text-align: center;
+}
+#footer a {
+    color: white;
+}
+#footer #copyright {
+	margin-bottom: 10px;
+}
+
+
+#authorizeSection {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#authorizeSection form.login {
+	padding-top: 20px;
+	width: 400px;
+}
+
+.loginSection {
+    width: 50%;
+}
+
+.signupSection {
+    padding: 30px 0px 30px 0px !important;
+    width: 60%;
+}
+
+.signupSection form input[type=text],
+.signupSection form select,
+.signupSection form input[type=password] {
+  width: 80%;
+}
+.signupSection form tr td {
+    color: white;
+}
+
+#userAccess {
+    padding: 5px;
+    /* width: 400px; */
+}
+
+.login-error {
+	margin-bottom: 10px;
+	color: red;
+}
+
+span.edit_error_class {
+	color: red;
+}
+
+#accountList {
+	margin-top: 5px;
+	float : right;
+}
+
+#public_accounts, #authorised_accounts {
+	background: #FAFAFA;
+	width: 200px;
+	border-radius: 8px 8px 8px 8px;
+	padding: 10px 10px 20px 10px;
+	margin-top: 20px;
+	margin-right: 80px;
+	float: left;
+}
+
+#authorised_accounts {
+	background: #FAFAFA;
+	width: 230px;
+	border-radius: 8px 8px 8px 8px;
+	padding: 10px 10px 20px 10px;
+	margin-top: 20px;
+	float: right;
+}
+
+#homeContent {
+	overflow: hidden;
+}
+
+.account_header {
+	margin-bottom: 10px;
+}
+
+.account {
+	margin-bottom: 5px;
+}
+
+li.comment {
+	padding : 14px 10px;
+	border-top: 2px solid white;
+	background: #f3f9f8;
+	line-height: 1em;
+	font-size: 13px;
+}
+
+#comment_list {
+	margin-top: 10px;
+}
+
+div#addCommentbloc {
+	margin-top: 15px;
+}
+
+#submitComment {
+	display: block;
+}
+
+#lastUpdate {
+	margin-top: 5px;
+	font-size: 13px;
+	display: block;
+}
+
+#account_details {
+	margin-bottom: 25px;
+}
+
+a#feedBack {
+	display: block;
+	position: fixed;
+	left:0;
+	top: 50%;
+	width: 26px;
+	height: 87px;
+	background: url(../images/feedback-button.gif);
+	cursor: pointer;
+}
+
+span#registrationDetails {
+	font-size: 10px;
+}
+
+.error {
+	color:red;
+}
+
+img.moreInfoIcon {
+	margin-left: 6px;
+	margin-top: 7px;
+	width: 18px;
+	height: 18px;
+}
+
+span#submissionMessage {
+	display: block;
+}
+
+span#submissionSuccess, span#submissionFailed {
+	display: block;
+	padding: 15px 20px;
+	background: #66ee55;
+}
+
+span#submissionFailed {
+	background: #ff3311;
+}
+
+span#accountsMsg {
+	font-size: 13px;
+}
+
+#registration-errors {
+	color: red;
+	/* border: solid 1px red; */
+	margin: 0;
+	/* padding: 15px; */
+}
+
+#oauth-done-thanks {
+	margin: 30px;
+	color: black;
+}
+
+#create-sandbox-account {
+    background-color: #53C4EF;
+    padding: 20px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
+}
+
+#create-sandbox-account form label {
+    min-width: 190px;
+}
+
+#create-sandbox-account form div.submit {
+    margin-left: auto;
+}
+
+#create-sandbox-account form div.form-column.middle {
+  margin-left: 25%;
+}
+
+#create-account-explanation a {
+    color: lightgray;
+}
+
+#create-account-instructions {
+    margin-top: 30px;
+    margin-left: 10px;
+}
+
+#create-account-error-message {
+    margin-left: 50px;
+    margin-top: 10px;
+    color: red;
+}
+
+#account-created-successfully {
+    margin-left: 50px;
+    margin-top: 10px;
+    color: lightgreen;
+}
+
+#admin-logout {
+	padding-left: 10px;
+	border: 2px solid;
+	border-color: #FF0000;
+	margin-top:-6px;
+	padding: 4px 0 3px 10px;
+}
+
+#admin-consumer-summary {
+	color: black;
+	margin: 20px 0;
+}
+
+#login_special_instructions {
+    text-align: left;
+}
+
+
+#agree-terms-input {
+	vertical-align: middle;
+}
+#agree-terms-text {
+	vertical-align: middle;
+	margin-left: 10px;
+}
+.cookies {
+
+ background-color:#ffffe1;
+     
+     text-align: center;
+    
+    /*width: 1050px;*/
+     margin: auto;
+     }
+     
+#p.container{
+background-color: #31b9ce;
+
+ }
+

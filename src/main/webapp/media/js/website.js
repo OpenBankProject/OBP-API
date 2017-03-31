@@ -29,14 +29,29 @@ $(document).ready(function() {
 
 
 	// FAQ shenanigans
-	$('#main-faq .collapse').click(function() {
-		var answer = $(this).find('h2').next();
-		if ($(this).attr("class").indexOf("minus") >= 0) {
+	$('#main-faq .collapse h2').click(function() {
+		var answer = $(this).next();
+		var listItem = $(this).parent();
+		if (listItem.attr("class").indexOf("minus") >= 0) {
 			answer.hide();
-			$(this).removeClass("minus").addClass("plus");
+			listItem.removeClass("minus").addClass("plus");
 		} else {
 			answer.show();
-			$(this).removeClass("plus").addClass("minus");
+			listItem.removeClass("plus").addClass("minus");
 		}
+	});
+
+
+	// Enforce check of Terms and Conditions (if existing) on register form
+	$('.signupSection #signupForm').submit(function() {
+		var agreeTerms = $('.signupSection #signupForm #agree-terms-input');
+		if (agreeTerms.length > 0) {
+			if (!agreeTerms.prop('checked')) {
+				var msg = 'Please agree to the Terms & Conditions';
+				$('.signupSection .signup-error #signup').html(msg);
+				return false;
+			}
+		}
+		return true;
 	});
 });

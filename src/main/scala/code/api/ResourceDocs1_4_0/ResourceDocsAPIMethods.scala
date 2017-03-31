@@ -1,17 +1,19 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory.SwaggerResourceDoc
+import code.api.util.APIUtil
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
-import net.liftweb
-import net.liftweb.common.{Empty, Box, Full, Loggable}
+import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
+import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
+import net.liftweb.common.{Box, Empty, Full, Loggable}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{S, JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
+import scala.collection.mutable
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -27,7 +29,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 
-trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
@@ -51,6 +53,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case "2.2.0" => Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.1.0" => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
@@ -61,6 +64,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case "2.2.0" => OBPAPI2_2_0.routes
         case "2.1.0" => OBPAPI2_1_0.routes
         case "2.0.0" => OBPAPI2_0_0.routes
         case "1.4.0" => OBPAPI1_4_0.routes
@@ -108,9 +112,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
 
@@ -122,18 +124,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
     // strip the leading v
     def cleanApiVersionString (version: String) : String = {version.stripPrefix("v").stripPrefix("V")}
 
-    // Todo add query parameters
-
-
-
-    // /api/item/search/foo or /api/item/search?q=foo
-//    case "search" :: q JsonGet _ =>
-//    (for {
-//      searchString <- q ::: S.params("q")
-//      item <- Item.search(searchString)
-//    } yield item).distinct: JValue
-
-
+    
 
     def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
@@ -166,11 +157,12 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
+    
+
+    
 
 
 
@@ -217,20 +209,20 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] = showCore match {
-      case Some(true) => allResources.filter(x => x.isCore == true)
-      case Some(false) => allResources.filter(x => x.isCore == false)
+      case Some(true) => allResources.filter(x => x.catalogs.core == true)
+      case Some(false) => allResources.filter(x => x.catalogs.core == false)
       case _ => allResources
     }
 
     val filteredResources2 : List[ResourceDoc] = showPSD2 match {
-      case Some(true) => filteredResources1.filter(x => x.isPSD2 == true)
-      case Some(false) => filteredResources1.filter(x => x.isPSD2 == false)
+      case Some(true) => filteredResources1.filter(x => x.catalogs.psd2 == true)
+      case Some(false) => filteredResources1.filter(x => x.catalogs.psd2 == false)
       case _ => filteredResources1
     }
 
     val filteredResources3 : List[ResourceDoc] = showOBWG match {
-      case Some(true) => filteredResources2.filter(x => x.isOBWG == true)
-      case Some(false) => filteredResources2.filter(x => x.isOBWG == false)
+      case Some(true) => filteredResources2.filter(x => x.catalogs.obwg == true)
+      case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
       case _ => filteredResources2
     }
 
@@ -264,7 +256,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion),
+        dummy(apiVersion, "DUMMY"),
         apiVersion,
         "testResourceDoc",
         "GET",
@@ -299,20 +291,18 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
-        false,
-        false,
-        false,
+        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }
 
 
 
-    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
-            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 

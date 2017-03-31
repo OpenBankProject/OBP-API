@@ -5,9 +5,10 @@ import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
-import code.model.{AccountId, BankId}
+import code.model.{AccountId, BankId, View}
 import code.products.MappedProduct
 import code.transaction.MappedTransaction
+import code.views.Views
 
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
@@ -19,7 +20,7 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save()
 }
 
-object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls with CreateOBPUsers {
+object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
 
@@ -254,6 +255,22 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
 
       MappedSaveable(mappedTransaction)
     }
+  }
+
+  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
+
+  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createPublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
+
+  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createAccountantsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
+
+  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createAuditorsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }
 
 }

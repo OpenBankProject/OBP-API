@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,12 +32,18 @@ Berlin 13359, Germany
 
 package code.api
 
+import java.util.ResourceBundle
+
 import code.api.util.APIUtil.OAuth._
-import code.model.dataAccess.OBPUser
+import code.api.util.ErrorMessages
+import code.consumer.Consumers
+import code.loginattempts.LoginAttempt
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.common.{Box, Loggable}
+import net.liftweb.common.{Box, Failure, Loggable}
+import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.scalatest._
@@ -58,17 +64,15 @@ class OAuthTest extends ServerSetup {
   //a url that will be guaranteed to resolve when the oauth redirects us to it
   val selfCallback = Props.get("hostname").openOrThrowException("hostname not set")
 
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
+  val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
+
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None).get
+
+  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None).get
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
-    OBPUser.create.
+    AuthUser.create.
       email(randomString(3)+"@example.com").
       username(randomString(9)).
       password(user1Password).
@@ -77,7 +81,19 @@ class OAuthTest extends ServerSetup {
       lastName(randomString(10)).
       saveMe
 
+  lazy val user2Password = randomString(10)
+  lazy val user2 =
+    AuthUser.create.
+      email(randomString(3)+"@example.com").
+      username(randomString(9)).
+      password(user2Password).
+      validated(false).
+      firstName(randomString(10)).
+      lastName(randomString(10)).
+      saveMe
+
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
+  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key, disabledTestConsumer.secret)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
@@ -120,12 +136,23 @@ class OAuthTest extends ServerSetup {
         pwField.sendKeys(password)
         click on XPathQuery("""//input[@type='submit']""")
         val newURL = currentUrl
+        val newPageSource = pageSource
         val verifier =
           if(newURL.contains("verifier"))
           {
             logger.info("redirected during oauth")
             val params = newURL.split("&")
             params(1).split("=")(1)
+          } 
+          else if(newPageSource.contains(ErrorMessages.UsernameHasBeenLocked ))
+          {
+            logger.info("the username has been locked")
+            XPathQuery(ErrorMessages.UsernameHasBeenLocked).element.text
+          }
+          else if(newPageSource.contains(accountValidationError))
+          {
+            logger.info(accountValidationError)
+            accountValidationError
           }
           else{
             logger.info("the verifier is in the page")
@@ -190,6 +217,15 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(notRegisteredConsumer, "localhost:8080/app")
       Then("we should get a 401 code")
       reply.code should equal (401)
+    }
+    scenario("We don't get a request token since the application is not enabled", RequestToken, Oauth) {
+      Given("The application is not enabled")
+      When("The request is sent")
+      val reply = getRequestToken(disabledConsumer, oob)
+      Then("We should get a 401 code")
+      reply.code should equal (401)
+      And("We should get message")
+      reply.body should equal (ErrorMessages.InvalidConsumerCredentials)
     }
   }
 
@@ -278,4 +314,51 @@ class OAuthTest extends ServerSetup {
       accessTokenReply.code should equal (401)
     }
   }
+
+  feature("Login in locked") {
+    scenario("valid Username, invalid password, login in too many times. The username will be locked", Verifier, Oauth) {
+      Given("we will use a valid request token to get the valid username and password")
+      val reply = getRequestToken(consumer, selfCallback)
+      val requestToken = extractToken(reply.body)
+      
+      Then("we set the valid username, invalid password and try more than 5 times")
+      val invalidPassword = "wrongpassword"
+      var verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      
+      Then("we should get a locked account verifier")
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+
+
+      Then("We login in with valid username and password, it will still be failed")
+      verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+
+      Then("we should get a locked account verifier")
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+      
+      Then("We unlock the username")
+      LoginAttempt.resetBadLoginAttempts(user1.username.get)
+
+    }
+  }
+
+  feature("We try to login with a user which is not verified") {
+    scenario("Valid username, valid password but user is not verified", Verifier, Oauth) {
+      Given("we will use a valid request token to get the valid username and password")
+      val reply = getRequestToken(consumer, selfCallback)
+      val requestToken = extractToken(reply.body)
+
+      Then("we set the valid username, valid  password and try to login")
+      val verifier = getVerifier(requestToken.value, user2.username.get, user2Password)
+
+      Then("we should get a message: " + accountValidationError)
+      verifier.contains(accountValidationError) should equal (true)
+    }
+  }
+
 }

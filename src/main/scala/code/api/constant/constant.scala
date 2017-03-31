@@ -15,3 +15,11 @@ object Constant extends Loggable {
   final val ApiPathZero = Props.get("apiPathZero", "obp")
 
 }
+
+
+
+
+object ChargePolicy extends Enumeration {
+  type ChargePolicy = Value
+  val SHARED, SENDER, RECEIVER = Value
+}

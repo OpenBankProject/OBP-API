@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE Ltd.
+Copyright (C) 2011-2017, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -38,23 +38,34 @@ Berlin 13359, Germany
 
         <link id="main_style_sheet" data-lift="WebUI.mainStyleSheet" href="/media/css/website.css" rel="stylesheet" type="text/css" />
         <link id="override_style_sheet" data-lift="WebUI.overrideStyleSheet" href="" rel="stylesheet" type="text/css" />
+        <link href="/media/css/cookies-consent.css" rel="stylesheet">
 
-
-        <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
+        <script id="jquery" src="/media/js/jquery.min.js" type="text/javascript"></script>
         <script src="/media/js/website.js" type="text/javascript"></script>
-        <script src="/media/js/toastr.min.js"></script>
+        <script src="/media/js/toastr.min.js" type="text/javascript"></script>
+        <script src="/media/js/cookies-consent.js"></script>
         <link href="/media/css/toastr.min.css" rel="stylesheet"/>
-
     </head>
     <body id="page_init">
+    <div id="cookies-consent" class="lift:WebUI.cookieConsent">
+        We use cookies to support session management.
+        <input id="clickMe"/>
+    </div>
+
     <div id="background">
         <div id="wrapper">
             <header id="header">
                 <div id="header-decoration"></div>
 
+                <div id="cookie-ipaddress-concurrent-logins" class="lift:WebUI.concurrentLoginsCookiesCheck"></div>
                 <div id="logo-left" class="lift:WebUI.headerLogoLeft">
                     <a href="/"><img src="" alt=""></a>
                 </div>
+                <div id="top-text" class="lift:WebUI.topText">
+                    This is the top text
+                </div>
+
+
                 <div id="logo-right" class="lift:WebUI.headerLogoRight">
                     <a href="/"><img src="" alt=""></a>
                 </div>
@@ -115,7 +126,7 @@ Berlin 13359, Germany
             </section>
             <footer id="footer">
                 <div id="copyright">
-                    <a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2016 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL and commercial licenses.
+                    <a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2017 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL and commercial licenses.
                 </div>
                 <div>
                     <a href="http://twitter.com/#!/OpenBankProject">Twitter</a> |
@@ -125,8 +136,18 @@ Berlin 13359, Germany
                     <a class="sofi-link lift:WebUI.sofiLink" href="">Sofi</a>
                 </div>
             </footer>
+
+
+            <footer2 id="footer2">
+                <div id="footer2-logo-left" class="lift:WebUI.footer2LogoLeft">
+                    <a href="/"><img src="" alt=""></a>
+                </div>
+
+                <div id="footer2-middle-text" class="lift:WebUI.footer2MiddleText">
+                    This is the footer2 middle text
+                </div>
+            </footer2>
         </div>
-        <!-- <a id="feedBack" href="http://polarize.it/polarize/openbankprojectdemoa_78828874370"></a> -->
     </div>
     </body>
     </html>

@@ -3,10 +3,10 @@ package code.TransactionTypes
 
 import java.util.Date
 
-
+import code.api.v2_0_0.TransactionTypeJSON
 import code.model._
 import code.transaction_types.MappedTransactionTypeProvider
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.{Props, SimpleInjector}
 
 
@@ -63,13 +63,18 @@ trait TransactionTypeProvider {
     getTransactionTypesForBankFromProvider(bankId)
   }
 
-  final def getTransactionType(transactionTypeId : TransactionTypeId) : Option[TransactionType] = {
+  final def getTransactionType(transactionTypeId: TransactionTypeId): Box[TransactionType] = {
     getTransactionTypeFromProvider(transactionTypeId)
   }
 
+  final def createOrUpdateTransactionType(postedData: TransactionTypeJSON): Box[TransactionType] = {
+    createOrUpdateTransactionTypeAtProvider(postedData)
+  }
 
   protected def getTransactionTypesForBankFromProvider(bankId : BankId) : Option[List[TransactionType]]
 
   protected def getTransactionTypeFromProvider(TransactionTypeId : TransactionTypeId) : Option[TransactionType]
+
+  protected def createOrUpdateTransactionTypeAtProvider(postedData: TransactionTypeJSON): Box[TransactionType]
 }
 

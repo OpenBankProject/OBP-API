@@ -26,13 +26,15 @@ private object MongoTransactionComments extends Comments {
         forView(viewId.value).saveTheRecord()
   }
 
-  def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Unit] = {
+  def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean] = {
     //use delete with find query to avoid concurrency issues
     OBPComment.delete(OBPComment.getFindQuery(bankId, accountId, transactionId, commentId))
 
     //we don't have any useful information here so just assume it worked
-    Full()
+    Full(true)
   }
+
+  def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = ???
 }
 
 private class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
@@ -43,7 +45,7 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  def postedBy = User.findByApiId(userId.get)
+  def postedBy = User.findByResourceUserId(userId.get)
   def viewId = ViewId(forView.get)
   def text = textField.get
   def datePosted = date.get

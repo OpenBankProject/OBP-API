@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -80,6 +80,19 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
+//Note: change csae class -> trait, for kafka extends it
+trait TransactionRequestStatus{
+  def transactionRequestid : String
+  def bulkTransactionsStatus: List[TransactionStatus]
+}
+
+
+trait TransactionStatus{
+  def transactionId : String
+  def transactionStatus: String
+  def transactionTimestamp: String
+}
+
 case class TransactionRequestId(val value : String) {
   override def toString = value
 }
@@ -112,6 +125,13 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+case class AccountRoutingAddress(val value: String) {
+  override def toString = value
+}
+
+object AccountRoutingAddress {
+  def unapply(id: String) = Some(AccountRoutingAddress(id))
+}
 
 case class CustomerId(val value : String) {
   override def toString = value
@@ -148,7 +168,9 @@ trait Bank {
   def nationalIdentifier : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(this, user)
+    Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   //This was the behaviour in v1.2 and earlier which has since been changed
@@ -164,9 +186,16 @@ trait Bank {
     }
   }
 
-  def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
+  def publicAccounts : List[BankAccount] = {
+    Views.views.vend.getPublicBankAccounts(this).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
+  }
+
   def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user, bankId)
+    Views.views.vend.getNonPublicBankAccounts(user, bankId).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -262,8 +291,7 @@ trait BankAccount {
     if(user.ownerAccess(this)){
       Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId))
     } else {
-      // TODO Correct English in failure messages (but consider compatibility of messages with older API versions)
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
   }
 
@@ -271,7 +299,7 @@ trait BankAccount {
     if(user.ownerAccess(this)){
       Full(Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label))
     } else {
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
   }
 
@@ -281,7 +309,7 @@ trait BankAccount {
       //account holders are not all set up in the db yet, so we might not get any back.
       //In this case, we just use the previous behaviour, which did not return very much information at all
       Set(new User {
-        val apiId = UserId(-1)
+        val resourceUserId = UserId(-1)
         val userId = ""
         val idGivenByProvider = ""
         val provider = ""
@@ -328,7 +356,7 @@ trait BankAccount {
   final def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
-      Full(Views.views.vend.permissions(this))
+      Full(Views.views.vend.permissions(BankAccountUID(this.bankId,this.accountId)))
     else
       Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
@@ -344,10 +372,10 @@ trait BankAccount {
     if(user.ownerAccess(this))
       for{
         u <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
-        p <- Views.views.vend.permission(this, u)
+        p <- Views.views.vend.permission(BankAccountUID(this.bankId,this.accountId), u)
         } yield p
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -365,7 +393,7 @@ trait BankAccount {
         savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -383,7 +411,7 @@ trait BankAccount {
         grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
       } yield grantedViews
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -401,7 +429,7 @@ trait BankAccount {
         isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -417,10 +445,10 @@ trait BankAccount {
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAllPermission(bankId, accountId, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
       } yield isRevoked
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
 
@@ -430,23 +458,23 @@ trait BankAccount {
 
   final def views(user : User) : Box[List[View]] = {
     //check if the user has access to the owner view in this the account
-    if(user.ownerAccess(this))
-      Full(Views.views.vend.views(this))
+    if(user.ownerAccess(this)) {
+      Full(Views.views.vend.views(BankAccountUID(this.bankId,this.accountId))) }
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   final def createView(userDoingTheCreate : User,v: CreateViewJSON): Box[View] = {
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.createView(this, v)
-      
+      val view = Views.views.vend.createView(BankAccountUID(this.bankId,this.accountId), v)
+
       if(view.isDefined) {
         log.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
-      
+
       view
     }
   }
@@ -455,13 +483,13 @@ trait BankAccount {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(this, viewId, v)
-      
+      val view = Views.views.vend.updateView(BankAccountUID(this.bankId,this.accountId), viewId, v)
+
       if(view.isDefined) {
         log.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
-      
+
       view
     }
   }
@@ -470,7 +498,7 @@ trait BankAccount {
     if(!userDoingTheRemove.ownerAccess(this)) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewId, this)
+      val deleted = Views.views.vend.removeView(viewId, BankAccountUID(this.bankId,this.accountId))
 
       if (deleted.isDefined) {
           log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
@@ -481,7 +509,7 @@ trait BankAccount {
     }
   }
 
-  final def publicViews : List[View] = Views.views.vend.publicViews(this)
+  final def publicViews : List[View] = Views.views.vend.publicViews(BankAccountUID(this.bankId,this.accountId))
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
@@ -520,7 +548,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getOtherBankAccounts(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**
@@ -530,9 +558,9 @@ trait BankAccount {
   * @return a Box of a ModeratedOtherBankAccounts, it a bank
   *  account that have at least one transaction in common with this bank account
   */
-  final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
+  final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getOtherBankAccount(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
+      Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
 
@@ -553,15 +581,21 @@ object BankAccount {
   }
 
   def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getAllPublicAccounts
+    Views.views.vend.getAllPublicAccounts.flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(user)
+    Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user)
+    Views.views.vend.getNonPublicBankAccounts(user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 }
 
@@ -570,27 +604,39 @@ The other bank account or counterparty in a transaction
 as see from the perspective of the original party.
  */
 
-class OtherBankAccount(
-  val id : String,
-  val label : String,               // Reference given to the counterparty by the original party.
-  val nationalIdentifier : String,  // National identifier for a bank account (how is this different to number below?)
-  val swift_bic : Option[String],   // The international bank identifier
-  val iban : Option[String],        // The international account identifier
-  val number : String,              // Bank account number for the counterparty
-  val bankName : String,            // Bank name of counterparty. What if the counterparty is not a bank? Rename to institution?
-  val kind : String,                // Type of bank account.
-  val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
-  val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
-  val alreadyFoundMetadata : Option[OtherBankAccountMetadata]
-  ) {
 
-  val metadata : OtherBankAccountMetadata = {
+// Note: See also CounterpartyTrait
+class Counterparty(
+
+                    // The following four fields are older version, pleae first consider the V210
+                    @(deprecated) val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    val alreadyFoundMetadata : Option[CounterpartyMetadata],
+                    val label : String, // Reference given to the counterparty by the original party.
+                    val kind : String, // Type of bank account.
+
+                    // The following fields started from V210
+                    val counterPartyId: String,
+                    val name: String,
+                    val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    val otherAccountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
+                    val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+                    val otherBankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
+                    val thisBankId : BankId, // i.e. the Account that sends/receives money to/from this Counterparty
+                    val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
+                    val otherBankId : BankId, // These 3 fields specify the internal locaiton of the account for the
+                    val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
+                    val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
+                    val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
+  )
+{
+
+  val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(originalPartyBankId, originalPartyAccountId, this)
+        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this).openOrThrowException("Can not getOrCreateMetadata !")
     }
   }
 }
@@ -602,25 +648,25 @@ trait TransactionUUID {
 }
 
 class Transaction(
-  //A universally unique id
-  val uuid : String,
-  //id is unique for transactions of @thisAccount
-  val id : TransactionId,
-  val thisAccount : BankAccount,
-  val otherAccount : OtherBankAccount,
-  //E.g. cash withdrawal, electronic payment, etc.
-  val transactionType : String,
-  val amount : BigDecimal,
-  //ISO 4217, e.g. EUR, GBP, USD, etc.
-  val currency : String,
-  // Bank provided label
-  val description : Option[String],
-  // The date the transaction was initiated
-  val startDate : Date,
-  // The date when the money finished changing hands
-  val finishDate : Date,
-  //the new balance for the bank account
-  val balance :  BigDecimal
+                   //A universally unique id
+                   val uuid: String,
+                   //id is unique for transactions of @thisAccount
+                   val id : TransactionId,
+                   val thisAccount : BankAccount,
+                   val otherAccount : Counterparty,
+                   //E.g. cash withdrawal, electronic payment, etc.
+                   val transactionType : String,
+                   val amount : BigDecimal,
+                   //ISO 4217, e.g. EUR, GBP, USD, etc.
+                   val currency : String,
+                   // Bank provided label
+                   val description : Option[String],
+                   // The date the transaction was initiated
+                   val startDate : Date,
+                   // The date when the money finished changing hands
+                   val finishDate : Date,
+                   //the new balance for the bank account
+                   val balance :  BigDecimal
 ) {
 
   val bankId = thisAccount.bankId
@@ -658,4 +704,8 @@ class Transaction(
 case class AmountOfMoney (
   val currency: String,
   val amount: String
+)
+
+case class Iban(
+  val iban: String
 )

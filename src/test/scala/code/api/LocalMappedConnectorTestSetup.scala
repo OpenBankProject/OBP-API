@@ -1,15 +1,20 @@
 package code.api
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
+import code.accountholder.AccountHolders
+import code.entitlement.{Entitlement, MappedEntitlement}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.model.dataAccess._
-import net.liftweb.common.Box
-import net.liftweb.mapper.MetaMapper
-import net.liftweb.util.Helpers._
-import code.entitlement.{Entitlement, MappedEntitlement}
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests
+import code.views.Views
+import net.liftweb.common.Box
+import net.liftweb.mapper.{By, MetaMapper}
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
 import scala.util.Random
 
@@ -24,6 +29,22 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .shortBankName(randomString(5))
           .permalink(id)
           .national_identifier(randomString(5)).saveMe
+  }
+
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId: String): CounterpartyTrait = {
+    Counterparties.counterparties.vend.createCounterparty(createdByUserId = createdByUserId,
+      thisBankId = bankId,
+      thisAccountId = accountId,
+      thisViewId = "",
+      name = UUID.randomUUID().toString,
+      otherAccountRoutingAddress = accountId,
+      otherAccountRoutingScheme = otherAccountRoutingScheme,
+      otherBankRoutingScheme = "OBP",
+      otherBankRoutingAddress = bankId,
+      otherBranchRoutingScheme ="OBP",
+      otherBranchRoutingAddress ="Berlin",
+      isBeneficiary = isBeneficiary
+    ).get
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded
@@ -49,10 +70,14 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .bank(bankId.value)
       .theAccountId(accountId.value)
       .accountCurrency(currency)
-      .accountBalance(10000)
+      .accountBalance(900000000)
       .holder(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4)).saveMe
+  }
+
+  override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).get.accountCurrency(currency).saveMe()
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
@@ -98,10 +123,17 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   override protected def wipeTestData() = {
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
-      m == Nonce || m == Token || m == Consumer || m == OBPUser || m == APIUser
+      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    if (!Props.getBool("remotedata.enable", false)) {
+      ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    } else {
+      Views.views.vend.bulkDeleteAllPermissionsAndViews()
+      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+      TransactionRequests.transactionRequestProvider.vend.bulkDeleteTransactionRequests()
+    }
   }
 }

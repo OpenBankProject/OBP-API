@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -32,17 +32,15 @@ Berlin 13359, Germany
 
 package code.api
 
-import net.liftweb.common.{Box,Full,Loggable}
-import net.liftweb.mapper.By
-import net.liftweb.http.S
+import code.token.Tokens
+import code.model.{Token, TokenType}
+import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Props
-import net.liftweb.http.JsonResponse
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import code.model.Token
-import code.model.TokenType
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 case class ErrorMessage(
   error : String
@@ -94,7 +92,7 @@ object BankMockAPI extends RestHelper with Loggable {
   }
 
   def requestToken(token : String) : Box[Token] =
-    Token.find(By(Token.key,token), By(Token.tokenType,TokenType.Request))
+    Tokens.tokens.vend.getTokenByKeyAndType(token, TokenType.Request)
 
   serve("obp" / "v1.0" prefix {
     case "request-token-verification" :: Nil JsonGet _ => {

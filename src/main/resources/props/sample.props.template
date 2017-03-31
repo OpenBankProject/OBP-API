@@ -4,60 +4,97 @@
 ### OBP-API configuration
 
 
-### base configuration
+### Base configuration
 
-#which data connector to use
+## Which data connector to use
 connector=mapped
 #connector=mongodb
 #connector=kafka
-#connector=kafka_lib_v0
+#conenctor=kafka_vMar2017
+#connector=obpjvm
 #connector=...
 
-#if using kafka connector, set zookeeper host
-#kafka.zookeeper_host=123.45.67.89:2181
+## Connector cache time-to-live in seconds, caching disabled if not set
+#connector.cache.ttl.seconds=3
 
-#cache time to live in seconds, caching disabled if not set
-#kafka.cache.ttl.seconds=3
+## OBP-JVM transport type. currently supported: kafka, mock
+#obpjvm.transport=kafka
 
-#if using kafka connector, the following is mandatory
+## Transaction status scheduler delay in seconds.
+## Retrieves trasactionRequest status from south-side connector.
+## Scheduler will be disabled if delay is not set.
+#transaction_status_scheduler_delay=300
+
+## If using kafka, set zookeeper host and brokers
+#kafka.zookeeper_host=localhost:2181
+#kafka.bootstrap_hosts=localhost:9092
+
+## If using kafka, the following is mandatory
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
+## Enable user authentication via kafka
+#kafka.user.authentication=true
 
-#ElasticSearch
+## Enable user authentication via obpjvm 
+#obpjvm.user.authentication=true
+
+
+## Enable writing API metrics (which APIs are called) to RDBMS
+write_metrics=true
+
+## ElasticSearch
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true
 #allow_elasticsearch_metrics=true
 
-#ElasticSearch warehouse
+## ElasticSearch warehouse
 #es.warehouse.index=warehouse
 #es.warehouse.host=localhost
 #es.warehouse.port.tcp=9300
 #es.warehouse.port.http=9200
 
-#ElasticSearch metrics
+## ElasticSearch metrics
 #es.metrics.index=metrics
 #es.metrics.host=localhost
 #es.metrics.port.tcp=9300
 #es.metrics.port.http=9200
 
 
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver
 #db.driver=org.h2.Driver
 #db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
-#our own remotely accessible URL
-#this is needed for oauth to work. it's important to access the api over this url, e.g.
-# if this is 127.0.0.1 don't use localhost to access it.
-# (this needs to be a URL)
+## Enable remote Akka actor for data split
+## If set to true, must set hostname and port
+## of remote machine
+#remotedata.loglevel=INFO
+#remotedata.timeout=2
+#remotedata.enable=true
+#remotedata.hostname=127.0.0.1
+#remotedata.port=2662
+
+## Set separate database for data split
+## If remotedata is disabled, bd has to be accessible from local machine
+## If remotedata is enabled, db has to be accessible from remote machine
+#remotedata.db.driver=org.h2.Driver
+#remotedata.db.url=jdbc:h2:./lift_proto.db.remotedata;DB_CLOSE_ON_EXIT=FALSE
+#remotedata.db.username=user
+#remotedata.db.password=secret
+
+
+## Our own remotely accessible URL
+## This is needed for oauth to work. it's important to access the api over this url, e.g.
+## If this is 127.0.0.1 do NOT use localhost to access it.
+## (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
-#this is only useful for running the api locally via RunWebApp
-#if you use it, make sure this matches your hostname port!
-#if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
+## This is only useful for running the api locally via RunWebApp
+## If you use it, make sure this matches your hostname port!
+## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
 dev.port=8080
 
 
@@ -68,81 +105,98 @@ dev.port=8080
 #Default value is obp (highly recomended)
 apiPathZero=obp
 
-#sending mail out
-#not need in dev mode, but important for production
+## Sending mail out
+## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
+# This property allows sending API registration data to developer's email.
+#mail.api.consumer.registered.notification.send=false
+We only send consumer keys and secret if this is true
+#mail.api.consumer.registered.notification.send.sensistive=false
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
-#oauth token timeout
+## Oauth token timeout
 token_expiration_weeks=4
 
 
 
-### sandbox
+### Sandbox
 
-#set this to true if you want to allow users to create sandbox test accounts with a starting balance
+## Set this to true if you want to allow users to create sandbox test accounts with a starting balance
 allow_sandbox_account_creation=true
 
-#set this to true if you want to allow the "data import" api call
+## Set this to true if you want to allow the "data import" api call
 allow_sandbox_data_import=true
 
-#secret key that allows access to the "data import" api. You should change this to your own secret key
+# Secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=change_me
 
 
 
-### api features
+### API features
 
-#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+## Secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
 cashApplicationKey=change_me
 
-#set this to false if you don't want the api payments call to work (starting with v1.2.1)
+## Set this to false if you don't want the api payments call to work (starting with v1.2.1)
 payments_enabled=true
 
-#transaction requests are replacing simple payments starting from 1.4.0
+## Transaction requests are replacing simple payments starting from 1.4.0
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
-transactionRequests_supported_types=SANDBOX_TAN,INTRABANK,SEPA,FREE_FORM
+
+## Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM
+transactionRequests_supported_types=SANDBOX_TAN,COUNTERPARTY,SEPA
+
+## Transaction request challenge threshold. Level at which challenge is created and needs to be answered.
+## The Currency is EUR unless set with transactionRequests_challenge_currency.
+## The values specified here are converted to the transaction currency.
+## Connector implementation may well provide dynamic response
+## These settings are of the form transactionRequests_challenge_threshold_UPPERCASETYPE=INTEGER
+transactionRequests_challenge_threshold_SANDBOX_TAN=1000
+transactionRequests_challenge_threshold_SEPA=1000
+
+# To set a currency for the above value:
+#transactionRequests_challenge_currency=KRW
 
 
-# For video conference meetings (createMeeting)
+## For video conference meetings (createMeeting)
 meeting.tokbox_enabled=false
 meeting.tokbox_api_key=changeme
 meeting.tokbox_api_secret=changeme
 
 
 
-### management modules
+### Management modules
 
-#rabbitMQ settings (used to communicate with HBCI project)
+## RabbitMQ settings (used to communicate with HBCI project)
 connection.host=localhost
 connection.user=theusername
 connection.password=thepassword
 
-#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+## Secret key that allows access to the "add transactions" api. You should change this to your own secret key
 importer_secret=change_me
 
-#set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
+## Set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
 messageQueue.updateBankAccountsTransaction=false
 
-#the minimum time between updates in hours
+## The minimum time between updates in hours
 messageQueue.updateTransactionsInterval=1
 
-#set this to true if you want to have the api listen for "create account" messages from the hbci project
+## Set this to true if you want to have the api listen for "create account" messages from the hbci project
 messageQueue.createBankAccounts=true
 
-#set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
+## Set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
 allow_account_deletion=true
 
-#secret key that allows access to api calls to get info about oauth tokens. You should change this
-#to your own secret key
+## Secret key that allows access to api calls to get info about oauth tokens. You should change this
+## to your own secret key
 BankMockKey=change_me
 
 
 
-### web interface configuration
+## Web interface configuration
 webui_header_logo_left_url = /media/images/logo.png
 webui_header_logo_right_url =
 webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
@@ -150,12 +204,25 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                         Welcome to the API Sandbox powered by the Open Bank Project! <br/> \
                                       </p>
 
+# Top text appears on default.html For branding next to logo(s)
+webui_top_text=""
+
+
+
+# Bottom Footer logo
+#webui_footer2_logo_left_url=
+# Bottom Footer middle text
+#webui_footer2_middle_text=
+
 
 # API Explorer url. Change to your instance
 webui_api_explorer_url = http://apiexplorer.openbankproject.com
 
 # Sofi url. (AKA Social Finance) Change to your instance
 webui_sofi_url = http://sofi.openbankproject.com
+
+# API Manager url. Change to your instance
+webui_api_manager_url = http://apimanager.openbankproject.com
 
 # Starting page of documentation. Change this if you have a specific landing page.
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
@@ -181,6 +248,16 @@ webui_main_style_sheet = /media/css/website.css
 # Override certain elements (with important styles)
 webui_override_style_sheet =
 
+## Link to agree to Terms & Conditions, shown on signup page
+webui_agree_terms_url =
+
+
+# If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
+# Will be displayed on the post Consumer Registration page.
+#webui_post_consumer_registration_more_info_url =
+#webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
+
+
 
 ## API Options
 apiOptions.getBranchesIsPublic = true
@@ -188,10 +265,55 @@ apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
 apiOptions.getTransactionTypesIsPublic = true
 
-# Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
-# e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
+## Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
+## e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 
-#  Super Admin Users (not database so we don't have to edit database)
+## Super Admin Users (not database so we don't have to edit database)
 super_admin_user_ids=USER_ID1,USER_ID2,
+
+api_disabled_versions=[\
+version1,\
+version2,\
+...,\
+versionN]
+
+api_disabled_endpoints=[\
+endpoint1,\
+endpoint2,\
+...,\
+endpointN]
+
+
+## OpenId Connect can be used to retrieve User informaiton from an 
+## external OpenID Connect server. 
+## To use an external OpenID Connect server,
+## you will need to change these values.
+## The following values provided for a temp test account. 
+## CallbackURL 127.0.0.1:8080 should work in most cases.
+## Note: The email address used for login must match one 
+## registered on OBP localy.
+#allow_openidconnect=true
+#openidconnect.clientSecret=CEX3Oud7N8p69qCnNTWvnic3-1ortVlGnD1GXgzxpDW-GjD5_3xG1-G5Kln3K9FA
+#openidconnect.clientId=yzKGC1ZKYqwYRpvbDaTq2r8mEQLY31D4
+#openidconnect.domain=justatest.eu.auth0.com
+#openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
+#openidconnect.url.login=https://cdn.auth0.com/js/lock/10.2/lock.min.js
+#openidconnect.url.userinfo=https://justatest.eu.auth0.com/userinfo
+#openidconnect.url.token=https://justatest.eu.auth0.com/oauth/token
+#openidconnect.url.buttonImage=http://wiki.openid.net/f/openid-logo-wordmark.png
+
+# When new consumers inserted they should use this setting.
+consumers_enabled_by_default=true
+
+# Autocomplete for login form has to be explicitly set
+autocomplete_at_login_form_enabled=false
+
+# Skip Auth User Email validation (defaults to true)
+#authUser.skipEmailValidation=true
+
+# If using Kafka but want to get counterparties from OBP, set this to true
+#get_counterparties_from_OBP_DB=true
+
+

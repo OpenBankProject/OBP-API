@@ -14,34 +14,42 @@
   }],
   "users":[{
     "email":"robert.xuk.x@example.com",
+    "user_name": "robert.xuk.x@example.com",
     "password":"5232e7",
     "display_name":"Robert XUk X"
   },{
     "email":"susan.xuk.x@example.com",
+    "user_name": "susan.xuk.x@example.com",
     "password":"43ca4d",
     "display_name":"Susan XUk X"
   },{
     "email":"anil.xuk.x@example.com",
+    "user_name": "anil.xuk.x@example.com",
     "password":"d8c716",
     "display_name":"Anil XUk X"
   },{
     "email":"ellie.xuk.x@example.com",
+    "user_name": "ellie.xuk.x@example.com",
     "password":"6187b9",
     "display_name":"Ellie XUk X"
   },{
     "email":"robert.yuk.y@example.com",
+    "user_name": "robert.yuk.y@example.com",
     "password":"e5046a",
     "display_name":"Robert YUk Y"
   },{
     "email":"susan.yuk.y@example.com",
+    "user_name": "susan.yuk.y@example.com",
     "password":"5b38a6",
     "display_name":"Susan YUk Y"
   },{
     "email":"anil.yuk.y@example.com",
+    "user_name": "anil.yuk.y@example.com",
     "password":"dcf03d",
     "display_name":"Anil YUk Y"
   },{
     "email":"ellie.yuk.y@example.com",
+    "user_name": "ellie.yuk.y@example.com",
     "password":"4f9eaa",
     "display_name":"Ellie YUk Y"
   }],

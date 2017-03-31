@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -48,7 +48,7 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
 
   override def dbTableName = "admins" // define the DB table name
     
-  //override some MetaMegaProtoUser fields to avoid conflicting urls/menus with OBPUser 
+  //override some MetaMegaProtoUser fields to avoid conflicting urls/menus with AuthUser 
   override def basePath = "admin_mgt" :: Nil
   override def menuNameSuffix = "Admin"
 

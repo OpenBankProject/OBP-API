@@ -11,11 +11,12 @@ import net.liftweb.common.Loggable
 //implementation
 object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with Loggable {
 
-  val VERSION = "1.3.0"
+  val version = "1.3.0"
+  val versionStatus = "STABLE"
 
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
   val routes = List(
-    Implementations1_2_1.root(VERSION),
+    Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.allAccountsAllBanks,
@@ -35,15 +36,15 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_2_1.addPermissionForUserForBankAccountForOneView,
     Implementations1_2_1.removePermissionForUserForBankAccountForOneView,
     Implementations1_2_1.removePermissionForUserForBankAccountForAllViews,
-    Implementations1_2_1.getCounterpartiesForBankAccount,
-    Implementations1_2_1.getCounterpartyByIdForBankAccount,
-    Implementations1_2_1.getCounterpartyMetadata,
+    Implementations1_2_1.getOtherAccountsForBankAccount,
+    Implementations1_2_1.getOtherAccountByIdForBankAccount,
+    Implementations1_2_1.getOtherAccountMetadata,
     Implementations1_2_1.getCounterpartyPublicAlias,
     Implementations1_2_1.addCounterpartyPublicAlias,
     Implementations1_2_1.updateCounterpartyPublicAlias,
     Implementations1_2_1.deleteCounterpartyPublicAlias,
-    Implementations1_2_1.getCounterpartyPrivateAlias,
-    Implementations1_2_1.addCounterpartyPrivateAlias,
+    Implementations1_2_1.getOtherAccountPrivateAlias,
+    Implementations1_2_1.addOtherAccountPrivateAlias,
     Implementations1_2_1.updateCounterpartyPrivateAlias,
     Implementations1_2_1.deleteCounterpartyPrivateAlias,
     Implementations1_2_1.addCounterpartyMoreInfo,
@@ -83,7 +84,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getCounterpartyForTransaction,
+    Implementations1_2_1.getOtherAccountForTransaction,
     Implementations1_2_1.makePayment,
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank

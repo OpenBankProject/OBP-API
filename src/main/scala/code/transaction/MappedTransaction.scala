@@ -19,8 +19,11 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object transactionId extends MappedString(this, 255) {
     override def defaultValue = UUID.randomUUID().toString
   }
+  
   //TODO: review the need for this
   // (why do we need transactionUUID and transactionId - which is a UUID?)
+  // This a history problem, previous we do not used transactionId as a UUID. But late we changed it to a UUID.
+  // The UUID is used in V1.1, a long time ago version. So just leave it here now.
   object transactionUUID extends MappedUUID(this)
   object transactionType extends MappedString(this, 100)
 
@@ -34,6 +37,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object tFinishDate extends MappedDateTime(this)
 
   object description extends DefaultStringField(this)
+  object chargePolicy extends DefaultStringField(this)
 
   object counterpartyAccountNumber extends MappedAccountNumber(this)
   object counterpartyAccountHolder extends MappedString(this, 100)
@@ -45,6 +49,18 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
 
+  //The following are the fields from CounterpartyTrait, previous just save BankAccount to simulate the counterparty.
+  //Now we save the real Counterparty data 
+  //CP--> CounterParty
+  object CPOtherBankId extends MappedString(this, 36)
+  object CPOtherAccountId extends MappedString(this, 36)
+  object CPOtherAccountProvider extends MappedString(this, 36)
+  object CPCounterPartyId extends MappedString(this, 36)
+  object CPOtherAccountRoutingScheme extends MappedString(this, 255)
+  object CPOtherAccountRoutingAddress extends MappedString(this, 255)
+  object CPOtherBankRoutingScheme extends MappedString(this, 255)
+  object CPOtherBankRoutingAddress extends MappedString(this, 255)
+  
   //This is a holder for storing data from a previous model version that wasn't set correctly
   //e.g. some previous models had counterpartyAccountNumber set to a string that was clearly
   //not a valid account number, though the string may have actually contained the account number
@@ -84,19 +100,24 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-        new OtherBankAccount(
-          id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+      def createCounterparty(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+        new Counterparty(
+          counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = counterpartyAccountHolder.get,
           nationalIdentifier = counterpartyNationalId.get,
-          swift_bic = None, //TODO: need to add this to the json/model
-          iban = getCounterpartyIban(),
-          number = counterpartyAccountNumber.get,
-          bankName = counterpartyBankName.get,
+          otherBankRoutingAddress = None, 
+          otherAccountRoutingAddress = getCounterpartyIban(),
+          thisAccountId = AccountId(counterpartyAccountNumber.get),
+          thisBankId = BankId(counterpartyBankName.get),
           kind = counterpartyAccountKind.get,
-          originalPartyBankId = theBankId,
-          originalPartyAccountId = theAccountId,
-          alreadyFoundMetadata = alreadyFoundMetadata
+          otherBankId = theBankId,
+          otherAccountId = theAccountId,
+          alreadyFoundMetadata = alreadyFoundMetadata,
+          name = "",
+          otherBankRoutingScheme = "",
+          otherAccountRoutingScheme="",
+          otherAccountProvider = "",
+          isBeneficiary = true
         )
       }
 
@@ -106,24 +127,24 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       //so that we know what id to give it.
 
       //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      val dummyOtherBankAccount = createOtherBankAccount(None)
+      val dummyOtherBankAccount = createCounterparty(None)
 
       //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
       //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+      val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
 
       Some(new Transaction(
-        transactionUUID.get,
-        theTransactionId,
-        account,
-        otherAccount,
-        transactionType.get,
-        amt,
-        transactionCurrency,
-        label,
-        tStartDate.get,
-        tFinishDate.get,
-        newBalance))
+                            transactionUUID.get,
+                            theTransactionId,
+                            account,
+                            otherAccount,
+                            transactionType.get,
+                            amt,
+                            transactionCurrency,
+                            label,
+                            tStartDate.get,
+                            tFinishDate.get,
+                            newBalance))
     }
   }
 

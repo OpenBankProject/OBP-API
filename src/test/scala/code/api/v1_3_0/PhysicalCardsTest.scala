@@ -3,18 +3,30 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.{DefaultUsers, ServerSetup}
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
+import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
+import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
+import code.metadata.counterparties.CounterpartyTrait
+import code.model.{Consumer, PhysicalCard, _}
+import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Box, Empty, Failure, Loggable}
-
-class PhysicalCardsTest extends ServerSetup with DefaultUsers {
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import code.products.Products.{Product, ProductCode}
+import code.transactionrequests.TransactionRequestTypeCharge
+class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
+
+  lazy val bank = createBank("a-bank")
+  lazy val accId = "a-account"
+  lazy val accountCurrency = "EUR"
+  lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
 
   def createCard(number : String) = new PhysicalCard(
     bankCardNumber = number,
@@ -27,9 +39,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     cancelled = false,
     onHotList = false,
     technology = "",
-    networks = Set.empty,
-    allows = Set.empty,
-    account = None,
+    networks = List(),
+    allows = List(),
+    account = account,
     replacement = None,
     pinResets = Nil,
     collected = None,
@@ -41,23 +53,41 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   val user2CardAtBank1 = createCard("a")
   val user2CardAtBank2 = createCard("b")
 
-  val user1AllCards = Set(user1CardAtBank1, user1CardAtBank2)
-  val user2AllCards = Set(user2CardAtBank1, user2CardAtBank2)
+  val user1AllCards = List(user1CardAtBank1, user1CardAtBank2)
+  val user2AllCards = List(user2CardAtBank1, user2CardAtBank2)
 
-  val user1CardsForOneBank = Set(user1CardAtBank1)
-  val user2CardsForOneBank = Set(user2CardAtBank1)
+  val user1CardsForOneBank = List(user1CardAtBank1)
+  val user2CardsForOneBank = List(user2CardAtBank1)
 
   object MockedCardConnector extends Connector with Loggable {
 
     type AccountType = BankAccount
 
+    override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
+    override def getUser(name: String, password: String): Box[InboundUser] = ???
+    def updateUserAccountViews(user: ResourceUser): Unit = ???
+
     //these methods aren't required by our test
-    override def getBank(bankId : BankId) : Box[Bank] = Empty
+    // override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
+    override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
+
+    override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = AmountOfMoney("EUR", "0")
+    // parameters in non ideal order override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+    override def getChargeLevel(bankId: BankId,
+                                accountId: AccountId,
+                                viewId: ViewId,
+                                userId: String,
+                                userName: String,
+                                transactionRequestType: String,
+                                currency: String): Box[AmountOfMoney] = Empty
+    override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
+    override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
-    override def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount] =
+    override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+    override def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =
       Empty
-    override def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount] =
+    override def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty] =
       Nil
     override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
@@ -65,38 +95,65 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       Empty
 
     //these methods are required
-    override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
-      if(user == obpuser1) {
+    override def getPhysicalCards(user : User) : List[PhysicalCard] = {
+      if(user == authuser1) {
         user1AllCards
-      } else if (user == obpuser2) {
+      } else if (user == authuser2) {
         user2AllCards
       } else {
-        Set.empty
+        List()
       }
     }
 
-    override def getPhysicalCardsForBank(bankId : BankId, user : User) : Set[PhysicalCard] = {
-      if(user == obpuser1) {
+    override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = {
+      if(user == authuser1) {
         user1CardsForOneBank
-      } else if (user == obpuser2) {
+      } else if (user == authuser2) {
         user2CardsForOneBank
       } else {
-        Set.empty
+        List()
       }
+    }
+
+    def AddPhysicalCard(bankCardNumber: String,
+                        nameOnCard: String,
+                        issueNumber: String,
+                        serialNumber: String,
+                        validFrom: Date,
+                        expires: Date,
+                        enabled: Boolean,
+                        cancelled: Boolean,
+                        onHotList: Boolean,
+                        technology: String,
+                        networks: List[String],
+                        allows: List[String],
+                        accountId: String,
+                        bankId: String,
+                        replacement: Option[CardReplacementInfo],
+                        pinResets: List[PinResetInfo],
+                        collected: Option[CardCollectionInfo],
+                        posted: Option[CardPostedInfo]
+                       ) : Box[PhysicalCard] = {
+      Empty
     }
 
     override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
 
-    override def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId] =
+    protected override def makePaymentImpl(fromAccount:AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] =
       Failure("not supported")
     override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                               account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
       Failure("not supported")
     }
-    override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                              account : BankAccount, details: String,
-                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                           transactionRequestType: TransactionRequestType,
+                                                           account: BankAccount, toAccount: BankAccount,
+                                                           toCounterparty: CounterpartyTrait,
+                                                           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                           details: String, status: String,
+                                                           charge: TransactionRequestCharge,
+                                                           chargePolicy: String): Box[TransactionRequest] = {
       Failure("not supported")
     }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
@@ -104,7 +161,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = ???
 
     override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
-    override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
+    override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
     override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
     override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
       Failure("not supported")
@@ -134,6 +191,34 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
     override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
     override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
+
+    override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+    override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+
+    override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
+    override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
+
+    override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
+    
+    override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
+
+    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+
+    override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+    
+    override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
+
+    override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
+
+    override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+    /**
+      * this method is just return an empty account to AccountType.
+      * It is used for SEPA, Counterparty empty toAccount, just used the toCounterparty
+      *
+      * @return empty bankAccount
+      */
+    override def getEmptyBankAccount(): Box[AccountType] = Empty
   }
 
   override def beforeAll() {
@@ -164,7 +249,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       And("We should get the correct cards")
       val expectedCardNumbers = user1AllCards.map(_.bankCardNumber)
       val json = response.body.extract[PhysicalCardsJSON]
-      val returnedCardNumbers = json.cards.map(_.bank_card_number).toSet
+      val returnedCardNumbers = json.cards.map(_.bank_card_number)
 
       returnedCardNumbers should equal(expectedCardNumbers)
     }
@@ -173,7 +258,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       When("A user requests their cards")
 
       //our dummy connector doesn't care about the value of the bank id, so we can just use "somebank"
-      val request = (v1_3Request / "banks" / "somebank" / "cards").GET <@(user1)
+      val request = (v1_3Request / "banks" / bank.bankId.value / "cards").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -185,7 +270,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
       val expectedCardNumbers = user1CardsForOneBank.map(_.bankCardNumber)
       val json = response.body.extract[PhysicalCardsJSON]
-      val returnedCardNumbers = json.cards.map(_.bank_card_number).toSet
+      val returnedCardNumbers = json.cards.map(_.bank_card_number)
 
       returnedCardNumbers should equal(expectedCardNumbers)
     }

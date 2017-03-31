@@ -3,7 +3,7 @@ package code.customer
 import java.util.Date
 
 import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.mapper._
 
@@ -11,7 +11,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
 
   override def getMessages(user: User, bankId : BankId): List[CustomerMessage] = {
     MappedCustomerMessage.findAll(
-      By(MappedCustomerMessage.user, user.apiId.value),
+      By(MappedCustomerMessage.user, user.resourceUserId.value),
       By(MappedCustomerMessage.bank, bankId.value),
       OrderBy(MappedCustomerMessage.updatedAt, Descending))
   }
@@ -22,7 +22,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
       .mFromDepartment(fromDepartment)
       .mFromPerson(fromPerson)
       .mMessage(message)
-      .user(user.apiId.value)
+      .user(user.resourceUserId.value)
       .bank(bankId.value).save()
   }
 }
@@ -32,7 +32,7 @@ class MappedCustomerMessage extends CustomerMessage
 
   def getSingleton = MappedCustomerMessage
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object bank extends DefaultStringField(this)
 
   object mFromPerson extends DefaultStringField(this)

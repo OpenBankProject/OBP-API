@@ -15,6 +15,10 @@ object Products extends SimpleInjector {
   // Good to have this as a class because when passing as argument, we get compiler error if passing the wrong type.
   case class ProductCode(value : String)
 
+  object ProductCode {
+    def unapply(id : String) = Some(ProductCode(id))
+  }
+
   trait Product {
     def code : ProductCode
     def bankId : BankId
@@ -23,6 +27,8 @@ object Products extends SimpleInjector {
     def family : String
     def superFamily : String
     def moreInfoUrl: String
+    def details :String
+    def description: String
     def meta : Meta
   }
 

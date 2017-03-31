@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -36,7 +36,8 @@ import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.api.{SendServerRequests, APIResponse}
+import code.accountholder.AccountHolders
+import code.api.{APIResponse, SendServerRequests}
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, countOfAtms}
@@ -44,13 +45,11 @@ import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, countOfBranches}
 import code.crm.CrmEvent
 import code.crm.CrmEvent
-import code.crm.CrmEvent.{CrmEventId, CrmEvent}
-
+import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.products.Products
 import code.products.Products.{Product, ProductCode, countOfProducts}
-
 import code.model.dataAccess._
-import code.model.{TransactionId, AccountId, BankId}
+import code.model._
 import code.products.Products.ProductCode
 import code.users.Users
 import code.views.Views
@@ -58,12 +57,12 @@ import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.scalatest.{BeforeAndAfterEach, ShouldMatchers, FlatSpec}
+import org.scalatest.{BeforeAndAfterEach, FlatSpec, ShouldMatchers}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
-import net.liftweb.common.{Full, Empty}
+import net.liftweb.common.{Empty, Full, ParamFailure}
 
 /*
 This tests:
@@ -93,6 +92,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
+    if (!Props.getBool("remotedata.enable", false)) {
+      ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
+    } else {
+      Views.views.vend.bulkDeleteAllPermissionsAndViews()
+      Users.users.vend.bulkDeleteAllResourceUsers()
+      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+    }
   }
 
 
@@ -294,14 +300,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
-
     //there should be an owner view
-    val views = foundAccount.views(owner).get
+    val views = Views.views.vend.permittedViews(owner, BankAccountUID(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
     ownerView.isDefined should equal(true)
 
     //and the owners should have access to it
-    ownerView.get.users.map(_.idGivenByProvider).toSet should equal(account.owners.toSet)
+    Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider) should equal(account.owners.toSet)
   }
 
   def verifyTransactionCreated(transaction : SandboxTransactionImport, accountsUsed : List[SandboxAccountImport]) = {
@@ -330,9 +335,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //a counterparty should exist
     val otherAcc = foundTransaction.otherAccount
-    otherAcc.id should not be empty
-    otherAcc.originalPartyAccountId should equal(accountId)
-    otherAcc.originalPartyBankId should equal(bankId)
+    otherAcc.counterPartyId should not be empty
+    otherAcc.otherAccountId should equal(accountId)
+    otherAcc.otherBankId should equal(bankId)
     val otherAccMeta = otherAcc.metadata
     otherAccMeta.getPublicAlias should not be empty
 
@@ -345,8 +350,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       }
 
       transaction.counterparty.get.account_number match {
-        case Some(number) => otherAcc.number should equal(number)
-        case None => otherAcc.number should equal("")
+        case Some(number) => otherAcc.thisAccountId.value should equal(number)
+        case None => otherAcc.thisAccountId.value should equal("")
       }
     }
 
@@ -457,8 +462,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
 
 
-  val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", user_name = "User 1")
-  val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", user_name = "User 2")
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "User 2")
 
   val standardUsers = user1 :: user2 :: Nil
 
@@ -593,6 +598,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     banks.foreach(verifyBankCreated)
     users.foreach(verifyUserCreated)
+    println("accounts: " + accounts)
     accounts.foreach(verifyAccountCreated)
     transactions.foreach(verifyTransactionCreated(_, accounts))
   }
@@ -730,12 +736,20 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
     //there should be no user with a blank id before we try to add one
-    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, "") match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     getResponse(userWithEmptyEmail).code should equal(FAILED)
 
     //there should still be no user with a blank email
-    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, "") match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     //invalid email should fail
     val invalidEmail = "foooo"
@@ -744,7 +758,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(userWithInvalidEmail).code should equal(FAILED)
 
     //there should still be no user
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     val validEmail = "test@example.com"
     val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
@@ -777,13 +795,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val userWithSameUsernameAsUser1 = user1Json
 
     //neither of the users should exist initially
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
-    Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
+    Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     getResponse(List(user1Json, userWithSameUsernameAsUser1)).code should equal(FAILED)
 
     //no user with firstUserId should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     //when we only alter the id (display name stays the same), it should work
     val userWithUsername2 = userWithSameUsernameAsUser1.replace("user_name", secondUserName)
@@ -855,13 +885,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     getResponse(List(Extraction.decompose(user1))).code should equal(SUCCESS)
 
-    //TODO: we shouldn't reference OBPUser here as it is an implementation, but for now there
+    //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdOBPUserBox = OBPUser.find(By(OBPUser.username, user1.user_name))
-    createdOBPUserBox.isDefined should equal(true)
+    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
+    createdAuthUserBox.isDefined should equal(true)
 
-    val createdOBPUser = createdOBPUserBox.get
-    createdOBPUser.password.match_?(user1.password) should equal(true)
+    val createdAuthUser = createdAuthUserBox.get
+    createdAuthUser.password.match_?(user1.password) should equal(true)
   }
 
   it should "require accounts to have non-empty ids" in {
@@ -1218,7 +1248,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.number should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
 
@@ -1246,7 +1276,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.number should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
 
@@ -1274,7 +1304,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.number should equal("")
+    created.otherAccount.thisAccountId.value should equal("")
   }
 
   it should "allow counterparty account number to be unspecified" in {
@@ -1301,7 +1331,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.number should equal("")
+    created.otherAccount.thisAccountId.value should equal("")
   }
 
   it should "allow counterparties with the same name to have different account numbers" in {
@@ -1367,7 +1397,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter1 = foundTransaction1Box.get.otherAccount
     val counter2 = foundTransaction2Box.get.otherAccount
 
-    counter1.id should equal(counter2.id)
+    counter1.counterPartyId should equal(counter2.counterPartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
   }
 
@@ -1401,10 +1431,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter1 = foundTransaction1Box.get.otherAccount
     val counter2 = foundTransaction2Box.get.otherAccount
 
-    counter1.id should not equal(counter2.id)
+    counter1.counterPartyId should not equal(counter2.counterPartyId)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.number should equal(counterAcc1)
-    counter2.number should equal(counterAcc2)
+    counter1.thisAccountId.value should equal(counterAcc1)
+    counter2.thisAccountId.value should equal(counterAcc2)
   }
 
   it should "consider counterparties without names but with the same account numbers to be the same" in {
@@ -1435,10 +1465,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter1 = foundTransaction1Box.get.otherAccount
     val counter2 = foundTransaction2Box.get.otherAccount
 
-    counter1.id should equal(counter2.id)
+    counter1.counterPartyId should equal(counter2.counterPartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
-    counter1.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
-    counter2.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter1.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter2.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
   }
 
   it should "consider counterparties without names but with different account numbers to be different" in {
@@ -1475,12 +1505,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter2 = foundTransaction2Box.get.otherAccount
 
     //transactions should have the same counterparty
-    counter1.id should not equal(counter2.id)
-    counter1.id.isEmpty should equal(false)
-    counter2.id.isEmpty should equal(false)
+    counter1.counterPartyId should not equal(counter2.counterPartyId)
+    counter1.counterPartyId.isEmpty should equal(false)
+    counter2.counterPartyId.isEmpty should equal(false)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.number should equal(counterpartyAccNumber1)
-    counter2.number should equal(counterpartyAccNumber2)
+    counter1.thisAccountId.value should equal(counterpartyAccNumber1)
+    counter2.thisAccountId.value should equal(counterpartyAccNumber2)
   }
 
   it should "always create a new counterparty if none was specified, rather than having all transactions without specified" +
@@ -1522,9 +1552,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter2 = foundTransaction2Box.get.otherAccount
     val counter3 = foundTransaction3Box.get.otherAccount
 
-    counter1.id should not equal(counter2.id)
-    counter1.id should not equal(counter3.id)
-    counter2.id should not equal(counter3.id)
+    counter1.counterPartyId should not equal(counter2.counterPartyId)
+    counter1.counterPartyId should not equal(counter3.counterPartyId)
+    counter2.counterPartyId should not equal(counter3.counterPartyId)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
     counter2.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
@@ -1664,7 +1694,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t2 = getCreatedTransaction(newTransId)
 
     //check the created transactions have the same counterparty id
-    t1.otherAccount.id should equal(t2.otherAccount.id)
+    t1.otherAccount.counterPartyId should equal(t2.otherAccount.counterPartyId)
   }
 
   it should "create branches ok" in {

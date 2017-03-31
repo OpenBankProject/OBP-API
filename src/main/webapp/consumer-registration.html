@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2017, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -43,29 +43,34 @@ Berlin 13359, Germany
         <div class="form-column">
             <div>
             <label for="appType">Application Type</label>
-            <select name="app-type" id="appType">
+            <select name="app-type" id="appType" class="appTypeClass">
                 <option class="app-type-option"></option>
             </select>
             </div>
             <div>
             <label for="appName">Application Name</label>
-            <input type="text" name="app-name" id="appName">
+            <input type="text" name="app-name" id="appName" class="appNameClass">
             </div>
-            <!-- <div>
-            <label for="appUserAuthenticationUrl">Authentication URL</label>
-            <input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl">
-            <img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page."
-                 alt="more info" class="moreInfoIcon"/>
-            </div> -->
+            <div>
+                <label for="appRedirectUrl">Redirect URL</label>
+                <input type="text" name="app-redirect-url" id="appRedirectUrl" class="appRedirectUrlClass">
+            </div>
+            <!--Note for the commented div : 719aa7fd 04/10/15 Stefan. Hongwei just reformatted the code -->
+             <!--<div>-->
+            <!--<label for="appUserAuthenticationUrl">Authentication URL</label>-->
+            <!--<input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl" class="appUserAuthenticationUrlClass" >-->
+            <!--<img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page."-->
+                 <!--alt="more info" class="moreInfoIcon"/>-->
+            <!--</div>-->
             <div>
             <label for="appDev">Developer Email</label>
-            <input type="text" name="app-developer" id="appDev">
+            <input type="text" name="app-developer" id="appDev" class="appDevClass">
             </div>
         </div>
         <div class="form-column">
             <div>
                 <label for="appDesc">Description of the application</label>
-                <textarea rows="4" name="app-description" id="appDesc"></textarea>
+                <textarea rows="4" name="app-description" id="appDesc" class="appDescClass"></textarea>
             </div>
             <div class="submit">
                 <input type="submit" value="Send" />
@@ -84,6 +89,14 @@ Berlin 13359, Germany
                     </tr>
                     <tr>
                         <td>
+                            Consumer ID</label>
+                        </td>
+                        <td>
+                            <span class="app-consumer_id">123</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
                             Application Type</label>
                         </td>
                         <td>
@@ -96,6 +109,14 @@ Berlin 13359, Germany
                         </td>
                         <td>
                             <span class="app-name">ABC</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            User redirect URL
+                        </td>
+                        <td>
+                            <span class="app-redirect-url">ABC</span>
                         </td>
                     </tr>
                     <!-- <tr>
@@ -176,8 +197,16 @@ Berlin 13359, Germany
                             <a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">How to use Direct Login</a>
                         </td>
                     </tr>
+                    <tr>
 
+                        <td>
+                            &nbsp;
+                        </td>
 
+                        <td>
+                            <span class="post-consumer-registration-more-info-link"><a href="#"></a></span><br />
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

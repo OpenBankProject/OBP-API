@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE Ltd
+Copyright (C) 2011-2016, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -35,11 +35,16 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
+import code.api.v1_2_1.ViewJSON
+import code.api.v2_2_0.{AccountJSON, AccountsJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests._
+import code.users.Users
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json
+import net.liftweb.json.Extraction
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -139,8 +144,8 @@ case class BasicAccountsJSON(
 case class BasicAccountJSON(
                              id : String,
                              label : String,
-                             views_available : List[BasicViewJSON],
-                             bank_id : String
+                             bank_id : String,
+                             views_available : List[BasicViewJSON]
 )
 
 
@@ -160,45 +165,82 @@ case class CoreAccountJSON(
                              _links: JValue
                            )
 
+case class PostKycDocumentJSON(
+                                customer_number: String,
+                                `type`: String,
+                                number: String,
+                                issue_date: Date,
+                                issue_place: String,
+                                expiry_date: Date
+                              )
 case class KycDocumentJSON(
-  id: String,
-  customer_number: String,
-  `type`: String,
-  number: String,
-  issue_date: Date,
-  issue_place: String,
-  expiry_date: Date
-)
+                            bank_id: String,
+                            customer_id: String,
+                            id: String,
+                            customer_number: String,
+                            `type`: String,
+                            number: String,
+                            issue_date: Date,
+                            issue_place: String,
+                            expiry_date: Date
+                          )
 case class KycDocumentsJSON(documents: List[KycDocumentJSON])
 
+case class PostKycMediaJSON(
+                         customer_number: String,
+                         `type`: String,
+                         url: String,
+                         date: Date,
+                         relates_to_kyc_document_id: String,
+                         relates_to_kyc_check_id: String
+                       )
 case class KycMediaJSON(
-  id: String,
-  customer_number: String,
-  `type`: String,
-  url: String,
-  date: Date,
-  relates_to_kyc_document_id: String,
-  relates_to_kyc_check_id: String
-)
+                         bank_id: String,
+                         customer_id: String,
+                         id: String,
+                         customer_number: String,
+                         `type`: String,
+                         url: String,
+                         date: Date,
+                         relates_to_kyc_document_id: String,
+                         relates_to_kyc_check_id: String
+                       )
 case class KycMediasJSON(medias: List[KycMediaJSON])
 
+case class PostKycCheckJSON(
+                         customer_number: String,
+                         date: Date,
+                         how: String,
+                         staff_user_id: String,
+                         staff_name: String,
+                         satisfied: Boolean,
+                         comments: String
+                       )
 case class KycCheckJSON(
-  id: String,
-  customer_number: String,
-  date: Date,
-  how: String,
-  staff_user_id: String,
-  staff_name: String,
-  satisfied: Boolean,
-  comments: String
-)
+                         bank_id: String,
+                         customer_id: String,
+                         id: String,
+                         customer_number: String,
+                         date: Date,
+                         how: String,
+                         staff_user_id: String,
+                         staff_name: String,
+                         satisfied: Boolean,
+                         comments: String
+                       )
 case class KycChecksJSON(checks: List[KycCheckJSON])
 
+case class PostKycStatusJSON(
+                          customer_number: String,
+                          ok: Boolean,
+                          date: Date
+                        )
 case class KycStatusJSON(
-   customer_number: String,
-   ok: Boolean,
-   date: Date
-)
+                          customer_id: String,
+                          customer_number: String,
+                          ok: Boolean,
+                          date: Date
+                        )
 case class KycStatusesJSON(statuses: List[KycStatusJSON])
 
 case class SocialMediaJSON(
@@ -290,7 +332,7 @@ case class TransactionRequestWithChargeJSON(
                                    id: String,
                                    `type`: String,
                                    from: TransactionRequestAccountJSON,
-                                   body: TransactionRequestBodyJSON,
+                                   details: JValue,
                                    transaction_ids: String,
                                    status: String,
                                    start_date: Date,
@@ -324,6 +366,39 @@ case class EntitlementJSON(entitlement_id: String, role_name: String, bank_id: S
 case class EntitlementJSONs(list: List[EntitlementJSON])
 
 object JSONFactory200{
+
+
+  implicit val formats = net.liftweb.json.DefaultFormats
+
+
+// If we use this we would not use basic views json etc.
+//  def createFullAccountJSON(account : BankAccount, viewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
+//    new BasicAccountJSON(
+//      account.accountId.value,
+//      stringOrNull(account.label),
+//      viewsAvailable,
+//      account.bankId.value
+//    )
+//  }
+
+
+  def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
+    val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
+      val views = account permittedViews user
+      val viewsAvailable : List[BasicViewJSON] =
+        views.map( v => {
+          createBasicViewJSON(v)
+        })
+      createBasicAccountJSON(account,viewsAvailable)
+    })
+
+    val accounts = new BasicAccountsJSON(accJson)
+    Extraction.decompose(accounts)
+  }
+
+
+
+
 
   // Modified in 2.0.0
 
@@ -363,13 +438,25 @@ object JSONFactory200{
       id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
+      details = null,
       body = getTransactionRequestBodyFromJson(json.body),
       transaction_ids = json.transaction_ids,
       status = json.status,
       start_date = json.start_date,
       end_date = json.end_date,
       challenge = challenge,
-      charge = charge
+      charge = charge,
+      charge_policy ="",// Note: charge_policy only used in V210. For V140 just set it empty
+      counterparty_id =  CounterpartyId(""),// Note: counterparty only used in V210. For V140 just set it empty
+      name = "",
+      this_bank_id = BankId(""),
+      this_account_id = AccountId(""),
+      this_view_id = ViewId(""),
+      other_account_routing_scheme = "",
+      other_account_routing_address = "",
+      other_bank_routing_scheme = "",
+      other_bank_routing_address = "",
+      is_beneficiary = true
     )
   }
 
@@ -384,7 +471,7 @@ object JSONFactory200{
   // New in 2.0.0
 
 
-  def createViewBasicJSON(view : View) : BasicViewJSON = {
+  def createBasicViewJSON(view : View) : BasicViewJSON = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -405,8 +492,8 @@ object JSONFactory200{
     new BasicAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
-      basicViewsAvailable,
-      account.bankId.value
+      account.bankId.value,
+      basicViewsAvailable
     )
   }
 
@@ -486,7 +573,8 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       username : String
+                       username : String,
+                       entitlements : EntitlementJSONs
                      )
 
   case class UserJSONs(
@@ -494,13 +582,20 @@ object JSONFactory200{
                       )
 
 
-  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
-    user_id = user.user.foreign.get.userId,
-    email = user.email,
-    username = stringOrNull(user.username),
-    provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider)
-  )
+  def createUserJSONfromAuthUser(user : AuthUser) : UserJSON = {
+    val (userId, entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
+      case Full(u) => (u.userId, u.assignedEntitlements)
+      case _       => ("", List())
+    }
+    new UserJSON(user_id = userId,
+      email = user.email,
+      username = stringOrNull(user.username),
+      provider_id = stringOrNull(user.provider),
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(entitlements)
+    )
+  }
+
 
 
   def createUserJSON(user : User) : UserJSON = {
@@ -509,7 +604,8 @@ object JSONFactory200{
       email = user.emailAddress,
       username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider)
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(user.assignedEntitlements)
     )
   }
 
@@ -526,9 +622,9 @@ object JSONFactory200{
 
 
 
-  def createUserJSONfromOBPUser(user : Box[OBPUser]) : UserJSON = {
+  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJSON = {
     user match {
-      case Full(u) => createUserJSONfromOBPUser(u)
+      case Full(u) => createUserJSONfromAuthUser(u)
       case _ => null
     }
   }
@@ -619,6 +715,8 @@ object JSONFactory200{
 
   def createKycDocumentJSON(kycDocument : KycDocument) : KycDocumentJSON = {
     new KycDocumentJSON(
+      bank_id = kycDocument.bankId,
+      customer_id = kycDocument.customerId,
       id = kycDocument.idKycDocument,
       customer_number = kycDocument.customerNumber,
       `type` = kycDocument.`type`,
@@ -635,6 +733,8 @@ object JSONFactory200{
 
   def createKycMediaJSON(kycMedia : KycMedia) : KycMediaJSON = {
     new KycMediaJSON(
+      bank_id = kycMedia.bankId,
+      customer_id = kycMedia.customerId,
       id = kycMedia.idKycMedia,
       customer_number = kycMedia.customerNumber,
       `type` = kycMedia.`type`,
@@ -650,6 +750,8 @@ object JSONFactory200{
 
   def createKycCheckJSON(kycCheck : KycCheck) : KycCheckJSON = {
     new KycCheckJSON(
+      bank_id = kycCheck.bankId,
+      customer_id = kycCheck.customerId,
       id = kycCheck.idKycCheck,
       customer_number = kycCheck.customerNumber,
       date = kycCheck.date,
@@ -666,6 +768,7 @@ object JSONFactory200{
 
   def createKycStatusJSON(kycStatus : KycStatus) : KycStatusJSON = {
     new KycStatusJSON(
+      customer_id = kycStatus.customerId,
       customer_number = kycStatus.customerNumber,
       ok = kycStatus.ok,
       date = kycStatus.date
@@ -725,12 +828,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       from = TransactionRequestAccountJSON (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
-      body =  TransactionRequestBodyJSON (
-          to = TransactionRequestAccountJSON (
-            bank_id = tr.body.to.bank_id,
-            account_id = tr.body.to.account_id),
-          value = AmountOfMoneyJSON (currency = tr.body.value.currency, amount = tr.body.value.amount),
-          description = tr.body.description),
+      details = tr.details,
       transaction_ids = tr.transaction_ids,
       status = tr.status,
       start_date = tr.start_date,
