@@ -798,15 +798,14 @@ trait Connector {
                                  ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")
 
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
-      //dummy12 = print(s"didSaveStatus is ${didSaveStatus} \n")
-
-      //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)
-      //dummy13 = print(s"About to yield tr. tr.details is ${tr.details} \n")
+      
     } yield {
+      var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
+      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.  
+      tr=tr.copy(transaction_ids =transId.value)
+      tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
       tr
     }
   }
