@@ -87,7 +87,7 @@ object ErrorMessages {
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
-  val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
+  val UserNotHaveEntilement  = "OBP-20010: Login in user do not have the entitlement:" //When use this, should contact the entitlement name after it .
 
   val InvalidValueLength = "OBP-20010: Value too long"
   val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"

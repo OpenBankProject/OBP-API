@@ -36,6 +36,7 @@ import java.util.Date
 
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -169,6 +170,20 @@ case class BankJSON(
   national_identifier: String,
   bank_routing_scheme: String,
   bank_routing_address: String
+)
+
+//keep similar to "case class BranchJsonPost" in V210
+case class BranchJSON(
+  id: String,
+  bank_id: String,
+  name: String,
+  address: AddressJson,
+  location: LocationJson,
+  meta: MetaJson,
+  lobby: LobbyJson,
+  driveUp: DriveUpJson,
+  branch_routing_scheme: String,
+  branch_routing_address: String
 )
 
 // Json used in account creation
@@ -384,4 +399,21 @@ object JSONFactory220{
       bank_routing_address = bank.bankRoutingAddress
     )
   }
+  
+  // keep similar to def createBranchJson(branch: Branch) -- v140
+  def createBranchJson(branch: Branch): BranchJSON = {
+    BranchJSON(
+      id= branch.branchId.value,
+      bank_id= branch.bankId.value,
+      name= branch.name,
+      address= createAddressJson(branch.address),
+      location= createLocationJson(branch.location),
+      meta= createMetaJson(branch.meta),
+      lobby= createLobbyJson(branch.lobby.hours),
+      driveUp= createDriveUpJson(branch.driveUp.hours),
+      branch_routing_scheme= branch.branchRoutingScheme,
+      branch_routing_address=branch.branchRoutingAddress
+    )
+  }
+  
 }

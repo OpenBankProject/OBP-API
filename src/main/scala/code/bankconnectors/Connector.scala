@@ -878,7 +878,13 @@ trait Connector {
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product]
 
-  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
+  //Note: this is a temporary way for compatibility
+  //It is better to create the case class for all the connector methods
+  def createOrUpdateBranch(
+    branch: BranchJsonPost,
+    branchRoutingScheme: String, //Added in V220
+    branchRoutingAddress: String //Added in V220
+  ): Box[Branch]
   
   def createOrUpdateBank(
     bankId: String,

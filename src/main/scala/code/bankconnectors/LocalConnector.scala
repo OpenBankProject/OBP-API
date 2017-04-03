@@ -625,7 +625,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 

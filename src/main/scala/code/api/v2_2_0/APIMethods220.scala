@@ -355,12 +355,18 @@ trait APIMethods220 {
          |${authenticationRequiredMessage(true) }
          |""",
       Extraction.decompose(
-        BranchJsonPost("123","gh.29.fi", "OBP",
-                       AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
-                       LocationJson(1.2, 2.1),
-                       MetaJson(LicenseJson("", "")),
-                       LobbyJson(""),
-                       DriveUpJson(""))
+        BranchJSON(
+          id = "123",
+          bank_id = "gh.29.fi",
+          name = "OBP",
+          address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+          location = LocationJson(1.2, 2.1),
+          meta = MetaJson(LicenseJson("", "")),
+          lobby = LobbyJson("Ma-Pe 10:00-16:30"),
+          driveUp = DriveUpJson("Ma-Pe 09:00-14:00"),
+          branch_routing_scheme = "IIIGGB22",
+          branch_routing_address = "UK97ZZZ1234567890"
+        )
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -374,11 +380,24 @@ trait APIMethods220 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
-            branch <- tryo {json.extract[BranchJsonPost]} ?~! ErrorMessages.InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            success <- Connector.connector.vend.createOrUpdateBranch(branch)
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,s"${ErrorMessages.UserNotHaveEntilement} ${CanCreateBranch}")
+            branch <- tryo {json.extract[BranchJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateBranch(
+              BranchJsonPost(
+                branch.id,
+                branch.bank_id,
+                branch.name,
+                branch.address,
+                branch.location,
+                branch.meta,
+                branch.lobby,
+                branch.driveUp
+              ),
+              branch.branch_routing_scheme,
+              branch.branch_routing_address
+            )
           } yield {
-            val json = JSONFactory1_4_0.createBranchJson(success)
+            val json = JSONFactory220.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }

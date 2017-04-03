@@ -801,7 +801,7 @@ object LocalMappedConnector extends Connector with Loggable {
     )
   }
 
-  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = {
+  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
 
     //check the branch existence and update or insert data
     getBranch(BankId(branch.bank_id), BranchId(branch.id)) match {
@@ -824,6 +824,8 @@ object LocalMappedConnector extends Connector with Loggable {
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
             .mDriveUpHours(branch.driveUp.hours)
+            .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
+            .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
         } ?~! ErrorMessages.CreateBranchUpdateError
       case _ =>
@@ -845,6 +847,8 @@ object LocalMappedConnector extends Connector with Loggable {
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
             .mDriveUpHours(branch.driveUp.hours)
+            .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
+            .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
         } ?~! ErrorMessages.CreateBranchInsertError
     }
