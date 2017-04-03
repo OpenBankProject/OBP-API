@@ -257,6 +257,15 @@
       <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
       <version>0.4.1</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava_2.11 -->
+    <dependency>
+      <groupId>com.github.cb372</groupId>
+      <artifactId>scalacache-guava_2.11</artifactId>
+      <version>0.9.3</version>
+    </dependency>
+
+
+
 
   </dependencies>
 

@@ -37,6 +37,14 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions._
+import scalacache.guava
+import scalacache._
+import guava._
+import concurrent.duration._
+import language.postfixOps
+import memoization._
+
+import com.google.common.cache.CacheBuilder
 
 /**
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
@@ -89,6 +97,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   def toOptional[T](opt: Option[T]): Optional[T] = Optional.ofNullable(opt.getOrElse(null).asInstanceOf[T])
   def toOption[T](opt: Optional[T]): Option[T] = if (opt.isPresent) Some(opt.get()) else None
+
+
+  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
+  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
+  val cacheTTL             = Props.get("connector.cache.ttl.seconds", "10").toInt * 1000 // Miliseconds
+
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
@@ -158,7 +172,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = {
+  override def getBanks: List[Bank] = memoizeSync(cacheTTL millisecond) {
     val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
 
     // todo response.error().isPresent
@@ -221,7 +235,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String)
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = {
+  override def getBank(id: BankId): Box[Bank] = memoizeSync(cacheTTL millisecond) {
     val parameters = new JHashMap
 
     parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, id.value)
@@ -349,7 +363,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = memoizeSync(cacheTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
