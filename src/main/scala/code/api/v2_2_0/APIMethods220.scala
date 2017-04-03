@@ -3,12 +3,21 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.isValidCurrencyISOCode
+import code.api.util.ApiRole.{CanCreateAccount, CanCreateBranch}
 import code.api.util.ErrorMessages
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.{CreateAccountJSON, JSONFactory200}
+import code.api.v2_1_0.BranchJsonPost
 import code.bankconnectors.{Connector, KafkaJSONFactory_vMar2017}
+import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
+import net.liftweb.common.Empty
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -280,9 +289,165 @@ trait APIMethods220 {
         }
       }
     }
+  
+  
+    resourceDocs += ResourceDoc(
+      createBank,
+      apiVersion,
+      "createBank",
+      "POST",
+      "/banks",
+      "Create Bank",
+      s"""Create a new bank (Authenticated access).
+         |${authenticationRequiredMessage(true) }
+         |""",
+      Extraction.decompose(
+        BankJSON(
+          id = "gh.29.uk",
+          full_name = "uk",
+          short_name = "uk",
+          logo_url = "https://static.openbankproject.com/images/sandbox/bank_x.png",
+          website_url = "https://www.example.com",
+          swift_bic = "IIIGGB22",
+          national_identifier = "UK97ZZZ1234567890",
+          bank_routing_scheme = "IIIGGB22",
+          bank_routing_address = "UK97ZZZ1234567890"
+        )
+      ),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+  
+    lazy val createBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- tryo{ json.extract[BankJSON] } ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateBank(
+              bank.id,
+              bank.full_name,
+              bank.short_name,
+              bank.logo_url,
+              bank.website_url,
+              bank.swift_bic,
+              bank.national_identifier,
+              bank.bank_routing_scheme,
+              bank.bank_routing_address
+            )
+          } yield {
+            val json = JSONFactory220.createBankJSON(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      createBranch,
+      apiVersion,
+      "createBranch",
+      "POST",
+      "/banks/BANK_ID/branches",
+      "Create Branch",
+      s"""Create branch for the bank (Authenticated access).
+         |${authenticationRequiredMessage(true) }
+         |""",
+      Extraction.decompose(
+        BranchJsonPost("123","gh.29.fi", "OBP",
+                       AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+                       LocationJson(1.2, 2.1),
+                       MetaJson(LicenseJson("", "")),
+                       LobbyJson(""),
+                       DriveUpJson(""))
+      ),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+  
+    lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
+            branch <- tryo {json.extract[BranchJsonPost]} ?~! ErrorMessages.InvalidJsonFormat
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
+            success <- Connector.connector.vend.createOrUpdateBranch(branch)
+          } yield {
+            val json = JSONFactory1_4_0.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
 
-
-
+  
+    resourceDocs += ResourceDoc(
+      createAccount,
+      apiVersion,
+      "createAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      "Create Account",
+      """Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID.
+        |
+        |
+        |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+        |
+        |If USER_ID is not specified the account will be owned by the logged in User.
+        |
+        |Note: The Amount must be zero.""".stripMargin,
+      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON("EUR", "0"))),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount)
+    )
+  
+  
+    lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      // Create a new account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        user => {
+        
+          for {
+            loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
+            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
+            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
+            isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+            isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidBankIdFormat
+            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            // User can create account for self or an account for another user if they have CanCreateAccount role
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
+            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
+            accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
+            accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
+            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
+            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
+            currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
+            // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
+            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
+                                                s"Account with id $accountId already exists at bank $bankId")
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
+          } yield {
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+          
+            val dataContext = DataContext(user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
+            val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
+            val json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
+          
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+  
+  
+  
   }
 }
 

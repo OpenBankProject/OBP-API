@@ -219,6 +219,18 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       * @return empty bankAccount
       */
     override def getEmptyBankAccount(): Box[AccountType] = Empty
+  
+    override def createOrUpdateBank(
+      bankId: String,
+      fullBankName: String,
+      shortBankName: String,
+      logoURL: String,
+      websiteURL: String,
+      swiftBIC: String,
+      national_identifier: String,
+      bankRoutingScheme: String,
+      bankRoutingAddress: String
+    ): Box[Bank] = Empty
   }
 
   override def beforeAll() {

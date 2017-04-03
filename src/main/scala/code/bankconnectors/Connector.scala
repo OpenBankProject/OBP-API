@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.api.v2_2_0.BankJSON
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -23,7 +24,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.views.Views
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, MappedString}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
@@ -878,6 +879,20 @@ trait Connector {
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product]
 
   def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
+  
+  def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] = Empty
+  
+//  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
 

@@ -157,6 +157,8 @@ trait Bank {
   def fullName : String
   def logoUrl : String
   def websiteUrl : String
+  def bankRoutingScheme: String
+  def bankRoutingAddress: String
 
   // TODO Add Group ?
 
@@ -273,6 +275,8 @@ trait BankAccount {
   def number : String
   def bankId : BankId
   def lastUpdate : Date
+  def accountRoutingScheme: String
+  def accountRoutingAddress: String
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String

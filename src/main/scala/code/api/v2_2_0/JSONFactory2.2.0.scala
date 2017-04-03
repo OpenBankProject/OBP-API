@@ -33,6 +33,9 @@ package code.api.v2_2_0
 
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
+
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_4_0.JSONFactory1_4_0._
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -150,6 +153,99 @@ case class CounterpartyJSON(
 case class CounterpartiesJSON(
                                counterparties: List[CounterpartyJSON]
                              )
+
+
+
+
+// used for Create Bank in V220
+// keep it similar as "case class BankJSON" in V121  
+case class BankJSON(
+  id: String,
+  full_name: String,
+  short_name: String,
+  logo_url: String,
+  website_url: String,
+  swift_bic: String,
+  national_identifier: String,
+  bank_routing_scheme: String,
+  bank_routing_address: String
+)
+
+// Json used in account creation
+case class CreateAccountJSON(
+  user_id : String,
+  label   : String,
+  `type` : String,
+  balance : AmountOfMoneyJSON
+)
+
+case class AccountJSON1(
+//// object bank extends MappedString(this, 255)
+//object theAccountId extends MappedString(this, 255)
+//object accountIban extends MappedString(this, 50)
+//object accountCurrency extends MappedString(this, 10)
+//object accountSwiftBic extends MappedString(this, 50)
+//object accountNumber extends MappedAccountNumber(this)
+//
+//@deprecated
+//object holder extends MappedString(this, 100)
+//
+////this is the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
+//object accountBalance extends MappedLong(this)
+//
+//object accountName extends MappedString(this, 255)
+//object kind extends MappedString(this, 255) // This is the account type aka financial product name
+//
+////object productCode extends MappedString(this, 255)
+//
+//object accountLabel extends MappedString(this, 255)
+//
+////the last time this account was updated via hbci
+//object accountLastUpdate extends MappedDateTime(this)
+//
+//object mAccountRoutingScheme extends MappedString(this, 255)
+//object mAccountRoutingAddress extends MappedString(this, 255)
+)
+case class AccountJSON2(
+//object mBankId extends DefaultStringField(this)
+//object mName extends DefaultStringField(this)
+//
+//object mBranchId extends DefaultStringField(this)
+//
+//// Exposed inside address. See below
+//object mLine1 extends DefaultStringField(this)
+//object mLine2 extends DefaultStringField(this)
+//object mLine3 extends DefaultStringField(this)
+//object mCity extends DefaultStringField(this)
+//object mCounty extends DefaultStringField(this)
+//object mState extends DefaultStringField(this)
+//object mCountryCode extends MappedString(this, 2)
+//object mPostCode extends DefaultStringField(this)
+//
+//object mlocationLatitude extends MappedDouble(this)
+//object mlocationLongitude extends MappedDouble(this)
+//
+//// Exposed inside meta.license See below
+//object mLicenseId extends DefaultStringField(this)
+//object mLicenseName extends DefaultStringField(this)
+//
+//object mLobbyHours extends DefaultStringField(this)
+//object mDriveUpHours extends DefaultStringField(this)
+//object mBranchRoutingScheme extends DefaultStringField(this)
+//object mBranchRoutingAddress extends DefaultStringField(this)
+)
+
+//case class BranchJsonPost(
+//  id: String,
+//  bank_id: String,
+//  name: String,
+//  address: AddressJson,
+//  location: LocationJson,
+//  meta: MetaJson,
+//  lobby: LobbyJson,
+//  driveUp: DriveUpJson
+//)
+
 
 object JSONFactory220{
 
@@ -274,5 +370,18 @@ object JSONFactory220{
     val list : List[CounterpartyJSON] = counterparties.map(createCounterpartyJSON)
     new CounterpartiesJSON(list)
   }
-
+  
+  def createBankJSON(bank: Bank): BankJSON = {
+    BankJSON(
+      id = bank.bankId.value,
+      full_name = bank.fullName,
+      short_name = bank.shortName,
+      logo_url = bank.logoUrl,
+      website_url = bank.websiteUrl,
+      swift_bic = bank.swiftBic,
+      national_identifier = bank.nationalIdentifier,
+      bank_routing_scheme = bank.bankRoutingScheme,
+      bank_routing_address = bank.bankRoutingAddress
+    )
+  }
 }

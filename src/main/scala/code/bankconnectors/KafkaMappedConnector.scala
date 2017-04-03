@@ -125,7 +125,7 @@ object KafkaMappedConnector extends Connector with Loggable {
           "target" -> "accounts")}
         // Generate random uuid to be used as request-response match id
         } yield {
-          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]])
+          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]]) //CM maybe this will breake the kafak message
         }
       }
     }.flatten
@@ -1146,6 +1146,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     def nationalIdentifier = "None"  //TODO
     def swiftBic           = "None"  //TODO
     def websiteUrl         = r.url
+    def bankRoutingScheme = "None"
+    def bankRoutingAddress = "None"
   }
 
   // Helper for creating other bank account
@@ -1181,6 +1183,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     def bankId : BankId             = BankId(r.bankId)
     def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
+    def accountRoutingScheme: String = r.accountRoutingScheme
+    def accountRoutingAddress: String = r.accountRoutingAddress
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
@@ -1307,7 +1311,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                                   owners : List[String],
                                   generate_public_view : Boolean,
                                   generate_accountants_view : Boolean,
-                                  generate_auditors_view : Boolean)
+                                  generate_auditors_view : Boolean,
+                                  accountRoutingScheme: String  = "None",
+                                  accountRoutingAddress: String  = "None"
+                                 )
 
   case class KafkaInboundTransaction(
                                       transactionId : String,

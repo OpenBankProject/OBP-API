@@ -297,7 +297,7 @@ case class InboundBank(
   url: String
 )extends InboundMessageBase
 
-case class Bank2(r: InboundBank) extends Bank {
+case class Bank2(r: InboundBank) extends Bank { //CM maybe kafka message
   
   def fullName = r.name
   def shortName = r.name
@@ -306,6 +306,8 @@ case class Bank2(r: InboundBank) extends Bank {
   def nationalIdentifier = "None"
   def swiftBic = "None"
   def websiteUrl = r.url
+  def bankRoutingScheme = "None"
+  def bankRoutingAddress = "None"
 }
 
 case class InboundAccount(
@@ -321,7 +323,9 @@ case class InboundAccount(
   owners: List[String],
   generatePublicView: Boolean,
   generateAccountantsView: Boolean,
-  generateAuditorsView: Boolean
+  generateAuditorsView: Boolean,
+  accountRoutingScheme: String  = "None",
+  accountRoutingAddress: String  = "None"
 )extends InboundMessageBase
 
 case class BankAccount2(r: InboundAccount) extends BankAccount {
@@ -345,6 +349,9 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   } yield {
     d.getLabel
   }).getOrElse(r.number)
+  
+  def accountRoutingScheme: String = r.accountRoutingScheme
+  def accountRoutingAddress: String = r.accountRoutingAddress
   
 }
 

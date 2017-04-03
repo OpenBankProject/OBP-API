@@ -915,4 +915,46 @@ object LocalMappedConnector extends Connector with Loggable {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
 
+  override def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] =
+  //check the bank existence and update or insert data
+    getMappedBank(BankId(bankId)) match {
+      case Full(mappedBank) =>
+        tryo {
+               mappedBank
+               .permalink(bankId)
+               .fullBankName(fullBankName)
+               .shortBankName(shortBankName)
+               .logoURL(logoURL)
+               .websiteURL(websiteURL)
+               .swiftBIC(swiftBIC)
+               .national_identifier(national_identifier)
+               .mBankRoutingScheme(bankRoutingScheme)
+               .mBankRoutingAddress(bankRoutingAddress)
+               .saveMe()
+             } ?~! ErrorMessages.CreateBankInsertError
+      case _ =>
+        tryo {
+               MappedBank.create
+               .permalink(bankId)
+               .fullBankName(fullBankName)
+               .shortBankName(shortBankName)
+               .logoURL(logoURL)
+               .websiteURL(websiteURL)
+               .swiftBIC(swiftBIC)
+               .national_identifier(national_identifier)
+               .mBankRoutingScheme(bankRoutingScheme)
+               .mBankRoutingAddress(bankRoutingAddress)
+               .saveMe()
+             } ?~! ErrorMessages.CreateBankUpdateError
+    }
 }
