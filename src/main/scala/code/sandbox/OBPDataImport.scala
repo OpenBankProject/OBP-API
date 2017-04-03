@@ -135,9 +135,9 @@ trait OBPDataImport extends Loggable {
    * Creates an ResourceUser that can be saved. This method assumes there is no existing user with an email
    * equal to @u.email
    */
-  protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
+  protected def createUser(u : SandboxUserImport) : Box[ResourceUser]
 
-  protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
+  protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[ResourceUser]] = {
     val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByUserName(u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
@@ -151,7 +151,7 @@ trait OBPDataImport extends Loggable {
       Failure(s"Users must have unique usernames: Duplicates found: $duplicateUsernames")
     }else {
 
-      val resourceUsers = toImport.map(createSaveableUser(_))
+      val resourceUsers = toImport.map(createUser(_))
 
       dataOrFirstFailure(resourceUsers)
     }
@@ -509,7 +509,7 @@ trait OBPDataImport extends Loggable {
       banks.foreach(_.save())
 
       logger.info(s"importData is saving ${users.size} users..")
-      users.foreach(_.save())
+      //users.foreach(_.save())
 
       logger.info(s"importData is saving ${branches.size} branches..")
       branches.foreach(_.save())

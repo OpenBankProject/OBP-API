@@ -60,18 +60,49 @@ import net.liftweb.util
 class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   def getSingleton = AuthUser // what's the "meta" server
 
-  object user extends MappedLongForeignKey(this, ResourceUser)
+  object resourceUserId extends MappedString(this, 100) {
+    override def defaultValue = java.util.UUID.randomUUID.toString
+  }
+
+  //object user extends MappedLongForeignKey(this, ResourceUser)
+  lazy val user = new resourceUser()
+  class resourceUser {
+    def apply( a: AuthUser ) : Box[ResourceUser]  = {
+      Users.users.vend.getResourceUserByUserId(a.resourceUserId.get)
+    }
+    def obj : Box[ResourceUser] = Users.users.vend.getResourceUserByUserId(resourceUserId.get)
+    def get : Long = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.id.get
+    def defined_? : Boolean = Users.users.vend.getResourceUserByUserId(resourceUserId.get).isDefined
+  }
 
   /**
     * The username field for the User.
     */
-  lazy val username: userName = new userName()
-  class userName extends MappedString(this, 64) {
-    override def displayName = S.?("username")
-    override def dbIndexed_? = true
-    override def validations = valUnique(S.?("unique.username")) _ :: super.validations
-    override val fieldId = Some(Text("txtUsername"))
+  //lazy val username: userName = new userName()
+  //class userName extends MappedString(this, 64) {
+  //  override def displayName = S.?("username")
+  //  override def dbIndexed_? = true
+  //  override def validations = valUnique(S.?("unique.username")) _ :: super.validations
+  //  override val fieldId = Some(Text("txtUsername"))
+  //}
+
+  def username: String = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+    case Full(u) => u.name
+    case Empty => println("++++++++++++++++++++++++"); ""
   }
+  //class Username {
+    //private final var username_ = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.name
+    //def apply( u: String ) : Box[String]  = {
+    //    Users.users.vend.getUserByUserId(resourceUserId.get).map { u =>
+    //    u.name
+    //  }
+    //}
+    //def obj : Box[String] = Users.users.vend.getUserByUserId(resourceUserId.get).map { u =>
+    //  u.name
+    //}
+    //def get : String = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.name
+    //def defined_? : Boolean = Users.users.vend.getResourceUserByUserId(resourceUserId.get).isDefined
+  //}
 
   override lazy val password = new MyPasswordNew
   
@@ -85,31 +116,29 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     
     override def setFromAny(f: Any): String = {
       f match {
-        case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
-          passwordValue = a(0).toString;
+        case a: Array[String] if a.length == 2 && a(0) == a(1) =>
+          passwordValue = a.head.toString
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
             invalidPw = true
             invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
           }
-          this.set(a(0))
-        }
-        case l: List[String] if (l.length == 2 && l.head == l(1)) => {
-          passwordValue = l(0).toString;
+          this.set(a.head)
+
+        case l: List[String] if l.length == 2 && l.head == l(1) =>
+          passwordValue = l.head.toString
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
             invalidPw = true
             invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
-          }
           
           this.set(l.head)
         }
-        case _ => {
-          invalidPw = true;
+        case _ =>
+          invalidPw = true
           invalidMsg = S.?("passwords.do.not.match")
-        }
       }
       get
     }
@@ -132,7 +161,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     override val fieldId = Some(Text("txtProvider"))
   }
 
-
   def getProvider() = {
     if(provider.get == null) {
       Props.get("hostname","")
@@ -141,11 +169,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     } else {
       provider.get
     }
-  }
-
-  def createUnsavedResourceUser() : ResourceUser = {
-    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
-    user
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
@@ -167,24 +190,14 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   override def save(): Boolean = {
-    if(! (user defined_?)){
-      info("user reference is null. We will create a ResourceUser")
-      val resourceUser = createUnsavedResourceUser()
-      val savedUser = Users.users.vend.saveResourceUser(resourceUser)
-      user(savedUser)   //is this saving resourceUser into a user field?
-    }
-    else {
-      info("user reference is not null. Trying to update the ResourceUser")
-      Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
-          info("API User found ")
-          u.name_(username)
-          .email(email)
-          .providerId(username)
-          .save
-        }
-      }
-    }
-    super.save()
+    //if(! (user defined_?)){
+    //  info("Error - ResourceUser reference is null. Could not create AuthUser")
+    //  false
+    //}
+    //else {
+    //  info("ResourceUser reference is not null. Creating AuthUser")
+      super.save()
+    //}
   }
 
   override def delete_!(): Boolean = {
@@ -196,10 +209,10 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
   def isEmailValid(e: String): Boolean = e match{
-    case null                                           => false
-    case e if e.trim.isEmpty                            => false
-    case e if emailRegex.findFirstMatchIn(e).isDefined  => true
-    case _                                              => false
+    case null                                            => false
+    case em if em.trim.isEmpty                           => false
+    case em if emailRegex.findFirstMatchIn(em).isDefined => true
+    case _                                               => false
   }
 
   // Override the validate method of MappedEmail class
@@ -226,8 +239,10 @@ import net.liftweb.util.Helpers._
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
-  override def signupFields = List(firstName, lastName, email, username, password)
+//  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
+//  override def signupFields = List(firstName, lastName, email, username, password)
+  override def fieldOrder = List(id, firstName, lastName, email, password, provider)
+  override def signupFields = List(firstName, lastName, email, password)
 
   // If we want to validate email addresses set this to false
   override def skipEmailValidation = Props.getBool("authUser.skipEmailValidation", true)
@@ -258,7 +273,7 @@ import net.liftweb.util.Helpers._
   def getCurrentUserUsername: String = {
     for {
       current <- AuthUser.currentUser
-      username <- tryo{current.username.get}
+      username <- tryo{current.username}
       if (username.nonEmpty)
     } yield {
       return username
@@ -267,7 +282,7 @@ import net.liftweb.util.Helpers._
     for {
       current <- OAuthHandshake.getUser
       username <- tryo{current.name}
-      if (username.nonEmpty)
+      if username.nonEmpty
     } yield {
       return username
     }
@@ -275,7 +290,7 @@ import net.liftweb.util.Helpers._
     for {
       current <- DirectLogin.getUser
       username <- tryo{current.name}
-      if (username.nonEmpty)
+      if username.nonEmpty
     } yield {
       return username
     }
@@ -297,7 +312,7 @@ import net.liftweb.util.Helpers._
     for {
       current <- OAuthHandshake.getUser
       userId <- tryo{current.userId}
-      if (userId.nonEmpty)
+      if userId.nonEmpty
     } yield {
       return userId
     }
@@ -305,7 +320,7 @@ import net.liftweb.util.Helpers._
     for {
       current <- DirectLogin.getUser
       userId <- tryo{current.userId}
-      if (userId.nonEmpty)
+      if userId.nonEmpty
     } yield {
       return userId
     }
@@ -327,21 +342,20 @@ import net.liftweb.util.Helpers._
    */
   override def sendPasswordReset(name: String) {
     findUserByUsername(name) match {
-      case Full(user) if user.validated_? =>
-        user.resetUniqueId().save
+      case Full(u) if u.validated_? =>
+        u.resetUniqueId().save()
         val resetLink = Props.get("hostname", "ERROR")+
-          passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
+          passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
 
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject),
-          To(user.getEmail) ::
-            generateResetEmailBodies(user, resetLink) :::
-            (bccEmail.toList.map(BCC(_))) :_*)
+          To(u.getEmail) ::
+            generateResetEmailBodies(u, resetLink) ::: bccEmail.toList.map(BCC(_)) :_*)
 
         S.notice(S.?(userNameNotFoundString))
         S.redirectTo(homePage)
 
-      case Full(user) =>
-        sendValidationEmail(user)
+      case Full(u) =>
+        sendValidationEmail(u)
         S.notice(S.?("account.validation.resent"))
         S.redirectTo(homePage)
 
@@ -454,26 +468,43 @@ import net.liftweb.util.Helpers._
   }
 
 
+  def createAuthUser(mail: String, uname: String, pass: String): AuthUser = {
+    val prov = getProvider()
+    Users.users.vend.createResourceUser(
+      prov,
+      Some(prov),
+      Some(uname),
+      Some(mail),
+      Some(resourceUserId.get))
+    AuthUser.create
+      .firstName(uname)
+      .email(mail)
+      //.username(uname)
+      // No need to store password, so store dummy string instead
+      .password(pass)
+      .validated(true)
+      .saveMe
+  }
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsername(username) match {
-      case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
+      case Full(u) if u.getProvider() == Props.get("hostname","") =>
         if (
-          user.validated_? &&
+          u.validated_? &&
           // User is NOT locked AND the password is good
           ! LoginAttempt.userIsLocked(username) &&
-          user.testPassword(Full(password)))
+          u.testPassword(Full(password)))
             {
               // We logged in correctly, so reset badLoginAttempts counter (if it exists)
               LoginAttempt.resetBadLoginAttempts(username)
-              Full(user.user) // Return the user.
+              Full(u.user.get) // Return the user.
             }
         // User is unlocked AND password is bad
         else if (
-          user.validated_? &&
+          u.validated_? &&
           ! LoginAttempt.userIsLocked(username) &&
-          ! user.testPassword(Full(password))
+          ! u.testPassword(Full(password))
         ) {
           LoginAttempt.incrementBadLoginAttempts(username)
           Empty
@@ -492,28 +523,32 @@ import net.liftweb.util.Helpers._
           Empty
         }
 
-      case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
+      case Full(u) if u.getProvider() != Props.get("hostname","") =>
           connector match {
-            case Helper.matchAnyKafka() if ( Props.getBool("kafka.user.authentication", false) &&
-              ! LoginAttempt.userIsLocked(username) ) =>
-                val userId = for { kafkaUser <- getUserFromConnector(username, password)
-                  kafkaUserId <- tryo{kafkaUser.user} } yield {
+            case Helper.matchAnyKafka() if  Props.getBool("kafka.user.authentication", false) &&
+              ! LoginAttempt.userIsLocked(username) =>
+                val userId = for {
+                    kafkaUser <- getUserFromConnector(username, password)
+                    kafkaUserId <- tryo{kafkaUser.user}
+                  } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
-                    kafkaUserId.toLong
-                }
+                    kafkaUserId.get
+                  }
                 userId match {
                   case Full(l:Long) => Full(l)
                   case _ =>
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
 		}
-            case "obpjvm" if ( Props.getBool("obpjvm.user.authentication", false) &&
-              ! LoginAttempt.userIsLocked(username) ) =>
-                val userId = for { obpjvmUser <- getUserFromConnector(username, password)
-                  obpjvmUserId <- tryo{obpjvmUser.user} } yield {
+            case "obpjvm" if  Props.getBool("obpjvm.user.authentication", false) &&
+              ! LoginAttempt.userIsLocked(username) =>
+                val userId = for { 
+                    obpjvmUser <- getUserFromConnector(username, password)
+                    obpjvmUserId <- tryo{obpjvmUser.user}
+                  } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
-                    obpjvmUserId.toLong
-                }
+                    obpjvmUserId.get
+                  }
                 userId match {
                   case Full(l:Long) => Full(l)
                   case _ =>
@@ -548,38 +583,27 @@ import net.liftweb.util.Helpers._
 
         val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
-          case Full(user) if user.validated_?
+          case Full(u) if u.validated_?
             // && user.provider == extProvider
             => {
             // Return existing user if found
             info("external user already exists locally, using that one")
-            user
+            Full(u)
           }
 
           // If not found, create new user
-          case _ => {
+          case _ =>
             // Create AuthUser using fetched data from Kafka
             // assuming that user's email is always validated
-            info("external user "+ extEmail +" does not exist locally, creating one")
-            val newUser = AuthUser.create
-              .firstName(extUsername)
-              .email(extEmail)
-              .username(extUsername)
-              // No need to store password, so store dummy string instead
-              .password(UUID.randomUUID().toString)
-              .provider(extProvider)
-              .validated(true)
-            // Save the user in order to be able to log in
-            newUser.save()
+            info("external user "+ extUsername +" with email "+ extEmail +" does not exist locally, creating one")
+            val newUser = createAuthUser(extEmail, extUsername, extPassword)
             // Return created user
-            newUser
-          }
+            Full(newUser)
         }
-        Full(user)
+        user
       }
-      case _ => {
-        Empty
-      }
+      case _ => Empty
+
     }
   }
 
@@ -592,10 +616,10 @@ import net.liftweb.util.Helpers._
         findUserByUsername(usernameFromGui) match {
           // Check if user came from localhost and
           // if User is NOT locked and password is good
-          case Full(user) if user.validated_? &&
-            user.getProvider() == Props.get("hostname","") &&
+          case Full(u) if u.validated_? &&
+            u.getProvider() == Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            user.testPassword(Full(passwordFromGui)) => {
+            u.testPassword(Full(passwordFromGui)) => {
               // Reset any bad attempts
               LoginAttempt.resetBadLoginAttempts(usernameFromGui)
               val preLoginState = capturePreLoginState()
@@ -607,13 +631,13 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+              registeredUserHelper(u.username)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
             // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
             if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-              logUserIn(user, () => {
+              logUserIn(u, () => {
                 S.notice(S.?("logged.in"))
                 preLoginState()
                 S.redirectTo(redir)
@@ -627,10 +651,10 @@ import net.liftweb.util.Helpers._
           // Check if user came from kafka/obpjvm and
           // if User is NOT locked. Then check username and password
           // from connector in case they changed on the south-side
-          case Full(user) if user.validated_? &&
-            user.getProvider() != Props.get("hostname","") &&
+          case Full(u) if u.validated_? &&
+            u.getProvider() != Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
+            testExternalPassword(Full(usernameFromGui), Full(passwordFromGui)).getOrElse(false) => {
               // Reset any bad attempts
               LoginAttempt.resetBadLoginAttempts(usernameFromGui)
               val preLoginState = capturePreLoginState()
@@ -642,13 +666,13 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+              registeredUserHelper(u.username)
               //Check the internal redirect, in case for open redirect issue.
               // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
               // val currentUrl = S.uriAndQueryString.getOrElse("/")
               // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
               if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                logUserIn(user, () => {
+                logUserIn(u, () => {
                   S.notice(S.?("logged.in"))
                   preLoginState()
                   S.redirectTo(redir)
@@ -660,19 +684,19 @@ import net.liftweb.util.Helpers._
             }
 
           // If user is unlocked AND bad password, increment bad login attempt counter.
-          case Full(user) if user.validated_? &&
-            user.getProvider() == Props.get("hostname","") &&
+          case Full(u) if u.validated_? &&
+            u.getProvider() == Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            ! user.testPassword(Full(passwordFromGui)) =>
+            ! u.testPassword(Full(passwordFromGui)) =>
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
 
           // If user is locked, send the error to GUI
-          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
+          case Full(u) if LoginAttempt.userIsLocked(usernameFromGui) =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
 
-          case Full(user) if !user.validated_? =>
+          case Full(u) if ! u.validated_? =>
             S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
@@ -693,14 +717,14 @@ import net.liftweb.util.Helpers._
               } yield {
                 user_
               } match {
-                case u:AuthUser =>
+                case au:AuthUser =>
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   //Check the internal redirect, in case for open redirect issue.
                   // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
                   // val currentUrl = S.uriAndQueryString.getOrElse("/")
                   // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
                   if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                    logUserIn(u, () => {
+                    logUserIn(au, () => {
                       S.notice(S.?("logged.in"))
                       preLoginState()
                       S.redirectTo(redir)
@@ -769,8 +793,14 @@ import net.liftweb.util.Helpers._
     }
   }
 
-  protected def findUserByUsername(name: String): Box[TheUserType] = {
-    find(By(this.username, name))
+  def findUserByUsername(name: String): Box[TheUserType] = {
+    val findId:String = Users.users.vend.getUserByUserName(name).map { u =>
+      u.userId
+    } match {
+      case Full(i) => i
+      case Empty => ""
+    }
+    find(By(this.resourceUserId, findId))
   }
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow

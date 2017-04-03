@@ -24,6 +24,9 @@ object RemotedataUsers extends ActorInit with Users {
   def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser] =
     extractFutureToBox(actor ? cc.getResourceUserByResourceUserId(id))
 
+  def getResourceUserByUserId(userId : String) : Box[ResourceUser] =
+    extractFutureToBox(actor ? cc.getResourceUserByUserId(userId))
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] =
     extractFutureToBox(actor ? cc.getUserByProviderId(provider, idGivenByProvider))
 

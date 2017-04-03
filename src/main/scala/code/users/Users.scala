@@ -20,6 +20,8 @@ trait Users {
 
   def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser]
 
+  def getResourceUserByUserId(userId : String) : Box[ResourceUser]
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
 
   def getUserByUserId(userId : String) : Box[User]
@@ -44,6 +46,7 @@ trait Users {
 class RemotedataUsersCaseClasses {
   case class getUserByResourceUserId(id : Long)
   case class getResourceUserByResourceUserId(id : Long)
+  case class getResourceUserByUserId(userId : String)
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
   case class getUserByUserId(userId : String)
   case class getUserByUserName(userName : String)
