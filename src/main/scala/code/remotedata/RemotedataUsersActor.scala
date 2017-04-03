@@ -31,6 +31,10 @@ class RemotedataUsersActor extends Actor with ActorHelper {
       logger.debug("getResourceUserByResourceUserId(" + id +")")
       sender ! extractResult(mapper.getResourceUserByResourceUserId(id))
 
+    case cc.getResourceUserByUserId(userId: String) =>
+      logger.debug("getResourceUserByUserId(" + userId +")")
+      sender ! extractResult(mapper.getResourceUserByUserId(userId))
+
     case cc.getUserByProviderId(provider : String, idGivenByProvider : String) =>
       logger.debug("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
       sender ! extractResult(mapper.getUserByProviderId(provider, idGivenByProvider))

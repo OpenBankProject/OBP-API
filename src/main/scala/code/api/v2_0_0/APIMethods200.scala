@@ -1408,14 +1408,19 @@ trait APIMethods200 {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidStrongPassword <- tryo(assert(isValidStrongPassword(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
-            if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
-              val userCreated = AuthUser.create
-                .firstName(postedData.first_name)
-                .lastName(postedData.last_name)
-                .username(postedData.username)
-                .email(postedData.email)
-                .password(postedData.password)
-                .validated(true) // TODO Get this from Props
+            if (AuthUser.findUserByUsername(postedData.username).isEmpty) {
+              val userCreated = AuthUser.createAuthUser(
+                postedData.email,
+                postedData.username,
+                postedData.password
+              )
+                //AuthUser.create
+                //.firstName(postedData.first_name)
+                //.lastName(postedData.last_name)
+                //.username(postedData.username)
+                //.email(postedData.email)
+                //.password(postedData.password)
+                //.validated(true) // TODO Get this from Props
               if(userCreated.validate.size > 0){
                 Full(errorJsonResponse(userCreated.validate.map(_.msg).mkString(";")))
               }

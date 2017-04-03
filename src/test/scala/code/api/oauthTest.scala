@@ -72,25 +72,42 @@ class OAuthTest extends ServerSetup {
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
-    AuthUser.create.
-      email(randomString(3)+"@example.com").
-      username(randomString(9)).
-      password(user1Password).
-      validated(true).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
-      saveMe
+    AuthUser.createAuthUser(
+      randomString(3)+"@example.com",
+      randomString(9),
+      user1Password
+    )
+      .firstName(randomString(10))
+      .lastName(randomString(10))
+
+    //AuthUser.create.
+    //  email(randomString(3)+"@example.com").
+    //  username(randomString(9)).
+    //  password(user1Password).
+    //  validated(true).
+    //  firstName(randomString(10)).
+    //  lastName(randomString(10)).
+    //  saveMe
 
   lazy val user2Password = randomString(10)
   lazy val user2 =
-    AuthUser.create.
-      email(randomString(3)+"@example.com").
-      username(randomString(9)).
-      password(user2Password).
-      validated(false).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
-      saveMe
+    AuthUser.createAuthUser(
+      randomString(3)+"@example.com",
+      randomString(9),
+      user1Password
+    )
+      .firstName(randomString(10))
+      .lastName(randomString(10))
+      .validated(false)
+
+    //AuthUser.create.
+    //  email(randomString(3)+"@example.com").
+    //  username(randomString(9)).
+    //  password(user2Password).
+    //  validated(false).
+    //  firstName(randomString(10)).
+    //  lastName(randomString(10)).
+    //  saveMe
 
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   lazy val disabledConsumer = new Consumer (disabledTestConsumer.key, disabledTestConsumer.secret)
@@ -137,6 +154,8 @@ class OAuthTest extends ServerSetup {
         click on XPathQuery("""//input[@type='submit']""")
         val newURL = currentUrl
         val newPageSource = pageSource
+        println("================================> " + newURL)
+        println("================================> " + newPageSource)
         val verifier =
           if(newURL.contains("verifier"))
           {
@@ -235,7 +254,7 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username, user1Password)
       Then("we should get a verifier")
       verifier.get.nonEmpty should equal (true)
     }
@@ -244,21 +263,21 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username, user1Password)
       Then("we should get a verifier")
       verifier.isEmpty should equal (false)
     }
     scenario("the user cannot login because there is no token", Verifier, Oauth){
       Given("there will be no token")
       When("the browser is launched to login")
-      val verifier = getVerifier(user1.username.get, user1Password)
+      val verifier = getVerifier(user1.username, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
     scenario("the user cannot login because the token does not exist", Verifier, Oauth){
       Given("we will use a random request token")
       When("the browser is launched to login")
-      val verifier = getVerifier(randomString(4), user1.username.get, user1Password)
+      val verifier = getVerifier(randomString(4), user1.username, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
@@ -268,7 +287,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -278,7 +297,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -297,7 +316,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username, user1Password)
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)
@@ -323,26 +342,26 @@ class OAuthTest extends ServerSetup {
       
       Then("we set the valid username, invalid password and try more than 5 times")
       val invalidPassword = "wrongpassword"
-      var verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      var verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username, invalidPassword)
       
       Then("we should get a locked account verifier")
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
 
 
       Then("We login in with valid username and password, it will still be failed")
-      verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      verifier = getVerifier(requestToken.value, user1.username, user1Password)
 
       Then("we should get a locked account verifier")
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
       
       Then("We unlock the username")
-      LoginAttempt.resetBadLoginAttempts(user1.username.get)
+      LoginAttempt.resetBadLoginAttempts(user1.username)
 
     }
   }
@@ -354,7 +373,7 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
 
       Then("we set the valid username, valid  password and try to login")
-      val verifier = getVerifier(requestToken.value, user2.username.get, user2Password)
+      val verifier = getVerifier(requestToken.value, user2.username, user2Password)
 
       Then("we should get a message: " + accountValidationError)
       verifier.contains(accountValidationError) should equal (true)

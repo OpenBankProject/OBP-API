@@ -887,7 +887,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
+    val createdAuthUserBox = AuthUser.findUserByUsername(user1.user_name)
     createdAuthUserBox.isDefined should equal(true)
 
     val createdAuthUser = createdAuthUserBox.get

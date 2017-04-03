@@ -28,29 +28,39 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val PASSWORD_DISABLED = randomString(20)
 
   before {
-    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
-      AuthUser.create.
-        email(EMAIL).
-        username(USERNAME).
-        password(PASSWORD).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findUserByUsername(USERNAME).isEmpty)
+      AuthUser.createAuthUser(
+        EMAIL,
+        USERNAME,
+        PASSWORD
+      )
+      //AuthUser.create.
+      //  email(EMAIL).
+      //  username(USERNAME).
+      //  password(PASSWORD).
+      //  validated(true).
+      //  firstName(randomString(10)).
+      //  lastName(randomString(10)).
+      //  saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
 
 
-    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
-      AuthUser.create.
-        email(EMAIL_DISABLED).
-        username(USERNAME_DISABLED).
-        password(PASSWORD_DISABLED).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findUserByUsername(USERNAME_DISABLED).isEmpty)
+      AuthUser.createAuthUser(
+        EMAIL_DISABLED,
+        USERNAME_DISABLED,
+        PASSWORD_DISABLED
+      )
+      //AuthUser.create.
+      //  email(EMAIL_DISABLED).
+      //  username(USERNAME_DISABLED).
+      //  password(PASSWORD_DISABLED).
+      //  validated(true).
+      //  firstName(randomString(10)).
+      //  lastName(randomString(10)).
+      //  saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
