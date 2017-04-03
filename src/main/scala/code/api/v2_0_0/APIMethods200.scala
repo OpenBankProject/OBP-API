@@ -1065,7 +1065,7 @@ trait APIMethods200 {
             jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
             isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
-            isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidBankIdFormat
+            isValidBankId <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             bank <- Bank(bankId) ?~ s"Bank $bankId not found"
             // User can create account for self or an account for another user if they have CanCreateAccount role
@@ -1079,7 +1079,14 @@ trait APIMethods200 {
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
+              bankId, accountId, accountType, 
+              accountLabel, currency, initialBalanceAsNumber, 
+              postedOrLoggedInUser.name,
+              "", //added new field in V220
+              "", //added new field in V220
+              "" //added new field in V220
+            )
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
 

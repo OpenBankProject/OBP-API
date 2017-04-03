@@ -186,81 +186,16 @@ case class BranchJSON(
   branch_routing_address: String
 )
 
-// Json used in account creation
+// keep similar to case class CreateAccountJSON - v200
 case class CreateAccountJSON(
   user_id : String,
   label   : String,
   `type` : String,
-  balance : AmountOfMoneyJSON
+  balance : AmountOfMoneyJSON,
+  branch_id : String,
+  account_routing_scheme : String,
+  account_routing_address : String
 )
-
-case class AccountJSON1(
-//// object bank extends MappedString(this, 255)
-//object theAccountId extends MappedString(this, 255)
-//object accountIban extends MappedString(this, 50)
-//object accountCurrency extends MappedString(this, 10)
-//object accountSwiftBic extends MappedString(this, 50)
-//object accountNumber extends MappedAccountNumber(this)
-//
-//@deprecated
-//object holder extends MappedString(this, 100)
-//
-////this is the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
-//object accountBalance extends MappedLong(this)
-//
-//object accountName extends MappedString(this, 255)
-//object kind extends MappedString(this, 255) // This is the account type aka financial product name
-//
-////object productCode extends MappedString(this, 255)
-//
-//object accountLabel extends MappedString(this, 255)
-//
-////the last time this account was updated via hbci
-//object accountLastUpdate extends MappedDateTime(this)
-//
-//object mAccountRoutingScheme extends MappedString(this, 255)
-//object mAccountRoutingAddress extends MappedString(this, 255)
-)
-case class AccountJSON2(
-//object mBankId extends DefaultStringField(this)
-//object mName extends DefaultStringField(this)
-//
-//object mBranchId extends DefaultStringField(this)
-//
-//// Exposed inside address. See below
-//object mLine1 extends DefaultStringField(this)
-//object mLine2 extends DefaultStringField(this)
-//object mLine3 extends DefaultStringField(this)
-//object mCity extends DefaultStringField(this)
-//object mCounty extends DefaultStringField(this)
-//object mState extends DefaultStringField(this)
-//object mCountryCode extends MappedString(this, 2)
-//object mPostCode extends DefaultStringField(this)
-//
-//object mlocationLatitude extends MappedDouble(this)
-//object mlocationLongitude extends MappedDouble(this)
-//
-//// Exposed inside meta.license See below
-//object mLicenseId extends DefaultStringField(this)
-//object mLicenseName extends DefaultStringField(this)
-//
-//object mLobbyHours extends DefaultStringField(this)
-//object mDriveUpHours extends DefaultStringField(this)
-//object mBranchRoutingScheme extends DefaultStringField(this)
-//object mBranchRoutingAddress extends DefaultStringField(this)
-)
-
-//case class BranchJsonPost(
-//  id: String,
-//  bank_id: String,
-//  name: String,
-//  address: AddressJson,
-//  location: LocationJson,
-//  meta: MetaJson,
-//  lobby: LobbyJson,
-//  driveUp: DriveUpJson
-//)
-
 
 object JSONFactory220{
 

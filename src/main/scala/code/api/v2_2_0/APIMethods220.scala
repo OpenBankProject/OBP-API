@@ -8,7 +8,7 @@ import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_0_0.{CreateAccountJSON, JSONFactory200}
+import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0.BranchJsonPost
 import code.bankconnectors.{Connector, KafkaJSONFactory_vMar2017}
 import code.model.dataAccess.BankAccountCreation
@@ -419,7 +419,20 @@ trait APIMethods220 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON("EUR", "0"))),
+      Extraction.decompose(
+        CreateAccountJSON( 
+          user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
+          label = "Label",
+          `type` = "CURRENT",
+          balance = AmountOfMoneyJSON(
+            "EUR",
+            "0"
+          ),
+          branch_id = "1234",
+          account_routing_scheme = "OBP",
+          account_routing_address = "UK123456"
+        )
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -441,17 +454,28 @@ trait APIMethods220 {
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             bank <- Bank(bankId) ?~ s"Bank $bankId not found"
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , 
+                                      s"User must either create account for self or have role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
             accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
-            // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
                                                 s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
+              bankId,
+              accountId,
+              accountType,
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              jsonBody.branch_id,
+              jsonBody.account_routing_scheme,
+              jsonBody.account_routing_address
+            )
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
           

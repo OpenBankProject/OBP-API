@@ -325,7 +325,8 @@ case class InboundAccount(
   generateAccountantsView: Boolean,
   generateAuditorsView: Boolean,
   accountRoutingScheme: String  = "None",
-  accountRoutingAddress: String  = "None"
+  accountRoutingAddress: String  = "None",
+  branchId: String  = "None"
 )extends InboundMessageBase
 
 case class BankAccount2(r: InboundAccount) extends BankAccount {
@@ -352,6 +353,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
+  def branchId: String = r.branchId
   
 }
 

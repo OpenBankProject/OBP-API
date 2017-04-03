@@ -114,7 +114,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       parameters.put("bankId", bankId)
       val response = jvmNorth.get("getAccounts", Transport.Target.accounts, parameters)
       // todo response.error().isPresent
-      response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount( //CM maybe here is a problem
+      response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
         a.accountId,
         a.bankId,
         a.label,
@@ -125,7 +125,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         user.name :: Nil,
         generate_public_view = true,
         generate_accountants_view = true,
-        generate_auditors_view = true
+        generate_auditors_view = true,
+        account_routing_scheme  = "None",
+        account_routing_address = "None",
+        branchId = "None"
       )).toList
       }
     }
@@ -382,7 +385,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         primaryUserIdentifier :: Nil,
         generate_public_view = false,
         generate_accountants_view = false,
-        generate_auditors_view = false)))
+        generate_auditors_view = false,
+        account_routing_scheme  = "None",
+        account_routing_address = "None",
+        branchId = "None"
+      )))
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent and userId is ${primaryUserIdentifier}")
         Empty
@@ -768,8 +775,18 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String,
-                                    accountType: String, accountLabel: String,  currency: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -851,10 +868,20 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
-                                        accountType: String, accountLabel: String, currency: String,
-                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
-
+  override def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
+  
     for {
       bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
@@ -1136,8 +1163,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     def bankId : BankId             = BankId(r.bank)
     def lastUpdate : Date           = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
-    def accountRoutingScheme: String = r.accountRoutingScheme
-    def accountRoutingAddress: String = r.accountRoutingAddress
+    def accountRoutingScheme: String = r.account_routing_scheme
+    def accountRoutingAddress: String = r.account_routing_address
+    def branchId: String = r.branchId
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
@@ -1218,7 +1246,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   case class ObpJvmInboundValidatedUser(
                                        email : String,
                                        display_name : String)
-
   case class ObpJvmInboundAccount(
                                   id : String,
                                   bank : String,
@@ -1231,8 +1258,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
                                   generate_public_view : Boolean,
                                   generate_accountants_view : Boolean,
                                   generate_auditors_view : Boolean,
-                                  accountRoutingScheme: String  = "None",
-                                  accountRoutingAddress: String  = "None"
+                                  account_routing_scheme: String  = "None",
+                                  account_routing_address: String  = "None",
+                                  branchId: String  = "None"
                                   )
 
   case class ObpJvmInboundBalance(

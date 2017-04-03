@@ -275,6 +275,7 @@ trait BankAccount {
   def number : String
   def bankId : BankId
   def lastUpdate : Date
+  def branchId: String
   def accountRoutingScheme: String
   def accountRoutingAddress: String
 

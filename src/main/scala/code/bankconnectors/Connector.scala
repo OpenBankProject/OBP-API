@@ -816,11 +816,32 @@ trait Connector {
   */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
-                           accountType: String, accountLabel:String, currency: String, accountHolderName : String) : (Bank, BankAccount)
+  def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,  //added field in V220
+    accountRoutingAddress: String   //added field in V220
+  ): (Bank, BankAccount)
 
   //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(bankId : BankId, accountId : AccountId, accountType: String, accountLabel: String, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
+  def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
     val uniqueAccountNumber = {
       def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
 
@@ -843,15 +864,28 @@ trait Connector {
       accountLabel,
       currency,
       initialBalance,
-      accountHolderName
+      accountHolderName,
+      branchId: String,//added field in V220
+      accountRoutingScheme, //added field in V220
+      accountRoutingAddress //added field in V220
     )
 
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  def createSandboxBankAccount(bankId : BankId, accountId : AccountId,  accountNumber: String,
-                               accountType: String, accountLabel: String, currency : String,
-                               initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
+  def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount]
 
   //sets a user as an account owner/holder
   def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
