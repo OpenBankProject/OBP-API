@@ -167,9 +167,18 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       Failure("not supported")
     }
 
-    override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
-                                      accountType: String, accountLabel: String, currency: String,
-                                      accountHolderName : String): (Bank, BankAccount) = ???
+    override def createBankAndAccount(
+      bankName: String,
+      bankNationalIdentifier: String,
+      accountNumber: String,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String
+    ): (Bank, BankAccount) = ???
 
     //sets a user as an account owner/holder
     override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
@@ -180,9 +189,18 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = ???
 
     //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-    override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
-                                          accountType: String, accountLabel: String, currency: String,
-                                          initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
+    override def createSandboxBankAccount(bankId: BankId,
+      accountId: AccountId,
+      accountNumber: String,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String
+    ): Box[AccountType] = ???
 
     //used by transaction import api call to check for duplicates
     override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
@@ -195,7 +213,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getProducts(bankId: BankId): Box[List[Product]] = Empty
     override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-    override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
+    override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
@@ -219,6 +237,18 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       * @return empty bankAccount
       */
     override def getEmptyBankAccount(): Box[AccountType] = Empty
+  
+    override def createOrUpdateBank(
+      bankId: String,
+      fullBankName: String,
+      shortBankName: String,
+      logoURL: String,
+      websiteURL: String,
+      swiftBIC: String,
+      national_identifier: String,
+      bankRoutingScheme: String,
+      bankRoutingAddress: String
+    ): Box[Bank] = Empty
   }
 
   override def beforeAll() {

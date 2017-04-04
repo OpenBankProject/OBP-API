@@ -183,7 +183,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.addKycStatus ::
                           Implementations2_0_0.addSocialMediaHandle ::
                           Implementations2_0_0.allAccountsAtOneBank ::
-                          Implementations2_0_0.createAccount ::
+                          //now in V220
+                          //Implementations2_0_0.createAccount ::
                           Implementations2_0_0.createMeeting ::
                           Implementations2_0_0.createUser ::
                           Implementations2_0_0.createUserCustomerLinks ::
@@ -243,7 +244,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getAtm ::
                           Implementations2_1_0.getBranch ::
                           Implementations2_1_0.updateBranch ::
-                          Implementations2_1_0.createBranch ::
+                          //now in V220
+                          //Implementations2_1_0.createBranch ::
                           Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
@@ -272,6 +274,9 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getMessageDocs ::
+                          Implementations2_2_0.createBank ::
+                          Implementations2_2_0.createAccount ::
+                          Implementations2_2_0.createBranch ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

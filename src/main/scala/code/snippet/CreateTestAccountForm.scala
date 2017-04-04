@@ -87,7 +87,9 @@ object CreateTestAccountForm{
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
-        bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name)
+        bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name,
+                                                                         "", "", "")//added field in V220
+                                                                        
       } yield {
         BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount

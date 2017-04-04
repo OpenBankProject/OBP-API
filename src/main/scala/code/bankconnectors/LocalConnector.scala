@@ -458,7 +458,18 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountType: String, accountLabel: String, currency: String, accountHolderName : String): (Bank, BankAccount) = {
+  override def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): (Bank, BankAccount) = {
 
     // TODO: use a more unique id for the long term
     val hostedBank = {
@@ -523,9 +534,19 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //creates a bank account for an existing bank, with the appropriate values set
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,  accountNumber: String,
-                                        accountType: String, accountLabel: String, currency: String,
-                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+  override def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
     HostedBank.find(bankId) match {
       case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))
       case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
@@ -625,7 +646,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 
@@ -638,5 +659,17 @@ private object LocalConnector extends Connector with Loggable {
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
 
   override def getEmptyBankAccount(): Box[AccountType] = Empty
+  
+  override def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] = Empty
 
 }

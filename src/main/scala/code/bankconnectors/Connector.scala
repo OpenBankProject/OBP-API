@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.api.v2_2_0.BankJSON
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -23,7 +24,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.views.Views
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, MappedString}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
@@ -798,15 +799,14 @@ trait Connector {
                                  ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")
 
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
-      //dummy12 = print(s"didSaveStatus is ${didSaveStatus} \n")
-
-      //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)
-      //dummy13 = print(s"About to yield tr. tr.details is ${tr.details} \n")
+      
     } yield {
+      var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
+      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.  
+      tr=tr.copy(transaction_ids =transId.value)
+      tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
       tr
     }
   }
@@ -816,11 +816,32 @@ trait Connector {
   */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
-                           accountType: String, accountLabel:String, currency: String, accountHolderName : String) : (Bank, BankAccount)
+  def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,  //added field in V220
+    accountRoutingAddress: String   //added field in V220
+  ): (Bank, BankAccount)
 
   //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(bankId : BankId, accountId : AccountId, accountType: String, accountLabel: String, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
+  def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
     val uniqueAccountNumber = {
       def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
 
@@ -843,15 +864,28 @@ trait Connector {
       accountLabel,
       currency,
       initialBalance,
-      accountHolderName
+      accountHolderName,
+      branchId: String,//added field in V220
+      accountRoutingScheme, //added field in V220
+      accountRoutingAddress //added field in V220
     )
 
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  def createSandboxBankAccount(bankId : BankId, accountId : AccountId,  accountNumber: String,
-                               accountType: String, accountLabel: String, currency : String,
-                               initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
+  def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount]
 
   //sets a user as an account owner/holder
   def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
@@ -878,7 +912,27 @@ trait Connector {
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product]
 
-  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
+  //Note: this is a temporary way for compatibility
+  //It is better to create the case class for all the connector methods
+  def createOrUpdateBranch(
+    branch: BranchJsonPost,
+    branchRoutingScheme: String, //Added in V220
+    branchRoutingAddress: String //Added in V220
+  ): Box[Branch]
+  
+  def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] = Empty
+  
+//  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
 

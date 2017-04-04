@@ -125,7 +125,7 @@ object KafkaMappedConnector extends Connector with Loggable {
           "target" -> "accounts")}
         // Generate random uuid to be used as request-response match id
         } yield {
-          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]])
+          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]]) 
         }
       }
     }.flatten
@@ -747,8 +747,18 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String,
-                                    accountType: String, accountLabel: String,  currency: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -830,9 +840,19 @@ object KafkaMappedConnector extends Connector with Loggable {
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
-                                        accountType: String, accountLabel: String, currency: String,
-                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+  override def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
 
     for {
       bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
@@ -1026,7 +1046,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+  override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
@@ -1146,6 +1166,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     def nationalIdentifier = "None"  //TODO
     def swiftBic           = "None"  //TODO
     def websiteUrl         = r.url
+    def bankRoutingScheme = "None"
+    def bankRoutingAddress = "None"
   }
 
   // Helper for creating other bank account
@@ -1181,6 +1203,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     def bankId : BankId             = BankId(r.bankId)
     def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
+    def accountRoutingScheme: String = r.accountRoutingScheme
+    def accountRoutingAddress: String = r.accountRoutingAddress
+    def branchId: String = r.branchId
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
@@ -1307,7 +1332,11 @@ object KafkaMappedConnector extends Connector with Loggable {
                                   owners : List[String],
                                   generate_public_view : Boolean,
                                   generate_accountants_view : Boolean,
-                                  generate_auditors_view : Boolean)
+                                  generate_auditors_view : Boolean,
+                                  accountRoutingScheme: String  = "None",
+                                  accountRoutingAddress: String  = "None",
+                                  branchId: String  = "None"
+                                 )
 
   case class KafkaInboundTransaction(
                                       transactionId : String,

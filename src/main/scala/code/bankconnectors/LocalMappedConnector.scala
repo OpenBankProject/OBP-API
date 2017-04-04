@@ -539,7 +539,18 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountType: String, accountLabel: String, currency: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(
+    bankName: String,
+    bankNationalIdentifier: String,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -557,7 +568,14 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     //TODO: pass in currency as a parameter?
-    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, accountType, accountLabel, currency, 0L, accountHolderName)
+    val account = createAccountIfNotExisting(
+      bank.bankId,
+      AccountId(UUID.randomUUID().toString),
+      accountNumber, accountType,
+      accountLabel, currency,
+      0L, accountHolderName,
+      "", "", "" //added field in V220
+    )
 
     (bank, account)
   }
@@ -614,24 +632,56 @@ object LocalMappedConnector extends Connector with Loggable {
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
-                                        accountType: String, accountLabel: String,
-                                        currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+  override def createSandboxBankAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ): Box[BankAccount] = {
 
     for {
       bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(
+        bankId,
+        accountId,
+        accountNumber,
+        accountType,
+        accountLabel,
+        currency,
+        balanceInSmallestCurrencyUnits,
+        accountHolderName,
+        branchId,
+        accountRoutingScheme,
+        accountRoutingAddress
+      )
     }
 
   }
 
 
-  private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
-                                         accountType: String, accountLabel: String, currency: String,
-                                         balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
+  private def createAccountIfNotExisting(
+    bankId: BankId,
+    accountId: AccountId,
+    accountNumber: String,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    balanceInSmallestCurrencyUnits: Long,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String
+  ) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
@@ -646,6 +696,9 @@ object LocalMappedConnector extends Connector with Loggable {
           .accountCurrency(currency)
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)
+          .mBranchId(branchId)
+          .mAccountRoutingScheme(accountRoutingScheme)
+          .mAccountRoutingAddress(accountRoutingAddress)
           .saveMe()
     }
   }
@@ -801,7 +854,7 @@ object LocalMappedConnector extends Connector with Loggable {
     )
   }
 
-  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = {
+  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
 
     //check the branch existence and update or insert data
     getBranch(BankId(branch.bank_id), BranchId(branch.id)) match {
@@ -824,6 +877,8 @@ object LocalMappedConnector extends Connector with Loggable {
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
             .mDriveUpHours(branch.driveUp.hours)
+            .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
+            .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
         } ?~! ErrorMessages.CreateBranchUpdateError
       case _ =>
@@ -845,6 +900,8 @@ object LocalMappedConnector extends Connector with Loggable {
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
             .mDriveUpHours(branch.driveUp.hours)
+            .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
+            .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
         } ?~! ErrorMessages.CreateBranchInsertError
     }
@@ -915,4 +972,46 @@ object LocalMappedConnector extends Connector with Loggable {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
 
+  override def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] =
+  //check the bank existence and update or insert data
+    getMappedBank(BankId(bankId)) match {
+      case Full(mappedBank) =>
+        tryo {
+               mappedBank
+               .permalink(bankId)
+               .fullBankName(fullBankName)
+               .shortBankName(shortBankName)
+               .logoURL(logoURL)
+               .websiteURL(websiteURL)
+               .swiftBIC(swiftBIC)
+               .national_identifier(national_identifier)
+               .mBankRoutingScheme(bankRoutingScheme)
+               .mBankRoutingAddress(bankRoutingAddress)
+               .saveMe()
+             } ?~! ErrorMessages.CreateBankInsertError
+      case _ =>
+        tryo {
+               MappedBank.create
+               .permalink(bankId)
+               .fullBankName(fullBankName)
+               .shortBankName(shortBankName)
+               .logoURL(logoURL)
+               .websiteURL(websiteURL)
+               .swiftBIC(swiftBIC)
+               .national_identifier(national_identifier)
+               .mBankRoutingScheme(bankRoutingScheme)
+               .mBankRoutingAddress(bankRoutingAddress)
+               .saveMe()
+             } ?~! ErrorMessages.CreateBankUpdateError
+    }
 }

@@ -203,7 +203,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val reply = getBankInfo(randomBank)
       Then("we should get a 200 ok code")
       reply.code should equal (200)
-      val bankInfo = reply.body.extract[BankJSON]
+      val bankInfo = reply.body.extract[code.api.v1_2_1.BankJSON]
       bankInfo.id.nonEmpty should equal (true)
     }
 
