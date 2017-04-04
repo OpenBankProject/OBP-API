@@ -136,7 +136,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BanksJSON(List(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")))),
+      decompose(BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs","obp","gh.29.uk")))),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
@@ -172,7 +172,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")),
+      decompose(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs","obp","gh.29.uk")),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)

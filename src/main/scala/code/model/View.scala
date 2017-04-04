@@ -471,6 +471,8 @@ trait View {
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
       val bankId = bankAccount.bankId
+      val accountRoutingScheme = Some(bankAccount.accountRoutingScheme)
+      val accountRoutingAddress = Some(bankAccount.accountRoutingAddress)
 
       Some(
         new ModeratedBankAccount(
@@ -485,7 +487,9 @@ trait View {
           iban = iban,
           number = number,
           bankName = bankName,
-          bankId = bankId
+          bankId = bankId,
+          accountRoutingScheme = accountRoutingScheme,
+          accountRoutingAddress = accountRoutingAddress
         )
       )
     }

@@ -168,6 +168,10 @@ case class BankJSON(
   website_url: String,
   swift_bic: String,
   national_identifier: String,
+  bank_routing: BankRoutingJSON
+)
+
+case class BankRoutingJSON(
   bank_routing_scheme: String,
   bank_routing_address: String
 )
@@ -181,7 +185,11 @@ case class BranchJSON(
   location: LocationJson,
   meta: MetaJson,
   lobby: LobbyJson,
-  driveUp: DriveUpJson,
+  drive_up: DriveUpJson,
+  branch_routing: BranchRoutingJSON
+)
+
+case class BranchRoutingJSON(
   branch_routing_scheme: String,
   branch_routing_address: String
 )
@@ -193,8 +201,12 @@ case class CreateAccountJSON(
   `type` : String,
   balance : AmountOfMoneyJSON,
   branch_id : String,
-  account_routing_scheme : String,
-  account_routing_address : String
+  account_routing: AccountRoutingJSON
+)
+
+case class AccountRoutingJSON(
+  account_routing_scheme: String,
+  account_routing_address: String
 )
 
 object JSONFactory220{
@@ -330,13 +342,15 @@ object JSONFactory220{
       website_url = bank.websiteUrl,
       swift_bic = bank.swiftBic,
       national_identifier = bank.nationalIdentifier,
-      bank_routing_scheme = bank.bankRoutingScheme,
-      bank_routing_address = bank.bankRoutingAddress
+      bank_routing = BankRoutingJSON(
+        bank_routing_scheme = bank.bankRoutingScheme,
+        bank_routing_address = bank.bankRoutingAddress
+      )
     )
   }
   
   // keep similar to def createBranchJson(branch: Branch) -- v140
-  def createBranchJson(branch: Branch): BranchJSON = {
+  def createBranchJSON(branch: Branch): BranchJSON = {
     BranchJSON(
       id= branch.branchId.value,
       bank_id= branch.bankId.value,
@@ -345,9 +359,28 @@ object JSONFactory220{
       location= createLocationJson(branch.location),
       meta= createMetaJson(branch.meta),
       lobby= createLobbyJson(branch.lobby.hours),
-      driveUp= createDriveUpJson(branch.driveUp.hours),
-      branch_routing_scheme= branch.branchRoutingScheme,
-      branch_routing_address=branch.branchRoutingAddress
+      drive_up= createDriveUpJson(branch.driveUp.hours),
+      branch_routing = BranchRoutingJSON(
+        branch_routing_scheme = branch.branchRoutingScheme,
+        branch_routing_address = branch.branchRoutingAddress
+      )
+    )
+  }
+  
+  def createAccountJSON(userId: String, account: BankAccount): CreateAccountJSON = {
+    CreateAccountJSON(
+      user_id = userId,
+      label = account.label,
+      `type` = account.accountType,
+      balance = AmountOfMoneyJSON(
+        account.currency,
+        account.balance.toString()
+      ),
+      branch_id = account.branchId,
+      account_routing = AccountRoutingJSON(
+        account_routing_scheme = account.accountRoutingScheme,
+        account_routing_address = account.accountRoutingAddress
+      )
     )
   }
   

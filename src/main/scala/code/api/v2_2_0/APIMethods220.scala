@@ -310,8 +310,10 @@ trait APIMethods220 {
           website_url = "https://www.example.com",
           swift_bic = "IIIGGB22",
           national_identifier = "UK97ZZZ1234567890",
-          bank_routing_scheme = "IIIGGB22",
-          bank_routing_address = "UK97ZZZ1234567890"
+          bank_routing = BankRoutingJSON(
+            bank_routing_scheme = "IIIGGB22",
+            bank_routing_address = "UK97ZZZ1234567890"
+          )
         )
       ),
       emptyObjectJson,
@@ -334,8 +336,8 @@ trait APIMethods220 {
               bank.website_url,
               bank.swift_bic,
               bank.national_identifier,
-              bank.bank_routing_scheme,
-              bank.bank_routing_address
+              bank.bank_routing.bank_routing_scheme,
+              bank.bank_routing.bank_routing_address
             )
           } yield {
             val json = JSONFactory220.createBankJSON(success)
@@ -357,15 +359,17 @@ trait APIMethods220 {
       Extraction.decompose(
         BranchJSON(
           id = "123",
-          bank_id = "gh.29.fi",
+          bank_id = "gh.29.uk",
           name = "OBP",
           address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
           location = LocationJson(1.2, 2.1),
-          meta = MetaJson(LicenseJson("", "")),
+          meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
           lobby = LobbyJson("Ma-Pe 10:00-16:30"),
-          driveUp = DriveUpJson("Ma-Pe 09:00-14:00"),
-          branch_routing_scheme = "IIIGGB22",
-          branch_routing_address = "UK97ZZZ1234567890"
+          drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
+          branch_routing = BranchRoutingJSON(
+            branch_routing_scheme = "IIIGGB22",
+            branch_routing_address = "UK97ZZZ1234567890"
+          )
         )
       ),
       emptyObjectJson,
@@ -380,7 +384,7 @@ trait APIMethods220 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,s"${ErrorMessages.UserNotHaveEntilement} ${CanCreateBranch}")
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
             branch <- tryo {json.extract[BranchJSON]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
@@ -391,13 +395,13 @@ trait APIMethods220 {
                 branch.location,
                 branch.meta,
                 branch.lobby,
-                branch.driveUp
+                branch.drive_up
               ),
-              branch.branch_routing_scheme,
-              branch.branch_routing_address
+              branch.branch_routing.branch_routing_scheme,
+              branch.branch_routing.branch_routing_address
             )
           } yield {
-            val json = JSONFactory220.createBranchJson(success)
+            val json = JSONFactory220.createBranchJSON(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }
@@ -429,8 +433,10 @@ trait APIMethods220 {
             "0"
           ),
           branch_id = "1234",
-          account_routing_scheme = "OBP",
-          account_routing_address = "UK123456"
+          account_routing = AccountRoutingJSON(
+            account_routing_scheme = "OBP",
+            account_routing_address = "UK123456"
+          )
         )
       ),
       emptyObjectJson,
@@ -473,15 +479,13 @@ trait APIMethods220 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               jsonBody.branch_id,
-              jsonBody.account_routing_scheme,
-              jsonBody.account_routing_address
+              jsonBody.account_routing.account_routing_scheme,
+              jsonBody.account_routing.account_routing_address
             )
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
           
-            val dataContext = DataContext(user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
-            val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
-            val json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
+            val json = JSONFactory220.createAccountJSON(user_id, bankAccount)
           
             successJsonResponse(Extraction.decompose(json))
           }

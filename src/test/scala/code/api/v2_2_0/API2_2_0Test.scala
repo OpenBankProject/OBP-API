@@ -137,12 +137,12 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
   }
 
   def getBanksInfo : APIResponse  = {
-    val request = v1_2Request / "banks"
+    val request = v2_2Request / "banks"
     makeGetRequest(request)
   }
 
   def getBankInfo(bankId : String) : APIResponse  = {
-    val request = v1_2Request / "banks" / bankId
+    val request = v2_2Request / "banks" / bankId
     makeGetRequest(request)
   }
 

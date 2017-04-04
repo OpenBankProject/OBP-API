@@ -192,7 +192,9 @@ class ModeratedBankAccount(
   val iban : Moderated[String],
   val number: Moderated[String],
   val bankName: Moderated[String],
-  val bankId : BankId
+  val bankId : BankId,
+  val accountRoutingScheme : Moderated[String],
+  val accountRoutingAddress :Moderated[String]
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson = {

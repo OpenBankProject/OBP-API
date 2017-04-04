@@ -65,7 +65,9 @@ case class BankJSON(
   short_name : String,
   full_name : String,
   logo : String,
-  website : String
+  website : String,
+  bankRoutingScheme : String,
+  bankRoutingAddress : String
 )
 case class ViewsJSON(
   views : List[ViewJSON]
@@ -163,7 +165,9 @@ case class ModeratedAccountJSON(
   IBAN : String,
   swift_bic: String,
   views_available : List[ViewJSON],
-  bank_id : String
+  bank_id : String,
+  account_routing_scheme : String,
+  account_routing_address : String
 )
 case class UserJSON(
   id : String,
@@ -344,7 +348,9 @@ object JSONFactory{
       stringOrNull(bank.shortName),
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoUrl),
-      stringOrNull(bank.websiteUrl)
+      stringOrNull(bank.websiteUrl),
+      stringOrNull(bank.bankRoutingScheme),
+      stringOrNull(bank.bankRoutingAddress)
     )
   }
 
@@ -452,7 +458,9 @@ object JSONFactory{
       stringOptionOrNull(account.iban),
       stringOptionOrNull(account.swift_bic),
       viewsAvailable,
-      stringOrNull(account.bankId.value)
+      stringOrNull(account.bankId.value),
+      stringOptionOrNull(account.accountRoutingScheme),
+      stringOptionOrNull(account.accountRoutingAddress)
     )
   }
 
