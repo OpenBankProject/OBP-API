@@ -737,31 +737,15 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
-    val mappedTransactionRequest = TransactionRequests.transactionRequestProvider.vend.getMappedTransactionRequest(transactionRequestId)
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-      case _ => Failure("Couldn't find transaction request ${transactionRequestId}")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
-    val mappedTransactionRequest = TransactionRequests.transactionRequestProvider.vend.getMappedTransactionRequest(transactionRequestId)
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full{
-        tr.mChallenge_Id(challenge.id)
-        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-        tr.mChallenge_ChallengeType(challenge.challenge_type).save
-      }
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
-    val mappedTransactionRequest = TransactionRequests.transactionRequestProvider.vend.getMappedTransactionRequest(transactionRequestId)
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set status")
-    }
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
   }
 
 
