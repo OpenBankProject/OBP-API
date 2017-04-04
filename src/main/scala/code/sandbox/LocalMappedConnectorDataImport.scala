@@ -239,6 +239,9 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
       postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
       completedDate <-tryo{dateFormat.parse(t.details.completed)} ?~ s"Invalid date format: ${t.details.completed}. Expected pattern $datePattern"
     } yield {
+
+      logger.info(s"About to create the following MappedTransaction: ${t}")
+
       val mappedTransaction = MappedTransaction.create
         .bank(t.this_account.bank)
         .account(t.this_account.id)
