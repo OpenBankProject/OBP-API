@@ -87,8 +87,7 @@ object ErrorMessages {
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
-  val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
-
+ 
   val InvalidValueLength = "OBP-20010: Value too long"
   val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"
 
@@ -105,7 +104,9 @@ object ErrorMessages {
   val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
-
+  
+  val InsufficientAuthorisationToCreateBranch  = "OBP-20019: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
+  val InsufficientAuthorisationToCreateBank  = "OBP-20020: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank."
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
