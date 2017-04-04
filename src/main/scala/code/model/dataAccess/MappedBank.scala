@@ -13,6 +13,9 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   object websiteURL extends MappedString(this, 255)
   object swiftBIC extends MappedString(this, 255)
   object national_identifier extends MappedString(this, 255)
+  object mBankRoutingScheme extends MappedString(this, 255)
+  object mBankRoutingAddress extends MappedString(this, 255)
+  
 
   override def bankId: BankId = BankId(permalink.get) // This is the bank id used in URLs
   override def fullName: String = fullBankName.get
@@ -21,6 +24,8 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   override def websiteUrl: String = websiteURL.get
   override def swiftBic: String = swiftBIC.get
   override def nationalIdentifier: String = national_identifier.get
+  override def bankRoutingScheme = mBankRoutingScheme.get
+  override def bankRoutingAddress = mBankRoutingAddress.get
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {

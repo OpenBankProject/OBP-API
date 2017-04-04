@@ -80,7 +80,11 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     override def name = "iban"
   }
   object accountLastUpdate extends DateField(this)
-
+  object mAccountRoutingScheme extends StringField(this, 255)
+  object mAccountRoutingAddress extends StringField(this, 255)
+  object mBranchId extends StringField(this, 255)
+  
+  
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
     .start("obp_transaction.this_account.number")
@@ -169,6 +173,9 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate: Date = accountLastUpdate.get
+  override def accountRoutingScheme: String = mAccountRoutingScheme.get
+  override def accountRoutingAddress: String = mAccountRoutingAddress.get
+  override def branchId: String = mBranchId.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
@@ -186,6 +193,8 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   object permalink extends StringField(this, 255)
   object swiftBIC extends StringField(this, 255)
   object national_identifier extends StringField(this, 255)
+  object mBankRoutingScheme extends StringField(this, 255)
+  object mBankRoutingAddress extends StringField(this, 255)
 
   def getAccount(bankAccountId: AccountId) : Box[Account] = {
     Account.find((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.get)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
@@ -201,6 +210,8 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   override def websiteUrl: String = website.get
   override def swiftBic: String = swiftBIC.get
   override def nationalIdentifier: String = national_identifier.get
+  override def bankRoutingScheme = mBankRoutingAddress.get
+  override def bankRoutingAddress = mBankRoutingAddress.get
 }
 
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {

@@ -19,13 +19,18 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
   val BankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
-  case class BranchImpl(branchId : BranchId,
-                        name : String,
-                        address : Address,
-                        location : Location,
-                        meta : Meta,
-                        lobby : Lobby,
-                        driveUp : DriveUp) extends Branch
+  case class BranchImpl(
+    branchId: BranchId,
+    bankId: BankId,
+    name: String,
+    address: Address,
+    location: Location,
+    meta: Meta,
+    lobby: Lobby,
+    driveUp: DriveUp,
+    branchRoutingScheme: String,
+    branchRoutingAddress: String
+  ) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
 
@@ -77,9 +82,9 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     override def hours: String = "M-Th 8:30 - 5:30"
   }
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2)
-  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2) // Should not be returned
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), BankId("uk"),"Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp,"","")
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,"","")
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,"","") // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {

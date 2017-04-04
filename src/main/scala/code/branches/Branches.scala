@@ -20,12 +20,15 @@ object Branches extends SimpleInjector {
 
   trait Branch {
     def branchId : BranchId
+    def bankId : BankId
     def name : String
     def address : Address
     def location : Location
     def lobby : Lobby
     def driveUp : DriveUp
     def meta : Meta
+    def branchRoutingScheme: String
+    def branchRoutingAddress: String
   }
 
   trait Lobby {

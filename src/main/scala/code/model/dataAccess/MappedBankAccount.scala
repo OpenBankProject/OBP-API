@@ -32,6 +32,10 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
 
   //the last time this account was updated via hbci
   object accountLastUpdate extends MappedDateTime(this)
+  
+  object mAccountRoutingScheme extends MappedString(this, 255)
+  object mAccountRoutingAddress extends MappedString(this, 255)
+  object mBranchId extends MappedString(this, 255)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
@@ -52,6 +56,10 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate : Date = accountLastUpdate.get
+  
+  def accountRoutingScheme: String = mAccountRoutingScheme.get
+  def accountRoutingAddress: String = mAccountRoutingAddress.get
+  def branchId: String = mBranchId.get
 }
 
 object MappedBankAccount extends MappedBankAccount with LongKeyedMetaMapper[MappedBankAccount] {

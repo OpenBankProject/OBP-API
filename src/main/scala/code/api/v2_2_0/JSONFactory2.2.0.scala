@@ -33,6 +33,10 @@ package code.api.v2_2_0
 
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
+
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -150,6 +154,48 @@ case class CounterpartyJSON(
 case class CounterpartiesJSON(
                                counterparties: List[CounterpartyJSON]
                              )
+
+
+
+
+// used for Create Bank in V220
+// keep it similar as "case class BankJSON" in V121  
+case class BankJSON(
+  id: String,
+  full_name: String,
+  short_name: String,
+  logo_url: String,
+  website_url: String,
+  swift_bic: String,
+  national_identifier: String,
+  bank_routing_scheme: String,
+  bank_routing_address: String
+)
+
+//keep similar to "case class BranchJsonPost" in V210
+case class BranchJSON(
+  id: String,
+  bank_id: String,
+  name: String,
+  address: AddressJson,
+  location: LocationJson,
+  meta: MetaJson,
+  lobby: LobbyJson,
+  driveUp: DriveUpJson,
+  branch_routing_scheme: String,
+  branch_routing_address: String
+)
+
+// keep similar to case class CreateAccountJSON - v200
+case class CreateAccountJSON(
+  user_id : String,
+  label   : String,
+  `type` : String,
+  balance : AmountOfMoneyJSON,
+  branch_id : String,
+  account_routing_scheme : String,
+  account_routing_address : String
+)
 
 object JSONFactory220{
 
@@ -274,5 +320,35 @@ object JSONFactory220{
     val list : List[CounterpartyJSON] = counterparties.map(createCounterpartyJSON)
     new CounterpartiesJSON(list)
   }
-
+  
+  def createBankJSON(bank: Bank): BankJSON = {
+    BankJSON(
+      id = bank.bankId.value,
+      full_name = bank.fullName,
+      short_name = bank.shortName,
+      logo_url = bank.logoUrl,
+      website_url = bank.websiteUrl,
+      swift_bic = bank.swiftBic,
+      national_identifier = bank.nationalIdentifier,
+      bank_routing_scheme = bank.bankRoutingScheme,
+      bank_routing_address = bank.bankRoutingAddress
+    )
+  }
+  
+  // keep similar to def createBranchJson(branch: Branch) -- v140
+  def createBranchJson(branch: Branch): BranchJSON = {
+    BranchJSON(
+      id= branch.branchId.value,
+      bank_id= branch.bankId.value,
+      name= branch.name,
+      address= createAddressJson(branch.address),
+      location= createLocationJson(branch.location),
+      meta= createMetaJson(branch.meta),
+      lobby= createLobbyJson(branch.lobby.hours),
+      driveUp= createDriveUpJson(branch.driveUp.hours),
+      branch_routing_scheme= branch.branchRoutingScheme,
+      branch_routing_address=branch.branchRoutingAddress
+    )
+  }
+  
 }
