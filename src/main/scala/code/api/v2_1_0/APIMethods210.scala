@@ -1410,7 +1410,7 @@ trait APIMethods210 {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             branch <- tryo {json.extract[BranchJsonPut]} ?~! ErrorMessages.InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,s"${ErrorMessages.UserNotHaveEntilement} ${CanCreateBranch}")
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             branchPost <- toBranchJsonPost(branchId,branch)
             success <- Connector.connector.vend.createOrUpdateBranch(
@@ -1454,7 +1454,7 @@ trait APIMethods210 {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
             branch <- tryo {json.extract[BranchJsonPost]} ?~! ErrorMessages.InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,s"${ErrorMessages.UserNotHaveEntilement} ${CanCreateBranch}")
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
             success <- Connector.connector.vend.createOrUpdateBranch(
               branch,
               "", //new field in V220
