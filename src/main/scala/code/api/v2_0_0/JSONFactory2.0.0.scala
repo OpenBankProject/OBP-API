@@ -518,7 +518,9 @@ object JSONFactory200{
                                    balance : AmountOfMoneyJSON,
                                    IBAN : String,
                                    swift_bic: String,
-                                   bank_id : String
+                                   bank_id : String,
+                                   account_routing_scheme : String,
+                                   account_routing_address : String
                                  )
 
   case class CoreTransactionsJSON(
@@ -704,7 +706,9 @@ object JSONFactory200{
       JSONFactory121.createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       JSONFactory121.stringOptionOrNull(account.iban),
       JSONFactory121.stringOptionOrNull(account.swift_bic),
-      stringOrNull(account.bankId.value)
+      stringOrNull(account.bankId.value),
+      JSONFactory121.stringOptionOrNull(account.accountRoutingScheme),
+      JSONFactory121.stringOptionOrNull(account.accountRoutingAddress)
     )
   }
 

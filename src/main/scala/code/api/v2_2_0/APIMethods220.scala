@@ -359,11 +359,11 @@ trait APIMethods220 {
       Extraction.decompose(
         BranchJSON(
           id = "123",
-          bank_id = "gh.29.fi",
+          bank_id = "gh.29.uk",
           name = "OBP",
           address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
           location = LocationJson(1.2, 2.1),
-          meta = MetaJson(LicenseJson("", "")),
+          meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
           lobby = LobbyJson("Ma-Pe 10:00-16:30"),
           drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
           branch_routing = BranchRoutingJSON(

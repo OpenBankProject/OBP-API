@@ -16,7 +16,8 @@ import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v2_0_0.TransactionRequestChargeJSON
-import code.transactionrequests.{TransactionRequestTypeCharge}
+import code.api.v2_2_0.BranchRoutingJSON
+import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.common.Full
 
 object JSONFactory1_4_0 {
@@ -79,7 +80,8 @@ object JSONFactory1_4_0 {
                         location : LocationJson,
                         lobby : LobbyJson,
                         drive_up: DriveUpJson,
-                        meta : MetaJson)
+                        meta : MetaJson,
+                        branch_routing: BranchRoutingJSON)
 
   case class BranchesJson (branches : List[BranchJson])
 
@@ -176,7 +178,12 @@ object JSONFactory1_4_0 {
                 createLocationJson(branch.location),
                 createLobbyJson(branch.lobby.hours),
                 createDriveUpJson(branch.driveUp.hours),
-                createMetaJson(branch.meta))
+                createMetaJson(branch.meta),
+                BranchRoutingJSON(
+                  branch_routing_scheme = branch.branchRoutingScheme,
+                  branch_routing_address = branch.branchRoutingAddress
+                )
+    )
   }
 
   def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {

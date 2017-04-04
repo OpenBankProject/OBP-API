@@ -28,7 +28,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .fullBankName(randomString(5))
           .shortBankName(randomString(5))
           .permalink(id)
-          .national_identifier(randomString(5)).saveMe
+          .national_identifier(randomString(5))
+          .mBankRoutingScheme(randomString(5))
+          .mBankRoutingAddress(randomString(5))
+          .saveMe
   }
 
   override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId: String): CounterpartyTrait = {
@@ -73,7 +76,11 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .accountBalance(900000000)
       .holder(randomString(4))
       .accountNumber(randomString(4))
-      .accountLabel(randomString(4)).saveMe
+      .accountLabel(randomString(4))
+      .mAccountRoutingScheme(randomString(4))  
+      .mAccountRoutingAddress(randomString(4))   
+      .mBranchId(randomString(4))   
+      .saveMe
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
