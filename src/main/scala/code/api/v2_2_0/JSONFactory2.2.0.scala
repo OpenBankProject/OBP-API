@@ -172,8 +172,8 @@ case class BankJSON(
 )
 
 case class BankRoutingJSON(
-  bank_routing_scheme: String,
-  bank_routing_address: String
+  scheme: String,
+  address: String
 )
 
 //keep similar to "case class BranchJsonPost" in V210
@@ -190,8 +190,8 @@ case class BranchJSON(
 )
 
 case class BranchRoutingJSON(
-  branch_routing_scheme: String,
-  branch_routing_address: String
+  scheme: String,
+  address: String
 )
 
 // keep similar to case class CreateAccountJSON - v200
@@ -205,8 +205,8 @@ case class CreateAccountJSON(
 )
 
 case class AccountRoutingJSON(
-  account_routing_scheme: String,
-  account_routing_address: String
+  scheme: String,
+  address: String
 )
 
 object JSONFactory220{
@@ -343,8 +343,8 @@ object JSONFactory220{
       swift_bic = bank.swiftBic,
       national_identifier = bank.nationalIdentifier,
       bank_routing = BankRoutingJSON(
-        bank_routing_scheme = bank.bankRoutingScheme,
-        bank_routing_address = bank.bankRoutingAddress
+        scheme = bank.bankRoutingScheme,
+        address = bank.bankRoutingAddress
       )
     )
   }
@@ -361,8 +361,8 @@ object JSONFactory220{
       lobby= createLobbyJson(branch.lobby.hours),
       drive_up= createDriveUpJson(branch.driveUp.hours),
       branch_routing = BranchRoutingJSON(
-        branch_routing_scheme = branch.branchRoutingScheme,
-        branch_routing_address = branch.branchRoutingAddress
+        scheme = branch.branchRoutingScheme,
+        address = branch.branchRoutingAddress
       )
     )
   }
@@ -378,8 +378,8 @@ object JSONFactory220{
       ),
       branch_id = account.branchId,
       account_routing = AccountRoutingJSON(
-        account_routing_scheme = account.accountRoutingScheme,
-        account_routing_address = account.accountRoutingAddress
+        scheme = account.accountRoutingScheme,
+        address = account.accountRoutingAddress
       )
     )
   }

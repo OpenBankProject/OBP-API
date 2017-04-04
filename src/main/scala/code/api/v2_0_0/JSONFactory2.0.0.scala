@@ -519,8 +519,7 @@ object JSONFactory200{
                                    IBAN : String,
                                    swift_bic: String,
                                    bank_id : String,
-                                   account_routing_scheme : String,
-                                   account_routing_address : String
+                                   account_routing:AccountRoutingJSON
                                  )
 
   case class CoreTransactionsJSON(
@@ -707,8 +706,7 @@ object JSONFactory200{
       JSONFactory121.stringOptionOrNull(account.iban),
       JSONFactory121.stringOptionOrNull(account.swift_bic),
       stringOrNull(account.bankId.value),
-      JSONFactory121.stringOptionOrNull(account.accountRoutingScheme),
-      JSONFactory121.stringOptionOrNull(account.accountRoutingAddress)
+      AccountRoutingJSON(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
 

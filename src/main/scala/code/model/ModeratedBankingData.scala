@@ -180,6 +180,11 @@ object ModeratedTransactionMetadata {
   }
 }
 
+case class AccountRoutingJSON(
+  scheme: String,
+  address: String
+)
+
 class ModeratedBankAccount(
   val accountId : AccountId,
   val owners : Moderated[Set[User]],

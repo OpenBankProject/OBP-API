@@ -84,6 +84,9 @@ object ApiRole {
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateBank extends ApiRole{
+    val requiresBankId = false
+  }  
   case object CanReadMetrics extends ApiRole{
     val requiresBankId = false
   }
@@ -114,6 +117,7 @@ object ApiRole {
     case "CanCreateCardsForBank" => CanCreateCardsForBank
     case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case "CanCreateBranch" => CanCreateBranch
+    case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
     case _ => throw new IllegalArgumentException()
   }
@@ -144,6 +148,7 @@ object ApiRole {
                       "CanCreateCardsForBank" ::
                       "CanCreateUserCustomerLink" ::
                       "CanCreateBranch" ::
+                      "CanCreateBank" ::
                       "CanReadMetrics" ::
                        Nil
 

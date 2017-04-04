@@ -180,8 +180,8 @@ object JSONFactory1_4_0 {
                 createDriveUpJson(branch.driveUp.hours),
                 createMetaJson(branch.meta),
                 BranchRoutingJSON(
-                  branch_routing_scheme = branch.branchRoutingScheme,
-                  branch_routing_address = branch.branchRoutingAddress
+                  scheme = branch.branchRoutingScheme,
+                  address = branch.branchRoutingAddress
                 )
     )
   }
