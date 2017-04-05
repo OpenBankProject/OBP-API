@@ -6,7 +6,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
-import code.accountholder.MapperAccountHolders
+import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
@@ -43,7 +43,6 @@ import guava._
 import concurrent.duration._
 import language.postfixOps
 import memoization._
-
 import com.google.common.cache.CacheBuilder
 
 /**
@@ -373,7 +372,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     //Note: for Socegn, need bankid, accountId and userId.
     // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
     // So we links the bankId and UserId in MapperAccountHolders talble.
-    val primaryUserIdentifier = MapperAccountHolders.getAccountHolders(bankId, accountId).toList.length match {
+    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
       case 0 => "xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!"
       case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
