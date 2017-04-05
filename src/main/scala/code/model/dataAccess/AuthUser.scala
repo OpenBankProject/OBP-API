@@ -78,18 +78,38 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   /**
     * The username field for the User.
     */
-  //lazy val username: userName = new userName()
-  //class userName extends MappedString(this, 64) {
-  //  override def displayName = S.?("username")
-  //  override def dbIndexed_? = true
-  //  override def validations = valUnique(S.?("unique.username")) _ :: super.validations
-  //  override val fieldId = Some(Text("txtUsername"))
+  lazy val username: userName = new userName()
+  class userName extends MappedString(this, 64) {
+    //override def displayName = S.?("username")
+    //override def dbIndexed_? = true
+    //override def validations = valUnique(S.?("unique.username")) _ :: super.validations
+    //override val fieldId = Some(Text("txtUsername"))
+    override def get = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+      case Full(u) => println("++++++++++++++++++++++> " + u); u.name
+      case Empty => println("+++++++++++++++++++++++get"); ""
+    }
+    override def defaultValue = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+      case Full(u) => println("++++++++++++++++++++++> " + u); u.name
+      case Empty => println("+++++++++++++++++++++++defaultValue" + Users.users.vend.getResourceUserByUserId(resourceUserId.get)); ""
+    }
+    override def set(u: String) = {println("#########################################################" + u); u}
+  }
+
+  //lazy val username = new Username()
+  //class Username {
+  //  def apply( name: String ) : String  =
+  //    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+  //    case Full(u) => u.name
+  //    case Empty => println("++++++++++++++++++++++++"); ""
+  //  }
+  //
+  //  def get : String =
+  //    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+  //    case Full(u) => u.name
+  //    case Empty => println("++++++++++++++++++++++++"); ""
+  //  }
   //}
 
-  def username: String = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-    case Full(u) => u.name
-    case Empty => println("++++++++++++++++++++++++"); ""
-  }
   //class Username {
     //private final var username_ = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.name
     //def apply( u: String ) : Box[String]  = {
@@ -239,10 +259,10 @@ import net.liftweb.util.Helpers._
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
-//  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
-//  override def signupFields = List(firstName, lastName, email, username, password)
-  override def fieldOrder = List(id, firstName, lastName, email, password, provider)
-  override def signupFields = List(firstName, lastName, email, password)
+  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
+  override def signupFields = List(firstName, lastName, email, username, password)
+  //override def fieldOrder = List(id, firstName, lastName, email, password, provider)
+  //override def signupFields = List(firstName, lastName, email, password)
 
   // If we want to validate email addresses set this to false
   override def skipEmailValidation = Props.getBool("authUser.skipEmailValidation", true)
@@ -273,7 +293,7 @@ import net.liftweb.util.Helpers._
   def getCurrentUserUsername: String = {
     for {
       current <- AuthUser.currentUser
-      username <- tryo{current.username}
+      username <- tryo{current.username.get}
       if (username.nonEmpty)
     } yield {
       return username
@@ -477,20 +497,37 @@ import net.liftweb.util.Helpers._
 
   def createAuthUser(mail: String, uname: String, pass: String): AuthUser = {
     val prov = getProvider()
-    Users.users.vend.createResourceUser(
-      prov,
-      Some(prov),
-      Some(uname),
-      Some(mail),
-      Some(resourceUserId.get))
-    AuthUser.create
-      .firstName(uname)
-      .email(mail)
-      //.username(uname)
-      // No need to store password, so store dummy string instead
-      .password(pass)
-      .validated(true)
-      .saveMe
+
+    val generatedId = java.util.UUID.randomUUID.toString
+
+    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
+      case Full(u) => AuthUser.find(By(AuthUser.resourceUserId, resourceUserId.get)).get
+      case Empty =>
+        val au = Users.users.vend.createResourceUser(
+          prov,
+          Some(generatedId),
+          Some(uname),
+          Some(mail),
+          Some(generatedId)) match {
+            case Empty => null
+            case Full(r) if r.userId == generatedId =>
+              AuthUser.create
+                .firstName(uname)
+                .email(mail)
+                .password(pass)
+                .resourceUserId(r.userId)
+            case Full(r) if r.userId != generatedId =>
+              null
+          }
+
+        val validationErrors = au.validate
+        if(validationErrors.nonEmpty) {
+          au
+        }
+        else {
+          au.saveMe
+        }
+    }
   }
 
 

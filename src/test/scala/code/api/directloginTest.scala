@@ -33,15 +33,9 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         EMAIL,
         USERNAME,
         PASSWORD
-      )
-      //AuthUser.create.
-      //  email(EMAIL).
-      //  username(USERNAME).
-      //  password(PASSWORD).
-      //  validated(true).
-      //  firstName(randomString(10)).
-      //  lastName(randomString(10)).
-      //  saveMe
+      ) .firstName(randomString(10))
+        .lastName(randomString(10))
+        .validated(true)
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
@@ -52,15 +46,9 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         EMAIL_DISABLED,
         USERNAME_DISABLED,
         PASSWORD_DISABLED
-      )
-      //AuthUser.create.
-      //  email(EMAIL_DISABLED).
-      //  username(USERNAME_DISABLED).
-      //  password(PASSWORD_DISABLED).
-      //  validated(true).
-      //  firstName(randomString(10)).
-      //  lastName(randomString(10)).
-      //  saveMe
+      ) .firstName(randomString(10))
+        .lastName(randomString(10))
+        .validated(true)
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
