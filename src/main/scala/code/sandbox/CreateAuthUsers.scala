@@ -2,7 +2,6 @@ package code.sandbox
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import net.liftweb.common.{Box, Failure}
-import net.liftweb.util.FieldError
 
 
 trait CreateAuthUsers {
@@ -23,11 +22,12 @@ trait CreateAuthUsers {
                 u.user_name,
                 u.password
               )
-              .lastName(u.user_name)
 
       val validationErrors = authUser.validate
       if(validationErrors.nonEmpty) Failure(s"Errors: ${validationErrors.map(_.msg)}")
       else {
+        authUser.validated(true)
+        authUser.saveMe
         val resourceUser = authUser.user.obj
         resourceUser
       }

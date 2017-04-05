@@ -491,21 +491,26 @@ import net.liftweb.util.Helpers._
   def createAuthUser(mail: String, uname: String, pass: String): AuthUser = {
     val prov = getProvider()
 
+    val generatedId = java.util.UUID.randomUUID.toString
+
     Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
       case Full(u) => AuthUser.find(By(AuthUser.resourceUserId, resourceUserId.get)).get
       case Empty =>
         val au = Users.users.vend.createResourceUser(
           prov,
-          Some(resourceUserId.get),
+          Some(generatedId),
           Some(uname),
           Some(mail),
-          Some(resourceUserId.get)) match {
+          Some(generatedId)) match {
             case Empty => null
-            case Full(r) => AuthUser.create
-                            .firstName(uname)
-                            .email(mail)
-                            .password(pass)
-                            .resourceUserId(r.userId)
+            case Full(r) if r.userId == generatedId =>
+              AuthUser.create
+                .firstName(uname)
+                .email(mail)
+                .password(pass)
+                .resourceUserId(r.userId)
+            case Full(r) if r.userId != generatedId =>
+              null
           }
 
         val validationErrors = au.validate
