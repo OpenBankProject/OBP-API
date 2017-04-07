@@ -227,7 +227,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  def logAPICall = {
+  def logAPICall(date: TimeSpan, duration: Long) = {
     if(Props.getBool("write_metrics", false)) {
       val user =
         if (isThereAnOAuthHeader) {
@@ -279,7 +279,7 @@ object APIUtil extends Loggable {
       val verb = S.request.get.requestType.method
 
 
-      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan), userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
+      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), date, duration: Long, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
     }
   }
 

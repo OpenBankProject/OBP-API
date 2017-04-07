@@ -47,7 +47,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   feature("API Metrics") {
 
     scenario("We save a new API metric") {
-      metrics.saveMetric(testUrl1, day1)
+      metrics.saveMetric(testUrl1, day1, -1L)
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
@@ -62,10 +62,10 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by url") {
-      metrics.saveMetric(testUrl1, day1)
-      metrics.saveMetric(testUrl1, day1)
-      metrics.saveMetric(testUrl1, day2)
-      metrics.saveMetric(testUrl2, day2)
+      metrics.saveMetric(testUrl1, day1, -1L)
+      metrics.saveMetric(testUrl1, day1, -1L)
+      metrics.saveMetric(testUrl1, day2, -1L)
+      metrics.saveMetric(testUrl2, day2, -1L)
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
@@ -83,10 +83,10 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by day") {
-      metrics.saveMetric(testUrl1, day1)
-      metrics.saveMetric(testUrl1, day1)
-      metrics.saveMetric(testUrl1, day2)
-      metrics.saveMetric(testUrl2, day2)
+      metrics.saveMetric(testUrl1, day1, -1L)
+      metrics.saveMetric(testUrl1, day1, -1L)
+      metrics.saveMetric(testUrl1, day2, -1L)
+      metrics.saveMetric(testUrl2, day2, -1L)
 
       val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))

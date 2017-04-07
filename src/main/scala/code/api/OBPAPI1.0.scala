@@ -57,7 +57,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
   private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
 
   serve("obp" / "v1.0" prefix {
 

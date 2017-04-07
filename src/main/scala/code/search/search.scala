@@ -155,7 +155,7 @@ class elasticsearchMetrics extends elasticsearch {
     }
   }
 
-  def indexMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String) {
+  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String) {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
       try {
         client.execute {
@@ -163,6 +163,7 @@ class elasticsearchMetrics extends elasticsearch {
             "userId" -> userId,
             "url" -> url,
             "date" -> date,
+            "duration" -> duration,
             "userName" -> userName,
             "appName" -> appName,
             "developerEmail" -> developerEmail
