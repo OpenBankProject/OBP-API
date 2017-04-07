@@ -12,8 +12,8 @@ object RemotedataMetrics extends ActorInit with APIMetrics {
 
   val cc = RemotedataMetricsCaseClasses
 
-  def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) : Unit =
-    extractFuture(actor ? cc.saveMetric(userId, url, date, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) : Unit =
+    extractFuture(actor ? cc.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] =
 //    extractFuture(actor ? cc.getAllGroupedByUrl())

@@ -37,13 +37,14 @@ import java.util.Date
 import code.bankconnectors.OBPQueryParam
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
-import net.liftweb.record.field.StringField
+import net.liftweb.record.field.{LongField, StringField}
 
  private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
    def meta = MongoAPIMetric
    object userId extends StringField(this,255)
    object url extends StringField(this,255)
    object date extends DateField(this)
+   object duration extends LongField(this)
    object userName extends StringField(this,255)
    object appName extends StringField(this,255)
    object developerEmail extends StringField(this,255)
@@ -59,6 +60,7 @@ import net.liftweb.record.field.StringField
 
    def getUrl() = url.get
    def getDate() = date.get
+   def getDuration(): Long = duration.get
    def getUserId() = userId.get
    def getUserName(): String = userName.get
    def getAppName(): String = appName.get
@@ -71,11 +73,12 @@ import net.liftweb.record.field.StringField
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
     MongoAPIMetric.createRecord.
       userId(userId).
       url(url).
       date(date).
+      duration(duration).
       userName(userName).
       appName(appName).
       developerEmail(developerEmail).

@@ -8,11 +8,12 @@ import net.liftweb.mapper._
 
 object MappedMetrics extends APIMetrics {
 
-  override def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
     MappedMetric.create
       .userId(userId)
       .url(url)
       .date(date)
+      .duration(duration)
       .userName(userName)
       .appName(appName)
       .developerEmail(developerEmail)
@@ -68,6 +69,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object userId extends DefaultStringField(this)
   object url extends DefaultStringField(this)
   object date extends MappedDateTime(this)
+  object duration extends MappedLong(this)
   object userName extends DefaultStringField(this)
   object appName extends DefaultStringField(this)
   object developerEmail extends DefaultStringField(this)
@@ -84,6 +86,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
 
   override def getUrl(): String = url.get
   override def getDate(): Date = date.get
+  override def getDuration(): Long = duration.get
   override def getUserId(): String = userId.get
   override def getUserName(): String = userName.get
   override def getAppName(): String = appName.get

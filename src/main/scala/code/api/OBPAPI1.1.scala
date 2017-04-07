@@ -143,7 +143,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   }
 
   private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)
