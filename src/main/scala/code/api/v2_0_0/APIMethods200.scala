@@ -1414,18 +1414,16 @@ trait APIMethods200 {
                 postedData.username,
                 postedData.password
               )
-                //AuthUser.create
-                //.firstName(postedData.first_name)
-                //.lastName(postedData.last_name)
-                //.username(postedData.username)
-                //.email(postedData.email)
-                //.password(postedData.password)
-                //.validated(true) // TODO Get this from Props
+                .firstName(postedData.first_name)
+                .lastName(postedData.last_name)
+
+              println("---::-------------------> " + userCreated)
               if(userCreated.validate.size > 0){
                 Full(errorJsonResponse(userCreated.validate.map(_.msg).mkString(";")))
               }
               else
               {
+                userCreated.validated(true)
                 userCreated.saveMe()
                 if (userCreated.saved_?) {
                   val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)

@@ -85,44 +85,15 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     //override def validations = valUnique(S.?("unique.username")) _ :: super.validations
     //override val fieldId = Some(Text("txtUsername"))
     override def get = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-      case Full(u) => println("++++++++++++++++++++++> " + u); u.name
-      case Empty => println("+++++++++++++++++++++++get"); ""
+      case Full(u) => u.name
+      case Empty => ""
     }
     override def defaultValue = Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-      case Full(u) => println("++++++++++++++++++++++> " + u); u.name
-      case Empty => println("+++++++++++++++++++++++defaultValue" + Users.users.vend.getResourceUserByUserId(resourceUserId.get)); ""
+      case Full(u) => u.name
+      case Empty => ""
     }
-    override def set(u: String) = {println("#########################################################" + u); u}
+    override def set(u: String) = u
   }
-
-  //lazy val username = new Username()
-  //class Username {
-  //  def apply( name: String ) : String  =
-  //    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-  //    case Full(u) => u.name
-  //    case Empty => println("++++++++++++++++++++++++"); ""
-  //  }
-  //
-  //  def get : String =
-  //    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-  //    case Full(u) => u.name
-  //    case Empty => println("++++++++++++++++++++++++"); ""
-  //  }
-  //}
-
-  //class Username {
-    //private final var username_ = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.name
-    //def apply( u: String ) : Box[String]  = {
-    //    Users.users.vend.getUserByUserId(resourceUserId.get).map { u =>
-    //    u.name
-    //  }
-    //}
-    //def obj : Box[String] = Users.users.vend.getUserByUserId(resourceUserId.get).map { u =>
-    //  u.name
-    //}
-    //def get : String = Users.users.vend.getResourceUserByUserId(resourceUserId.get).get.name
-    //def defined_? : Boolean = Users.users.vend.getResourceUserByUserId(resourceUserId.get).isDefined
-  //}
 
   override lazy val password = new MyPasswordNew
   
@@ -182,6 +153,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def getProvider() = {
+    println("++++++++++++++++++++++++++++++++++++++ " + provider.get)
     if(provider.get == null) {
       Props.get("hostname","")
     } else if ( provider.get == "" || provider.get == Props.get("hostname","") ) {
@@ -500,38 +472,38 @@ import net.liftweb.util.Helpers._
 
     val generatedId = java.util.UUID.randomUUID.toString
 
-    Users.users.vend.getResourceUserByUserId(resourceUserId.get) match {
-      case Full(u) => AuthUser.find(By(AuthUser.resourceUserId, resourceUserId.get)).get
-      case Empty =>
-        val au = Users.users.vend.createResourceUser(
-          prov,
-          Some(generatedId),
-          Some(uname),
-          Some(mail),
-          Some(generatedId)) match {
-            case Empty => null
-            case Full(r) if r.userId == generatedId =>
-              AuthUser.create
-                .firstName(uname)
-                .email(mail)
-                .password(pass)
-                .resourceUserId(r.userId)
-            case Full(r) if r.userId != generatedId =>
-              null
-          }
-
-        val validationErrors = au.validate
-        if(validationErrors.nonEmpty) {
-          au
-        }
+    (Users.users.vend.getResourceUserByUserId(resourceUserId.get) :: Nil) match {
+      case List(Empty) =>
+        val tempAu = AuthUser.create
+                      .firstName(uname)
+                      .email(mail)
+                      .password(pass)
+        val validationErrors = tempAu.validate
+        if(validationErrors.nonEmpty)
+          tempAu
         else {
+          val au = Users.users.vend.createResourceUser(
+            prov,
+            Some(uname),
+            Some(uname),
+            Some(mail),
+            Some(generatedId)) match {
+              case Empty => null
+              case Full(r) if r.userId == generatedId =>
+                tempAu.resourceUserId(r.userId)
+              case Full(r) if r.userId != generatedId =>
+                null
+            }
           au.saveMe
+
         }
+      case _ => AuthUser.find(By(AuthUser.resourceUserId, resourceUserId.get)).get
     }
   }
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
+    println("=================================> " + findUserByUsername(username))
     findUserByUsername(username) match {
       case Full(u) if u.getProvider() == Props.get("hostname","") =>
         if (
@@ -844,7 +816,10 @@ import net.liftweb.util.Helpers._
       case Full(i) => i
       case Empty => ""
     }
-    find(By(this.resourceUserId, findId))
+    println(":-------------------------------------> "+ findId)
+    val res = find(By(this.resourceUserId, findId))
+    println(":-------------------------------------> "+ res)
+    res
   }
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow

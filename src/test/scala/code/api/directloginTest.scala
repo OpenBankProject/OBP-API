@@ -36,6 +36,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       ) .firstName(randomString(10))
         .lastName(randomString(10))
         .validated(true)
+        .saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
@@ -49,6 +50,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       ) .firstName(randomString(10))
         .lastName(randomString(10))
         .validated(true)
+        .saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
@@ -217,6 +219,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       val response = makePostRequestAdditionalHeader(request, "", validHeaders)
       var token = "INVALID"
       Then("We should get a 200 - OK and a token")
+      println("-------------------> " + response.body )
       response.code should equal(200)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>

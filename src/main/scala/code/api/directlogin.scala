@@ -323,7 +323,7 @@ object DirectLogin extends RestHelper with Loggable {
     val password = directLoginParameters.getOrElse("password", "")
 
     var userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id
-
+    println("======================> " + username +":"+ password +":"+ userId +".")
     if (userId.isEmpty) {
       if ( ! AuthUser.externalUserHelper(username, password).isEmpty)
       	userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id

@@ -71,7 +71,8 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
     scenario("we create an user with email, first name, last name, username and password", CreateUser) {
       When("we create a new user")
-      val params = Map("email" -> EMAIL,
+      val params = Map(
+        "email" -> EMAIL,
         "username" -> USERNAME,
         "password" -> PASSWORD,
         "first_name" -> FIRSTNAME,
