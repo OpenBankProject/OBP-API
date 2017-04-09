@@ -899,5 +899,12 @@ Returns a string showed to the developer
       case _       => "off"
     }
   }
+  
+  // check is there a "$" in the input value.
+  // eg: MODULE$ is not the useful input.
+  // eg2: allFieldsAndValues is just for SwaggerJSONsV220.allFieldsAndValues,it is not useful.
+  def notExstingBaseClass(input: String): Boolean = {
+    !input.contains("$") && !input.contains("allFieldsAndValues")
+  }
 
 }

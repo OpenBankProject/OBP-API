@@ -130,7 +130,7 @@ case class UserCustomerLinkJSONs(l: List[UserCustomerLinkJSON])
 
 case class CreateUserCustomerLinkJSON(user_id: String, customer_id: String)
 
-class BasicViewJSON(
+case class BasicViewJSON(
   val id: String,
   val short_name: String,
   val is_public: Boolean
