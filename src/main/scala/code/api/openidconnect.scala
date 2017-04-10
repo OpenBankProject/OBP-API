@@ -214,7 +214,7 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
         connection.getOutputStream.write(dataBytes)
       }
       val inputStream = connection.getInputStream
-      content = io.Source.fromInputStream(inputStream).mkString
+      content = scala.io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
     } catch {
       case e:Throwable => println(e)
