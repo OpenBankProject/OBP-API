@@ -92,7 +92,7 @@ object SwaggerJSONFactory {
     name: String = "body",
     description: String = "BANK_BODY",
     required: Boolean = true,
-    `schema`: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
+    schema: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
   )extends OperationParameter
   
   case class ErrorPropertiesMessageJson(
@@ -353,10 +353,16 @@ object SwaggerJSONFactory {
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId = s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
             parameters =
-              if ("get".equals(rd.requestVerb.toLowerCase))
-                pathParameters
-              else
-                OperationParameterBodyJson() :: pathParameters,
+              rd.apiFunction match {
+                case "createTransactionRequest" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/TransactionRequestBodyJSON")) :: pathParameters//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
+                case "answerTransactionRequestChallenge" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/ChallengeAnswerJSON")) :: pathParameters//16	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge
+                case "updateAccountLabel" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/UpdateAccountJSON")) :: pathParameters//19	/banks/BANK_ID/accounts/ACCOUNT_ID
+                case "createViewForBankAccount" =>OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/CreateViewJSON")) :: pathParameters//21	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
+                case "updateViewForBankAccount" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/UpdateViewJSON")) :: pathParameters//22	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
+                case "addPermissionForUserForBankAccountForMultipleViews" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/ViewIdsJson")) :: pathParameters//24	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
+                case "createCustomer" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/PostCustomerJson")) :: pathParameters//43	v210 v200 /banks/BANK_ID/customers
+                case _ => pathParameters
+              },
             responses = Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)), 
                             "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
@@ -458,32 +464,32 @@ object SwaggerJSONFactory {
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case List(i: Boolean, _*)          => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
-        case i: String                     => "\""  + key + """": {"type":"string","example":" """ +i+"\"}"
-        case Some(i: String)               => "\""  + key + """": {"type":"string","example":" """ +i+"\"}"
+        case i: String                     => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
+        case Some(i: String)               => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
         case List(i: String, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
         case Some(List(i: String, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
-        case i: Int                        => "\""  + key + """": {"type":"integer", "format":"int32","example":" """ +i+"\"}"
-        case Some(i: Int)                  => "\""  + key + """": {"type":"integer", "format":"int32","example":" """ +i+"\"}"
+        case i: Int                        => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
+        case Some(i: Int)                  => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
         case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case i: Long                       => "\""  + key + """": {"type":"integer", "format":"int64","example":" """ +i+"\"}"
-        case Some(i: Long)                 => "\""  + key + """": {"type":"integer", "format":"int64","example":" """ +i+"\"}"
+        case i: Long                       => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
+        case Some(i: Long)                 => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
         case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
         case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
-        case i: Float                      => "\""  + key + """": {"type":"number", "format":"float","example":" """ +i+"\"}"
-        case Some(i: Float)                => "\""  + key + """": {"type":"number", "format":"float","example":" """ +i+"\"}"
+        case i: Float                      => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
+        case Some(i: Float)                => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
         case List(i: Float, _*)            => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
         case Some(List(i: Float, _*))      => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
-        case i: Double                     => "\""  + key + """": {"type":"number", "format":"double","example":" """ +i+"\"}"
-        case Some(i: Double)               => "\""  + key + """": {"type":"number", "format":"double","example":" """ +i+"\"}"
+        case i: Double                     => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
+        case Some(i: Double)               => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
         case List(i: Double, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
         case Some(List(i: Double, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
-        case i: Date                       => "\""  + key + """": {"type":"string", "format":"date","example":" """ +i+"\"}"
-        case Some(i: Date)                 => "\""  + key + """": {"type":"string", "format":"date","example":" """ +i+"\"}"
+        case i: Date                       => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
+        case Some(i: Date)                 => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         //TODO this should be improved, matching the JValue,now just support the default value
-        case APIUtil.defaultJValue                 => "\""  + key + """": {"type":"string","example":" "}"""
+        case APIUtil.defaultJValue                 => "\""  + key + """": {"type":"string","example":""}"""
         //the case classes.  
         case List(f)                        => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
         case Some(f)                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"

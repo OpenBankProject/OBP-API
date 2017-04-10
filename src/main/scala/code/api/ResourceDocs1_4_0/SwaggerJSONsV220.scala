@@ -552,10 +552,10 @@ object SwaggerJSONsV220 {
       can_see_where_tag = true
     )
   
-//  val viewsJSONV220 =
-//    code.api.v2_2_0.ViewsJSONV220(
-//      views = List(viewJSONV220)
-//    )
+  //  val viewsJSONV220 =
+  //    code.api.v2_2_0.ViewsJSONV220(
+  //      views = List(viewJSONV220)
+  //    )
   
   val otherAccountsJSON =
     code.api.v1_2_1.OtherAccountsJSON(
@@ -574,8 +574,8 @@ object SwaggerJSONsV220 {
   
   val transactionWhereJSON =
     code.api.v1_2_1.TransactionWhereJSON(
-    where=  locationJSON
-  )
+      where = locationJSON
+    )
   
   val fXRateJSON =
     code.api.v2_2_0.FXRateJSON(
@@ -602,6 +602,70 @@ object SwaggerJSONsV220 {
       transaction_requests_with_charges = List(
         transactionRequestWithChargeJSON210
       )
+    )
+  
+  val transactionRequestBodyJSON =
+    code.api.v2_0_0.TransactionRequestBodyJSON(
+      to = transactionRequestAccountJSON,
+      value = amountOfMoneyJSON,
+      description = "Good"
+    )
+  
+  val challengeAnswerJSON =
+    code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON(
+      id = "b20dd004-93e3-494f-8773-69e3ff8c205e",
+      answer = "good"
+    )
+  
+  val updateAccountJSON =
+    code.api.v1_2_1.UpdateAccountJSON(
+      id = "123123",
+      label = "label",
+      bank_id = "gh.29.uk"
+    )
+  
+  val createViewJSON =
+    code.model.CreateViewJSON(
+      name = "test",
+      description = "good",
+      is_public = true,
+      which_alias_to_use = "good",
+      hide_metadata_if_alias_used = true,
+      allowed_actions = List("good")
+    )
+  
+  val updateViewJSON =
+    code.model.UpdateViewJSON(
+      description = "good",
+      is_public = true,
+      which_alias_to_use = "good",
+      hide_metadata_if_alias_used = true,
+      allowed_actions = List("good")
+    )
+  
+  val viewIdsJson =
+    code.api.v1_2_1.ViewIdsJson(
+      views = List("good")
+    )
+  
+  val postCustomerJson =
+    code.api.v2_1_0.PostCustomerJson(
+      user_id = "user_id to attach this customer to e.g. 123213",
+      customer_number = "new customer number 687687678",
+      legal_name = "NONE",
+      mobile_phone_number = "+44 07972 444 876",
+      email = "person@example.com",
+      face_image = customerFaceImageJson,
+      date_of_birth = exampleDate,
+      relationship_status = "Single",
+      dependants = 5,
+      dob_of_dependants = List(exampleDate),
+      credit_rating = customerCreditRatingJSON,
+      credit_limit = amountOfMoneyJSON,
+      highest_education_attained = "Bachelor’s Degree",
+      employment_status = "Employed",
+      kyc_status = true,
+      last_ok_date = exampleDate
     )
   
   val allFieldsAndValues =
