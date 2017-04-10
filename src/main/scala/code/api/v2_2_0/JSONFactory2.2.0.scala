@@ -34,7 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches.Branch
 import code.fx.FXRate
@@ -45,10 +45,10 @@ import code.model._
 //import net.liftweb.json.JsonAST.JValue
 
 
-case class ViewsJSON(
-                      views : List[ViewJSON]
+case class ViewsJSONV220(
+                      views : List[ViewJSONV220]
                     )
-class ViewJSON(
+case class ViewJSONV220(
                 val id: String,
                 val short_name: String,
                 val description: String,
@@ -123,7 +123,7 @@ case class AccountsJSON(
 case class AccountJSON(
                         id : String,
                         label : String,
-                        views_available : List[ViewJSON],
+                        views_available : List[ViewJSONV220],
                         bank_id : String
                       )
 
@@ -204,11 +204,6 @@ case class CreateAccountJSON(
   account_routing: AccountRoutingJSON
 )
 
-case class AccountRoutingJSON(
-  scheme: String,
-  address: String
-)
-
 object JSONFactory220{
 
   def stringOrNull(text : String) =
@@ -217,12 +212,12 @@ object JSONFactory220{
     else
       text
 
-  def createViewsJSON(views : List[View]) : ViewsJSON = {
-    val list : List[ViewJSON] = views.map(createViewJSON)
-    new ViewsJSON(list)
+  def createViewsJSON(views : List[View]) : ViewsJSONV220 = {
+    val list : List[ViewJSONV220] = views.map(createViewJSON)
+    new ViewsJSONV220(list)
   }
 
-  def createViewJSON(view : View) : ViewJSON = {
+  def createViewJSON(view : View) : ViewJSONV220 = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -231,7 +226,7 @@ object JSONFactory220{
       else
         ""
 
-    new ViewJSON(
+    new ViewJSONV220(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       description = stringOrNull(view.description),

@@ -33,11 +33,12 @@
 package code.api.util
 
 import java.io.InputStream
+import java.text.SimpleDateFormat
 
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
-import code.api.v1_2.ErrorMessage
+import code.api.v1_2.{ErrorMessage, SuccessMessage}
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
@@ -193,6 +194,10 @@ object APIUtil extends Loggable {
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
+  val defaultJValue = Extraction.decompose(Nil)(APIUtil.formats)
+  val exampleDateString: String = "22/08/2013"
+  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+  val exampleDate = simpleDateFormat.parse(exampleDateString)
 
   def httpMethod : String =
     S.request match {
@@ -305,7 +310,7 @@ object APIUtil extends Loggable {
   }
 
   def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), headers, Nil, 204)
+    JsonResponse(Extraction.decompose(SuccessMessage("Success")), headers, Nil, 204)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
@@ -898,6 +903,13 @@ Returns a string showed to the developer
       case "false" => "off"
       case _       => "off"
     }
+  }
+  
+  // check is there a "$" in the input value.
+  // eg: MODULE$ is not the useful input.
+  // eg2: allFieldsAndValues is just for SwaggerJSONsV220.allFieldsAndValues,it is not useful.
+  def notExstingBaseClass(input: String): Boolean = {
+    !input.contains("$") && !input.equalsIgnoreCase("allFieldsAndValues")
   }
 
 }
