@@ -38,11 +38,11 @@ object APIMetrics extends SimpleInjector {
 
 trait APIMetrics {
 
-  def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit
 
-  def saveMetric(url : String, date : Date) : Unit ={
+  def saveMetric(url : String, date : Date, duration: Long) : Unit ={
     //TODO: update all places calling old function before removing this
-    saveMetric("TODO: userId", url, date, "TODO: userName", "TODO: appName", "TODO: developerEmail","TODO: consumerId" ,"TODO: implementedByPartialFunction" ,"TODO: implementedInVersion" ,"TODO: implementedInVersion" )
+    saveMetric("TODO: userId", url, date, duration, "TODO: userName", "TODO: appName", "TODO: developerEmail","TODO: consumerId" ,"TODO: implementedByPartialFunction" ,"TODO: implementedInVersion" ,"TODO: implementedInVersion" )
   }
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -61,7 +61,7 @@ trait APIMetrics {
 }
 
 class RemotedataMetricsCaseClasses {
-  case class saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String)
+  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String)
 //  case class getAllGroupedByUrl()
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
@@ -75,6 +75,7 @@ trait APIMetric {
 
   def getUrl() : String
   def getDate() : Date
+  def getDuration(): Long
   def getUserId() : String
   def getUserName() : String
   def getAppName : String

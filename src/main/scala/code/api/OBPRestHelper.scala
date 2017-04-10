@@ -43,7 +43,7 @@ import code.model.User
 import code.api.OAuthHandshake._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
-import net.liftweb.util.Props
+import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
 
 trait APIFailure{
@@ -188,7 +188,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
   def oauthServe(handler : PartialFunction[Req, Box[User] => Box[JsonResponse]]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req) = {
+        def apply(r : Req): () => Box[LiftResponse] = {
           //check (in that order):
           //if request is correct json
           //if request matches PartialFunction cases for each defined url
@@ -220,8 +220,11 @@ trait OBPRestHelper extends RestHelper with Loggable {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
           //Wraps the partial function with some logging
-          logAPICall
-          handler(r)
+          val startTime = Helpers.now
+          val response = handler(r)
+          val endTime = Helpers.now
+          logAPICall(startTime, endTime.getTime - startTime.getTime)
+          response
         }
         def isDefinedAt(r : Req) = handler.isDefinedAt(r)
       }

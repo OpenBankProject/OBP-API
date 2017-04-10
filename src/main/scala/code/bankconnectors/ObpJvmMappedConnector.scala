@@ -100,8 +100,14 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val cacheTTL             = Props.get("connector.cache.ttl.seconds", "10").toInt * 1000 // Miliseconds
-
+  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
+  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
+  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
+  val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
+  val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
+  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
+  val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
+  val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
@@ -174,7 +180,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = memoizeSync(cacheTTL millisecond) {
+  override def getBanks: List[Bank] = memoizeSync(getBanksTTL millisecond) {
     val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
 
     // todo response.error().isPresent
@@ -237,7 +243,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String)
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = memoizeSync(cacheTTL millisecond) {
+  override def getBank(id: BankId): Box[Bank] = memoizeSync(getBankTTL millisecond) {
     val parameters = new JHashMap
 
     parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, id.value)
@@ -258,114 +264,124 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
-    val parameters = new JHashMap
 
-    parameters.put("accountId", accountId.value)
-    parameters.put("bankId", bankId.value)
-    parameters.put("transactionId", transactionId.value)
-    parameters.put("userId", primaryUserIdentifier)
+    def getTransactionInner(bankId: BankId, accountId: AccountId, transactionId: TransactionId, userName: String) : Box[Transaction] = memoizeSync(getTransactionTTL millisecond) {
+      val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
+      val parameters = new JHashMap
 
-    val response = jvmNorth.get("getTransaction", Transport.Target.transaction, parameters)
+      parameters.put("accountId", accountId.value)
+      parameters.put("bankId", bankId.value)
+      parameters.put("transactionId", transactionId.value)
+      parameters.put("userId", primaryUserIdentifier)
 
-    // todo response.error().isPresent
+      val response = jvmNorth.get("getTransaction", Transport.Target.transaction, parameters)
 
-    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+      // todo response.error().isPresent
 
-    response.data().map(d => new TransactionReader(d)).headOption match {
-      case Some(t) =>
-        createNewTransaction(ObpJvmInboundTransaction(
-          t.transactionId(),
-          ObpJvmInboundAccountId(t.accountId, bankId.value),
-          Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId()), Option(t.counterPartyName()))),
-          ObpJvmInboundTransactionDetails(
-            t.`type`,
-            t.description,
-            {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
-            {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
-            t.newBalanceAmount.toString,
-            t.amount.toString
-          ))
-        )
-      case None => Empty
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+
+      response.data().map(d => new TransactionReader(d)).headOption match {
+        case Some(t) =>
+          createNewTransaction(ObpJvmInboundTransaction(
+            t.transactionId(),
+            ObpJvmInboundAccountId(t.accountId, bankId.value),
+            Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId()), Option(t.counterPartyName()))),
+            ObpJvmInboundTransactionDetails(
+              t.`type`,
+              t.description,
+              {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+              {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
+              t.newBalanceAmount.toString,
+              t.amount.toString
+            ))
+          )
+        case None => Empty
+      }
     }
+    getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier)
   }
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
+    def getTransactionsInner(bankId: BankId, accountId: AccountId, userName: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = memoizeSync(getTransactionsTTL millisecond) {
+      val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+      val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+      val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+      val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+      val ordering = queryParams.collect {
+        //we don't care about the intended sort field and only sort on finish date for now
+        case OBPOrdering(_, direction) =>
+          direction match {
+            case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+            case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+          }
+      }
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+      val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+      val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+      implicit val formats = net.liftweb.json.DefaultFormats
+
+      val parameters = new JHashMap
+      val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
+      val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
+      val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
+      val filter = new TimestampFilter("postedDate", earliest, latest)
+      val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
+      val pageSize = Pager.DEFAULT_SIZE; // all in one page
+      val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
+
+
+      // On the one hand its nice to be able to easily add a key/value pair, but we can't know from here how the message will appear on the Kafka or other queue.
+      // i.e. we don't have a case class here, we are just telling obpjvm to add a parameter and it does the rest.
+
+      parameters.put("accountId", accountId.value)
+      parameters.put("bankId", bankId.value)
+      // TODO If we say we are sending userId, send the userId (not the username)
+      parameters.put("userId", primaryUserIdentifier)
+
+      val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
+
+      // todo response.error().isPresent
+
+      val rList: List[ObpJvmInboundTransaction] = response.data().map(d => new TransactionReader(d)).map(t => ObpJvmInboundTransaction(
+        t.transactionId(),
+        ObpJvmInboundAccountId(t.accountId, bankId.value),
+        Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId), Option(t.counterPartyName))),
+        ObpJvmInboundTransactionDetails(
+          t.`type`,
+          t.description,
+          {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+          {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
+          t.newBalanceAmount.toString,
+          t.amount.toString
+        ))
+      ).toList
+
+      // Check does the response data match the requested data
+      val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
+      if (!isCorrect) {
+        //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountId.value=" + accountId.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
+        throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+      }
+      // Populate fields and generate result
+      val res = for {
+        r <- rList
+        transaction <- createNewTransaction(r)
+      } yield {
+        transaction
+      }
+      Full(res)
     }
-    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
-    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-    implicit val formats = net.liftweb.json.DefaultFormats
 
-    val parameters = new JHashMap
-    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
-    val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
-    val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
-    val filter = new TimestampFilter("postedDate", earliest, latest)
-    val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
-    val pageSize = Pager.DEFAULT_SIZE; // all in one page
-    val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
-
-
-    // On the one hand its nice to be able to easily add a key/value pair, but we can't know from here how the message will appear on the Kafka or other queue.
-    // i.e. we don't have a case class here, we are just telling obpjvm to add a parameter and it does the rest.
-
-    parameters.put("accountId", accountId.value)
-    parameters.put("bankId", bankId.value)
-    // TODO If we say we are sending userId, send the userId (not the username)
-    parameters.put("userId", primaryUserIdentifier)
-
-    val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
-
-    // todo response.error().isPresent
-
-    val rList: List[ObpJvmInboundTransaction] = response.data().map(d => new TransactionReader(d)).map(t => ObpJvmInboundTransaction(
-      t.transactionId(),
-      ObpJvmInboundAccountId(t.accountId, bankId.value),
-      Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId), Option(t.counterPartyName))),
-      ObpJvmInboundTransactionDetails(
-        t.`type`,
-        t.description,
-        {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
-        {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
-        t.newBalanceAmount.toString,
-        t.amount.toString
-      ))
-    ).toList
-
-    // Check does the response data match the requested data
-    val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
-    if (!isCorrect) {
-      //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountId.value=" + accountId.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
-      throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
-    }
-    // Populate fields and generate result
-    val res = for {
-      r <- rList
-      transaction <- createNewTransaction(r)
-    } yield {
-      transaction
-    }
-    Full(res)
+    getTransactionsInner(bankId, accountId, primaryUserIdentifier, queryParams: _*)
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = memoizeSync(cacheTTL millisecond) {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -416,39 +432,43 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
-    val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
+    def getBankAccountsInner(accts: List[(BankId, AccountId)], userName: String) : List[ObpJvmInboundAccount] = memoizeSync(getAccountsTTL millisecond) {
+      accts.flatMap { a => {
 
-      logger.info (s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
+        logger.info(s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
-      val parameters = new JHashMap
+        val parameters = new JHashMap
 
-      parameters.put("bankId", a._1.value)
-      parameters.put("accountId", a._2.value)
-      parameters.put("userId", primaryUserIdentifier)
+        parameters.put("bankId", a._1.value)
+        parameters.put("accountId", a._2.value)
+        parameters.put("userId", primaryUserIdentifier)
 
-      val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
+        val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
 
-      // todo response.error().isPresent
+        // todo response.error().isPresent
 
-      response.data().map(d => new AccountReader(d)).headOption match {
-        case Some(account) => Full(ObpJvmInboundAccount(
-          account.accountId,
-          account.bankId,
-          account.label,
-          account.number,
-          account.`type`,
-          ObpJvmInboundBalance(account.balanceCurrency, account.balanceAmount),
-          account.iban,
-          primaryUserIdentifier :: Nil,
-          generate_public_view = false,
-          generate_accountants_view = false,
-          generate_auditors_view = false))
-        case None =>
-          logger.info(s"getBankAccount says ! account.isPresent")
-          Empty
+        response.data().map(d => new AccountReader(d)).headOption match {
+          case Some(account) => Full(ObpJvmInboundAccount(
+            account.accountId,
+            account.bankId,
+            account.label,
+            account.number,
+            account.`type`,
+            ObpJvmInboundBalance(account.balanceCurrency, account.balanceAmount),
+            account.iban,
+            primaryUserIdentifier :: Nil,
+            generate_public_view = false,
+            generate_accountants_view = false,
+            generate_auditors_view = false))
+          case None =>
+            logger.info(s"getBankAccount says ! account.isPresent")
+            Empty
+        }
+      }
       }
     }
-  }
+
+    val r: List[ObpJvmInboundAccount] = getBankAccountsInner(accts, primaryUserIdentifier)
 
     // Check does the response data match the requested data
     //val accRes = for(row <- r) yield {
@@ -461,8 +481,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       new ObpJvmBankAccount(t) }
   }
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
-    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
+  private def getAccountByNumber(bankId : BankId, number : String, userName: String) : Box[AccountType] = {
+    val primaryUserIdentifier = userName
     val parameters = new JHashMap
 
     parameters.put("accountId", number)
@@ -526,13 +546,15 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] = memoizeSync(getCounterpartyFromTransactionTTL millisecond) {
     Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+  }
 
   // Get one counterparty related to a bank account
-  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] = memoizeSync(getCounterpartiesFromTransactionTTL millisecond) {
     // Get the metadata and pass it to getCounterparty to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+  }
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
@@ -818,7 +840,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
-    getAccountByNumber(bankId, accountNumber) != null
+    getAccountByNumber(bankId, accountNumber, AuthUser.getCurrentUserUsername) != null
   }
 
   //remove an account and associated transactions
@@ -956,7 +978,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   //transaction import api uses bank national identifiers to uniquely indentify banks,
   //which is unfortunate as theoretically the national identifier is unique to a bank within
   //one country
-  private def getBankByNationalIdentifier(nationalIdentifier : String) : Box[Bank] = {
+  private def getBankByNationalIdentifier(nationalIdentifier : String) : Box[Bank] = memoizeSync(getBankTTL millisecond) {
     MappedBank.find(By(MappedBank.national_identifier, nationalIdentifier))
   }
 
@@ -972,7 +994,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
     val count = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
+      account <- getAccountByNumber(bankId, accountNumber, AuthUser.getCurrentUserUsername)
       amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(amount))
     } yield {
 
@@ -1002,7 +1024,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       bank <- getBankByNationalIdentifier(transaction.obp_transaction.this_account.bank.national_identifier) ?~!
         s"No bank found with national identifier $nationalIdentifier"
       bankId = bank.bankId
-      account <- getAccountByNumber(bankId, accountNumber)
+      account <- getAccountByNumber(bankId, accountNumber, AuthUser.getCurrentUserUsername)
       details = obpTransaction.details
       amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.value.amount))
       newBalanceAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.new_balance.amount))
@@ -1033,7 +1055,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
     val result = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
+      account <- getAccountByNumber(bankId, accountNumber, AuthUser.getCurrentUserUsername)
     } yield {
         val acc = getBankAccount(bankId, account.accountId)
         acc match {

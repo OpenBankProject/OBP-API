@@ -16,6 +16,14 @@ connector=mapped
 
 ## Connector cache time-to-live in seconds, caching disabled if not set
 #connector.cache.ttl.seconds=3
+#connector.cache.ttl.seconds.getBank=10
+#connector.cache.ttl.seconds.getBanks=10
+#connector.cache.ttl.seconds.getAccount=10
+#connector.cache.ttl.seconds.getAccounts=10
+#connector.cache.ttl.seconds.getTransaction=10
+#connector.cache.ttl.seconds.getTransactions=10
+#connector.cache.ttl.seconds.getCounterpartyFromTransaction=10
+#connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
 
 ## OBP-JVM transport type. currently supported: kafka, mock
 #obpjvm.transport=kafka
