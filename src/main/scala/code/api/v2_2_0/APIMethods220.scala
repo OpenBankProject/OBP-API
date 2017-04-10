@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole.{CanCreateAccount, CanCreateBank, CanCreateBranch}
 import code.api.util.ErrorMessages
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
@@ -414,9 +414,9 @@ trait APIMethods220 {
       apiVersion,
       "createAccount",
       "PUT",
-      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Create Account",
-      """Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID.
+      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
         |
         |
         |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.

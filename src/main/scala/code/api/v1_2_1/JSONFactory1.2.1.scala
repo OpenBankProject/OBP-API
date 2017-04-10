@@ -77,7 +77,7 @@ case class BankRoutingJSON(
 case class ViewsJSON(
   views : List[ViewJSON]
 )
-class ViewJSON(
+case class ViewJSON(
   val id: String,
   val short_name: String,
   val description: String,
@@ -158,6 +158,11 @@ case class UpdateAccountJSON(
   id : String,
   label : String,
   bank_id : String
+)
+
+case class AccountRoutingJSON(
+  scheme: String,
+  address: String
 )
 
 case class ModeratedAccountJSON(

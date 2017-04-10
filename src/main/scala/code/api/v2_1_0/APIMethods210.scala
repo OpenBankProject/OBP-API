@@ -246,60 +246,61 @@ trait APIMethods210 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    // COUNTERPARTY
-    resourceDocs += ResourceDoc(
-      createTransactionRequest,
-      apiVersion,
-      "createTransactionRequest",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
-      "Create Transaction Request (COUNTERPARTY)",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for COUNTERPARTY:
-         |
-         |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.
-         |The routing details of the counterparty will be forwarded for the transfer.
-         |
-       """.stripMargin,
-      Extraction.decompose(TransactionRequestBodyCounterpartyJSON(
-        CounterpartyIdJson("lalalalwieuryi79878987fds"),
-        AmountOfMoneyJSON("EUR", "100.53"),
-        "A description for the transaction to the counterparty",
-      "SHARED"
-      )
-      ),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+    //TODO CM just comment it, Swagger mess up
+//    // COUNTERPARTY
+//    resourceDocs += ResourceDoc(
+//      createTransactionRequest,
+//      apiVersion,
+//      "createTransactionRequest",
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
+//      "Create Transaction Request (COUNTERPARTY)",
+//      s"""$transactionRequestGeneralText
+//         |
+//         |Special instructions for COUNTERPARTY:
+//         |
+//         |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.
+//         |The routing details of the counterparty will be forwarded for the transfer.
+//         |
+//       """.stripMargin,
+//      Extraction.decompose(TransactionRequestBodyCounterpartyJSON(
+//        CounterpartyIdJson("lalalalwieuryi79878987fds"),
+//        AmountOfMoneyJSON("EUR", "100.53"),
+//        "A description for the transaction to the counterparty",
+//      "SHARED"
+//      )
+//      ),
+//      emptyObjectJson,
+//      emptyObjectJson :: Nil,
+//      Catalogs(Core, PSD2, OBWG),
+//      List(apiTagTransactionRequest))
 
 
     val lowAmount  = AmountOfMoneyJSON("EUR", "12.50")
     val sharedChargePolicy = ChargePolicy.withName("SHARED")
 
-    // Transaction Request (SEPA)
-    resourceDocs += ResourceDoc(
-      createTransactionRequest,
-      apiVersion,
-      "createTransactionRequest",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
-      "Create Transaction Request (SEPA)",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for SEPA:
-         |
-         |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
-         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
-         |
-       """.stripMargin,
-      Extraction.decompose(TransactionRequestBodySEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
-      ),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+//    // Transaction Request (SEPA)
+//    resourceDocs += ResourceDoc(
+//      createTransactionRequest,
+//      apiVersion,
+//      "createTransactionRequest",
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
+//      "Create Transaction Request (SEPA)",
+//      s"""$transactionRequestGeneralText
+//         |
+//         |Special instructions for SEPA:
+//         |
+//         |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+//         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+//         |
+//       """.stripMargin,
+//      Extraction.decompose(TransactionRequestBodySEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
+//      ),
+//      emptyObjectJson,
+//      emptyObjectJson :: Nil,
+//      Catalogs(Core, PSD2, OBWG),
+//      List(apiTagTransactionRequest))
 
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

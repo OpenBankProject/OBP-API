@@ -35,7 +35,7 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.ViewJSON
+import code.api.v1_2_1.{AccountRoutingJSON, ViewJSON}
 import code.api.v2_2_0.{AccountJSON, AccountsJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting

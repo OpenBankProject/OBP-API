@@ -67,18 +67,33 @@ object SwaggerJSONFactory {
     security: List[SecurityJson] = SecurityJson()::Nil,
     description: String,
     operationId: String,
-    parameters: List[OperationParameterJson],
+    parameters: List[OperationParameter],
     responses: Map[String, ResponseObjectJson]
   )
   //Parameter Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#parameterObject
-  case class OperationParameterJson(
+  
+  trait OperationParameter {
+    def in: String
+    def name: String
+    def description: String
+    def required: Boolean
+  }
+  case class OperationParameterPathJson (
     in: String = "path",
     name: String = "BANK_ID",
     description: String = "BANK_ID",
     required: Boolean = true,
     `type`: String ="string"
-  )
+  )extends OperationParameter
+  
+  case class OperationParameterBodyJson (
+    in: String = "body",
+    name: String = "body",
+    description: String = "BANK_BODY",
+    required: Boolean = true,
+    `schema`: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
+  )extends OperationParameter
   
   case class ErrorPropertiesMessageJson(
     `type`: String
@@ -162,53 +177,60 @@ object SwaggerJSONFactory {
     //      "200": {
     //      "schema": {
     //         "$ref": "#/definitions/BankJSON"
+    //TODO, try to make it work with reflection using rd.successResponseBody.extract[BanksJSON], but successResponseBody is JValue, that's tricky
     def setReferenceObject(rd: ResourceDoc) = {
       rd.apiFunction match {
-        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/code.api.v2_0_0.BasicAccountJSON")) //1	/accounts
-//        case "corePrivateAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/CoreAccountJSON")) //2	TODO List[CoreAccountJSON] /my/accounts
+        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountJSON")) //1	V200/accounts
+//        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //1 V121 TODO 	/accounts
+          
+        case "corePrivateAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/CoreAccountJSON")) //2	TODO List[CoreAccountJSON] /my/accounts
+          
+        case "allAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountJSON")) //3	V200 TODO List[BasicAccountJSON] /banks/BANK_ID/accounts
 //        case "allAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //3	V121 TODO List[BasicAccountJSON] /banks/BANK_ID/accounts
-////        case "allAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountJSON")) //3	V200 TODO List[BasicAccountJSON] /banks/BANK_ID/accounts
+          
+          
+        case "privateAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountsJSON")) //4	V200(used),V121 /banks/BANK_ID/accounts/private 
 //        case "privateAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //4	V121 /banks/BANK_ID/accounts/private 
-////        case "privateAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountsJSON")) //4	V200(used),V121 /banks/BANK_ID/accounts/private 
-//        case "getCoreAccountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedCoreAccountJSON")) //5	/my/banks/BANK_ID/accounts/ACCOUNT_ID/account
-//        case "accountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedAccountJSON")) //6 v200 ,v121 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
-//        case "getCurrentUser" => Some(ResponseObjectSchemaJson("#/definitions/UserJSON")) //7	/users/current
-//        case "getBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))//8	/banks
-//        case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON")) //9	/banks/BANK_ID
-//        case "getCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson")) //10	V210 V140 /banks/BANK_ID/customer 
-////        case "getTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionsJSON")) //11	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
-//        case "getTransactionByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionJSON")) //12	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction
-//        case "getCoreTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/CoreTransactionsJSON"))//13	/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions
-//        case "getTransactionRequestTypes" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSON210"))//14	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types
-//        case "createTransactionRequest" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestTypeJSONs"))//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
-//        case "answerTransactionRequestChallenge" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestTypeJSONs"))//16	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge
-//        case "getTransactionRequests" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSONs210"))//17	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests
-//        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//v220 ,v210 ,v200 18	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
-//        case "updateAccountLabel" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//19	/banks/BANK_ID/accounts/ACCOUNT_ID
-//        case "getViewsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//20	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
-//        case "getViewsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//21	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
-//        case "updateViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSON"))//22	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-//        case "updateViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSON"))//23	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-//        case "addPermissionForUserForBankAccountForMultipleViews" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//24	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
-//        case "addPermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSON"))//25	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
-//        case "removePermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson(""))//26	TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
-//        case "removePermissionForUserForBankAccountForAllViews" => Some(ResponseObjectSchemaJson(""))//27	TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
-//        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//28	V220, V210 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
-//        case "getOtherAccountsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountsJSON"))//29	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts
-//        case "getOtherAccountByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//30	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID
-//        case "getTransactionNarrative" => Some(ResponseObjectSchemaJson("#/definitions/TransactionNarrativeJSON"))//31 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative
-//        case "getCommentsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionCommentsJSON"))//32 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments
-//        case "deleteCommentForViewOnTransaction" => Some(ResponseObjectSchemaJson(""))//33 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID
-//        case "getTagsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionTagsJSON"))//34	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags
-//        case "deleteTagForViewOnTransaction" => Some(ResponseObjectSchemaJson(""))//35 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID
-//        case "getImagesForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionImagesJSON"))//36 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images
-//        case "deleteImageForViewOnTransaction" => Some(ResponseObjectSchemaJson(""))//37 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID
-//        case "getWhereTagForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionWhereJSON"))//38 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where
-//        case "getOtherAccountForTransaction" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//39	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account
-//        case "getCurrentFxRate" => Some(ResponseObjectSchemaJson("#/definitions/FXRateJSON"))//40	/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE
-//        case "getPermissionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/PermissionsJSON"))//41	V200 v121/banks/BANK_ID/accounts/ACCOUNT_ID/permissions
-//        case "getPermissionForUserForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//42	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID
-//        case "createCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson"))//43	v210 v200 /banks/BANK_ID/customers
+          
+        case "getCoreAccountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedCoreAccountJSON")) //5	V200 /my/banks/BANK_ID/accounts/ACCOUNT_ID/account
+        case "accountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedAccountJSON")) //6 v200 ,v121 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
+        case "getCurrentUser" => Some(ResponseObjectSchemaJson("#/definitions/UserJSON")) //7	v200/users/current
+        case "getBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))//8	v121/banks
+        case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON")) //9	v121 /banks/BANK_ID
+        case "getCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson")) //10	V210 V140 /banks/BANK_ID/customer 
+        case "getTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionsJSON")) //11 V121	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
+        case "getTransactionByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionJSON")) //12	V121/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction
+        case "getCoreTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/CoreTransactionsJSON"))//13	V200/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions
+        case "getTransactionRequestTypes" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestTypeJSONs"))//14	v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types
+        case "createTransactionRequest" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSON210"))//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
+        case "answerTransactionRequestChallenge" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSON"))//16	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge
+        case "getTransactionRequests" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSONs210"))//17	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests
+        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//v220 18	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
+        case "updateAccountLabel" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//19	/banks/BANK_ID/accounts/ACCOUNT_ID
+        case "getViewsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//20	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
+        case "createViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//21	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
+        case "updateViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//22	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
+        case "deleteViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//23	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
+        case "addPermissionForUserForBankAccountForMultipleViews" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//24	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
+        case "addPermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSON"))//25	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
+        case "removePermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//26	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
+        case "removePermissionForUserForBankAccountForAllViews" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//27	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
+        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//28	V220, V210 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
+        case "getOtherAccountsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountsJSON"))//29	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts
+        case "getOtherAccountByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//30	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID
+        case "getTransactionNarrative" => Some(ResponseObjectSchemaJson("#/definitions/TransactionNarrativeJSON"))//31 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative
+        case "getCommentsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionCommentsJSON"))//32 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments
+        case "deleteCommentForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//33 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID
+        case "getTagsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionTagsJSON"))//34	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags
+        case "deleteTagForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//35 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID
+        case "getImagesForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionImagesJSON"))//36 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images
+        case "deleteImageForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//37 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID
+        case "getWhereTagForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionWhereJSON"))//38 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where
+        case "getOtherAccountForTransaction" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//39	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account
+        case "getCurrentFxRate" => Some(ResponseObjectSchemaJson("#/definitions/FXRateJSON"))//40	/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE
+        case "getPermissionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/PermissionsJSON"))//41	V200 v121/banks/BANK_ID/accounts/ACCOUNT_ID/permissions
+        case "getPermissionForUserForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//42	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID
+        case "createCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson"))//43	v210 v200 /banks/BANK_ID/customers
         case _ => None
       }
     }
@@ -246,54 +268,82 @@ object SwaggerJSONFactory {
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
       //TODO here can extract to  a method
-      val path = mrd._1
-                 .replaceAll("/BANK_ID","/{BANK_ID}")
-                 .replaceAll("/ACCOUNT_ID","/{ACCOUNT_ID}")
-                 .replaceAll("/VIEW_ID","/{VIEW_ID}")
-                 .replaceAll("/USER_ID","/{USER_ID}")
-                 .replaceAll("/TRANSACTION_ID","/{TRANSACTION_ID}")
-                 .replaceAll("/TRANSACTION_REQUEST_TYPE","/{TRANSACTION_REQUEST_TYPE}")
-                 .replaceAll("/TRANSACTION_REQUEST_ID","/{TRANSACTION_REQUEST_ID}")
-                 .replaceAll("/PROVIDER_ID","/{PROVIDER_ID}")
-                 .replaceAll("/OTHER_ACCOUNT_ID","/{OTHER_ACCOUNT_ID}")
-                 .replaceAll("/FROM_CURRENCY_CODE","/{FROM_CURRENCY_CODE}")
-                 .replaceAll("/TO_CURRENCY_CODE","/{TO_CURRENCY_CODE}")
-                 .replaceAll("/COMMENT_ID","/{COMMENT_ID}")
-                 .replaceAll("/TAG_ID","/{TAG_ID}")
-                 .replaceAll("/IMAGE_ID","/{IMAGE_ID}")
-                 .replaceAll("/CUSTOMER_ID","/{CUSTOMER_ID}")
+      val path =
+        mrd._1
+        .replaceAll("/BANK_ID", "/{BANK_ID}")
+        .replaceAll("/ACCOUNT_ID", "/{ACCOUNT_ID}")
+        .replaceAll("/VIEW_ID", "/{VIEW_ID}")
+        .replaceAll("/USER_ID", "/{USER_ID}")
+        .replaceAll("/TRANSACTION_ID", "/{TRANSACTION_ID}")
+        .replaceAll("/TRANSACTION_REQUEST_TYPE", "/{TRANSACTION_REQUEST_TYPE}")
+        .replaceAll("/TRANSACTION_REQUEST_ID", "/{TRANSACTION_REQUEST_ID}")
+        .replaceAll("/PROVIDER_ID", "/{PROVIDER_ID}")
+        .replaceAll("/OTHER_ACCOUNT_ID", "/{OTHER_ACCOUNT_ID}")
+        .replaceAll("/FROM_CURRENCY_CODE", "/{FROM_CURRENCY_CODE}")
+        .replaceAll("/TO_CURRENCY_CODE", "/{TO_CURRENCY_CODE}")
+        .replaceAll("/COMMENT_ID", "/{COMMENT_ID}")
+        .replaceAll("/TAG_ID", "/{TAG_ID}")
+        .replaceAll("/IMAGE_ID", "/{IMAGE_ID}")
+        .replaceAll("/CUSTOMER_ID", "/{CUSTOMER_ID}")
+        .replaceAll("/BRANCH_ID", "/{BRANCH_ID}")
+        .replaceAll("/NEW_ACCOUNT_ID", "/{NEW_ACCOUNT_ID}")
+        .replaceAll("/CONSUMER_ID", "/{CONSUMER_ID}")
+        .replaceAll("/USER_EMAIL", "/{USER_EMAIL}")
+        .replaceAll("/ENTITLEMENT_ID", "/{ENTITLEMENT_ID}")
+        .replaceAll("/KYC_CHECK_ID", "/{KYC_CHECK_ID}")
+        .replaceAll("/KYC_DOCUMENT_ID", "/{KYC_DOCUMENT_ID}")
+        .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
+        .replaceAll("/AMT_ID", "/{AMT_ID}")
       
-      var pathParameters = List.empty[OperationParameterJson]
+      var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
-        pathParameters = OperationParameterJson(name="BANK_ID",description="The bank id") :: pathParameters
+        pathParameters = OperationParameterPathJson(name="BANK_ID", description="The bank id") :: pathParameters
       if(path.contains("/{ACCOUNT_ID}"))
-        pathParameters = OperationParameterJson(name="ACCOUNT_ID",description="The account id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="ACCOUNT_ID", description="The account id") :: pathParameters
       if(path.contains("/{VIEW_ID}"))
-        pathParameters = OperationParameterJson(name="VIEW_ID",description="The view id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="VIEW_ID", description="The view id") :: pathParameters
       if(path.contains("/{USER_ID}"))
-        pathParameters = OperationParameterJson(name="USER_ID",description="The user id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="USER_ID", description="The user id") :: pathParameters
       if(path.contains("/{TRANSACTION_ID}"))
-        pathParameters = OperationParameterJson(name="TRANSACTION_ID",description="The transaction id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="TRANSACTION_ID", description="The transaction id") :: pathParameters
       if(path.contains("/{TRANSACTION_REQUEST_TYPE}"))
-        pathParameters = OperationParameterJson(name="TRANSACTION_REQUEST_TYPE",description="The transaction request type")::pathParameters
+        pathParameters = OperationParameterPathJson(name="TRANSACTION_REQUEST_TYPE", description="The transaction request type") :: pathParameters
       if(path.contains("/{TRANSACTION_REQUEST_ID}"))
-        pathParameters = OperationParameterJson(name="TRANSACTION_REQUEST_ID",description="The transaction request id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="TRANSACTION_REQUEST_ID", description="The transaction request id") :: pathParameters
       if(path.contains("/{PROVIDER_ID}"))
-        pathParameters = OperationParameterJson(name="PROVIDER_ID",description="The provider id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="PROVIDER_ID", description="The provider id") :: pathParameters
       if(path.contains("/{OTHER_ACCOUNT_ID}"))
-        pathParameters = OperationParameterJson(name="OTHER_ACCOUNT_ID",description="The other account id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="OTHER_ACCOUNT_ID", description="The other account id") :: pathParameters
       if(path.contains("/{FROM_CURRENCY_CODE}"))
-        pathParameters = OperationParameterJson(name="FROM_CURRENCY_CODE",description="The from currency code")::pathParameters
+        pathParameters = OperationParameterPathJson(name="FROM_CURRENCY_CODE", description="The from currency code") :: pathParameters
       if(path.contains("/{TO_CURRENCY_CODE}"))
-        pathParameters = OperationParameterJson(name="TO_CURRENCY_CODE",description="The to currency code")::pathParameters
+        pathParameters = OperationParameterPathJson(name="TO_CURRENCY_CODE", description="The to currency code") :: pathParameters
       if(path.contains("/{COMMENT_ID}"))
-        pathParameters = OperationParameterJson(name="COMMENT_ID",description="The comment id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="COMMENT_ID", description="The comment id") :: pathParameters
       if(path.contains("/{TAG_ID}"))
-        pathParameters = OperationParameterJson(name="TAG_ID",description="The tag id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="TAG_ID", description="The tag id") :: pathParameters
       if(path.contains("/{IMAGE_ID}"))
-        pathParameters = OperationParameterJson(name="IMAGE_ID",description="The image id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="IMAGE_ID", description="The image id") :: pathParameters
       if(path.contains("/{CUSTOMER_ID}"))
-        pathParameters = OperationParameterJson(name="CUSTOMER_ID",description="The customer id")::pathParameters
+        pathParameters = OperationParameterPathJson(name="CUSTOMER_ID", description="The customer id") :: pathParameters
+      if(path.contains("/{BRANCH_ID}"))
+        pathParameters = OperationParameterPathJson(name="BRANCH_ID", description="The branch id") :: pathParameters
+      if(path.contains("/{NEW_ACCOUNT_ID}"))
+        pathParameters = OperationParameterPathJson(name="NEW_ACCOUNT_ID", description="new account id") :: pathParameters
+      if(path.contains("/{CONSUMER_ID}"))
+        pathParameters = OperationParameterPathJson(name="CONSUMER_ID", description="new consumer id") :: pathParameters
+      if(path.contains("/{USER_EMAIL}"))
+        pathParameters = OperationParameterPathJson(name="USER_EMAIL", description="The user email id") :: pathParameters
+      if(path.contains("/{ENTITLEMENT_ID}"))
+        pathParameters = OperationParameterPathJson(name="ENTITLEMENT_ID", description="The entitblement id") :: pathParameters
+      if(path.contains("/{KYC_CHECK_ID}"))
+        pathParameters = OperationParameterPathJson(name="KYC_CHECK_ID", description="The kyc check id") :: pathParameters
+      if(path.contains("/{KYC_DOCUMENT_ID}"))
+        pathParameters = OperationParameterPathJson(name="KYC_DOCUMENT_ID", description="The kyc document id") :: pathParameters
+      if(path.contains("/{KYC_MEDIA_ID}"))
+        pathParameters = OperationParameterPathJson(name="KYC_MEDIA_ID", description="The kyc media id") :: pathParameters
+      if(path.contains("/{AMT_ID}"))
+        pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
   
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
@@ -302,7 +352,11 @@ object SwaggerJSONFactory {
             summary = rd.summary,
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId = s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
-            parameters = pathParameters,
+            parameters =
+              if ("get".equals(rd.requestVerb.toLowerCase))
+                pathParameters
+              else
+                OperationParameterBodyJson() :: pathParameters,
             responses = Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)), 
                             "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
@@ -381,6 +435,7 @@ object SwaggerJSONFactory {
     //     bank -> Bank(gh.29.uk),
     //     banks -> List(Bank(gh.29.uk))
     //   )
+    //TODO this maybe not so useful now, the input is the case-classes now.
     val r = currentMirror.reflect(entity)
     val mapOfFields = r.symbol.typeSignature.members.toStream
       .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
@@ -427,11 +482,12 @@ object SwaggerJSONFactory {
         case Some(i: Date)                 => "\""  + key + """": {"type":"string", "format":"date","example":" """ +i+"\"}"
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
-        case code.api.v1_2_1.BankJSON(_,_,_,_,_,_)       => "\""  + key + """": {"$ref": "#/definitions/code.api.v1_2_1.BankJSON"}"""
-        case List(code.api.v1_2_1.BankJSON(_,_,_,_,_,_),_*) => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/BankJSON"}}"""
-        case code.api.v1_2_1.BanksJSON(_)   => "\""  + key + """": {"$ref":"#/definitions/code.api.v1_2_1.BanksJSON"}"""
-        case List(code.api.v1_2_1.BanksJSON(_),_*)  => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/BanksJSON"}}""" 
-        case List(code.api.v2_0_0.BasicViewJSON(_,_,_),_*)  => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/BasicViewJSON"}}""" 
+        //TODO this should be improved, matching the JValue,now just support the default value
+        case APIUtil.defaultJValue                 => "\""  + key + """": {"type":"string","example":" "}"""
+        //the case classes.  
+        case List(f)                        => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case Some(f)                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case f                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case _ => "unknown"
       }
     }
@@ -466,11 +522,10 @@ object SwaggerJSONFactory {
   
     implicit val formats = DefaultFormats
   
-    val allNeededCaseClasses = SwaggerJSONsV220.allFieldsAndValues
+    val allSwaggerDefinitionCaseClasses = SwaggerJSONsV220.allFieldsAndValues
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
     val listOfParticularDefinition =
-    // just ommit the base class -- code.api.ResourceDocs1_4_0.SwaggerJSONsV220$
-      for (e <- allNeededCaseClasses if (APIUtil.notExstingBaseClass(e._1)))
+      for (e <- allSwaggerDefinitionCaseClasses)
         yield {
           translateEntity(e._1, e._2)
         }

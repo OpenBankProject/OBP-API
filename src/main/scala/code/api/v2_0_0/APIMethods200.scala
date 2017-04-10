@@ -10,7 +10,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
-import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 
@@ -1031,9 +1031,9 @@ trait APIMethods200 {
       apiVersion,
       "createAccount",
       "PUT",
-      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Create Account",
-      """Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID.
+      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
         |
         |
         |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
