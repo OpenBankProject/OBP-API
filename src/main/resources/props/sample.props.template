@@ -55,7 +55,6 @@ write_metrics=true
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true
 #allow_elasticsearch_metrics=true
-#es.cluster.name=elasticsearch
 
 ## ElasticSearch warehouse
 #es.warehouse.index=warehouse
