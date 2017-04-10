@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.Constant._
 import code.api.util.APIUtil
@@ -351,7 +351,12 @@ object SwaggerJSONFactory {
             tags = List(s"${rd.apiVersion.toString}"), 
             summary = rd.summary,
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
-            operationId = s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
+            operationId =
+              rd.apiFunction match {
+                //TODO, the UUID is just a temporory way, need fix 
+                case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
+                case _ => s"${rd.apiVersion.toString }-${rd.apiFunction.toString }"
+              },
             parameters =
               rd.apiFunction match {
                 case "createTransactionRequest" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/TransactionRequestBodyJSON")) :: pathParameters//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
