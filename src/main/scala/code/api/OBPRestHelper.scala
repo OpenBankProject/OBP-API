@@ -185,7 +185,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
   TODO: should this be moved to def serve() further down?
    */
 
-  def oauthServe(handler : PartialFunction[Req, Box[User] => Box[JsonResponse]]) : Unit = {
+  def oauthServe(handler: PartialFunction[Req, (Box[User]) => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req): () => Box[LiftResponse] = {
@@ -193,9 +193,13 @@ trait OBPRestHelper extends RestHelper with Loggable {
           //if request is correct json
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
-          failIfBadAuthorizationHeader {
-            failIfBadJSON(r, handler)
-          }
+          val startTime = Helpers.now
+          val response = failIfBadAuthorizationHeader {
+                          failIfBadJSON(r, handler)
+                        }
+          val endTime = Helpers.now
+          logAPICall(startTime, endTime.getTime - startTime.getTime, rd)
+          response
         }
         def isDefinedAt(r : Req) = {
           //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
@@ -220,11 +224,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
           //Wraps the partial function with some logging
-          val startTime = Helpers.now
-          val response = handler(r)
-          val endTime = Helpers.now
-          logAPICall(startTime, endTime.getTime - startTime.getTime)
-          response
+          handler(r)
         }
         def isDefinedAt(r : Req) = handler.isDefinedAt(r)
       }
