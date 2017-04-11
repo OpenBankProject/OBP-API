@@ -227,7 +227,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  def logAPICall(date: TimeSpan, duration: Long) = {
+  def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     if(Props.getBool("write_metrics", false)) {
       val user =
         if (isThereAnOAuthHeader) {
@@ -272,7 +272,11 @@ object APIUtil extends Loggable {
 
       //TODO no easy way to get it, make it later
       //name of the Scala Partial Function being used for the endpoint
-      val implementedByPartialFunction = ""
+
+      val implementedByPartialFunction = rd match {
+        case Some(r) => r.apiFunction
+        case _       => ""
+      }
       //name of version where the call is implemented) -- S.request.get.view
       val implementedInVersion = S.request.get.view
       //(GET, POST etc.) --S.request.get.requestType.method

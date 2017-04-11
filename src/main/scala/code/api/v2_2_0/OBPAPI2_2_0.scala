@@ -32,11 +32,14 @@
 package code.api.v2_2_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
-import net.liftweb.common.Loggable
+import code.model.User
+import net.liftweb.common.{Box, Loggable}
+import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -292,8 +295,18 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   }
   // ### VERSION 2.2.0 - END ###
 
+  def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
+    val all = Implementations2_2_0.resourceDocs ++
+              Implementations2_1_0.resourceDocs ++
+              Implementations2_0_0.resourceDocs ++
+              Implementations1_4_0.resourceDocs ++
+              Implementations1_3_0.resourceDocs ++
+              Implementations1_2_1.resourceDocs
+    all.find(_.partialFunction==pf)
+  }
+
   routes.foreach(route => {
-    oauthServe(apiPrefix{route})
+    oauthServe(apiPrefix{route}, findResourceDoc(route))
   })
 
 }
