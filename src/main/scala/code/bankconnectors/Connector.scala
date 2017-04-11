@@ -465,6 +465,8 @@ trait Connector {
     * @return Always create a new Transaction Request in mapper, and return all the fields
     */
 
+
+  // TODO Add challengeType as a parameter to this function
   def createTransactionRequestv210(initiator: User,
                                    viewId: ViewId,
                                    fromAccount: BankAccount,
@@ -559,6 +561,9 @@ trait Connector {
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
         val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+
+
+        // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
         val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
         saveTransactionRequestChallenge(transactionRequest.id, challenge)
         transactionRequest = transactionRequest.copy(challenge = challenge)

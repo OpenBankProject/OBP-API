@@ -34,8 +34,8 @@ package code.api.v2_1_0
 import java.util.Date
 
 import code.api.util.ApiRole
-import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{DriveUpJson,LicenseJson,ChallengeJSON, CustomerFaceImageJson, MetaJson, TransactionRequestAccountJSON,AddressJson,LocationJson,LobbyJson}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJSON, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
 import code.branches.Branches.BranchId
 import code.common.{License, Meta}
@@ -231,11 +231,6 @@ case class CounterpartyMetadataJSON(
                                      corporate_location: LocationJSON,
                                      physical_location: LocationJSON
                                    )
-
-case class AccountRoutingJSON(
-                               scheme: String,
-                               address: String
-                             )
 
 case class BankRoutingJSON(
                                scheme: String,

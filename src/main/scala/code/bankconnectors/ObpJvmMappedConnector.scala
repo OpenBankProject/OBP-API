@@ -391,6 +391,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
       case 0 => "xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!"
+        //TODO CM this is a super vital sercurity problem, a serious attack vector,Never put Bank specific code in OBP
       case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
     }
 
