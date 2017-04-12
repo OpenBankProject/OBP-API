@@ -1534,13 +1534,9 @@ trait APIMethods210 {
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |Filters Part 2.
-        |
-        |add more fileds to filter
-        |
         |eg: /management/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
         |
-        |Should be able to filter on:
+        |Other filters:
         |
         |5 consumer_id  (if null ignore)
         |
