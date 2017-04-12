@@ -1,7 +1,5 @@
 package code.search
 
-import com.sksamuel.elastic4s.ElasticClient
-import com.sksamuel.elastic4s.ElasticDsl._
 import dispatch.{Http, url}
 import net.liftweb.common.Loggable
 
@@ -16,7 +14,11 @@ import Defaults._
 import net.liftweb.json
 import java.util.Date
 
-import com.sksamuel.elastic4s.mappings.FieldType.{DateType, StringType}
+import org.elasticsearch.common.settings.Settings
+import com.sksamuel.elastic4s.TcpClient
+import com.sksamuel.elastic4s.mappings.FieldType._
+import com.sksamuel.elastic4s.ElasticDsl._
+
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
 
@@ -133,19 +135,21 @@ class elasticsearchMetrics extends elasticsearch {
 
   if (esIndex.contains(",")) throw new RuntimeException("Props error: es.metrics.index can not be a list")
 
-  var client:ElasticClient = null
+  var client:TcpClient = null
+
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
-    client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
+    val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
+    client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
     try {
       client.execute {
-        create index esIndex mappings (
-        "request" as (
-          "userId" typed StringType,
-          "url" typed StringType,
-          "date" typed DateType,
-          "userName" typed StringType,
-          "appName" typed StringType,
-          "developerEmail" typed StringType
+        createIndex(esIndex).mappings(
+        mapping("request") as (
+          textField("userId"),
+          textField("url"),
+          dateField("date"),
+          textField("userName"),
+          textField("appName"),
+          textField("developerEmail")
           )
         )
       }
@@ -159,7 +163,7 @@ class elasticsearchMetrics extends elasticsearch {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
       try {
         client.execute {
-          index into esIndex / "request" fields (
+          indexInto(esIndex / "request") fields (
             "userId" -> userId,
             "url" -> url,
             "date" -> date,
@@ -183,9 +187,10 @@ class elasticsearchWarehouse extends elasticsearch {
   override val esPortTCP  = Props.get("es.warehouse.port.tcp","9300")
   override val esPortHTTP = Props.get("es.warehouse.port.http","9200")
   override val esIndex    = Props.get("es.warehouse.index", "warehouse")
-  var client:ElasticClient = null
+  var client:TcpClient = null
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
-    client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
+    val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
+    client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
   }
 }
 
@@ -198,10 +203,10 @@ class elasticsearchOBP extends elasticsearch {
   val accountIndex     = "account_v1.2.1"
   val transactionIndex = "transaction_v1.2.1"
 
-  var client:ElasticClient = null
+  var client:TcpClient = null
 
   if (Props.getBool("allow_elasticsearch", false) ) {
-    client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
+    client = TcpClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
 
     client.execute {
       create index accountIndex mappings (
