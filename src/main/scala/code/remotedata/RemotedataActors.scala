@@ -2,7 +2,7 @@ package code.remotedata
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorSystem, Props => ActorProps}
+import akka.actor.{ActorSystem, ExtendedActorSystem, Props => ActorProps}
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
 import code.api.APIFailure
@@ -106,9 +106,12 @@ object RemotedataActors extends Loggable {
   def startLocalWorkerSystem(): Unit = {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
-    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    val system = ActorSystem.create("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
+    val localPort = extSystem.provider.getDefaultAddress.port.get
+    RemotedataConfig.localPort = localPort
+    logger.info(s"Started on port ${localPort}")
     startActors(system)
-    logger.info("Complete")
   }
 
   def startRemoteWorkerSystem(): Unit = {
@@ -116,7 +119,7 @@ object RemotedataActors extends Loggable {
     logger.info(RemotedataConfig.remoteConf)
     val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
     startActors(system)
-    logger.info("Complete")
+    logger.info("Started")
   }
 
   def setupRemotedataDB(): Unit = {

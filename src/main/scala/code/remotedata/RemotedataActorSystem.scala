@@ -9,6 +9,7 @@ import net.liftweb.common.Loggable
 object RemotedataActorSystem extends Loggable {
 
   var obpActorSystem: ActorSystem = null
+  var localPort = 2552
 
   def init () = {
     if (obpActorSystem == null ) {
@@ -23,16 +24,16 @@ object RemotedataActorSystem extends Loggable {
   def getActor(actorName: String) = {
     this.init
 
-    val actorPath = Props.getBool("remotedata.enable", false) match {
+    val actorPath: String = Props.getBool("remotedata.enable", false) match {
     case true =>
       val hostname = RemotedataConfig.remoteHostname 
       val port = RemotedataConfig.remotePort
-      "akka.tcp://RemotedataActorSystem@" + hostname + ":" + port + "/user/" + actorName
+      s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
 
     case false =>
       val hostname = RemotedataConfig.localHostname 
       val port = RemotedataConfig.localPort
-      "akka.tcp://RemotedataActorSystem@" + hostname + ":" + port + "/user/" + actorName
+      s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
     }
 
     this.obpActorSystem.actorSelection(actorPath)

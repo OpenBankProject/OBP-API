@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.{Date, Locale}
+import java.util.{Date, Locale, Properties}
 import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.api.Constant._
@@ -78,6 +78,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
+import org.apache.log4j.{LogManager, PropertyConfigurator}
 
 
 /**
@@ -169,6 +170,26 @@ class Boot extends Loggable{
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
+
+    // Set Log4j properties
+    val l4jLoglevel = Props.get("obp.loglevel").openOr("INFO")
+    val l4jFilename = Props.get("obp.logfile").openOr("UNDEF")
+    logger.info("Logging to file " + l4jFilename )
+    val l4jProperties = new Properties()
+    if (l4jFilename != "UNDEF") {
+      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, logfile")
+      l4jProperties.setProperty("log4j.appender.logfile", "org.apache.log4j.RollingFileAppender")
+      l4jProperties.setProperty("log4j.appender.logfile.File", l4jFilename)
+      l4jProperties.setProperty("log4j.appender.logfile.layout", "org.apache.log4j.PatternLayout")
+      l4jProperties.setProperty("log4j.appender.logfile.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
+    } else {
+      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, CONSOLE")
+      l4jProperties.setProperty("log4j.appender.CONSOLE", "org.apache.log4j.ConsoleAppender")
+      l4jProperties.setProperty("log4j.appender.CONSOLE.layout", "org.apache.log4j.PatternLayout")
+      l4jProperties.setProperty("log4j.appender.CONSOLE.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
+    }
+    LogManager.resetConfiguration()
+    PropertyConfigurator.configure(l4jProperties)
 
     // ensure our relational database's tables are created/fit the schema
     val connector = Props.get("connector").openOrThrowException("no connector set")

@@ -207,7 +207,7 @@
     </dependency>
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
-      <artifactId>elastic4s-tcp_2.11</artifactId>
+      <artifactId>elastic4s-tcp_${scala.version}</artifactId>
       <version>5.3.0</version>
     </dependency>
     <!-- for LiftConsole -->
@@ -257,13 +257,16 @@
       <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
       <version>0.4.1</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava_2.11 -->
     <dependency>
       <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-guava_2.11</artifactId>
+      <artifactId>scalacache-guava_${scala.version}</artifactId>
       <version>0.9.3</version>
     </dependency>
-
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-slf4j_${scala.version}</artifactId>
+      <version>2.4.1</version>
+    </dependency>
 
 
 
