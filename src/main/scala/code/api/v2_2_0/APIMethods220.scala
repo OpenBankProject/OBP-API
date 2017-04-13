@@ -3,21 +3,20 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.isValidCurrencyISOCode
-import code.api.util.ApiRole.{CanCreateAccount, CanCreateBank, CanCreateBranch}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
-import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0.BranchJsonPost
 import code.bankconnectors.{Connector, KafkaJSONFactory_vMar2017}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
-import net.liftweb.common.Empty
+import code.remotedata.RemotedataConfig
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -28,7 +27,6 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
-import net.liftweb.util.Helpers._
 
 
 trait APIMethods220 {
@@ -36,6 +34,34 @@ trait APIMethods220 {
   self: RestHelper =>
 
   // helper methods begin here
+  private def getConfigInfoJSON() = {
+    val apiConfiguration: JValue = {
+
+      val f1 = CachedFunctionJSON("getBank", Props.get("connector.cache.ttl.seconds.getBank", "0").toInt)
+      val f2 = CachedFunctionJSON("getBanks", Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt)
+      val f3 = CachedFunctionJSON("getAccount", Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt)
+      val f4 = CachedFunctionJSON("getAccounts", Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt)
+      val f5 = CachedFunctionJSON("getTransaction", Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt)
+      val f6 = CachedFunctionJSON("getTransactions", Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt)
+      val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
+      val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
+
+      val akkaPorts = PortJSON("remotedata.local.port", RemotedataConfig.localPort.toString) :: PortJSON("remotedata.port", RemotedataConfig.remotePort) :: Nil
+      val akka = AkkaJSON(akkaPorts, RemotedataConfig.akka_loglevel)
+      val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
+
+      val metrics = MetricsJSON("es.metrics.port.tcp", Props.get("es.metrics.port.tcp", "9300")) ::
+                    MetricsJSON("es.metrics.port.http", Props.get("es.metrics.port.tcp", "9200")) ::
+                    Nil
+      val warehouse = WarehouseJSON("es.warehouse.port.tcp", Props.get("es.warehouse.port.tcp", "9300")) ::
+                      WarehouseJSON("es.warehouse.port.http", Props.get("es.warehouse.port.http", "9200")) ::
+                      Nil
+
+      val apiConfigJSON = ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
+      Extraction.decompose(apiConfigJSON)
+    }
+    apiConfiguration
+  }
   // helper methods end here
 
   val Implementations2_2_0 = new Object() {
@@ -493,8 +519,33 @@ trait APIMethods220 {
         }
       }
     }
-  
-  
+
+    resourceDocs += ResourceDoc(
+      config,
+      apiVersion,
+      "config",
+      "GET",
+      "/config",
+      "The configuration of the API",
+      """Returns information about:
+        |
+        |* Akka ports
+        |* Elastic search ports
+        |* Cached function """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagApiInfo :: Nil)
+
+    lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "config" :: Nil JsonGet _ => user => for {
+        u <- user ?~! ErrorMessages.UserNotLoggedIn
+        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$CanGetConfig entitlement required")
+      } yield {
+        successJsonResponse(getConfigInfoJSON(), 200)
+      }
+    }
   
   }
 }

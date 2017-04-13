@@ -204,6 +204,14 @@ case class CreateAccountJSON(
   account_routing: AccountRoutingJSON
 )
 
+case class CachedFunctionJSON(function_name: String, ttl_in_seconds: Int)
+case class PortJSON(property: String, value: String)
+case class AkkaJSON(ports: List[PortJSON], log_level: String)
+case class MetricsJSON(property: String, value: String)
+case class WarehouseJSON(property: String, value: String)
+case class ElasticSearchJSON(metrics: List[MetricsJSON], warehouse: List[WarehouseJSON])
+case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+
 object JSONFactory220{
 
   def stringOrNull(text : String) =
