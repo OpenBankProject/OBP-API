@@ -277,7 +277,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         case _ => secret+= "&"
       }
       logger.info("base string: " + baseString)
-      //signing process
+      //signing process // TODO default to HmacSHA256?
       val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
         "HmacSHA256"
       else

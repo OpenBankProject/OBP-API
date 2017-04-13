@@ -201,7 +201,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       def checkAllGetTransResBodyField(getTransactionResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")
         (getTransactionResponse.code) should equal(200)
-        And("we should get the body sie is one")
+        And("we should get the body size is one")
         (getTransactionResponse.body.children.size) should equal(1)
         if (withChellenge) {
           And("we should get None, there is no transaction yet")
@@ -879,7 +879,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         Then("We checked all the fields of getTransResponse body")
         helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
+        When("We checked all the data in database, we need check the account amount info")
         helper.checkBankAccountBalance(true)
       }
     }
