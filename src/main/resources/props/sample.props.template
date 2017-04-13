@@ -6,6 +6,13 @@
 
 ### Base configuration
 
+### Log level
+#logger.loglevel=INFO
+
+### Logging to console will be disabled
+### if logger.logfile is defined
+#logger.logfile="obp-api.log"
+
 ## Which data connector to use
 connector=mapped
 #connector=mongodb

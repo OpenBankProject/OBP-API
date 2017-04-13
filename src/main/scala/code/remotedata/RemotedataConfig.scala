@@ -19,6 +19,7 @@ object RemotedataConfig {
   val commonConf = 
   """
   akka {
+    loggers = ["akka.event.slf4j.Slf4jLogger"]
     loglevel = """ + akka_loglevel + """
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
