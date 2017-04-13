@@ -59,6 +59,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   type AccountType = ObpJvmBankAccount
 
+  implicit override val nameOfConnector = ObpJvmMappedConnector.getClass.getSimpleName
+
   // Maybe we should read the date format from props?
   //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm'Z'"

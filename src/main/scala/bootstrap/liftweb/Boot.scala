@@ -32,8 +32,9 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.{Date, Locale, Properties}
+import java.util.{Locale, Properties}
 import javax.mail.internet.MimeMessage
+
 import code.accountholder.MapperAccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
@@ -59,7 +60,7 @@ import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
-import code.metrics.MappedMetric
+import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
@@ -463,7 +464,8 @@ object ToSchemify {
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     MappedMetric,
-    MapperAccountHolders
+    MapperAccountHolders,
+    MappedConnectorMetric
   )
 
   // The following tables are accessed directly via Mapper / JDBC

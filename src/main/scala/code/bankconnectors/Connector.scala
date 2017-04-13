@@ -104,6 +104,8 @@ trait Connector {
 
   val messageDocs = ArrayBuffer[MessageDoc]()
 
+  implicit val nameOfConnector = Connector.getClass.getSimpleName
+
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
   // before we attempt to create a transaction on the south side
