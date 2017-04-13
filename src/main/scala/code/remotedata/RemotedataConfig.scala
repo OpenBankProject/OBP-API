@@ -12,7 +12,7 @@ object RemotedataConfig {
   val remotePort = Props.get("remotedata.port").openOr("2662")
 
   val localHostname = "127.0.0.1" 
-  val localPort = Props.get("remotedata.local.port").openOr("2552")
+  var localPort = 0
 
   val akka_loglevel = Props.get("remotedata.loglevel").openOr("INFO")
 
@@ -94,7 +94,7 @@ object RemotedataConfig {
   ${commonConf} 
   akka {
     remote.netty.tcp.hostname = ${localHostname}
-    remote.netty.tcp.port = ${localPort} 
+    remote.netty.tcp.port = ${localPort}
   }
   """
 
