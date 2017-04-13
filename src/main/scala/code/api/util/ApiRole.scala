@@ -90,6 +90,10 @@ object ApiRole {
   case object CanReadMetrics extends ApiRole{
     val requiresBankId = false
   }
+  case object CanGetConfig extends ApiRole{
+    val requiresBankId = false
+  }
+
   def valueOf(value: String): ApiRole = value match {
     case "CanSearchAllTransactions" => CanSearchAllTransactions
     case "CanSearchAllAccounts" => CanSearchAllAccounts
@@ -119,6 +123,7 @@ object ApiRole {
     case "CanCreateBranch" => CanCreateBranch
     case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
+    case "CanGetConfig" => CanGetConfig
     case _ => throw new IllegalArgumentException()
   }
 
@@ -150,6 +155,7 @@ object ApiRole {
                       "CanCreateBranch" ::
                       "CanCreateBank" ::
                       "CanReadMetrics" ::
+                      "CanGetConfig" ::
                        Nil
 
 }
