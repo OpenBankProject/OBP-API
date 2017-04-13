@@ -46,7 +46,7 @@ trait APIMethods220 {
       val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
       val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
 
-      val akkaPorts = PortJSON("remotedata.local.port", RemotedataConfig.localPort) :: PortJSON("remotedata.port", RemotedataConfig.remotePort) :: Nil
+      val akkaPorts = PortJSON("remotedata.local.port", RemotedataConfig.localPort.toString) :: PortJSON("remotedata.port", RemotedataConfig.remotePort) :: Nil
       val akka = AkkaJSON(akkaPorts, RemotedataConfig.akka_loglevel)
       val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
 
