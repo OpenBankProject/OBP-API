@@ -66,6 +66,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   lazy val consumer = new KafkaConsumer()
   type AccountType = BankAccount2
 
+  implicit override val nameOfConnector = KafkaMappedConnector_vMar2017.getClass.getSimpleName
+
   // Local TTL Cache
   val cacheTTL              = Props.get("connector.cache.ttl.seconds", "10").toInt
   val cachedUser            = TTLCache[InboundValidatedUser](cacheTTL)

@@ -42,7 +42,7 @@ import code.api.v1_2.{ErrorMessage, SuccessMessage}
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.APIMetrics
+import code.metrics.{APIMetrics, ConnMetrics}
 import code.model._
 import dispatch.url
 import net.liftweb.common.{Empty, _}
@@ -914,6 +914,16 @@ Returns a string showed to the developer
   // eg2: allFieldsAndValues is just for SwaggerJSONsV220.allFieldsAndValues,it is not useful.
   def notExstingBaseClass(input: String): Boolean = {
     !input.contains("$") && !input.equalsIgnoreCase("allFieldsAndValues")
+  }
+
+
+  def saveConnectorMetric[R](blockOfCode: => R)(nameOfFunction: String = "")(implicit nameOfConnector: String): R = {
+    val t0 = System.currentTimeMillis()
+    val result = blockOfCode
+    // call-by-name
+    val t1 = System.currentTimeMillis()
+    ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+    result
   }
 
 }
