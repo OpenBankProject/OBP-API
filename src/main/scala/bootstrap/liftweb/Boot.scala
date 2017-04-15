@@ -151,6 +151,7 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
+    /* This doesn't work with jetty
     // Set Log4j properties
     logger.info("Configuring logging")
     val l4jLoglevel: String = Props.get("obp.loglevel").openOr("INFO")
@@ -172,6 +173,7 @@ class Boot extends Loggable{
     logger.info("Logfile: " + l4jFilename )
     LogManager.resetConfiguration()
     PropertyConfigurator.configure(l4jProperties)
+    */
 
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
