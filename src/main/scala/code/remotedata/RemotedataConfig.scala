@@ -15,11 +15,12 @@ object RemotedataConfig {
   var localPort = 0
 
   val akka_loglevel = Props.get("remotedata.loglevel").openOr("INFO")
+  val akka_loggers = "" //"""loggers = ["akka.event.slf4j.Slf4jLogger"]"""
 
   val commonConf = 
   """
   akka {
-    loggers = ["akka.event.slf4j.Slf4jLogger"]
+    """ + akka_loggers + """
     loglevel = """ + akka_loglevel + """
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
