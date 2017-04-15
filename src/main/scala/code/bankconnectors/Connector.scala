@@ -64,6 +64,7 @@ object Connector extends SimpleInjector {
       case "mongodb" => LocalConnector
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
+      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }

@@ -1142,7 +1142,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     def bankId             = BankId(r.bankId)
     def nationalIdentifier = "None"  //TODO
     def swiftBic           = "None"  //TODO
-    def websiteUrl         = r.website
+    def websiteUrl         = r.url
     def bankRoutingScheme = "None"
     def bankRoutingAddress = "None"
   }
@@ -1201,7 +1201,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
                               bankId : String,
                               name : String,
                               logo : String,
-                              website : String)
+                              url : String)
 
 
   /** Bank Branches
