@@ -384,6 +384,7 @@ class Boot extends Loggable{
     }
 
     if (!Props.getBool("remotedata.enable", false)) {
+      println(s"-----> RemoteDataActors.startLocalWorkerSystem() starting")
       try {
         logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
         RemotedataActors.startLocalWorkerSystem()
