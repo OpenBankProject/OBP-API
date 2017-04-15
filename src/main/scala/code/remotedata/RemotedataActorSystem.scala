@@ -43,7 +43,9 @@ object RemotedataActorSystem extends Loggable {
     }
 
     println("-----> ACTORPATH=" + actorPath)
-    this.obpActorSystem.actorSelection(actorPath)
+    val res = this.obpActorSystem.actorSelection(actorPath)
+    println("-----> res=" + res)
+    res
   }
 
 }
