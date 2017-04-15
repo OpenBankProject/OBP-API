@@ -91,8 +91,6 @@ import org.apache.logging.log4j.status.StatusLogger
 class Boot extends Loggable{
   def boot {
 
-    //StatusLogger.getLogger().setLevel(Level.INFO)
-
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
@@ -150,30 +148,6 @@ class Boot extends Loggable{
     Props.whereToLook = () => {
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
-
-    /* This doesn't work with jetty
-    // Set Log4j properties
-    logger.info("Configuring logging")
-    val l4jLoglevel: String = Props.get("obp.loglevel").openOr("INFO")
-    val l4jFilename: String = Props.get("obp.logfile").openOr("UNDEF")
-    logger.info("Loglevel: " + l4jLoglevel )
-    val l4jProperties = new Properties()
-    if (l4jFilename != "UNDEF") {
-      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, logfile")
-      l4jProperties.setProperty("log4j.appender.logfile", "org.apache.log4j.RollingFileAppender")
-      l4jProperties.setProperty("log4j.appender.logfile.File", l4jFilename)
-      l4jProperties.setProperty("log4j.appender.logfile.layout", "org.apache.log4j.PatternLayout")
-      l4jProperties.setProperty("log4j.appender.logfile.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
-    } else {
-      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, CONSOLE")
-      l4jProperties.setProperty("log4j.appender.CONSOLE", "org.apache.log4j.ConsoleAppender")
-      l4jProperties.setProperty("log4j.appender.CONSOLE.layout", "org.apache.log4j.PatternLayout")
-      l4jProperties.setProperty("log4j.appender.CONSOLE.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
-    }
-    logger.info("Logfile: " + l4jFilename )
-    LogManager.resetConfiguration()
-    PropertyConfigurator.configure(l4jProperties)
-    */
 
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {

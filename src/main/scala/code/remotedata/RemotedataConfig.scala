@@ -12,16 +12,14 @@ object RemotedataConfig {
   val remotePort = Props.get("remotedata.port").openOr("2662")
 
   val localHostname = "127.0.0.1" 
-  var localPort = 0
+  var localPort = 0   //automatically assigned if 0
 
   val akka_loglevel = Props.get("remotedata.loglevel").openOr("INFO")
-  val akka_loggers = "" //"""loggers = ["akka.event.slf4j.Slf4jLogger"]"""
 
   val commonConf = 
   """
   akka {
-    """ + akka_loggers + """
-    loglevel = """ + akka_loglevel + """
+    loglevel =  """ + akka_loglevel + """
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
       provider = "akka.remote.RemoteActorRefProvider"
@@ -96,7 +94,7 @@ object RemotedataConfig {
   ${commonConf} 
   akka {
     remote.netty.tcp.hostname = ${localHostname}
-    remote.netty.tcp.port = 2552
+    remote.netty.tcp.port = ${localPort}
   }
   """
 
