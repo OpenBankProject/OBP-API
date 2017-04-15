@@ -11,7 +11,9 @@ object RemotedataActorSystem extends Loggable {
   var obpActorSystem: ActorSystem = null
 
   def init () = {
+    println("----> obpActorSystem")
     if (obpActorSystem == null ) {
+      println("----> obpActorSystem:init")
       val system = ActorSystem("LookupSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.lookupConf)))
       logger.info(RemotedataConfig.lookupConf)
       obpActorSystem = system
@@ -35,10 +37,12 @@ object RemotedataActorSystem extends Loggable {
       while (port == 0) {
         port = RemotedataConfig.localPort
         logger.info("Waiting for local Remotedata actor to become available...")
+        println("-----> Waiting for local Remotedata actor to become available...")
       }
       s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
     }
 
+    println("-----> ACTORPATH=" + actorPath)
     this.obpActorSystem.actorSelection(actorPath)
   }
 
