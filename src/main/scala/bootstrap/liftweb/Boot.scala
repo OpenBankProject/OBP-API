@@ -91,7 +91,7 @@ import org.apache.logging.log4j.status.StatusLogger
 class Boot extends Loggable{
   def boot {
 
-    StatusLogger.getLogger().setLevel(Level.INFO)
+    //StatusLogger.getLogger().setLevel(Level.INFO)
 
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten

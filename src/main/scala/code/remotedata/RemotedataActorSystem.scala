@@ -9,7 +9,6 @@ import net.liftweb.common.Loggable
 object RemotedataActorSystem extends Loggable {
 
   var obpActorSystem: ActorSystem = null
-  var localPort = 2552
 
   def init () = {
     if (obpActorSystem == null ) {
@@ -32,7 +31,11 @@ object RemotedataActorSystem extends Loggable {
 
     case false =>
       val hostname = RemotedataConfig.localHostname 
-      val port = RemotedataConfig.localPort
+      var port = RemotedataConfig.localPort
+      while (port == 0) {
+        port = RemotedataConfig.localPort
+        logger.info("Waiting for local Remotedata actor to become available...")
+      }
       s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
     }
 
