@@ -225,6 +225,15 @@ class Boot extends Loggable{
     logger.debug(s"If you can read this, logging level is debug")
 
 
+    if (!Props.getBool("remotedata.enable", false)) {
+      try {
+        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
+        RemotedataActors.startLocalWorkerSystem()
+      } catch {
+        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
+      }
+    }
+
     // where to search snippets
     LiftRules.addToPackages("code")
 
@@ -380,16 +389,6 @@ class Boot extends Loggable{
         sendExceptionEmail(e)
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
-      }
-    }
-
-    if (!Props.getBool("remotedata.enable", false)) {
-      println(s"-----> RemoteDataActors.startLocalWorkerSystem() starting")
-      try {
-        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
-        RemotedataActors.startLocalWorkerSystem()
-      } catch {
-        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
       }
     }
 

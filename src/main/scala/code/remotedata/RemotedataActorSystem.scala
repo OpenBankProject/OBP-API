@@ -39,6 +39,7 @@ object RemotedataActorSystem extends Loggable {
         logger.info("Waiting for local Remotedata actor to become available...")
         println("-----> Waiting for local Remotedata actor to become available...")
       }
+      println(s"-----> Local Remotedata actor ${actorName} is available at port ${port}")
       s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
     }
 

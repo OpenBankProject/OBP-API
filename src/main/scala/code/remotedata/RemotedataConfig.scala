@@ -96,7 +96,7 @@ object RemotedataConfig {
   ${commonConf} 
   akka {
     remote.netty.tcp.hostname = ${localHostname}
-    remote.netty.tcp.port = 0
+    remote.netty.tcp.port = 2552
   }
   """
 
