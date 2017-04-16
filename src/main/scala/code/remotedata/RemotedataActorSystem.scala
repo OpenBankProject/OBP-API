@@ -34,9 +34,8 @@ object RemotedataActorSystem extends Loggable {
     case false =>
       val hostname = RemotedataConfig.localHostname 
       var port = RemotedataConfig.localPort
-      while (port == 0) {
-        port = RemotedataConfig.localPort
-        logger.info("Waiting for local Remotedata actor to become available...")
+      if (port == 0) {
+        logger.error("Failed to connect to local Remotedata actor")
       }
       s"akka.tcp://RemotedataActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
