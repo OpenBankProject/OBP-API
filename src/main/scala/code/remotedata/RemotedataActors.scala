@@ -20,7 +20,8 @@ import scala.concurrent.{Await, Future}
 
 trait ActorInit {
 
-  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(1)
+  // Deafult is 3 seconds, which should be enough for slower systems
+  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
 
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
