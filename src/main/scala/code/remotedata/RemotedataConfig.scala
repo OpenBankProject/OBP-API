@@ -14,7 +14,7 @@ object RemotedataConfig {
   val localHostname = "127.0.0.1" 
   var localPort = 0   //automatically assigned if 0
 
-  val akka_loglevel = Props.get("remotedata.loglevel").openOr("INFO")
+  val akka_loglevel = "INFO" //TODO breaks jenkins: Props.get("remotedata.loglevel").openOr("INFO")
 
   val commonConf = 
   """
