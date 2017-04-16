@@ -20,7 +20,7 @@ import scala.concurrent.{Await, Future}
 
 trait ActorInit {
 
-  // Deafult is 3 seconds, which should be enough for slower systems
+  // Deafult is 3 seconds, which should be more than enough for slower systems
   val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
 
 
@@ -81,6 +81,8 @@ trait ActorHelper {
 
 object RemotedataActors extends Loggable {
 
+  val props_hostname = Helper.getHostname
+
   def startActors(actorSystem: ActorSystem) = {
 
     val actorsRemotedata = Map(
@@ -109,7 +111,6 @@ object RemotedataActors extends Loggable {
   def startLocalWorkerSystem(): Unit = {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
-    val props_hostname = Helper.getHostname
     val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
     val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
     val localPort = extSystem.provider.getDefaultAddress.port.get
@@ -122,7 +123,6 @@ object RemotedataActors extends Loggable {
   def startRemoteWorkerSystem(): Unit = {
     logger.info("Starting remote RemotedataActorSystem")
     logger.info(RemotedataConfig.remoteConf)
-    val props_hostname = Helper.getHostname
     val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
     startActors(system)
     logger.info("Started")

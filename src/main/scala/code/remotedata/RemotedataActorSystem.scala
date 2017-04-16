@@ -10,6 +10,7 @@ import net.liftweb.common.Loggable
 object RemotedataActorSystem extends Loggable {
 
   var obpActorSystem: ActorSystem = null
+  val props_hostname = Helper.getHostname
 
   def init () = {
     if (obpActorSystem == null ) {
@@ -23,7 +24,6 @@ object RemotedataActorSystem extends Loggable {
 
   def getActor(actorName: String) = {
     this.init
-    val props_hostname = Helper.getHostname
 
     val actorPath: String = Props.getBool("remotedata.enable", false) match {
     case true =>
