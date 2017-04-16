@@ -9,11 +9,10 @@ import net.liftweb.util.Props
 
 object RemotedataConfig {
 
-  var localPort = 0
-
-  if (localPort == 0) {
-    println("--------------> RemotedataConfig: Looking for available port...")
-    localPort = Helper.findAvailablePort()
+  val localPort: Int = Helper.getHostname match {
+    case "socgen-k-api-openbankproject-com" => 2552
+    case "socgen-p-api-openbankproject-com" => 2553
+    case _ => Helper.findAvailablePort()
   }
 
   val remoteHostname = Props.get("remotedata.hostname").openOr("127.0.0.1")
