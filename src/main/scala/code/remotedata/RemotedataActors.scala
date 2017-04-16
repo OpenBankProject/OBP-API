@@ -114,8 +114,6 @@ object RemotedataActors extends Loggable {
     val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
     val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
     val localPort = extSystem.provider.getDefaultAddress.port.get
-    RemotedataConfig.localPort = localPort
-
     logger.info(s"Started on port ${localPort}")
     startActors(system)
   }

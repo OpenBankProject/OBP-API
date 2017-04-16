@@ -2,6 +2,7 @@ package code.remotedata
 
 
 import akka.actor.ActorSystem
+import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
 
@@ -12,7 +13,7 @@ object RemotedataConfig {
   val remotePort = Props.get("remotedata.port").openOr("2662")
 
   val localHostname = "127.0.0.1" 
-  var localPort = 0   //automatically assigned if 0
+  val localPort = Helper.findAvailablePort()
 
   val akka_loglevel = "INFO" //TODO breaks jenkins: Props.get("remotedata.loglevel").openOr("INFO")
 
@@ -94,7 +95,7 @@ object RemotedataConfig {
   ${commonConf} 
   akka {
     remote.netty.tcp.hostname = ${localHostname}
-    remote.netty.tcp.port = 0
+    remote.netty.tcp.port = ${localPort}
   }
   """
 
