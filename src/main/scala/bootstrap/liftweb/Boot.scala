@@ -72,6 +72,7 @@ import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.util.Helper
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -195,6 +196,8 @@ class Boot extends Loggable{
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
+    if (runningMode == "Production mode")
+      System.setProperty("log_dir", Helper.getHostname)
 
     logger.debug(s"If you can read this, logging level is debug")
 

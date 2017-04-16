@@ -1,6 +1,7 @@
 package code.remotedata
 
 import akka.actor.ActorSystem
+import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
 import net.liftweb.common.Loggable
@@ -22,12 +23,13 @@ object RemotedataActorSystem extends Loggable {
 
   def getActor(actorName: String) = {
     this.init
+    val props_hostname = Helper.getHostname
 
     val actorPath: String = Props.getBool("remotedata.enable", false) match {
     case true =>
       val hostname = RemotedataConfig.remoteHostname 
       val port = RemotedataConfig.remotePort
-      s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
+      s"akka.tcp://RemotedataActorSystem-${props_hostname}@${hostname}:${port}/user/${actorName}"
 
     case false =>
       val hostname = RemotedataConfig.localHostname 
@@ -36,7 +38,7 @@ object RemotedataActorSystem extends Loggable {
         port = RemotedataConfig.localPort
         logger.info("Waiting for local Remotedata actor to become available...")
       }
-      s"akka.tcp://RemotedataActorSystem@${hostname}:${port}/user/${actorName}"
+      s"akka.tcp://RemotedataActorSystem-${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
 
     this.obpActorSystem.actorSelection(actorPath)

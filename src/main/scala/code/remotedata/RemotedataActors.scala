@@ -6,6 +6,7 @@ import akka.actor.{ActorSystem, ExtendedActorSystem, Props => ActorProps}
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
 import code.api.APIFailure
+import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
 import net.liftweb.db.StandardDBVendor
@@ -107,7 +108,8 @@ object RemotedataActors extends Loggable {
   def startLocalWorkerSystem(): Unit = {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
-    val system = ActorSystem.create("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    val props_hostname = Helper.getHostname
+    val system = ActorSystem.create(s"RemotedataActorSystem-${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
     val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
     val localPort = extSystem.provider.getDefaultAddress.port.get
     RemotedataConfig.localPort = localPort
@@ -118,7 +120,8 @@ object RemotedataActors extends Loggable {
   def startRemoteWorkerSystem(): Unit = {
     logger.info("Starting remote RemotedataActorSystem")
     logger.info(RemotedataConfig.remoteConf)
-    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
+    val props_hostname = Helper.getHostname
+    val system = ActorSystem(s"RemotedataActorSystem-${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
     startActors(system)
     logger.info("Started")
   }

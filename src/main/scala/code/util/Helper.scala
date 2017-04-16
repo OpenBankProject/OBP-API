@@ -194,4 +194,13 @@ object Helper{
     protected def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
   }
 
+  def getHostname(): String = {
+    Props.get("hostname", "") match {
+      case s: String if s.nonEmpty => s.split(":").lift(1) match {
+        case Some(s) => s
+        case None => "unknown"
+      }
+      case _ => "unknown"
+    }
+  }
 }

@@ -40,7 +40,7 @@ object RemotedataConfig {
       #      IV-length = 16
       #  }
       #}
-      implicit-registration-logging = true
+      implicit-registration-logging = false
       kryo-trace = false
       resolve-subclasses = true
       }
@@ -94,7 +94,7 @@ object RemotedataConfig {
   ${commonConf} 
   akka {
     remote.netty.tcp.hostname = ${localHostname}
-    remote.netty.tcp.port = ${localPort}
+    remote.netty.tcp.port = 0
   }
   """
 
