@@ -29,7 +29,7 @@ object RemotedataActorSystem extends Loggable {
     case true =>
       val hostname = RemotedataConfig.remoteHostname 
       val port = RemotedataConfig.remotePort
-      s"akka.tcp://RemotedataActorSystem-${props_hostname}@${hostname}:${port}/user/${actorName}"
+      s"akka.tcp://RemotedataActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
 
     case false =>
       val hostname = RemotedataConfig.localHostname 
@@ -38,7 +38,7 @@ object RemotedataActorSystem extends Loggable {
         port = RemotedataConfig.localPort
         logger.info("Waiting for local Remotedata actor to become available...")
       }
-      s"akka.tcp://RemotedataActorSystem-${props_hostname}@${hostname}:${port}/user/${actorName}"
+      s"akka.tcp://RemotedataActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
 
     this.obpActorSystem.actorSelection(actorPath)

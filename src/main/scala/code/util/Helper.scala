@@ -197,7 +197,7 @@ object Helper{
   def getHostname(): String = {
     Props.get("hostname", "") match {
       case s: String if s.nonEmpty => s.split(":").lift(1) match {
-        case Some(s) => s
+        case Some(s) => s.replaceAll("/", "")
         case None => "unknown"
       }
       case _ => "unknown"

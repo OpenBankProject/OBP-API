@@ -109,10 +109,11 @@ object RemotedataActors extends Loggable {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
     val props_hostname = Helper.getHostname
-    val system = ActorSystem.create(s"RemotedataActorSystem-${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
     val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
     val localPort = extSystem.provider.getDefaultAddress.port.get
     RemotedataConfig.localPort = localPort
+
     logger.info(s"Started on port ${localPort}")
     startActors(system)
   }
@@ -121,7 +122,7 @@ object RemotedataActors extends Loggable {
     logger.info("Starting remote RemotedataActorSystem")
     logger.info(RemotedataConfig.remoteConf)
     val props_hostname = Helper.getHostname
-    val system = ActorSystem(s"RemotedataActorSystem-${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
+    val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
     startActors(system)
     logger.info("Started")
   }
