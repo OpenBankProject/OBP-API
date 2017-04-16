@@ -138,10 +138,21 @@ trait Connector {
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
-
-
+  
+  /**
+    * This method is for get User from external, eg kafka/obpjvm... 
+    *  getUserId  --> externalUserHelper--> getUserFromConnector --> getUser
+    * @param name
+    * @param password
+    * @return
+    */
   def getUser(name: String, password: String): Box[InboundUser]
-
+  
+  /**
+    * for remote ResourceUser to update the views for OBP
+    * will call createViews and setAccountOwner for the resource user.
+    * @param user
+    */
   def updateUserAccountViews(user: ResourceUser)
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
