@@ -752,8 +752,14 @@ import net.liftweb.util.Helpers._
      res
    } else Empty
   }
-
-
+  
+  /**
+    * This method will update the views and createAccountHolder ....
+    * //TODO, maybe not right to save the AccounHolder locally.
+    * @param name name from HTTP request,
+    * @param password password from HTTP request
+    * @return
+    */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
@@ -765,8 +771,14 @@ import net.liftweb.util.Helpers._
       }
     } else Empty 
   }
-
-
+  
+  
+  /**
+    * This method will update the views and createAccountHolder ....
+    * //TODO, maybe not right to save the AccounHolder locally.
+    * @param username
+    * @return
+    */
   def registeredUserHelper(username: String) = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {

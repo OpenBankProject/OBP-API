@@ -935,6 +935,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
+  //TODO This will create the OBP local data from remote, but is it correct ? to save the remote data locally? 
   private def createMappedAccountDataIfNotExisting(bankId: String, accountId: String, label: String) : Boolean = {
     MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId),
                                     By(MappedBankAccountData.bankId, bankId)) match {

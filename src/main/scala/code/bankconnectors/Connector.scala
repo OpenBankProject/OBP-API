@@ -963,7 +963,15 @@ trait Connector {
 
     res.nonEmpty
   }
-
+  
+  /**
+    *  This method will create the accounHolder for owner views.
+    *  TODO It is confused for now, need to be clear later.
+    * @param owner
+    * @param bankId
+    * @param accountId
+    * @param account_owners
+    */
   //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
   def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     if (account_owners.contains(owner)) {
