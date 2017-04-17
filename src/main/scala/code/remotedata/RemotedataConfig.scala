@@ -21,10 +21,12 @@ object RemotedataConfig {
   val localHostname = "127.0.0.1"
 
   val akka_loglevel = "INFO" //TODO breaks jenkins: Props.get("remotedata.loglevel").openOr("INFO")
+  val akka_loggers = """loggers = ["akka.event.slf4j.Slf4jLogger"]"""
 
   val commonConf = 
   """
   akka {
+    """ + akka_loggers + """
     loglevel =  """ + akka_loglevel + """
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
