@@ -86,10 +86,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "10").toInt * 1000 // Miliseconds
-  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "10").toInt * 1000 // Miliseconds
-  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "10").toInt * 1000 // Miliseconds
-  val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "10").toInt * 1000 // Miliseconds
+  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
+  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
+  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
+  val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
   val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
   val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
   val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
@@ -412,7 +412,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
     val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
       //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
       case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
-      //TODO CM this is a super vital sercurity problem, a serious attack vector,Never put Bank specific code in OBP
       case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
     }
     
@@ -444,7 +443,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 //      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
 //        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
 //        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
-//        //TODO CM this is a super vital sercurity problem, a serious attack vector,Never put Bank specific code in OBP
 //        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
 //      }
 //      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
@@ -483,7 +481,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 //    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, AccountId(number)).toList.length match {                                                                                                                             // Generate random uuid to be used as request-respose match id
 //       //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
 //      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
-//        //TODO CM this is a super vital sercurity problem, a serious attack vector,Never put Bank specific code in OBP
 //      case _ => MapperAccountHolders.getAccountHolders(bankId, AccountId(number)).toList(0).name
 //    }
 //    val req = Map(
