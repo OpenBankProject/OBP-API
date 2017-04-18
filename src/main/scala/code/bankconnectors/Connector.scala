@@ -64,6 +64,7 @@ object Connector extends SimpleInjector {
       case "mongodb" => LocalConnector
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
+      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }
@@ -139,10 +140,21 @@ trait Connector {
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
-
-
+  
+  /**
+    * This method is for get User from external, eg kafka/obpjvm... 
+    *  getUserId  --> externalUserHelper--> getUserFromConnector --> getUser
+    * @param name
+    * @param password
+    * @return
+    */
   def getUser(name: String, password: String): Box[InboundUser]
-
+  
+  /**
+    * for remote ResourceUser to update the views for OBP
+    * will call createViews and setAccountOwner for the resource user.
+    * @param user
+    */
   def updateUserAccountViews(user: ResourceUser)
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
@@ -953,7 +965,15 @@ trait Connector {
 
     res.nonEmpty
   }
-
+  
+  /**
+    *  This method will create the accounHolder for owner views.
+    *  TODO It is confused for now, need to be clear later.
+    * @param owner
+    * @param bankId
+    * @param accountId
+    * @param account_owners
+    */
   //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
   def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     if (account_owners.contains(owner)) {

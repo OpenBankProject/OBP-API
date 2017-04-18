@@ -80,9 +80,11 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-import org.apache.log4j.{LogManager, PropertyConfigurator}
-import org.apache.logging.log4j.Level
-import org.apache.logging.log4j.status.StatusLogger
+import com.typesafe.scalalogging._
+
+//import org.apache.log4j.{LogManager, PropertyConfigurator}
+//import org.apache.logging.log4j.Level
+//import org.apache.logging.log4j.status.StatusLogger
 
 
 /**
