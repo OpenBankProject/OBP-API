@@ -1,0 +1,117 @@
+@import url('https://static.openbankproject.com/css/nbg/nbg-fonts.css');
+
+#authorizeSection,
+#registerAppSection,
+#create-sandbox-account,
+#header-decoration {
+    background-color: #00B9B9 !important;
+}
+
+#agree-terms-text a {
+	color: #fff;
+	text-decoration: underline;
+}
+
+#logo-left {
+    margin: 20px 0 0 20px;
+    float: left;
+    display: inline-block;
+    /* height: 75px; */
+}
+
+#logo-right {
+    margin: 20px 20px 0 0;
+}
+
+p {
+    font-family: OpenSans-Regular;
+}
+
+a {
+    font-family: OpenSans-Regular;
+}
+
+.navlink {
+
+    font-family: OpenSans-Regular;
+    text-transform: uppercase;
+
+
+}
+
+h1 {
+    font-family: OpenSans-Bold;
+    text-transform: uppercase;
+}
+
+h2 {
+    font-family: OpenSans-Bold;
+}
+
+#main-about-box #main-about-buttons a {
+  font-family: OpenSans-Light;
+  font-size: 16px;
+}
+ 
+#main-about-box {
+  opacity: 1;
+  background-color: #00B9B9;
+}
+
+#main-about-text h2 {
+    text-transform: uppercase;
+    font-family: OpenSans-Bold;
+}
+
+#main-about-text p {
+    font-family: OpenSans-Regular;
+}
+ 
+#main-about p {
+    color: white;
+    font-family: OpenSans-Regular;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
+}
+
+#main-about h2 {
+    color: white;
+    font-family: OpenSans-Bold;
+    font-size: 32px;
+    margin-top: 30px;
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 0px 0px 0px 0px;
+
+}
+
+#footer {
+    border-bottom: 4px solid #00B9B9;
+
+}
+
+#copyright {
+    font-family: OpenSans-Light;
+}
+
+#main-support {
+    background-color: #006E80;
+}
+
+#main-get_started p {
+    font-family: OpenSans-Regular;
+}
+
+#main-apis p {
+    font-family: OpenSans-Light;
+}
+
+#main-showcases p {
+    font-family: OpenSans-Regular;
+}
+
+#main-faq h2 {
+    font-family: OpenSans-Regular;
+}
