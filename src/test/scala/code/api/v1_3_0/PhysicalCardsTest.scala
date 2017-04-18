@@ -63,6 +63,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     type AccountType = BankAccount
 
+    implicit override val nameOfConnector = "MockedCardConnector"
+
     override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
     override def getUser(name: String, password: String): Box[InboundUser] = ???
     def updateUserAccountViews(user: ResourceUser): Unit = ???

@@ -36,9 +36,11 @@ import java.util.Date
 
 import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_1_0.{MetricJson, MetricsJson}
 import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
+import code.metrics.{APIMetric, ConnMetric}
 import code.model._
 //import net.liftweb.common.Box
 //import net.liftweb.json.Extraction
@@ -211,6 +213,15 @@ case class MetricsJSON(property: String, value: String)
 case class WarehouseJSON(property: String, value: String)
 case class ElasticSearchJSON(metrics: List[MetricsJSON], warehouse: List[WarehouseJSON])
 case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+
+case class ConnectorMetricJson(
+                               connector_name: String,
+                               function_name: String,
+                               obp_api_request_id: String,
+                               date: Date,
+                               duration: Long
+                             )
+case class ConnectorMetricsJson(metrics: List[ConnectorMetricJson])
 
 object JSONFactory220{
 
@@ -385,6 +396,19 @@ object JSONFactory220{
         address = account.accountRoutingAddress
       )
     )
+  }
+
+  def createConnectorMetricJson(metric: ConnMetric): ConnectorMetricJson = {
+    ConnectorMetricJson(
+      connector_name = metric.getConnectorName(),
+      function_name = metric.getFunctionName(),
+      obp_api_request_id = metric.getObpApiRequestId(),
+      duration = metric.getDuration(),
+      date = metric.getDate()
+    )
+  }
+  def createConnectorMetricsJson(metrics : List[ConnMetric]) : ConnectorMetricsJson = {
+    ConnectorMetricsJson(metrics.map(createConnectorMetricJson))
   }
   
 }

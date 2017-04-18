@@ -32,8 +32,9 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.{Date, Locale, Properties}
+import java.util.{Locale, Properties}
 import javax.mail.internet.MimeMessage
+
 import code.accountholder.MapperAccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
@@ -59,7 +60,7 @@ import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
-import code.metrics.MappedMetric
+import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
@@ -71,6 +72,7 @@ import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.util.Helper
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -78,9 +80,11 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-import org.apache.log4j.{LogManager, PropertyConfigurator}
-import org.apache.logging.log4j.Level
-import org.apache.logging.log4j.status.StatusLogger
+import com.typesafe.scalalogging._
+
+//import org.apache.log4j.{LogManager, PropertyConfigurator}
+//import org.apache.logging.log4j.Level
+//import org.apache.logging.log4j.status.StatusLogger
 
 
 /**
@@ -89,8 +93,6 @@ import org.apache.logging.log4j.status.StatusLogger
  */
 class Boot extends Loggable{
   def boot {
-
-    StatusLogger.getLogger().setLevel(Level.INFO)
 
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
@@ -150,28 +152,6 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-    // Set Log4j properties
-    logger.info("Configuring logging")
-    val l4jLoglevel: String = Props.get("obp.loglevel").openOr("INFO")
-    val l4jFilename: String = Props.get("obp.logfile").openOr("UNDEF")
-    logger.info("Loglevel: " + l4jLoglevel )
-    val l4jProperties = new Properties()
-    if (l4jFilename != "UNDEF") {
-      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, logfile")
-      l4jProperties.setProperty("log4j.appender.logfile", "org.apache.log4j.RollingFileAppender")
-      l4jProperties.setProperty("log4j.appender.logfile.File", l4jFilename)
-      l4jProperties.setProperty("log4j.appender.logfile.layout", "org.apache.log4j.PatternLayout")
-      l4jProperties.setProperty("log4j.appender.logfile.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
-    } else {
-      l4jProperties.setProperty("log4j.rootCategory", s"${l4jLoglevel}, CONSOLE")
-      l4jProperties.setProperty("log4j.appender.CONSOLE", "org.apache.log4j.ConsoleAppender")
-      l4jProperties.setProperty("log4j.appender.CONSOLE.layout", "org.apache.log4j.PatternLayout")
-      l4jProperties.setProperty("log4j.appender.CONSOLE.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n")
-    }
-    logger.info("Logfile: " + l4jFilename )
-    LogManager.resetConfiguration()
-    PropertyConfigurator.configure(l4jProperties)
-
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
@@ -218,9 +198,20 @@ class Boot extends Loggable{
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
+    if (runningMode == "Production mode")
+      System.setProperty("log_dir", Helper.getHostname)
 
     logger.debug(s"If you can read this, logging level is debug")
 
+
+    if (!Props.getBool("remotedata.enable", false)) {
+      try {
+        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
+        RemotedataActors.startLocalWorkerSystem()
+      } catch {
+        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
+      }
+    }
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -380,15 +371,6 @@ class Boot extends Loggable{
       }
     }
 
-    if (!Props.getBool("remotedata.enable", false)) {
-      try {
-        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
-        RemotedataActors.startLocalWorkerSystem()
-      } catch {
-        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
-      }
-    }
-
     if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
       val delay = Props.getLong("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
       TransactionStatusScheduler.start(delay)
@@ -470,7 +452,8 @@ object ToSchemify {
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     MappedMetric,
-    MapperAccountHolders
+    MapperAccountHolders,
+    MappedConnectorMetric
   )
 
   // The following tables are accessed directly via Mapper / JDBC

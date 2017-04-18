@@ -1,5 +1,6 @@
 package code.util
 
+import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
 import net.liftweb.common._
@@ -9,6 +10,8 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.{DateFormat, Formats}
 import net.liftweb.json.Printer._
+
+import scala.util.Random
 
 
 object Helper{
@@ -86,7 +89,8 @@ object Helper{
 
   /**
    * Returns the number of decimal places a currency has. E.g. "EUR" -> 2, "JPY" -> 0
-   * @param currencyCode
+    *
+    * @param currencyCode
    * @return
    */
   def currencyDecimalPlaces(currencyCode : String) = {
@@ -168,8 +172,8 @@ object Helper{
     * change the TimeZone to the current TimeZOne
     * reference the following trait
     * net.liftweb.json
-          trait DefaultFormats
-          extends Formats
+    * trait DefaultFormats
+    * extends Formats
     */
   val DateFormatWithCurrentTimeZone = new Formats {
   
@@ -192,6 +196,46 @@ object Helper{
     }
   
     protected def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  }
+
+  def getHostname(): String = {
+    Props.get("hostname", "") match {
+      case s: String if s.nonEmpty => s.split(":").lift(1) match {
+        case Some(s) => s.replaceAll("\\/", "").replaceAll("\\.", "-")
+        case None => "unknown"
+      }
+      case _ => "unknown"
+    }
+  }
+
+  def findAvailablePort(): Int = {
+    val PORT_RANGE_MIN = 2552
+    val PORT_RANGE_MAX = 2661
+    val random = new Random(System.currentTimeMillis())
+
+    def findRandomPort() = {
+			val portRange = PORT_RANGE_MAX - PORT_RANGE_MIN
+			PORT_RANGE_MIN + random.nextInt(portRange + 1)
+		}
+
+    def isPortAvailable(port: Int): Boolean = {
+      var result = true
+      try {
+        new Socket("localhost", port).close()
+        result = false
+      }
+      catch {
+        case e: SocketException =>
+      }
+      result
+    }
+
+    var candidatePort = -1
+    do {
+      candidatePort = findRandomPort()
+    }
+    while (!isPortAvailable(candidatePort))
+    candidatePort
   }
 
 }

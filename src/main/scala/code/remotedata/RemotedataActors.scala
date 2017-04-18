@@ -6,6 +6,7 @@ import akka.actor.{ActorSystem, ExtendedActorSystem, Props => ActorProps}
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
 import code.api.APIFailure
+import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
 import net.liftweb.db.StandardDBVendor
@@ -19,7 +20,8 @@ import scala.concurrent.{Await, Future}
 
 trait ActorInit {
 
-  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(1)
+  // Deafult is 3 seconds, which should be more than enough for slower systems
+  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
 
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
@@ -79,6 +81,8 @@ trait ActorHelper {
 
 object RemotedataActors extends Loggable {
 
+  val props_hostname = Helper.getHostname
+
   def startActors(actorSystem: ActorSystem) = {
 
     val actorsRemotedata = Map(
@@ -97,7 +101,8 @@ object RemotedataActors extends Loggable {
       ActorProps[RemotedataTransactionRequestsActor]  -> RemotedataTransactionRequests.actorName,
       ActorProps[RemotedataMetricsActor]              -> RemotedataMetrics.actorName,
       ActorProps[RemotedataTokensActor]               -> RemotedataTokens.actorName,
-      ActorProps[RemotedataNoncesActor]               -> RemotedataNonces.actorName
+      ActorProps[RemotedataNoncesActor]               -> RemotedataNonces.actorName,
+      ActorProps[RemotedataConnectorMetricsActor]     -> RemotedataConnectorMetrics.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
@@ -106,18 +111,17 @@ object RemotedataActors extends Loggable {
   def startLocalWorkerSystem(): Unit = {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
-    val system = ActorSystem.create("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
-    val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
-    val localPort = extSystem.provider.getDefaultAddress.port.get
-    RemotedataConfig.localPort = localPort
-    logger.info(s"Started on port ${localPort}")
+    val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    //val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
+    //val localPort = extSystem.provider.getDefaultAddress.port.get
+    //logger.info(s"Started on port ${localPort}")
     startActors(system)
   }
 
   def startRemoteWorkerSystem(): Unit = {
     logger.info("Starting remote RemotedataActorSystem")
     logger.info(RemotedataConfig.remoteConf)
-    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
+    val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
     startActors(system)
     logger.info("Started")
   }

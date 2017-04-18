@@ -33,11 +33,14 @@ import net.liftweb.util.{BCrypt, Props, StringHelpers}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
+import code.api.util.APIUtil.saveConnectorMetric
 
 object LocalMappedConnector extends Connector with Loggable {
 
   type AccountType = MappedBankAccount
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
+
+  implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
@@ -49,7 +52,7 @@ object LocalMappedConnector extends Connector with Loggable {
     val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
     logger.info(s"thresholdCurrency is $thresholdCurrency")
 
-    val rate = fx.exchangeRate (thresholdCurrency, currency)
+    val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     AmountOfMoney(currency, convertedThreshold.toString())
@@ -65,15 +68,17 @@ object LocalMappedConnector extends Connector with Loggable {
     */
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = {
     val challengeId = UUID.randomUUID().toString
-    val challenge = StringHelpers.randomString(6) // Random string. For instance: EONXOA
+    val challenge = StringHelpers.randomString(6)
+    // Random string. For instance: EONXOA
     val salt = BCrypt.gensalt()
-    val hash = BCrypt.hashpw(challenge, salt).substring(0,44)
+    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
     // TODO Extend database model in order to store users salt and hash
     // Store salt and hash and bind to challengeId
     // TODO Send challenge to the user over an separate communication channel
     //Return id of challenge
     Full(challengeId)
   }
+
   /**
     * To Validate A Challenge Answer
     * 1. Retrieve the user's salt and hash from the database.
@@ -111,18 +116,22 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
+
   def updateUserAccountViews(user: ResourceUser): Unit = ???
 
   //gets a particular bank handled by this connector
-  override def getBank(bankId: BankId): Box[Bank] =
+  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
     getMappedBank(bankId)
+  }("getBank")
 
   private def getMappedBank(bankId: BankId): Box[MappedBank] =
     MappedBank.find(By(MappedBank.permalink, bankId.value))
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] =
-    MappedBank.findAll
+  override def getBanks: List[Bank] = saveConnectorMetric {
+      MappedBank.findAll()
+  }("getBanks")
+
 
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
 

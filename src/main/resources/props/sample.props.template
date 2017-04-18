@@ -21,7 +21,7 @@ connector=mapped
 #connector=obpjvm
 #connector=...
 
-## Connector cache time-to-live in seconds, caching disabled if not set
+## Connector cache time-to-live in seconds, caching defaults to 10 seconds
 #connector.cache.ttl.seconds=3
 #connector.cache.ttl.seconds.getBank=10
 #connector.cache.ttl.seconds.getBanks=10

@@ -38,6 +38,8 @@ private object LocalConnector extends Connector with Loggable {
 
   type AccountType = Account
 
+  implicit override val nameOfConnector = LocalConnector.getClass.getSimpleName
+
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val limit = BigDecimal("50")
