@@ -86,14 +86,14 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
+  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "1000").toInt * 1000 // Miliseconds
   val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
   val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
   val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
-  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
+  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "10000").toInt * 1000 // Miliseconds
   val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
   val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
-  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
+  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "1000").toInt * 1000 // Miliseconds
   val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
   
@@ -114,43 +114,54 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 
 
   // TODO Create and use a case class for each Map so we can document each structure.
-
-
-    //gets banks handled by this connector
-  override def getBanks: List[Bank] = memoizeSync(getBanksTTL millisecond) {
-    val req = Map(
-      "version" -> formatVersion,
-      "name" -> "get",
-      "target" -> "banks"
-      )
-
-    logger.debug(s"Kafka getBanks says: req is: $req")
-
-    val rList = process(req).extract[List[KafkaInboundBank]]
-
-    logger.debug(s"Kafka getBanks says rList is $rList")
-
-    // Loop through list of responses and create entry for each
-    val res = { for ( r <- rList ) yield {new KafkaBank(r)}}
-
-    // Return list of results
-    res
+  
+  
+  //gets banks handled by this connector
+  override def getBanks: List[Bank] = memoizeSync(getBankTTL millisecond) {
+    MappedBank.findAll
   }
   
-  // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = memoizeSync(getBankTTL millisecond){
-    // Create argument list
-    val req = Map(
-      "version" -> formatVersion,
-      "name" -> "get",
-      "target" -> "bank",
-      "bankId" -> id.value
-    )
-    val r = process(req).extract[KafkaInboundBank]
-    // Return result
-    Full(new KafkaBank(r))
-  }
+  override def getBank(bankId: BankId): Box[Bank] =
+    getMappedBank(bankId)
   
+  private def getMappedBank(bankId: BankId): Box[MappedBank] =
+    MappedBank.find(By(MappedBank.permalink, bankId.value))
+  
+  
+//  //gets banks handled by this connector
+//  override def getBanks: List[Bank] = memoizeSync(getBanksTTL millisecond) {
+//    val req = Map(
+//      "version" -> formatVersion,
+//      "name" -> "get",
+//      "target" -> "banks"
+//      )
+//
+//    logger.debug(s"Kafka getBanks says: req is: $req")
+//
+//    val rList = process(req).extract[List[KafkaInboundBank]]
+//
+//    logger.debug(s"Kafka getBanks says rList is $rList")
+//
+//    // Loop through list of responses and create entry for each
+//    val res = { for ( r <- rList ) yield {new KafkaBank(r)}}
+//
+//    // Return list of results
+//    res
+//  }
+//  
+//  // Gets bank identified by bankId
+//  override def getBank(id: BankId): Box[Bank] = memoizeSync(getBankTTL millisecond){
+//    // Create argument list
+//    val req = Map(
+//      "version" -> formatVersion,
+//      "name" -> "get",
+//      "target" -> "bank",
+//      "bankId" -> id.value
+//    )
+//    val r = process(req).extract[KafkaInboundBank]
+//    // Return result
+//    Full(new KafkaBank(r))
+//  }
   
   //TODO this is not implement in adapter
   def getUser( username: String, password: String ): Box[InboundUser] = memoizeSync(getUserTTL millisecond){
@@ -322,86 +333,90 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
   )
   
   //CM 4 checked the cache, is it in the method or in the lower level
-  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) 
+  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
   {
-    
-    //the following are OBP page classes
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
-    }
-    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
-    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+    //TODO this is a qucik solution for cached, because of (queryParams: OBPQueryParam*)
+    def getTransactionsCached(bankId: BankId, accountId: AccountId): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
+      //the following are OBP page classes
+      val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+      val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+      val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+      val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+      val ordering = queryParams.collect {
+        //we don't care about the intended sort field and only sort on finish date for now
+        case OBPOrdering(_, direction) =>
+          direction match {
+            case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+            case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+          }
+      }
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+      val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+      val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
   
-    //the following are OBPJVM page classes, need to map to OBP pages
-    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
-    val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
-    val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
-    val filter = new TimestampFilter("postedDate", earliest, latest)
-    val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
-    val pageSize = Pager.DEFAULT_SIZE; // all in one page
-    val pager = new DefaultPager(pageSize, 0, filter, sorter)
-    
-    val req1 = OutboundTransactionsQuery(
-      version = formatVersion,
-      name = "get",
-      target = "transactions",
-      accountId = accountId.toString,
-      bankId = bankId.toString,
-      userId = AuthUser.getCurrentUserUsername
-    )
-    
-    def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {
-      import scala.reflect.runtime.universe._
-    
-      val mirror = runtimeMirror(a.getClass.getClassLoader)
-    
-      def a2m(x: Any, t: Type): Any = {
-        val xm = mirror reflect x
-  
-        val members =
-          t.declarations.collect {
-            case acc: MethodSymbol if acc.isCaseAccessor =>
-              acc.name.decoded -> a2m(
-                (xm reflectMethod acc) (),
-                acc.typeSignature
-              )
-          }.toMap.asInstanceOf[Map[String, String]]
+      //the following are OBPJVM page classes, need to map to OBP pages
+      val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
+      val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
+      val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
+      val filter = new TimestampFilter("postedDate", earliest, latest)
+      val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
+      val pageSize = Pager.DEFAULT_SIZE; // all in one page
+      val pager = new DefaultPager(pageSize, 0, filter, sorter)
       
-        if (members.isEmpty) x else members
+      val req1 = OutboundTransactionsQuery(
+        version = formatVersion,
+        name = "get",
+        target = "transactions",
+        accountId = accountId.toString,
+        bankId = bankId.toString,
+        userId = AuthUser.getCurrentUserUsername
+      )
+      
+      def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {
+        import scala.reflect.runtime.universe._
+      
+        val mirror = runtimeMirror(a.getClass.getClassLoader)
+      
+        def a2m(x: Any, t: Type): Any = {
+          val xm = mirror reflect x
+    
+          val members =
+            t.declarations.collect {
+              case acc: MethodSymbol if acc.isCaseAccessor =>
+                acc.name.decoded -> a2m(
+                  (xm reflectMethod acc) (),
+                  acc.typeSignature
+                )
+            }.toMap.asInstanceOf[Map[String, String]]
+        
+          if (members.isEmpty) x else members
+        }
+      
+        a2m(a, typeOf[A]).asInstanceOf[Map[String, String]]
+      }
+      
+      val requestToMap= anyToMap(req1)
+      
+      implicit val formats = net.liftweb.json.DefaultFormats
+    
+      val responseFromKafka = process(requestToMap)
+      logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
+      val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
+      // Check does the response data match the requested data
+      val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
+      if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+      // Populate fields and generate result
+      val res = for {
+        r <- rList
+        transaction <- createNewTransaction(r)
+      } yield {
+        transaction
+      }
+      Full(res)
+      //TODO is this needed updateAccountTransactions(bankId, accountId)
       }
     
-      a2m(a, typeOf[A]).asInstanceOf[Map[String, String]]
-    }
-    
-    val requestToMap= anyToMap(req1)
-    
-    implicit val formats = net.liftweb.json.DefaultFormats
-  
-    val responseFromKafka = process(requestToMap)
-    logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
-    val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
-    // Check does the response data match the requested data
-    val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
-    // Populate fields and generate result
-    val res = for {
-      r <- rList
-      transaction <- createNewTransaction(r)
-    } yield {
-      transaction
-    }
-    Full(res)
-    //TODO is this needed updateAccountTransactions(bankId, accountId)
+      getTransactionsCached(bankId,accountId)
   }
 
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
