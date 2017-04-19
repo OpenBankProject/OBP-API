@@ -92,6 +92,8 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 #remotedata.enable=true
 #remotedata.hostname=127.0.0.1
 #remotedata.port=2662
+# Arbitrary value used in order to assure us that remote and local sides are paired well
+#remotedata.secret=secret
 
 ## Set separate database for data split
 ## If remotedata is disabled, bd has to be accessible from local machine

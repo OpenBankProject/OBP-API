@@ -45,6 +45,14 @@ hostname=http://localhost:8016
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
 tests.port=8016
 
+## Enable remote Akka actor for data split
+## If set to true, must set hostname and port
+## of remote machine
+#remotedata.enable=false
+#remotedata.hostname=127.0.0.1
+#remotedata.port=2662
+# Arbitrary value used in order to assure us that remote and local sides are paired well
+remotedata.secret=secret
 
 End of minimum settings
 ####################################
