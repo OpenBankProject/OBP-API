@@ -111,7 +111,7 @@ object ErrorMessages {
   val InsufficientAuthorisationToCreateBank  = "OBP-20020: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank."
 
   val RemoteDataSecretMatchError = "OBP-20021: Remote data secret cannot be matched!"
-  val RemoteDataSecretObtainError = "OBP-20021: Remote data secret cannot be obtained!"
+  val RemoteDataSecretObtainError = "OBP-20022: Remote data secret cannot be obtained!"
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
