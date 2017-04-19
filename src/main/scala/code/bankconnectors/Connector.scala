@@ -7,24 +7,22 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.api.v2_2_0.BankJSON
 import code.branches.Branches.{Branch, BranchId}
-import code.fx.{FXRate, fx}
+import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
-import code.model.dataAccess.{MappedBankAccount, ResourceUser}
-import code.transactionrequests.{MappedTransactionRequest, TransactionRequestTypeCharge, TransactionRequests}
+import code.model.dataAccess.ResourceUser
+import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.views.Views
-import net.liftweb.mapper.{By, MappedString}
+import net.liftweb.mapper.By
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt

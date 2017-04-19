@@ -471,8 +471,8 @@ trait View {
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
       val bankId = bankAccount.bankId
-      val accountRoutingScheme = Some(bankAccount.accountRoutingScheme)
-      val accountRoutingAddress = Some(bankAccount.accountRoutingAddress)
+      val accountRoutingScheme = Some(bankAccount.accountRoutingScheme) // TODO moderate this with canSeeBankAccountRoutingScheme
+      val accountRoutingAddress = Some(bankAccount.accountRoutingAddress) // TODO moderate this with canSeeBankAccountRoutingAddress
 
       Some(
         new ModeratedBankAccount(
@@ -514,6 +514,7 @@ trait View {
 
         } else if (usePrivateAliasIfOneExists) {
 
+          // Note: this assumes that the id in Counterparty and otherBankAccount match!
           val privateAlias = Counterparties.counterparties.vend.getPrivateAlias(otherBankAccount.counterPartyId).getOrElse("Unknown")
 
           if (! privateAlias.isEmpty) AccountName(privateAlias, PrivateAlias)

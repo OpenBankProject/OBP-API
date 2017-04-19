@@ -14,7 +14,7 @@ Our tag line is: Bank as a Platform. Transparency as an Asset.
 
 The API uses OAuth 1.0 authentication.
 
-The project roadmap is available [here.](https://openbankproject.com/roadmap/)
+The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-API/blob/develop/roadmap.md)
 
 ## DOCUMENTATION 
 

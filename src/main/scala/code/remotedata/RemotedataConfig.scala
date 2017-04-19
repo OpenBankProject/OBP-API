@@ -9,24 +9,18 @@ import net.liftweb.util.Props
 
 object RemotedataConfig {
 
-  val localPort: Int = Helper.getHostname match {
-    case "socgen-k-api-openbankproject-com" => 2552
-    case "socgen-p-api-openbankproject-com" => 2553
-    case _ => Helper.findAvailablePort()
-  }
-
   val remoteHostname = Props.get("remotedata.hostname").openOr("127.0.0.1")
   val remotePort = Props.get("remotedata.port").openOr("2662")
 
   val localHostname = "127.0.0.1"
+  val localPort = Helper.findAvailablePort()
 
   val akka_loglevel = "INFO" //TODO breaks jenkins: Props.get("remotedata.loglevel").openOr("INFO")
-  val akka_loggers = """loggers = ["akka.event.slf4j.Slf4jLogger"]"""
 
   val commonConf = 
   """
   akka {
-    """ + akka_loggers + """
+    loggers = ["akka.event.slf4j.Slf4jLogger"]
     loglevel =  """ + akka_loglevel + """
     extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {

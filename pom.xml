@@ -58,24 +58,9 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging-slf4j_2.11</artifactId>
-      <version>2.0.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.7</version>
-    </dependency>
-    <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging-api_2.11</artifactId>
-      <version>2.0.4</version>
-    </dependency>
-    <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging_2.11</artifactId>
-      <version>3.5.0</version>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang.modules</groupId>
@@ -101,6 +86,12 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
       <version>0.10.0.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -158,6 +149,16 @@
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mongodb_${scala.version}</artifactId>
       <version>${lift.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
@@ -224,11 +225,31 @@
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
       <version>5.3.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
       <artifactId>elastic4s-tcp_${scala.version}</artifactId>
       <version>5.3.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
@@ -256,6 +277,12 @@
       <groupId>com.tesobe.obp</groupId>
       <artifactId>obp-ri-kafka</artifactId>
       <version>${obp-ri.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.tesobe.obp</groupId>

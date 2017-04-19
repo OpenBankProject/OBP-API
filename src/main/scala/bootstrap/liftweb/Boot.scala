@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.{Locale, Properties}
+import java.util.Locale
 import javax.mail.internet.MimeMessage
 
 import code.accountholder.MapperAccountHolders
@@ -80,11 +80,6 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-import com.typesafe.scalalogging._
-
-//import org.apache.log4j.{LogManager, PropertyConfigurator}
-//import org.apache.logging.log4j.Level
-//import org.apache.logging.log4j.status.StatusLogger
 
 
 /**
@@ -93,6 +88,9 @@ import com.typesafe.scalalogging._
  */
 class Boot extends Loggable{
   def boot {
+
+    MDC.clear()
+    MDC.put( ("host", Helper.getHostname()) )
 
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
