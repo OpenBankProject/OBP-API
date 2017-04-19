@@ -86,7 +86,7 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
       <version>0.10.0.1</version>
-      <exclusions>
+      <!-- <exclusions>
         <exclusion>
           <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
@@ -95,7 +95,7 @@
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-log4j12</artifactId>
         </exclusion>
-      </exclusions>
+      </exclusions> -->
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
