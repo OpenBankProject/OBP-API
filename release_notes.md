@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+19/04/2017    4033a01       Added remotedata.secret=secret - This should be set to the same value, local and remote (or just local)
 28/03/2017                  Added webui_footer2_logo_left_url and webui_footer2_middle_text - for bottom footer, default=""
 28/03/2017                  Added Props webui_top_text which is used by default.html (default="")
 22/03/2017    51d1742       Added Props webui_api_manager_url which is used by button on home page.
