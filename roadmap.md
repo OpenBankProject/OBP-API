@@ -17,6 +17,7 @@ If you have a particular requirement or would like to comment or help us specify
 ## Upcoming developments
 
 *   Extend Swagger support (add expected responses starting with the PSD2 set of endpoints)
+*   Monitor / improve performance
 *   Web Hooks (on balance change etc.)
 
 ## Completed developments (most recent first)
