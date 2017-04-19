@@ -44,12 +44,13 @@ import concurrent.duration._
 import language.postfixOps
 import memoization._
 import com.google.common.cache.CacheBuilder
+import code.util.Helper.MdcLoggable
 
 /**
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
   * bank resources.
   */
-object ObpJvmMappedConnector extends Connector with Loggable {
+object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   type JConnector = com.tesobe.obp.transport.Connector
   type JData = com.tesobe.obp.transport.Data

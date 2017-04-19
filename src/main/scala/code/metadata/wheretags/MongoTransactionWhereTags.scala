@@ -3,9 +3,11 @@ package code.metadata.wheretags
 import java.util.Date
 
 import code.model._
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Box, Full}
+import code.util.Helper.MdcLoggable
 
-private object MongoTransactionWhereTags extends WhereTags with Loggable {
+
+private object MongoTransactionWhereTags extends WhereTags with MdcLoggable {
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
                  (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {

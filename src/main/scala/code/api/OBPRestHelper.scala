@@ -45,6 +45,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
+import code.util.Helper.MdcLoggable
 
 trait APIFailure{
   val msg : String
@@ -74,7 +75,7 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   val msg = s"user $userId not found at provider $providerId"
 }
 
-trait OBPRestHelper extends RestHelper with Loggable {
+trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)

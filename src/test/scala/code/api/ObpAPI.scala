@@ -16,13 +16,13 @@ import net.liftweb.util.Helpers._
 import java.util.Date
 import net.liftweb.http.RequestVar
 import java.text.SimpleDateFormat
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import code.api.ObpJson._
 
 case class Header(key: String, value: String)
 
-object ObpAPI extends Loggable {
+object ObpAPI extends MdcLoggable {
   implicit val formats = DefaultFormats
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   
@@ -221,7 +221,7 @@ object ObpAPI extends Loggable {
 
 case class ObpError(error :String)
 
-object OBPRequest extends Loggable {
+object OBPRequest extends MdcLoggable {
   implicit val formats = DefaultFormats
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
@@ -285,7 +285,7 @@ object OBPRequest extends Loggable {
 
 //Ugly duplicate of above to be able to get rid of /obp prefix.
 //Should be done without it
-object OBPInternalRequest extends Loggable {
+object OBPInternalRequest extends MdcLoggable {
   implicit val formats = DefaultFormats
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
@@ -394,7 +394,7 @@ object ObpInternalDelete {
   }
 }
 
-object APIUtils extends Loggable {
+object APIUtils extends MdcLoggable {
   implicit val formats = DefaultFormats
 
   def getAPIResponseBody(responseCode : Int, body : String) : Box[JValue] = {

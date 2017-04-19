@@ -1,13 +1,13 @@
 package code.fx
 
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
 /**
   * Simple map of exchange rates.
   *
   * One pound -> X Euros etc.
   */
-object fx extends Loggable {
+object fx extends MdcLoggable {
 
   // TODO For sandbox purposes we only need rough exchanges rates.
   // Make this easier

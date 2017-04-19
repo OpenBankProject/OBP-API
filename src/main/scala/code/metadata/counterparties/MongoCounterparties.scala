@@ -3,13 +3,14 @@ package code.metadata.counterparties
 import java.util.Date
 
 import code.model._
-import net.liftweb.common.{Box, Empty, Loggable}
+import net.liftweb.common.{Box, Empty}
+import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Full
 import org.bson.types.ObjectId
 
-object MongoCounterparties extends Counterparties with Loggable {
+object MongoCounterparties extends Counterparties with MdcLoggable {
 
 
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata] = {

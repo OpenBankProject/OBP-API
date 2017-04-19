@@ -1,12 +1,12 @@
 package code.api
 
 import code.api.util.ErrorMessages
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 
 
 // Note: Import this with: import code.api.Constant._
-object Constant extends Loggable {
+object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
 
   final val HostName = Props.get("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)

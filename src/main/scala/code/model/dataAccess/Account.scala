@@ -43,9 +43,9 @@ import net.liftweb.mongodb.{Limit, Skip}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
 import net.liftweb.record.field.{DecimalField, StringField}
+import code.util.Helper.MdcLoggable
 
-
-class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
+class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with MdcLoggable{
   def meta = Account
 
   object accountBalance extends DecimalField(this, 0) {

@@ -42,6 +42,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
+import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
 
@@ -72,7 +73,7 @@ object JSONFactory {
   }
 }
 
-object DirectLogin extends RestHelper with Loggable {
+object DirectLogin extends RestHelper with MdcLoggable {
 
   // Our version of serve
   def dlServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {

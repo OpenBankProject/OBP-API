@@ -43,6 +43,7 @@ import net.liftweb.http.S
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
+import code.util.Helper.MdcLoggable
 
 object AppType extends Enumeration {
   type AppType = Value
@@ -219,7 +220,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  * their urls are not persistent. So if you copy paste a url and email it to someone, don't count on it
  * working for long.
  */
-object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
+object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
 

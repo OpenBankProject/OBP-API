@@ -11,12 +11,12 @@ import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
-
+import code.util.Helper.MdcLoggable
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
 
-object MapperViews extends Views with Loggable {
+object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
 

@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Props
 import oauth.signpost.basic.{DefaultOAuthConsumer, DefaultOAuthProvider}
 import oauth.signpost.{OAuthConsumer, OAuthProvider}
@@ -43,6 +43,7 @@ import java.net.{URI, URLDecoder}
 import org.apache.http.client.utils.URLEncodedUtils
 import scala.collection.JavaConversions._
 import scala.util.DynamicVariable
+import code.util.Helper.MdcLoggable
 
 sealed trait Provider {
   val name : String
@@ -87,7 +88,7 @@ object OBPDemo extends DefaultProvider
 
 case class Credential(provider : Provider, consumer : OAuthConsumer, readyToSign : Boolean)
 
-object OAuthClient extends Loggable {
+object OAuthClient extends MdcLoggable {
   var credentials : Option[Credential] = None
   var mostRecentLoginAttemptProvider : Box[Provider] = Empty
 

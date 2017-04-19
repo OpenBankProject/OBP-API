@@ -14,9 +14,11 @@ import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Consumer, PhysicalCard, _}
 import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequestTypeCharge
+import code.util.Helper.MdcLoggable
+
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -59,7 +61,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
   val user1CardsForOneBank = List(user1CardAtBank1)
   val user2CardsForOneBank = List(user2CardAtBank1)
 
-  object MockedCardConnector extends Connector with Loggable {
+  object MockedCardConnector extends Connector with MdcLoggable {
 
     type AccountType = BankAccount
 

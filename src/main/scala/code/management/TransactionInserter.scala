@@ -6,8 +6,9 @@ import code.management.ImporterAPI._
 import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers
+import code.util.Helper.MdcLoggable
 
-object TransactionInserter extends LiftActor with Loggable{
+object TransactionInserter extends LiftActor with MdcLoggable{
 
   /**
    * Determines whether two transactions to be imported are considered "identical"

@@ -40,7 +40,7 @@ import java.util.{UUID, Date}
 import net.liftweb.record.field.{StringField,LongField}
 import net.liftweb.json.JsonAST._
 import code.model._
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
 import org.bson.types.ObjectId
@@ -143,7 +143,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '[{
  */
 
 // Seems to map to a collection of the plural name
-class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with Loggable with TransactionUUID {
+class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with MdcLoggable with TransactionUUID {
   def meta = OBPEnvelope
 
   def theTransactionId = TransactionId(transactionId.get)
@@ -189,7 +189,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 }
 
-object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {
+object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with MdcLoggable {
 
   def envelopesFromJValue(jval: JValue) : Box[OBPEnvelope] = {
     val createdBox = fromJValue(jval)

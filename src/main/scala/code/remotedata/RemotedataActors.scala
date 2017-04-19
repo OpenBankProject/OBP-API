@@ -17,6 +17,7 @@ import net.liftweb.util.Props
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import code.util.Helper.MdcLoggable
 
 trait ActorInit {
 
@@ -79,7 +80,7 @@ trait ActorHelper {
   }
 }
 
-object RemotedataActors extends Loggable {
+object RemotedataActors extends MdcLoggable {
 
   val props_hostname = Helper.getHostname
 
@@ -102,7 +103,8 @@ object RemotedataActors extends Loggable {
       ActorProps[RemotedataMetricsActor]              -> RemotedataMetrics.actorName,
       ActorProps[RemotedataTokensActor]               -> RemotedataTokens.actorName,
       ActorProps[RemotedataNoncesActor]               -> RemotedataNonces.actorName,
-      ActorProps[RemotedataConnectorMetricsActor]     -> RemotedataConnectorMetrics.actorName
+      ActorProps[RemotedataConnectorMetricsActor]     -> RemotedataConnectorMetrics.actorName,
+      ActorProps[RemotedataSanityCheckActor]          -> RemotedataSanityCheck.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }

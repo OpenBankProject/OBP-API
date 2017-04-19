@@ -4,12 +4,13 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import code.transactionrequests.TransactionRequests
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
+
 
 import scala.concurrent.duration._
 
 
-object TransactionStatusScheduler extends Loggable {
+object TransactionStatusScheduler extends MdcLoggable {
 
   val actorSystem = ActorSystem()
   implicit val executor = actorSystem.dispatcher

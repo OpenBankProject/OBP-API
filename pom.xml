@@ -85,7 +85,7 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
-      <version>0.10.0.0</version>
+      <version>0.10.0.1</version>
       <exclusions>
         <exclusion>
           <groupId>log4j</groupId>
@@ -151,11 +151,11 @@
       <version>${lift.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-api</artifactId>
         </exclusion>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-core</artifactId>
         </exclusion>
       </exclusions>
@@ -227,11 +227,11 @@
       <version>5.3.0</version>
       <exclusions>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-api</artifactId>
         </exclusion>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-core</artifactId>
         </exclusion>
       </exclusions>
@@ -242,11 +242,11 @@
       <version>5.3.0</version>
       <exclusions>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-api</artifactId>
         </exclusion>
         <exclusion>
-          <groupId>org.apache.logging</groupId>
+          <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-core</artifactId>
         </exclusion>
       </exclusions>

@@ -33,13 +33,14 @@ package code.snippet
 
 import code.model._
 import code.model.dataAccess.AuthUser
-import net.liftweb.common.{Empty, Full, Loggable}
+import net.liftweb.common.{Empty, Full}
+import code.util.Helper.MdcLoggable
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
 import code.consumer.Consumers
 
-class ConsumerRegistration extends Loggable {
+class ConsumerRegistration extends MdcLoggable {
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")

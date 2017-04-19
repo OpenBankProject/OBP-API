@@ -6,11 +6,12 @@ import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{DefaultStringField, MappedAccountNumber, MappedUUID}
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Box, Full}
+import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo
 
-object MapperCounterparties extends Counterparties with Loggable {
+object MapperCounterparties extends Counterparties with MdcLoggable {
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
 
     /**

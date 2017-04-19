@@ -6,7 +6,8 @@ import code.bankconnectors.Connector
 import code.model.{Transaction, BankId, AccountId}
 import code.tesobe.ErrorMessage
 import code.util.Helper
-import net.liftweb.common.{Full, Loggable}
+import net.liftweb.common.Full
+import code.util.Helper.MdcLoggable
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
@@ -19,7 +20,7 @@ import net.liftweb.util.Props
  * that bank national identifier is unique (when in reality it should only be unique for a given
  * country). So if it looks like it's doing things in a very weird way, that's because it is.
  */
-object ImporterAPI extends RestHelper with Loggable {
+object ImporterAPI extends RestHelper with MdcLoggable {
 
   case class TransactionsToInsert(l : List[ImporterTransaction])
   case class InsertedTransactions(l : List[Transaction])

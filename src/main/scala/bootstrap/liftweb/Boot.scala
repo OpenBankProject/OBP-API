@@ -40,6 +40,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
+import code.api.util.{APIUtil, ErrorMessages}
 import code.atms.MappedAtm
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
@@ -73,6 +74,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -86,11 +88,9 @@ import net.liftweb.util.{Helpers, Schedule, _}
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot extends Loggable{
-  def boot {
+class Boot extends MdcLoggable {
 
-    MDC.clear()
-    MDC.put( ("host", Helper.getHostname()) )
+  def boot {
 
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
@@ -372,6 +372,13 @@ class Boot extends Loggable{
     if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
       val delay = Props.getLong("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
       TransactionStatusScheduler.start(delay)
+    }
+
+    APIUtil.akkaSanityCheck() match {
+      case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
+      case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
+      case Empty => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
+      case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
   }

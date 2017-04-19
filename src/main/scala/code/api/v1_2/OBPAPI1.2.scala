@@ -35,7 +35,7 @@ import code.api.util.APIUtil
 import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
-import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mongodb._
 import _root_.java.math.MathContext
 
@@ -53,9 +53,10 @@ import java.net.URL
 import APIUtil._
 import code.api.OBPRestHelper
 import code.metadata.counterparties.Counterparties
+import code.util.Helper.MdcLoggable
 
 
-object OBPAPI1_2 extends OBPRestHelper with Loggable {
+object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
 
   //we now identify users by a combination of auth provider and the id given to them by their auth provider
   // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both

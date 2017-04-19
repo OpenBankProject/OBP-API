@@ -6,11 +6,12 @@ import java.util.TimeZone
 import code.api.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.bankconnectors.Connector
 import code.model.{AccountId, Transaction}
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers._
 
-class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSetup {
+
+class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTestSetup {
 
   override def beforeEach() = {
     super.beforeEach()

@@ -28,6 +28,8 @@ remotedata.enable=false
 remotedata.hostname=10.0.0.19  
 # Arbitrary port of your choosing
 remotedata.port=5448
+# Arbitrary value used in order to assure us that remote and local sides are paired well
+remotedata.secret=secret
 
 # Optionally configure postgres, otherwise file-based H2 will be used 
 remotedata.db.driver=org.postgresql.Driver

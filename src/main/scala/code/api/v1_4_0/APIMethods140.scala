@@ -1,22 +1,23 @@
 package code.api.v1_4_0
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.{Akka, AmountOfMoneyJSON}
 import code.api.v2_0_0.CreateCustomerJson
 
 import scala.collection.immutable.Nil
@@ -47,7 +48,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.authenticationRequiredMessage
 
 
-trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
+trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
@@ -657,7 +658,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
             Extraction.decompose(apiInfoJSON)
           }
 

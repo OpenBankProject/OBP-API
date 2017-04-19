@@ -42,7 +42,7 @@ import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.common.{Box, Failure, Loggable}
+import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
@@ -51,6 +51,8 @@ import org.scalatest.selenium._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+import code.util.Helper.MdcLoggable
 
 case class OAuthResponse(
   code: Int,
@@ -125,7 +127,7 @@ class OAuthTest extends ServerSetup {
     Token(token, secret)
   }
 
-  case class Browser() extends HtmlUnit with Loggable{
+  case class Browser() extends HtmlUnit with MdcLoggable{
     implicit val driver = webDriver
     def getVerifier(loginPage: String, userName: String, password: String) : Box[String] = {
       tryo{

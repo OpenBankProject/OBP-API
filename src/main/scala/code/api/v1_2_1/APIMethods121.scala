@@ -1,25 +1,21 @@
 package code.api.v1_2_1
 
+import java.net.URL
+
 import code.api.util.APIUtil
+import code.api.util.APIUtil._
+import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
+import code.metadata.counterparties.Counterparties
+import code.model.{CreateViewJSON, UpdateViewJSON, _}
+import code.sanitycheck.SanityCheck
+import net.liftweb.common.{Full, _}
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
-import net.liftweb.common._
-import code.model._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
-import APIUtil._
 import net.liftweb.util.Helpers._
-import net.liftweb.http.rest.RestHelper
-import java.net.URL
-import net.liftweb.util.{True, Props}
-import code.bankconnectors._
-import code.bankconnectors.OBPOffset
-import code.bankconnectors.OBPFromDate
-import code.bankconnectors.OBPToDate
-import code.metadata.counterparties.Counterparties
-import code.model.CreateViewJSON
-import net.liftweb.common.Full
-import code.model.UpdateViewJSON
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -82,7 +78,7 @@ trait APIMethods121 {
       val connector = Props.get("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone)
-      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy)
+      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
