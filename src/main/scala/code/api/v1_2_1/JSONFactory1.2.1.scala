@@ -40,13 +40,15 @@ case class APIInfoJSON(
   version_status: String,
   git_commit : String,
   connector : String,
-  hosted_by : HostedBy
+  hosted_by : HostedBy,
+  akka: Akka
 )
 case class HostedBy(
   organisation : String,
   email : String,
   phone : String
 )
+case class Akka(remote_data_secret_matched: Option[Boolean])
 case class ErrorMessage(
   error : String
 )

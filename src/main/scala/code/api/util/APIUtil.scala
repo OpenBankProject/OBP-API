@@ -44,6 +44,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnMetrics}
 import code.model._
+import code.sanitycheck.SanityCheck
 import dispatch.url
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http.js.JE.JsRaw
@@ -108,6 +109,9 @@ object ErrorMessages {
   
   val InsufficientAuthorisationToCreateBranch  = "OBP-20019: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
   val InsufficientAuthorisationToCreateBank  = "OBP-20020: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank."
+
+  val RemoteDataSecretMatchError = "OBP-20021: Remote data secret cannot be matched!"
+  val RemoteDataSecretObtainError = "OBP-20022: Remote data secret cannot be obtained!"
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -924,6 +928,11 @@ Returns a string showed to the developer
     val t1 = System.currentTimeMillis()
     ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
     result
+  }
+
+  def akkaSanityCheck (): Box[Boolean] = {
+    val remoteDataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+    SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remoteDataSecret)
   }
 
 }
