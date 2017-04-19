@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
+import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
@@ -303,7 +304,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
         user =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy)
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy, Akka(APIUtil.akkaSanityCheck()))
             Extraction.decompose(apiInfoJSON)
           }
 
