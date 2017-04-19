@@ -45,6 +45,7 @@ import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
+import code.util.Helper.MdcLoggable
 
 case class TagJSON(
   value : String,
@@ -97,7 +98,7 @@ case class SuccessMessage(
   success : String
 )
 
-object OBPAPI1_1 extends RestHelper with Loggable {
+object OBPAPI1_1 extends RestHelper with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)

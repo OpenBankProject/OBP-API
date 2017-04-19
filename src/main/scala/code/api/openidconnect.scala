@@ -41,6 +41,7 @@ import net.liftweb.json.{JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
+import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
 
@@ -74,7 +75,7 @@ object OpenIdConnectConfig {
   }
 }
 
-object OpenIdConnect extends OBPRestHelper with Loggable {
+object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   val version = "1.0" // TODO: Should this be the lowest version supported or when introduced?
   val versionStatus = "UNKNOWN"

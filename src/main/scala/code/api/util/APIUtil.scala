@@ -59,7 +59,7 @@ import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import code.util.Helper.SILENCE_IS_GOLDEN
-
+import code.util.Helper.MdcLoggable
 
 object ErrorMessages {
 
@@ -189,7 +189,7 @@ object ErrorMessages {
 
 
 
-object APIUtil extends Loggable {
+object APIUtil extends MdcLoggable {
 
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)

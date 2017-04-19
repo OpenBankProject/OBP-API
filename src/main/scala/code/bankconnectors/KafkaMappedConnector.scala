@@ -52,8 +52,9 @@ import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
+import code.util.Helper.MdcLoggable
 
-object KafkaMappedConnector extends Connector with Loggable {
+object KafkaMappedConnector extends Connector with MdcLoggable {
 
   lazy val producer = new KafkaProducer()
   lazy val consumer = new KafkaConsumer()
@@ -1513,7 +1514,6 @@ import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.utils.Json
-import net.liftweb.common.Loggable
 import net.liftweb.json
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -1521,7 +1521,7 @@ import net.liftweb.util.Props
 
 class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").openOrThrowException("no kafka.zookeeper_host set"),
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
-                    val delay: Long       = 0) extends Loggable {
+                    val delay: Long       = 0) extends MdcLoggable {
 
   val zkProps = new Properties()
   zkProps.put("log4j.logger.org.apache.zookeeper", "ERROR")
@@ -1599,7 +1599,7 @@ class KafkaProducer(
                           batchSize: Integer     = 200,
                           messageSendMaxRetries: Integer = 3,
                           requestRequiredAcks: Integer   = -1
-                          ) extends Loggable {
+                          ) extends MdcLoggable {
 
 
   // determine compression codec

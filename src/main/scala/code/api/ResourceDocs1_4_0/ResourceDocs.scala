@@ -3,10 +3,10 @@ package code.api.ResourceDocs1_4_0
 import code.api.OBPRestHelper
 
 
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
 
-object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with Loggable {
+object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
 
   val version = "1.4.0" // Does it make sense to have this version match an api version?
   val versionStatus = "UNKNOWN"

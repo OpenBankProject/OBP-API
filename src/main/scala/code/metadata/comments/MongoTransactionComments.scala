@@ -2,8 +2,8 @@ package code.metadata.comments
 
 import code.model._
 import java.util.Date
-import code.util.Helper
-import net.liftweb.common.{Loggable, Full, Box}
+import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Full, Box}
 import org.bson.types.ObjectId
 import com.mongodb.{DBObject, QueryBuilder}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
@@ -60,7 +60,7 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   object replyTo extends StringField(this,255)
 }
 
-private object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
+private object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with MdcLoggable {
   def findAll(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : List[OBPComment] = {
     val query = QueryBuilder.
       start("bankId").is(bankId.value).

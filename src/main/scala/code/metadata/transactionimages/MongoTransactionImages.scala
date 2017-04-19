@@ -2,7 +2,8 @@ package code.metadata.transactionimages
 
 import code.model._
 import code.util.Helper
-import net.liftweb.common.{Loggable, Box}
+import net.liftweb.common.Box
+import code.util.Helper.MdcLoggable
 import java.net.URL
 import java.util.Date
 import org.bson.types.ObjectId
@@ -13,7 +14,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.common.Full
 import com.mongodb.{DBObject, QueryBuilder}
 
-private object MongoTransactionImages extends TransactionImages with Loggable {
+private object MongoTransactionImages extends TransactionImages with MdcLoggable {
 
   def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] = {
     OBPTransactionImage.findAll(bankId, accountId, transactionId, viewId)

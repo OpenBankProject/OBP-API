@@ -3,7 +3,7 @@ package code.sandbox
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
-import code.accountholder.{AccountHolders, MapperAccountHolders, MapperAccountHolders$}
+import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
@@ -19,6 +19,7 @@ import code.views.Views
 import net.liftweb.common._
 import net.liftweb.mapper.By
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 object OBPDataImport extends SimpleInjector {
 
@@ -41,7 +42,7 @@ trait Saveable[T] {
  * The idea is that the validation happens first, and if everything was okay, everything
  * gets saved. That's the reason for the use of the Saveable trait.
  */
-trait OBPDataImport extends Loggable {
+trait OBPDataImport extends MdcLoggable {
   val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val dateFormat = new SimpleDateFormat(datePattern)
 

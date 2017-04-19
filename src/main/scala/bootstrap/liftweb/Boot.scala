@@ -73,6 +73,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -86,11 +87,9 @@ import net.liftweb.util.{Helpers, Schedule, _}
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot extends Loggable{
-  def boot {
+class Boot extends MdcLoggable {
 
-    MDC.clear()
-    MDC.put( ("host", Helper.getHostname()) )
+  def boot {
 
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten

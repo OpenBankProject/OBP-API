@@ -5,14 +5,15 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
-import net.liftweb.common.{Box, Full, Failure, Loggable}
-import net.liftweb.http.{JsonResponse, ForbiddenResponse, S}
+import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
+import code.util.Helper.MdcLoggable
 
-object SandboxApiCalls extends OBPRestHelper with Loggable {
+
+object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
 
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>

@@ -6,7 +6,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
@@ -47,7 +47,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.authenticationRequiredMessage
 
 
-trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
+trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>

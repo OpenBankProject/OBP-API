@@ -1,9 +1,10 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
-object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
+
+object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
 
   val version = "1.4.0"
   val versionStatus = "STABLE"

@@ -48,12 +48,12 @@ package code.model.dataAccess {
   import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftmodules.amqp.{AMQPSender,AMQPMessage}
   import net.liftweb.util._
-  import net.liftweb.common.Loggable
+  import code.util.Helper.MdcLoggable
   import com.tesobe.model.UpdateBankAccount
 
 
 
-  object UpdatesRequestSender extends Loggable {
+  object UpdatesRequestSender extends MdcLoggable {
     private val factory = new ConnectionFactory {
       import ConnectionFactory._
       setHost(Props.get("connection.host", "localhost"))

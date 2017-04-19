@@ -34,9 +34,9 @@ package code.api.v2_0_0
 import code.api.OBPRestHelper
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
-object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
+object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with MdcLoggable {
 
 
   val version = "2.0.0"

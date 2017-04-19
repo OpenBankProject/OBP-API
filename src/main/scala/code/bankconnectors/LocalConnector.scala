@@ -3,7 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
-import code.accountholder.MapperAccountHolders$
+import code.accountholder.MapperAccountHolders
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -17,7 +17,7 @@ import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Empty, Failure, Full, Loggable, _}
+import net.liftweb.common.{Box, Empty, Failure, Full, _}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -33,8 +33,9 @@ import scala.concurrent._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequestTypeCharge
+import code.util.Helper.MdcLoggable
 
-private object LocalConnector extends Connector with Loggable {
+private object LocalConnector extends Connector with MdcLoggable {
 
   type AccountType = Account
 

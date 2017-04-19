@@ -4,7 +4,8 @@ import code.api.util.APIUtil
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
-import net.liftweb.common.{Box, Empty, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Full}
+import code.util.Helper.MdcLoggable
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json._
@@ -29,7 +30,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 
-trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>

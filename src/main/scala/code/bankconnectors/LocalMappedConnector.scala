@@ -34,8 +34,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
 import code.api.util.APIUtil.saveConnectorMetric
+import code.util.Helper.MdcLoggable
 
-object LocalMappedConnector extends Connector with Loggable {
+object LocalMappedConnector extends Connector with MdcLoggable {
 
   type AccountType = MappedBankAccount
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"

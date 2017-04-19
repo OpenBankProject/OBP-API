@@ -31,14 +31,12 @@ Berlin 13359, Germany
   */
 package code.api.v1_2_1
 
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST._
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 import code.api.OBPRestHelper
 
 // Added so we can add resource docs for this version of the API
 
-object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
+object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
 
 
   val version = "1.2.1"

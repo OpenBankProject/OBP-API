@@ -238,4 +238,7 @@ object Helper{
     candidatePort
   }
 
+  trait MdcLoggable extends Loggable {
+    MDC.put("host" -> getHostname)
+  }
 }

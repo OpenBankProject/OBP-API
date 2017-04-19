@@ -61,7 +61,8 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
   }
 
 import net.liftweb.util._
-import net.liftweb.common.{Failure, Loggable, Full}
+import net.liftweb.common.{Failure, Full}
+import code.util.Helper.MdcLoggable
 import net.liftweb.actor.LiftActor
 import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
@@ -80,7 +81,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
     }
   }
 
-  object BankAccountCreation extends Loggable {
+  object BankAccountCreation extends MdcLoggable {
 
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
@@ -121,7 +122,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
     }
   }
 
-  object BankAccountCreationListener extends Loggable {
+  object BankAccountCreationListener extends MdcLoggable {
 
     lazy val factory = new ConnectionFactory {
       import ConnectionFactory._

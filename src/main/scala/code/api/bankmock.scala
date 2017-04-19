@@ -34,7 +34,8 @@ package code.api
 
 import code.token.Tokens
 import code.model.{Token, TokenType}
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Box, Full}
+import code.util.Helper.MdcLoggable
 import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
@@ -72,7 +73,7 @@ case class UserData(
 * They are required during the User authentication / Application Authorization steps
 * that the Bank Mock need to handle as part of the OAuth 1.0 protocol authentication.
 */
-object BankMockAPI extends RestHelper with Loggable {
+object BankMockAPI extends RestHelper with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)

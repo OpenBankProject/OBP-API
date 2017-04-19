@@ -4,10 +4,10 @@ import akka.actor.ActorSystem
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
 
-object RemotedataActorSystem extends Loggable {
+object RemotedataActorSystem extends MdcLoggable {
 
   var obpActorSystem: ActorSystem = null
   val props_hostname = Helper.getHostname

@@ -48,8 +48,9 @@ import code.bankconnectors.OBPToDate
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.common.Full
 import code.metrics.APIMetrics
+import code.util.Helper.MdcLoggable
 
-object OBPAPI1_0 extends RestHelper with Loggable {
+object OBPAPI1_0 extends RestHelper with MdcLoggable {
   import java.text.SimpleDateFormat
 
   implicit val _formats = Serialization.formats(NoTypeHints)

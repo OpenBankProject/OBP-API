@@ -37,11 +37,12 @@ import dispatch._
 import net.liftweb.common._
 import net.liftweb.json.{DefaultFormats, ShortTypeHints}
 import org.scalatest._
+import code.util.Helper.MdcLoggable
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with ShouldMatchers with Loggable {
+  with ShouldMatchers with MdcLoggable {
 
   var server = TestServer
   implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))

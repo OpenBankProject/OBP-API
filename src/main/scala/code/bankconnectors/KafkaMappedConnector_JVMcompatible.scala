@@ -71,10 +71,10 @@ import com.google.common.cache.CacheBuilder
 import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.json.Extraction._
+import code.util.Helper.MdcLoggable
 
 
-
-object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
+object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
 
   lazy val producer = new KafkaProducer()
   lazy val consumer = new KafkaConsumer()

@@ -41,6 +41,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{tryo, _}
+import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
 
@@ -49,7 +50,7 @@ import scala.compat.Platform
 * so they could authenticate their users.
 */
 
-object OAuthHandshake extends RestHelper with Loggable {
+object OAuthHandshake extends RestHelper with MdcLoggable {
 
   /** Get the current app CONSUMER_KEY, it is used to get the redirectURL from CONSUMER table by CONSUMER_KEY. */
   var currentAppConsumerKey = ""

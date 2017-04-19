@@ -59,8 +59,9 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import code.util.Helper.MdcLoggable
 
-object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
+object KafkaMappedConnector_vMar2017 extends Connector with MdcLoggable {
 
   lazy val producer = new KafkaProducer()
   lazy val consumer = new KafkaConsumer()

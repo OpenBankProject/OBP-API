@@ -1,7 +1,7 @@
 package code.search
 
 import dispatch.{Http, url}
-import net.liftweb.common.Loggable
+import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -23,7 +23,7 @@ import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
 
 
-class elasticsearch extends Loggable {
+class elasticsearch extends MdcLoggable {
 
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)

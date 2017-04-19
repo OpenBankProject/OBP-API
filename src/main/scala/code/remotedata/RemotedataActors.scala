@@ -17,6 +17,7 @@ import net.liftweb.util.Props
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import code.util.Helper.MdcLoggable
 
 trait ActorInit {
 
@@ -79,7 +80,7 @@ trait ActorHelper {
   }
 }
 
-object RemotedataActors extends Loggable {
+object RemotedataActors extends MdcLoggable {
 
   val props_hostname = Helper.getHostname
 

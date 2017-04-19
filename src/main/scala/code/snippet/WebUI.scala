@@ -32,7 +32,8 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import net.liftweb.common.{Loggable, Logger}
+import net.liftweb.common.Logger
+import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.{CssSel, Props}
 
@@ -42,9 +43,9 @@ import Helpers._
 
 
 
-class WebUI extends Loggable{
+class WebUI extends MdcLoggable{
 
-  @transient protected val log = Logger(this.getClass)
+  @transient protected val log = logger //Logger(this.getClass)
 
   // Cookie Consent button.
   // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
