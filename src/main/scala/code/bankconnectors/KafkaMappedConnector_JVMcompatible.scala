@@ -184,14 +184,14 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
     memoizeSync(updateUserAccountViewsTTL millisecond){
       val accounts: List[KafkaInboundAccount] = getBanks.flatMap { bank => {
         val bankId = bank.bankId.value
+        val username = user.name
         logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
         for {
-          username <- tryo {user.name}
           req <- tryo { Map[String, String](
             "version" -> formatVersion,
             "name" -> "get",
             "target" -> "accounts",
-            "userId" -> AuthUser.getCurrentUserUsername,
+            "userId" -> username,
             "bankId" -> bankId)}
           // Generate random uuid to be used as request-response match id
           } yield {
@@ -212,6 +212,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
           true,
           true
         )}
+        setAccountLinktoUser<-Full(setAccountHolder(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)),user))
         existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
       } yield {
         setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
@@ -228,6 +229,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
   } ("updateUserAccountViews")
 
   // Gets current challenge level for transaction request
+  // TODO, not implement in Adapter, just fake the response 
   override def getChallengeThreshold (
     bankId: String,
     accountId: String,
@@ -238,29 +240,29 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
     userName: String
   ): AmountOfMoney =  saveConnectorMetric {
     // Create argument list
-    val req = Map(
-      "version" -> formatVersion,
-      "name" -> "get",
-      "target" -> "challengeThreshold",
-      "accountId" -> accountId,
-      "currency" -> currency,
-      "transactionRequestType" -> transactionRequestType,
-      "userId" -> userId
-      )
-    
-    //TODO, not implement in Adapter, just fake the response 
-    val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
-    // Return result
-    r match {
-      // Check does the response data match the requested data
-      case Some(x)  => AmountOfMoney(x.currency, x.limit)
-      case _ => {
+//    val req = Map(
+//      "version" -> formatVersion,
+//      "name" -> "get",
+//      "target" -> "challengeThreshold",
+//      "accountId" -> accountId,
+//      "currency" -> currency,
+//      "transactionRequestType" -> transactionRequestType,
+//      "userId" -> userId
+//      )
+//    
+
+//    val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
+//    // Return result
+//    r match {
+//      // Check does the response data match the requested data
+//      case Some(x)  => AmountOfMoney(x.currency, x.limit)
+//      case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         AmountOfMoney(currency,convertedLimit.toString())
-      }
-    }
+//      }
+//    }
   }("getChallengeThreshold")
   
   //TODO, not implement in Adapter, just fake the response 
@@ -369,8 +371,18 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
   ): Box[List[Transaction]] = 
     saveConnectorMetric 
     {
+      //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
+      //Note: for Socegn, need bankid, accountId and userId.
+      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
+      // So we links the bankId and UserId in MapperAccountHolders talble.
+      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
+        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
+        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+      }
+      
       //TODO this is a qucik solution for cached, because of (queryParams: OBPQueryParam*)
-      def getTransactionsCached(bankId: BankId, accountId: AccountId): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
+      def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
         //the following are OBP page classes
         val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
         val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
@@ -403,7 +415,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
           target = "transactions",
           accountId = accountId.toString,
           bankId = bankId.toString,
-          userId = AuthUser.getCurrentUserUsername
+          userId = userId
         )
         
         def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {
@@ -449,24 +461,29 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
         Full(res)
         //TODO is this needed updateAccountTransactions(bankId, accountId)
         }
-      getTransactionsCached(bankId,accountId)
+      getTransactionsCached(bankId,accountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
     }("getTransactions")
 
   override def getBankAccount(
     bankId: BankId, 
     accountId: AccountId
   ): Box[KafkaBankAccount] = saveConnectorMetric{
-    memoizeSync(getAccountTTL millisecond) {
-      //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
-      //Note: for Socegn, need bankid, accountId and userId.
-      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
-      // So we links the bankId and UserId in MapperAccountHolders talble.
-      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
-        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
-      }
-      
+    //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
+    //Note: for Socegn, need bankid, accountId and userId.
+    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
+    // So we links the bankId and UserId in MapperAccountHolders talble.
+    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+      //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
+      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
+      case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+    }
+    
+    def getBankAccountCached(
+      bankId: BankId, 
+      accountId: AccountId, 
+      userId : String, 
+      loginUser: String // added the login user here ,is just for cache 
+    ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
       // Generate random uuid to be used as request-response match id
       val req = Map(
         "version" -> formatVersion,
@@ -474,14 +491,16 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
         "target" -> "account",
         "accountId" -> accountId.value,
         "bankId" -> bankId.toString,
-        "userId" -> primaryUserIdentifier //TODO there will be the issue, login user is not revelent on BankId and AcocuntId. for Adaper, it need the userid
+        "userId" -> userId //TODO there will be the issue, login user is not revelent on BankId and AcocuntId. for Adaper, it need the userid
       )
       val r = process(req).extract[KafkaInboundAccount]
-      logger.info(s"getBankAccount says ! account.isPresent and userId is ${primaryUserIdentifier}")
+      logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
       Full(new KafkaBankAccount(r))
     }
+    getBankAccountCached(bankId: BankId, accountId: AccountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
   }("getBankAccount")
 
+  //TODO not used yet
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = List()
   // memoizeSync(getAccountsTTL millisecond) {
 //    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -911,7 +930,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
