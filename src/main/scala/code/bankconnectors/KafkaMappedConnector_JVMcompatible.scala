@@ -89,16 +89,16 @@ object KafkaMappedConnector_JVMcompatible extends Connector with Loggable {
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "1000").toInt * 1000 // Miliseconds
-  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
-  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
-  val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
-  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "10000").toInt * 1000 // Miliseconds
-  val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
-  val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
-  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "1000").toInt * 1000 // Miliseconds
-  val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
-  val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
+  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "36000").toInt * 1000 // Miliseconds
+  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "36000").toInt * 1000 // Miliseconds
+  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "60").toInt * 1000 // Miliseconds
+  val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "180").toInt * 1000 // Miliseconds
+  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "60").toInt * 1000 // Miliseconds
+  val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "60").toInt * 1000 // Miliseconds
+  val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "60").toInt * 1000 // Miliseconds
+  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "60").toInt * 1000 // Miliseconds
+  val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "60").toInt * 1000 // Miliseconds
+  val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "60").toInt * 1000 // Miliseconds
   
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
   
