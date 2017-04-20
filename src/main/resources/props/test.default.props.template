@@ -52,7 +52,7 @@ tests.port=8016
 #remotedata.hostname=127.0.0.1
 #remotedata.port=2662
 # Arbitrary value used in order to assure us that remote and local sides are paired well
-remotedata.secret=secret
+remotedata.secret=CHANGE_ME
 
 End of minimum settings
 ####################################
