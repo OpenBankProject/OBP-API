@@ -21,8 +21,15 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import net.liftweb.json.JsonDSL._
-
-
+import scalacache.ScalaCache
+import scalacache.guava.GuavaCache
+import scalacache.guava
+import concurrent.duration._
+import language.postfixOps
+import com.google.common.cache.CacheBuilder
+import net.liftweb.json.Extraction._
+import scalacache.{memoization}
+import scalacache.memoization.memoizeSync
 
 
 
@@ -36,6 +43,12 @@ trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
+  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
+  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
+  
+  val apiMethods121GetTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
+  
+  
   // helper methods begin here
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
@@ -1814,21 +1827,38 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
-
-    lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+  
+  
+  
+  
+    private def getTransactionsForBankAccountCached(
+      json: Req ,
+      user: Box[User],
+      accountId: AccountId,
+      bankId: BankId,
+      viewId : ViewId
+    ): Box[JsonResponse] = memoizeSync(apiMethods121GetTransactionsTTL millisecond){
+      for {
+        params <- APIMethods121.getTransactionParams(json)
+        bankAccount <- BankAccount(bankId, accountId)
+        view <- View.fromUrl(viewId, bankAccount)
+        transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
+      } yield {
+        val json = JSONFactory.createTransactionsJSON(transactions)
+        successJsonResponse(Extraction.decompose(json))
+      }
+    }
+      
+      lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] =  {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
-        user =>
-
-          for {
-            params <- APIMethods121.getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId)
-            view <- View.fromUrl(viewId, bankAccount)
-            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
-          } yield {
-            val json = JSONFactory.createTransactionsJSON(transactions)
-            successJsonResponse(Extraction.decompose(json))
-          }
+        user =>getTransactionsForBankAccountCached(
+          json: Req ,
+          user: Box[User],
+          accountId: AccountId,
+          bankId: BankId,
+          viewId : ViewId
+        )
       }
     }
 
