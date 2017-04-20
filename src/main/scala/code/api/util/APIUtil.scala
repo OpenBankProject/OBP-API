@@ -926,7 +926,9 @@ Returns a string showed to the developer
     val result = blockOfCode
     // call-by-name
     val t1 = System.currentTimeMillis()
-    ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+    if (Props.getBool("write_metrics", false)){
+      ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+    }
     result
   }
 
