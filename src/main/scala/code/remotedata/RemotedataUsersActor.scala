@@ -8,15 +8,14 @@ import akka.util.Timeout
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemotedataUsersCaseClasses}
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
 
 import scala.concurrent.duration._
 
 
-class RemotedataUsersActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataUsersActor extends Actor with ActorHelper with MdcLoggable  {
 
   val mapper = LiftUsers
   val cc = RemotedataUsersCaseClasses
@@ -71,7 +70,7 @@ class RemotedataUsersActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteAllResourceUsers()")
       sender ! extractResult(mapper.bulkDeleteAllResourceUsers())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

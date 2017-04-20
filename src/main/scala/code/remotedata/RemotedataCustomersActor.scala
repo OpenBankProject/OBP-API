@@ -6,12 +6,11 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.customer.{AmountOfMoney, _}
 import code.model._
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.ControlHelpers._
 
 
-class RemotedataCustomersActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataCustomersActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedCustomerProvider
   val cc = RemotedataCustomerProviderCaseClasses
@@ -82,7 +81,7 @@ class RemotedataCustomersActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteCustomers()")
       sender ! extractResult(mapper.bulkDeleteCustomers())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

@@ -6,12 +6,11 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.metadata.narrative.{MappedNarratives, RemoteNarrativesCaseClasses}
 import code.model._
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.ControlHelpers.tryo
 
 
-class RemotedataNarrativesActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataNarrativesActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedNarratives
   val cc = RemoteNarrativesCaseClasses
@@ -30,7 +29,7 @@ class RemotedataNarrativesActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteComments(" + bankId +", "+ accountId + ")")
       sender ! extractResult(mapper.bulkDeleteNarratives(bankId, accountId))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

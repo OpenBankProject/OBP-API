@@ -114,9 +114,6 @@ object RemotedataActors extends MdcLoggable {
     logger.info("Starting local RemotedataActorSystem")
     logger.info(RemotedataConfig.localConf)
     val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
-    //val extSystem:ExtendedActorSystem = system.asInstanceOf[ExtendedActorSystem]
-    //val localPort = extSystem.provider.getDefaultAddress.port.get
-    //logger.info(s"Started on port ${localPort}")
     startActors(system)
   }
 

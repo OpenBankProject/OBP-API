@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   
  */
 package code.api
+
 import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
 import javax.crypto.Mac
@@ -277,22 +278,22 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
           }
         case _ => secret+= "&"
       }
-      logger.info("base string: " + baseString)
+      //logger.info("base string: " + baseString)
       //signing process // TODO default to HmacSHA256?
       val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
         "HmacSHA256"
       else
         "HmacSHA1"
 
-      logger.info("signing method: " + signingAlgorithm)
-      logger.info("signing key: " + secret)
-      logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
+      //logger.info("signing method: " + signingAlgorithm)
+      //logger.info("signing key: " + secret)
+      //logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
 
       var m = Mac.getInstance(signingAlgorithm);
       m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
       val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
 
-      logger.info("calculatedSignature: " + calculatedSignature)
+      //logger.info("calculatedSignature: " + calculatedSignature)
       //logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
       //logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
 
@@ -550,16 +551,16 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
     if(httpCode==200)
     {
-      logger.info("OAuth header correct ")
+      //logger.info("OAuth header correct ")
       Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
         case Full(token) => {
-          logger.info("access token: "+ token + " found")
+          //logger.info("access token: "+ token + " found")
           val user = token.user
           //just a log
-          user match {
-            case Full(u) => logger.info("user " + u.name + " was found from the oauth token")
-            case _ => logger.info("no user was found for the oauth token")
-          }
+          //user match {
+          //  case Full(u) => logger.info("user " + u.name + " was found from the oauth token")
+          //  case _ => logger.info("no user was found for the oauth token")
+          //}
           user
         }
         case _ =>{

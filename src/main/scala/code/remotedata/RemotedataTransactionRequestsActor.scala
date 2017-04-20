@@ -7,11 +7,10 @@ import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.transactionrequests.{MappedTransactionRequestProvider, RemotedataTransactionRequestsCaseClasses}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataTransactionRequestsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataTransactionRequestsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedTransactionRequestProvider
   val cc = RemotedataTransactionRequestsCaseClasses
@@ -105,7 +104,7 @@ class RemotedataTransactionRequestsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteTransactionRequests()")
       sender ! extractResult(mapper.bulkDeleteTransactionRequests())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

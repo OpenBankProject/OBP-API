@@ -5,11 +5,10 @@ import java.util.Date
 import akka.actor.Actor
 import akka.event.Logging
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, RemotedataUserCustomerLinkProviderCaseClass}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataUserCustomerLinksActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataUserCustomerLinksActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedUserCustomerLinkProvider
   val cc = RemotedataUserCustomerLinkProviderCaseClass
@@ -40,7 +39,7 @@ class RemotedataUserCustomerLinksActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteUserCustomerLinks()")
       sender ! extractResult(mapper.bulkDeleteUserCustomerLinks())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

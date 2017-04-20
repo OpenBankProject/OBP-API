@@ -7,15 +7,14 @@ import akka.event.Logging
 import akka.util.Timeout
 import code.metadata.tags.{MappedTags, RemotedataTagsCaseClasses}
 import code.model._
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
 
 import scala.concurrent.duration._
 
 
-class RemotedataTagsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataTagsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedTags
   val cc = RemotedataTagsCaseClasses
@@ -38,7 +37,7 @@ class RemotedataTagsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteTags(" + bankId +", "+ accountId + ")")
       sender ! extractResult(mapper.bulkDeleteTags(bankId, accountId))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

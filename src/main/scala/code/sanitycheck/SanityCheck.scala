@@ -1,8 +1,11 @@
 package code.sanitycheck
 
+import code.api.util.APIUtil
 import code.remotedata.RemotedataSanityCheck
-import net.liftweb.common.{Box, Full, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.{Props, SimpleInjector}
+
+
 
 object SanityCheck extends SimpleInjector {
 
@@ -24,9 +27,13 @@ object RemotedataSanityCheckCaseClasses extends RemotedataSanityCheckCaseClasses
 
 object SanityChecksImpl extends SanityChecks {
   override def remoteAkkaSanityCheck(remoteDataSecret: String): Box[Boolean] = {
-    Props.get("remotedata.secret") match {
-      case Full(x) => Full(remoteDataSecret == x)
-      case _       => Empty
+    Props.getBool("remotedata.enable", false) match {
+      case true =>
+        Props.get("remotedata.secret") match {
+          case Full(x) => Full(remoteDataSecret == x)
+          case _       => Empty
+        }
+      case false => Full(remoteDataSecret == APIUtil.localRemotedataSecret)
     }
   }
 }

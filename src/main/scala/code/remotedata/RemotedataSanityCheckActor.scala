@@ -3,11 +3,10 @@ package code.remotedata
 import akka.actor.Actor
 import akka.event.Logging
 import code.sanitycheck.{RemotedataSanityCheckCaseClasses, SanityChecksImpl}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataSanityCheckActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataSanityCheckActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = SanityChecksImpl
   val cc = RemotedataSanityCheckCaseClasses
@@ -18,7 +17,7 @@ class RemotedataSanityCheckActor extends Actor with ActorHelper {
       logger.debug("remoteAkkaSanityCheck()")
       sender ! extractResult(mapper.remoteAkkaSanityCheck(remoteDataSecret))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

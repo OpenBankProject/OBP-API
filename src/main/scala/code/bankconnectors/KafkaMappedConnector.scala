@@ -1523,10 +1523,6 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
                     val delay: Long       = 0) extends MdcLoggable {
 
-  val zkProps = new Properties()
-  zkProps.put("log4j.logger.org.apache.zookeeper", "ERROR")
-  org.apache.log4j.PropertyConfigurator.configure(zkProps)
-
   def createConsumerConfig(zookeeper: String, groupId: String): ConsumerConfig = {
     val props = new Properties()
     props.put("zookeeper.connect", zookeeper)

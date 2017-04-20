@@ -6,11 +6,10 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.metadata.counterparties.{MapperCounterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataCounterpartiesActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataCounterpartiesActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MapperCounterparties
   val cc = RemotedataCounterpartiesCaseClasses
@@ -131,7 +130,7 @@ class RemotedataCounterpartiesActor extends Actor with ActorHelper {
       logger.debug("deletePhysicalLocation(" + counterPartyId + ")")
       sender ! extractResult(mapper.deletePhysicalLocation(counterPartyId))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

@@ -5,11 +5,10 @@ import java.util.Date
 import akka.actor.Actor
 import akka.event.Logging
 import code.metrics.{ConnectorMetrics, RemotedataConnectorMetricsCaseClasses}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataConnectorMetricsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataConnectorMetricsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = ConnectorMetrics
   val cc = RemotedataConnectorMetricsCaseClasses
@@ -28,7 +27,7 @@ class RemotedataConnectorMetricsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteMetrics()")
       sender ! extractResult(mapper.bulkDeleteMetrics())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

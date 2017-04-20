@@ -6,11 +6,10 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataMetricsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataMetricsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedMetrics
   val cc = RemotedataMetricsCaseClasses
@@ -41,7 +40,7 @@ class RemotedataMetricsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteMetrics()")
       sender ! extractResult(mapper.bulkDeleteMetrics())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

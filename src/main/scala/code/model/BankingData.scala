@@ -35,6 +35,7 @@ import code.util.Helper
 
 import scala.math.BigDecimal
 import java.util.Date
+
 import scala.collection.immutable.Set
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
@@ -44,10 +45,11 @@ import code.metadata.comments.Comments
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
-import code.bankconnectors.{OBPQueryParam, Connector}
+import code.bankconnectors.{Connector, OBPQueryParam}
 import code.views.Views
 import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties
+import code.util.Helper.MdcLoggable
 
 /**
  * Uniquely identifies a view
@@ -259,9 +261,7 @@ case class BankAccountUID(bankId : BankId, accountId : AccountId)
 
 // TODO Add: @define productCode A code (no spaces, url friendly) that identifies the financial product this account is based on.
 
-trait BankAccount {
-
-  @transient protected val log = Logger(this.getClass)
+trait BankAccount extends MdcLoggable {
 
   def accountId : AccountId
   def accountType : String // (stored in the field "kind" on Mapper)
@@ -333,7 +333,7 @@ trait BankAccount {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
-        log.info("No user was passed to permittedViews")
+        //logger.info("No user was passed to permittedViews")
         publicViews
       }
     }
@@ -475,10 +475,10 @@ trait BankAccount {
     } else {
       val view = Views.views.vend.createView(BankAccountUID(this.bankId,this.accountId), v)
 
-      if(view.isDefined) {
-        log.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
-            " for account " + accountId + "at bank " + bankId)
-      }
+      //if(view.isDefined) {
+      //  logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
+      //      " for account " + accountId + "at bank " + bankId)
+      //}
 
       view
     }
@@ -490,10 +490,10 @@ trait BankAccount {
     } else {
       val view = Views.views.vend.updateView(BankAccountUID(this.bankId,this.accountId), viewId, v)
 
-      if(view.isDefined) {
-        log.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
-            " for account " + accountId + "at bank " + bankId)
-      }
+      //if(view.isDefined) {
+      //  logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
+      //      " for account " + accountId + "at bank " + bankId)
+      //}
 
       view
     }
@@ -505,12 +505,12 @@ trait BankAccount {
     } else {
       val deleted = Views.views.vend.removeView(viewId, BankAccountUID(this.bankId,this.accountId))
 
-      if (deleted.isDefined) {
-          log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
-          " for account " + accountId + "at bank " + bankId)
-      }
+      //if (deleted.isDefined) {
+      //    logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+      //    " for account " + accountId + "at bank " + bankId)
+      //}
 
-      return deleted
+      deleted
     }
   }
 

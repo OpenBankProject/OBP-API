@@ -34,6 +34,7 @@ package code.api.util
 
 import java.io.InputStream
 import java.text.SimpleDateFormat
+import java.util.UUID
 
 import code.api.Constant._
 import code.api.DirectLogin
@@ -932,9 +933,15 @@ Returns a string showed to the developer
     result
   }
 
+  val localRemotedataSecret = UUID.randomUUID.toString
+
   def akkaSanityCheck (): Box[Boolean] = {
-    val remoteDataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
-    SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remoteDataSecret)
+    val remotedataSecret = Props.getBool("remotedata.enable", false) match {
+      case true => Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+      case false => localRemotedataSecret
+    }
+    SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
+
   }
 
 }

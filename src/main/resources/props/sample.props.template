@@ -6,13 +6,6 @@
 
 ### Base configuration
 
-### Log level
-#logger.loglevel=INFO
-
-### Logging to console will be disabled
-### if logger.logfile is defined
-#logger.logfile="obp-api.log"
-
 ## Which data connector to use
 connector=mapped
 #connector=mongodb
@@ -92,7 +85,9 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 #remotedata.enable=true
 #remotedata.hostname=127.0.0.1
 #remotedata.port=2662
-# Arbitrary value used in order to assure us that remote and local sides are paired well
+## Arbitrary value used in order to assure us that
+## remote and local sides are paired well
+## Only needed when remotedata.enable=true
 #remotedata.secret=CHANGE_ME
 
 ## Set separate database for data split

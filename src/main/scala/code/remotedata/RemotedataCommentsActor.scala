@@ -4,11 +4,10 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.metadata.comments.{MappedComments, RemotedataCommentsCaseClasses}
 import code.model._
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataCommentsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataCommentsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedComments
   val cc = RemotedataCommentsCaseClasses
@@ -31,7 +30,7 @@ class RemotedataCommentsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteComments(" + bankId +", "+ accountId + ")")
       sender ! extractResult(mapper.bulkDeleteComments(bankId, accountId))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

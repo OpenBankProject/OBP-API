@@ -4,11 +4,10 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.consumer.RemotedataConsumersCaseClasses
 import code.model.{MappedConsumersProvider, _}
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataConsumersActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataConsumersActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedConsumersProvider
   val cc = RemotedataConsumersCaseClasses
@@ -31,7 +30,7 @@ class RemotedataConsumersActor extends Actor with ActorHelper {
       logger.debug("createConsumer(" + consumerId + ", " + key.getOrElse("None") + ", " + secret.getOrElse("None") + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
       sender ! extractResult(mapper.updateConsumer(consumerId, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

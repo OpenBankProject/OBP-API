@@ -57,17 +57,17 @@ object MapperViews extends Views with MdcLoggable {
     viewImpl match {
       case Full(vImpl) => {
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
-          logger.info(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
+          //logger.info(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
           val saved = ViewPrivileges.create.
             user(user.resourceUserId.value).
             view(vImpl.id).
             save
 
           if (saved) {
-            logger.info("saved ViewPrivileges")
+            //logger.info("saved ViewPrivileges")
             Full(vImpl)
           } else {
-            logger.info("failed to save ViewPrivileges")
+            //logger.info("failed to save ViewPrivileges")
             Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
           }
         } else Full(vImpl) //privilege already exists, no need to create one
@@ -83,7 +83,7 @@ object MapperViews extends Views with MdcLoggable {
 
     if (viewImpls.size != views.size) {
       val failMsg = s"not all viewimpls could be found for views ${viewImpls} (${viewImpls.size} != ${views.size}"
-      logger.info(failMsg)
+      //logger.info(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
       //TODO: APIFailures with http response codes belong at a higher level in the code

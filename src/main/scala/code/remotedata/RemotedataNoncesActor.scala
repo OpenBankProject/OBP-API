@@ -6,11 +6,10 @@ import akka.actor.Actor
 import akka.event.Logging
 import code.model._
 import code.nonce.RemotedataNoncesCaseClasses
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataNoncesActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataNoncesActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedNonceProvider
   val cc = RemotedataNoncesCaseClasses
@@ -45,7 +44,7 @@ class RemotedataNoncesActor extends Actor with ActorHelper {
       sender ! extractResult(mapper.countNonces(consumerKey, tokenKey, timestamp, value))
 
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

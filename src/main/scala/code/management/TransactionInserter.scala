@@ -8,7 +8,7 @@ import net.liftweb.common._
 import net.liftweb.util.Helpers
 import code.util.Helper.MdcLoggable
 
-object TransactionInserter extends LiftActor with MdcLoggable{
+object TransactionInserter extends LiftActor with MdcLoggable {
 
   /**
    * Determines whether two transactions to be imported are considered "identical"
@@ -51,7 +51,7 @@ object TransactionInserter extends LiftActor with MdcLoggable{
     }else{
       //we don't want to be putting people's transaction info in the logs, so we use an id
       val insertID = Helpers.randomString(10)
-      logger.info("Starting insert operation, id: " + insertID)
+      //logger.info("Starting insert operation, id: " + insertID)
 
       val toMatch = identicalTransactions(0)
 
@@ -64,8 +64,8 @@ object TransactionInserter extends LiftActor with MdcLoggable{
 
       //logger.info("Insert operation id " + insertID + " # of existing matches: " + existingMatches)
       val numberToInsert = identicalTransactions.size - existingMatches
-      if(numberToInsert > 0)
-        logger.info("Insert operation id " + insertID + " copies being inserted: " + numberToInsert)
+      //if(numberToInsert > 0)
+        //logger.info("Insert operation id " + insertID + " copies being inserted: " + numberToInsert)
 
       val results = (1 to numberToInsert).map(_ => Connector.connector.vend.createImportedTransaction(toMatch)).toList
 

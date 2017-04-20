@@ -3,6 +3,7 @@ package code.accountholder
 import code.model.{AccountId, BankId, User}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.common.Box
@@ -20,9 +21,8 @@ class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with Id
 }
 
 
-object MapperAccountHolders extends MapperAccountHolders with AccountHolders with LongKeyedMetaMapper[MapperAccountHolders] {
+object MapperAccountHolders extends MapperAccountHolders with AccountHolders with LongKeyedMetaMapper[MapperAccountHolders] with MdcLoggable  {
 
-  private val logger = Logger(classOf[AccountHolders])
 
   override def dbIndexes = Index(accountBankPermalink, accountPermalink) :: Nil
 
@@ -32,7 +32,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
       .accountPermalink(accountId)
       .user(userId)
       .saveMe
-    if(source != "MappedAccountHolder") logger.info(s"------------> created mappedUserHolder ${holder} at ${source}")
+    //if(source != "MappedAccountHolder") logger.info(s"------------> created mappedUserHolder ${holder} at ${source}")
     if(holder.saved_?)
       true
     else

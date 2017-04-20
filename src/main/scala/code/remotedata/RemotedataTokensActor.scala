@@ -7,11 +7,10 @@ import akka.event.Logging
 import code.token.RemotedataTokensCaseClasses
 import code.model.TokenType.TokenType
 import code.model._
+import code.util.Helper.MdcLoggable
 
 
-class RemotedataTokensActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataTokensActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MappedTokenProvider
   val cc = RemotedataTokensCaseClasses
@@ -62,7 +61,7 @@ class RemotedataTokensActor extends Actor with ActorHelper {
       logger.debug("deleteExpiredTokens(" + currentDate +")")
       sender ! extractResult(mapper.deleteExpiredTokens(currentDate))
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 

@@ -1,17 +1,15 @@
 package code.remotedata
 
 import akka.actor.Actor
-import akka.event.Logging
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import code.model._
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 
 import scala.concurrent.duration._
 
 
-class RemotedataViewsActor extends Actor with ActorHelper {
-
-  val logger = Logging(context.system, this)
+class RemotedataViewsActor extends Actor with ActorHelper with MdcLoggable {
 
   val mapper = MapperViews
   val cc = RemotedataViewsCaseClasses
@@ -150,7 +148,7 @@ class RemotedataViewsActor extends Actor with ActorHelper {
       logger.debug("bulkDeleteAllPermissionsAndViews()")
       sender ! extractResult(mapper.bulkDeleteAllPermissionsAndViews())
 
-    case message => logger.warning("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+    case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
 
