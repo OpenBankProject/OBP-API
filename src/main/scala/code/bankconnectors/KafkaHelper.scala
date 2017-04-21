@@ -13,7 +13,12 @@ import org.apache.kafka.connect.json.JsonConverter
 
 import scala.concurrent.ExecutionException
 
-object KafkaHelper extends MdcLoggable {
+object KafkaHelper extends KafkaHelper {
+
+
+}
+
+class KafkaHelper extends MdcLoggable {
 
   val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
   val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
