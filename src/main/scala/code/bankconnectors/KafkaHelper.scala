@@ -6,6 +6,8 @@ import java.util.{Collection, Properties, UUID}
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json._
+import net.liftweb.common._
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
@@ -51,7 +53,7 @@ class KafkaHelper extends MdcLoggable {
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
     val response = for {
-      consumerMap <- tryo{consumer.poll(100)}
+      consumerMap <- tryo{ consumer.poll(100) }
       record: ConsumerRecord[String, String]  <- consumerMap
       if record.key == reqId
     } yield
