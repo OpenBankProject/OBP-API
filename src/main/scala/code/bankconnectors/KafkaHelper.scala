@@ -45,13 +45,12 @@ class KafkaHelper extends MdcLoggable {
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
 
   var producer = new KafkaProducer[String, String](producerProps)
-  var consumer = new KafkaConsumer[String, String](consumerProps)
-  consumer.subscribe(util.Arrays.asList(responseTopic))
-  println("------------------> KAFKA INIT")
 
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
+    var consumer = new KafkaConsumer[String, String](consumerProps)
+    consumer.subscribe(util.Arrays.asList(responseTopic))
     //if (consumer == null) {
     //  consumer = new KafkaConsumer[String, String](consumerProps)
     //  consumer.subscribe(util.Arrays.asList(responseTopic))
@@ -71,6 +70,7 @@ class KafkaHelper extends MdcLoggable {
             val key = mIt.key()
             // check if the id matches
             if (key == reqId) {
+              consumer.close
               // Parse JSON message
               val j = json.parse(msg)
               // return as JSON
@@ -89,9 +89,9 @@ class KafkaHelper extends MdcLoggable {
         return json.parse("""{"error":"KafkaConsumer timeout"}""") //TODO: replace with standard message
     }
     // disconnect from kafka
-    //consumer.shutdown()
-    //logger.info("KafkaProducer: shutdown")
-    //return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
+    consumer.close
+    logger.info("KafkaProducer: shutdown")
+    return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
   }
 
   /**
