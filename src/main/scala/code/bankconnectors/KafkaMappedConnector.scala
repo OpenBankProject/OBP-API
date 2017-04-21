@@ -177,7 +177,8 @@ object KafkaMappedConnector extends Connector with MdcLoggable {
 
     logger.debug(s"Kafka getBanks before cachedBanks.getOrElseUpdate")
     val rList = {
-      cachedBanks.getOrElseUpdate( req.toString, () => process(req).extract[List[KafkaInboundBank]])
+      process(req).extract[List[KafkaInboundBank]]
+      //cachedBanks.getOrElseUpdate( req.toString, () => process(req).extract[List[KafkaInboundBank]])
     }
 
     logger.debug(s"Kafka getBanks says rList is $rList")
