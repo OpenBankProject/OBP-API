@@ -38,12 +38,20 @@ object KafkaHelper extends MdcLoggable {
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
 
-  val producer = new KafkaProducer[String, String](producerProps)
+  var producer = new KafkaProducer[String, String](producerProps)
+  var consumer = new KafkaConsumer[String, String](consumerProps)
+  consumer.partitionsFor(responseTopic)
 
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    val consumer = new KafkaConsumer[String, String](consumerProps)
+    if (consumer == null) {
+      consumer = new KafkaConsumer[String, String](consumerProps)
+      consumer.partitionsFor(responseTopic)
+    }
+    if (consumer == null)
+      return json.parse("""{"error":"kafka consumer unavailable"}""")
+
     val consumerMap = consumer.poll(100)
     val it = consumerMap.iterator
     try {
@@ -59,6 +67,7 @@ object KafkaHelper extends MdcLoggable {
               // Parse JSON message
               val j = json.parse(msg)
               // return as JSON
+              println("RECEIVED: " + j.toString)
               return j \\ "data"
             }
           } else {
@@ -88,13 +97,18 @@ object KafkaHelper extends MdcLoggable {
     * @param caseClassObject
     * @return Map[String, String]
     */
-  def stransferCaseClassToMap(caseClassObject: scala.Product) = caseClassObject.getClass.getDeclaredFields.map(_.getName) // all field names
+  def stransferCaseClassToMap(caseClassObject: scala.Product) =
+    caseClassObject.getClass.getDeclaredFields.map(_.getName) // all field names
     .zip(caseClassObject.productIterator.to).toMap.asInstanceOf[Map[String, String]] // zipped with all values
 
 
   def processRequest(jsonRequest: JValue, reqId: String): JValue = {
-    val record = new ProducerRecord(requestTopic, reqId, json.compactRender(jsonRequest))
+    if (producer == null )
+      producer = new KafkaProducer[String, String](producerProps)
+    if (producer == null )
+      return json.parse("""{"error":"kafka producer unavailable"}""")
     try {
+      val record = new ProducerRecord(requestTopic, reqId, json.compactRender(jsonRequest))
       producer.send(record).get
     } catch {
       case ex: InterruptedException => return json.parse("""{"error":"sending message to kafka interrupted"}""")
