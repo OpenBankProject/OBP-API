@@ -52,40 +52,16 @@ class KafkaHelper extends MdcLoggable {
 
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
-    val response: Box[String] = for {
-      consumerMap <- tryo{ consumer.poll(100) }
-      record: ConsumerRecord[String, String]  <- consumerMap.records(responseTopic)
-      valid <- tryo[Boolean](record.key == reqId)
-      if valid
-    } yield
-      record.value
-
-    response match {
-      case Full(res) =>
-        val j = json.parse(res)
-        println("RECEIVED: " + j.toString)
-        j \\ "data"
-      case Empty =>
-        json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
+    val consumerMap = consumer.poll(100)
+    val records = consumerMap.records(responseTopic).iterator
+    while (records.hasNext) {
+      val record = records.next
+      println("FILTERING..." + record)
+      if (record.key == reqId)
+        return json.parse(record.value) \\ "data"
     }
-
+    json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
   }
-//          } else {
-//            logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
-//          }
-//        }
-//        return json.parse("""{"error":"KafkaConsumer could not fetch response"}""") //TODO: replace with standard message
-//      }
-//    catch {
-//      case e: TimeoutException =>
-//        logger.error("KafkaConsumer: timeout")
-//        return json.parse("""{"error":"KafkaConsumer timeout"}""") //TODO: replace with standard message
-//    }
-//    // disconnect from kafka
-//    consumer.close
-//    logger.info("KafkaProducer: shutdown")
-//    return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
-//  }
 
   /**
     * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
