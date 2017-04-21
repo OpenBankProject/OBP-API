@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json._
 import net.liftweb.util.Props
-import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.connect.json.JsonConverter
@@ -49,46 +49,40 @@ class KafkaHelper extends MdcLoggable {
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    //consumer.seekToBeginning(consumer.assignment())
-    println("----------------> " + consumer.subscription())
-    val consumerMap = consumer.poll(100)
-    println("====+> " + consumerMap)
-    val it = consumerMap.iterator
-    println("====-> " + it.hasNext)
-    try {
-        // wait for message
-        while (it.hasNext()) {
-          val mIt = it.next()
-          println("====> " + mIt.toString)
-          // skip null entries
-          if (mIt != null && mIt.key != null && mIt.value != null) {
-            val msg = mIt.value()
-            val key = mIt.key()
-            // check if the id matches
-            if (key == reqId) {
-              consumer.close
-              // Parse JSON message
-              val j = json.parse(msg)
-              // return as JSON
-              println("RECEIVED: " + j.toString)
-              return j \\ "data"
-            }
-          } else {
-            logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
-          }
-        }
-        return json.parse("""{"error":"KafkaConsumer could not fetch response"}""") //TODO: replace with standard message
-      }
-    catch {
-      case e: TimeoutException =>
-        logger.error("KafkaConsumer: timeout")
-        return json.parse("""{"error":"KafkaConsumer timeout"}""") //TODO: replace with standard message
+    val forkedConsumer = consumer.clone.asInstanceOf[KafkaConsumer[String,String]]
+    println("RECEIVING...")
+    val response = for {
+      consumerMap <- forkedConsumer.poll(100)
+      record: ConsumerRecord[String, String]  <- consumerMap
+      if record.key == reqId
+    } yield
+      record.value
+
+    response match {
+      case res: String =>
+        val j = json.parse(res)
+        println("RECEIVED: " + j.toString)
+        return j \\ "data"
+      case _ => return json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
     }
-    // disconnect from kafka
-    consumer.close
-    logger.info("KafkaProducer: shutdown")
-    return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
+
   }
+//          } else {
+//            logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
+//          }
+//        }
+//        return json.parse("""{"error":"KafkaConsumer could not fetch response"}""") //TODO: replace with standard message
+//      }
+//    catch {
+//      case e: TimeoutException =>
+//        logger.error("KafkaConsumer: timeout")
+//        return json.parse("""{"error":"KafkaConsumer timeout"}""") //TODO: replace with standard message
+//    }
+//    // disconnect from kafka
+//    consumer.close
+//    logger.info("KafkaProducer: shutdown")
+//    return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
+//  }
 
   /**
     * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
