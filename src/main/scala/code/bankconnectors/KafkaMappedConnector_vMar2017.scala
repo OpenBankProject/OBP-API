@@ -63,8 +63,9 @@ import code.util.Helper.MdcLoggable
 
 object KafkaMappedConnector_vMar2017 extends Connector with MdcLoggable {
 
-  lazy val producer = new KafkaProducer()
-  lazy val consumer = new KafkaConsumer()
+  def process(request: scala.Product): json.JValue = {
+    KafkaHelper.process(request)
+  }
   type AccountType = BankAccount2
 
   implicit override val nameOfConnector = KafkaMappedConnector_vMar2017.getClass.getSimpleName
@@ -1829,31 +1830,6 @@ object KafkaMappedConnector_vMar2017 extends Connector with MdcLoggable {
       isBeneficiary = true
     )
   }
-
-
-  def process(request: scala.Product): json.JValue = {
-    val reqId = UUID.randomUUID().toString
-    val requestToMap= stransferCaseClassToMap(request)
-    if (producer.send(reqId, requestToMap, "1")) {
-      // Request sent, now we wait for response with the same reqId
-      val res = consumer.getResponse(reqId)
-      return res
-    }
-    return json.parse("""{"error":"could not send message to kafka"}""")
-  }
-
-  /**
-    * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
-    * In KafkaMappedConnector.scala, we use Map[String, String]. Now we change to case class
-    * eg: case class Company(name: String, address: String) -->
-    * Company("TESOBE","Berlin")
-    * Map(name->"TESOBE", address->"2")
-    *
-    * @param caseClassObject
-    * @return Map[String, String]
-    */
-  def stransferCaseClassToMap(caseClassObject: scala.Product) = caseClassObject.getClass.getDeclaredFields.map(_.getName) // all field names
-    .zip(caseClassObject.productIterator.to).toMap.asInstanceOf[Map[String, String]] // zipped with all values
 
 }
 

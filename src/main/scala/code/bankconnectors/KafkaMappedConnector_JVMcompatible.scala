@@ -76,8 +76,9 @@ import code.util.Helper.MdcLoggable
 
 object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
 
-  lazy val producer = new KafkaProducer()
-  lazy val consumer = new KafkaConsumer()
+  def process(request: Map[String,String]): json.JValue = {
+    KafkaHelper.process(request)
+  }
   type AccountType = KafkaBankAccount
   
   // Maybe we should read the date format from props?
@@ -1465,15 +1466,5 @@ object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
                                 charge_amount: String,
                                 charge_summary: String
                                )
-
-  def process(request: Map[String,String]): json.JValue = {
-    val reqId = UUID.randomUUID().toString
-    if (producer.send(reqId, request, "1")) {
-      // Request sent, now we wait for response with the same reqId
-      val res = consumer.getResponse(reqId)
-      return res
-    }
-    return json.parse("""{"error":"could not send message to kafka"}""")
-  }
 
 }
