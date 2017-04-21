@@ -49,7 +49,7 @@ class KafkaHelper extends MdcLoggable {
 
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
-    val tempProps = producerProps
+    val tempProps = consumerProps
     tempProps.put("group.id", UUID.randomUUID.toString)
     var consumer = new KafkaConsumer[String, String](tempProps)
     consumer.subscribe(util.Arrays.asList(responseTopic))
