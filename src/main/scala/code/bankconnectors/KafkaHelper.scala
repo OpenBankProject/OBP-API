@@ -52,13 +52,14 @@ class KafkaHelper extends MdcLoggable {
     var consumer = new KafkaConsumer[String, String](consumerProps)
     consumer.subscribe(util.Arrays.asList(responseTopic))
     consumer.seekToBeginning(consumer.assignment())
-
+    println("----------------> " + consumer.position(consumer.assignment.iterator.next))
     val consumerMap = consumer.poll(100)
     val it = consumerMap.iterator
     try {
         // wait for message
         while (it.hasNext()) {
           val mIt = it.next()
+          println("====> " + mIt.toString)
           // skip null entries
           if (mIt != null && mIt.key != null && mIt.value != null) {
             val msg = mIt.value()
