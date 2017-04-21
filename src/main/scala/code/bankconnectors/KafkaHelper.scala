@@ -51,7 +51,7 @@ class KafkaHelper extends MdcLoggable {
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
     val response = for {
-      consumerMap <- consumer.poll(100)
+      consumerMap <- tryo{consumer.poll(100)}
       record: ConsumerRecord[String, String]  <- consumerMap
       if record.key == reqId
     } yield
