@@ -57,6 +57,7 @@ class KafkaHelper extends MdcLoggable {
     //println("----------------> " + consumer.position(consumer.assignment.iterator.next))
     val consumerMap = consumer.poll(100)
     val it = consumerMap.iterator
+    println("====-> " + it.toString)
     try {
         // wait for message
         while (it.hasNext()) {
