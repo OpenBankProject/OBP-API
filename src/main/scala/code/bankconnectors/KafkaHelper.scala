@@ -54,8 +54,9 @@ class KafkaHelper extends MdcLoggable {
     println("RECEIVING...")
     val response: Box[String] = for {
       consumerMap <- tryo{ consumer.poll(100) }
-      record: ConsumerRecord[String, String]  <- consumerMap.iterator
-      if record.key == reqId
+      record: ConsumerRecord[String, String]  <- consumerMap
+      valid <- tryo[Boolean](record.key == reqId)
+      if valid
     } yield
       record.value
 
