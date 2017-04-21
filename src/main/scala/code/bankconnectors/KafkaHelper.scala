@@ -37,25 +37,24 @@ class KafkaHelper extends MdcLoggable {
 
   val consumerProps = new Properties()
   consumerProps.put("bootstrap.servers", Props.get("kafka.host")openOr("localhost:9092"))
-  //consumerProps.put("group.id", "")
+  consumerProps.put("group.id", UUID.randomUUID.toString)
   consumerProps.put("enable.auto.commit", "false")
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
 
   var producer = new KafkaProducer[String, String](producerProps)
+  var consumer = new KafkaConsumer[String, String](consumerProps)
+  consumer.subscribe(util.Arrays.asList(responseTopic))
 
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    val tempProps = consumerProps
-    tempProps.put("group.id", UUID.randomUUID.toString)
-    var consumer = new KafkaConsumer[String, String](tempProps)
-    consumer.subscribe(util.Arrays.asList(responseTopic))
     //consumer.seekToBeginning(consumer.assignment())
-    //println("----------------> " + consumer.position(consumer.assignment.iterator.next))
+    println("----------------> " + consumer.subscription())
     val consumerMap = consumer.poll(100)
+    println("====+> " + consumerMap)
     val it = consumerMap.iterator
-    println("====-> " + it.toString)
+    println("====-> " + it.hasNext)
     try {
         // wait for message
         while (it.hasNext()) {
