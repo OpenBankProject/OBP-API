@@ -49,10 +49,9 @@ class KafkaHelper extends MdcLoggable {
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    val forkedConsumer = consumer.clone.asInstanceOf[KafkaConsumer[String,String]]
     println("RECEIVING...")
     val response = for {
-      consumerMap <- forkedConsumer.poll(100)
+      consumerMap <- consumer.poll(100)
       record: ConsumerRecord[String, String]  <- consumerMap
       if record.key == reqId
     } yield
@@ -62,8 +61,9 @@ class KafkaHelper extends MdcLoggable {
       case res: String =>
         val j = json.parse(res)
         println("RECEIVED: " + j.toString)
-        return j \\ "data"
-      case _ => return json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
+        j \\ "data"
+      case _ =>
+        json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
     }
 
   }
