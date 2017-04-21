@@ -119,6 +119,7 @@ class KafkaHelper extends MdcLoggable {
       case ex: ExecutionException => return json.parse("""{"error":"could not send message to kafka"}""")
       case _ =>
     }
+    import scala.concurrent.ExecutionContext.Implicits.global
     val futureResponse = Future { getResponse(reqId) }
     Await.result(futureResponse, Duration.Inf)
 
