@@ -52,19 +52,19 @@ class KafkaHelper extends MdcLoggable {
 
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
-    val response = for {
+    val response: Box[String] = for {
       consumerMap <- tryo{ consumer.poll(100) }
-      record: ConsumerRecord[String, String]  <- consumerMap
+      record: ConsumerRecord[String, String]  <- consumerMap.iterator
       if record.key == reqId
     } yield
       record.value
 
     response match {
-      case res: String =>
+      case Full(res) =>
         val j = json.parse(res)
         println("RECEIVED: " + j.toString)
         j \\ "data"
-      case _ =>
+      case Empty =>
         json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
     }
 
