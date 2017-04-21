@@ -56,8 +56,10 @@ import code.util.Helper.MdcLoggable
 
 object KafkaMappedConnector extends Connector with MdcLoggable {
 
+  val kafkaHelper = new KafkaHelper
+
   def process(request: Map[String,String]): json.JValue = {
-    KafkaHelper.process(request)
+    kafkaHelper.process(request)
   }
 
   type AccountType = KafkaBankAccount
