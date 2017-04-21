@@ -12,7 +12,8 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.connect.json.JsonConverter
 
-import scala.concurrent.ExecutionException
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionException, Future}
 
 object KafkaHelper extends KafkaHelper {
 
@@ -25,22 +26,19 @@ class KafkaHelper extends MdcLoggable {
   val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
 
   val producerProps = new Properties()
-  producerProps.put("bootstrap.servers", "localhost:9092")
+  producerProps.put("bootstrap.servers", Props.get("kafka.host")openOr("localhost:9092"))
   producerProps.put("acks", "all")
   producerProps.put("retries", "0")
   producerProps.put("batch.size", "16384")
   producerProps.put("linger.ms", "1")
   producerProps.put("buffer.memory", "33554432")
-  //producerProps.put("key.converter", "org.apache.kafka.connect.json.JsonConverter")
-  //producerProps.put("value.converter", "org.apache.kafka.connect.json.JsonConverter")
   producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
   producerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
   val consumerProps = new Properties()
-  consumerProps.put("bootstrap.servers", "localhost:9092")
+  consumerProps.put("bootstrap.servers", Props.get("kafka.host")openOr("localhost:9092"))
   //consumerProps.put("group.id", "")
   consumerProps.put("enable.auto.commit", "false")
-  consumerProps.put("auto.commit.interval.ms", "1000")
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
 
@@ -121,7 +119,9 @@ class KafkaHelper extends MdcLoggable {
       case ex: ExecutionException => return json.parse("""{"error":"could not send message to kafka"}""")
       case _ =>
     }
-    getResponse(reqId)
+    val futureResponse = Future { getResponse(reqId) }
+    Await.result(futureResponse, Duration.Inf)
+
   }
 
   def process(request: scala.Product): JValue = {
