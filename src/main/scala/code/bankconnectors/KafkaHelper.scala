@@ -39,20 +39,21 @@ class KafkaHelper extends MdcLoggable {
 
   val consumerProps = new Properties()
   consumerProps.put("bootstrap.servers", Props.get("kafka.host")openOr("localhost:9092"))
-  consumerProps.put("group.id", UUID.randomUUID.toString)
   consumerProps.put("enable.auto.commit", "false")
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
 
   var producer = new KafkaProducer[String, String](producerProps)
-  var consumer = new KafkaConsumer[String, String](consumerProps)
-  consumer.subscribe(util.Arrays.asList(responseTopic))
 
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    println("RECEIVING...")
-    val consumerMap = consumer.poll(100)
+    println("RECEIVING...") val consumerProps = new Properties()
+    val tempProps = producerProps
+    tempProps.put("group.id", UUID.randomUUID.toString)
+    var consumer = new KafkaConsumer[String, String](tempProps)
+    consumer.subscribe(util.Arrays.asList(responseTopic))
+    val consumerMap = consumer.poll(1000)
     val records = consumerMap.records(responseTopic).iterator
     while (records.hasNext) {
       val record = records.next
