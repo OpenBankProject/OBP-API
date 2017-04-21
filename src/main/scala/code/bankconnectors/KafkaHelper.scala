@@ -38,8 +38,8 @@ class KafkaHelper extends MdcLoggable {
 
   val consumerProps = new Properties()
   consumerProps.put("bootstrap.servers", "localhost:9092")
-  consumerProps.put("group.id", "test")
-  consumerProps.put("enable.auto.commit", "true")
+  //consumerProps.put("group.id", "")
+  consumerProps.put("enable.auto.commit", "false")
   consumerProps.put("auto.commit.interval.ms", "1000")
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
@@ -49,10 +49,12 @@ class KafkaHelper extends MdcLoggable {
   implicit val formats = DefaultFormats
 
   def getResponse(reqId: String): json.JValue = {
-    var consumer = new KafkaConsumer[String, String](consumerProps)
+    val tempProps = consumerProps
+    tempProps.put("groupId", UUID.randomUUID.toString)
+    var consumer = new KafkaConsumer[String, String](tempProps)
     consumer.subscribe(util.Arrays.asList(responseTopic))
-    consumer.seekToBeginning(consumer.assignment())
-    println("----------------> " + consumer.position(consumer.assignment.iterator.next))
+    //consumer.seekToBeginning(consumer.assignment())
+    //println("----------------> " + consumer.position(consumer.assignment.iterator.next))
     val consumerMap = consumer.poll(100)
     val it = consumerMap.iterator
     try {
