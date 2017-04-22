@@ -11,7 +11,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.kafka.common.errors.TimeoutException
+import org.apache.kafka.common.errors.{TimeoutException, WakeupException}
 import org.apache.kafka.connect.json.JsonConverter
 
 import scala.concurrent.duration.Duration
@@ -190,21 +190,29 @@ messages with an offset greater than 5. For this it would call kafkaConsumer.see
  */
 
   def getResponse(reqId: String): json.JValue = {
-    println("RECEIVING... " + reqId)
     //val tempProps = consumerProps
     //tempProps.put("group.id", UUID.randomUUID.toString)
     //val consumer = new KafkaConsumer[String, String](tempProps)
-    //consumer.subscribe(util.Arrays.asList(responseTopic))
-    while (true) {
-      val consumerMap = consumer.poll(100)
-      val records = consumerMap.records(responseTopic).iterator
-      while (records.hasNext) {
-      val record = records.next
-      println("FILTERING..." + record)
-      if (record.key == reqId)
-        println("FOUND >>> " + record)
-        return json.parse(record.value) \\ "data"
+
+    try {
+      consumer.synchronized {
+        println("RECEIVING... " + reqId)
+        consumer.subscribe(util.Arrays.asList(responseTopic))
+
+        while (true) {
+          val consumerMap = consumer.poll(100)
+          val records = consumerMap.records(responseTopic).iterator
+          while (records.hasNext) {
+          val record = records.next
+          println("FILTERING..." + record)
+          if (record.key == reqId)
+            println("FOUND >>> " + record)
+            return json.parse(record.value) \\ "data"
+          }
+        }
       }
+    } catch {
+      case e: WakeupException => logger.error(e)
     }
     json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
   }
