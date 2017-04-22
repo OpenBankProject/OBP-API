@@ -46,20 +46,161 @@ class KafkaHelper extends MdcLoggable {
   var producer = new KafkaProducer[String, String](producerProps)
 
   implicit val formats = DefaultFormats
+/*
+
+
+
+We'll use automatic assignment for the example application. Most of our consumer
+code will be the same as it was for the simple consumer seen in Part 1. The only difference
+is that we'll pass an instance of ConsumerRebalanceListener as a second argument
+to our KafkaConsumer.subscribe() method. Kafka will call methods of this class every
+time it either assigns or revokes a partition to this consumer. We'll override
+ConsumerRebalanceListener's onPartitionsRevoked() and onPartitionsAssigned() methods
+and print the list of partitions that were assigned or revoked from this subscriber.
+
+   private static class ConsumerThread extends Thread {
+     private String topicName;
+     private String groupId;
+     private KafkaConsumer<String, String> kafkaConsumer;
+
+     public ConsumerThread(String topicName, String groupId) {
+         this.topicName = topicName;
+         this.groupId = groupId;
+     }
+
+     public void run() {
+         Properties configProperties = new Properties();
+         configProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+         configProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+         configProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+         configProperties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+
+         //Figure out where to start processing messages from
+         kafkaConsumer = new KafkaConsumer<String, String>(configProperties);
+         kafkaConsumer.subscribe(Arrays.asList(topicName), new ConsumerRebalanceListener() {
+             public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                 System.out.printf("%s topic-partitions are revoked from this consumer\n", Arrays.toString(partitions.toArray()));
+             }
+             public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                 System.out.printf("%s topic-partitions are assigned to this consumer\n", Arrays.toString(partitions.toArray()));
+             }
+         });
+         //Start processing messages
+         try {
+             while (true) {
+                 ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
+                 for (ConsumerRecord<String, String> record : records)
+                     System.out.println(record.value());
+             }
+         } catch (WakeupException ex) {
+             System.out.println("Exception caught " + ex.getMessage());
+         } finally {
+             kafkaConsumer.close();
+             System.out.println("After closing KafkaConsumer");
+         }
+     }
+
+     public KafkaConsumer<String, String> getKafkaConsumer() {
+         return this.kafkaConsumer;
+     }
+}
+
+
+If you use the value of the last argument equal to 0, the consumer will assume that
+you want to start from the beginning, so it will call a kafkaConsumer.seekToBeginning()
+method for each of its partitions. If you pass a value of -1 it will assume that you
+want to ignore the existing messages and only consume messages published after the
+consumer has been restarted. In this case it will call kafkaConsumer.seekToEnd()
+on each of the partitions. Finally, if you specify any value other than 0 or -1 it
+will assume that you have specified the offset that you want the consumer to start from;
+for example, if you pass the third value as 5, then on restart the consumer will consume
+messages with an offset greater than 5. For this it would call kafkaConsumer.seek(<topicname>, <startingoffset>).
+
+
+  private static class ConsumerThread extends Thread{
+    private String topicName;
+    private String groupId;
+    private long startingOffset;
+    private KafkaConsumer<String,String> kafkaConsumer;
+
+    public ConsumerThread(String topicName, String groupId, long startingOffset){
+        this.topicName = topicName;
+        this.groupId = groupId;
+        this.startingOffset=startingOffset;
+    }
+    public void run() {
+        Properties configProperties = new Properties();
+        configProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        configProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        configProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        configProperties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        configProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, "offset123");
+        configProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,false);
+
+        //Figure out where to start processing messages from
+        kafkaConsumer = new KafkaConsumer<String, String>(configProperties);
+        kafkaConsumer.subscribe(Arrays.asList(topicName), new ConsumerRebalanceListener() {
+            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                System.out.printf("%s topic-partitions are revoked from this consumer\n", Arrays.toString(partitions.toArray()));
+            }
+            public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                System.out.printf("%s topic-partitions are assigned to this consumer\n", Arrays.toString(partitions.toArray()));
+                Iterator<TopicPartition> topicPartitionIterator = partitions.iterator();
+                while(topicPartitionIterator.hasNext()){
+                    TopicPartition topicPartition = topicPartitionIterator.next();
+                    System.out.println("Current offset is " + kafkaConsumer.position(topicPartition) + " committed offset is ->" + kafkaConsumer.committed(topicPartition) );
+                    if(startingOffset ==0){
+                        System.out.println("Setting offset to beginning");
+                        kafkaConsumer.seekToBeginning(topicPartition);
+                    }else if(startingOffset == -1){
+                        System.out.println("Setting it to the end ");
+                        kafkaConsumer.seekToEnd(topicPartition);
+                    }else {
+                        System.out.println("Resetting offset to " + startingOffset);
+                        kafkaConsumer.seek(topicPartition, startingOffset);
+                    }
+                }
+            }
+        });
+        //Start processing messages
+        try {
+            while (true) {
+                ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
+                for (ConsumerRecord<String, String> record : records) {
+                    System.out.println(record.value());
+                }
+
+            }
+        }catch(WakeupException ex){
+            System.out.println("Exception caught " + ex.getMessage());
+        }finally{
+            kafkaConsumer.close();
+            System.out.println("After closing KafkaConsumer");
+        }
+    }
+    public KafkaConsumer<String,String> getKafkaConsumer(){
+        return this.kafkaConsumer;
+    }
+}
+
+ */
 
   def getResponse(reqId: String): json.JValue = {
     println("RECEIVING...")
     val tempProps = consumerProps
     tempProps.put("group.id", UUID.randomUUID.toString)
-    var consumer = new KafkaConsumer[String, String](tempProps)
+    val consumer = new KafkaConsumer[String, String](tempProps)
     consumer.subscribe(util.Arrays.asList(responseTopic))
-    val consumerMap = consumer.poll(1000)
-    val records = consumerMap.records(responseTopic).iterator
-    while (records.hasNext) {
+    //consumer.seek(responseTopic, 10)
+    while (true) {
+      val consumerMap = consumer.poll(100)
+      val records = consumerMap.records(responseTopic).iterator
+      while (records.hasNext) {
       val record = records.next
       println("FILTERING..." + record)
       if (record.key == reqId)
         return json.parse(record.value) \\ "data"
+      }
     }
     json.parse("""{"error":"KafkaConsumer could not fetch response"}""")
   }
