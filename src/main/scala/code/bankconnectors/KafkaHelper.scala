@@ -191,7 +191,6 @@ messages with an offset greater than 5. For this it would call kafkaConsumer.see
     tempProps.put("group.id", UUID.randomUUID.toString)
     val consumer = new KafkaConsumer[String, String](tempProps)
     consumer.subscribe(util.Arrays.asList(responseTopic))
-    //consumer.seek(responseTopic, 10)
     while (true) {
       val consumerMap = consumer.poll(100)
       val records = consumerMap.records(responseTopic).iterator
@@ -225,6 +224,8 @@ messages with an offset greater than 5. For this it would call kafkaConsumer.see
       producer = new KafkaProducer[String, String](producerProps)
     if (producer == null )
       return json.parse("""{"error":"kafka producer unavailable"}""")
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val futureResponse = Future { getResponse(reqId) }
     try {
       val record = new ProducerRecord(requestTopic, reqId, json.compactRender(jsonRequest))
       producer.send(record).get
@@ -233,8 +234,6 @@ messages with an offset greater than 5. For this it would call kafkaConsumer.see
       case ex: ExecutionException => return json.parse("""{"error":"could not send message to kafka"}""")
       case _ =>
     }
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val futureResponse = Future { getResponse(reqId) }
     Await.result(futureResponse, Duration.Inf)
 
   }
