@@ -33,8 +33,8 @@ connector=mapped
 ## Scheduler will be disabled if delay is not set.
 #transaction_status_scheduler_delay=300
 
-## If using kafka, set zookeeper host and brokers
-#kafka.zookeeper_host=localhost:2181
+#if using kafka, set kafka brokers
+#defaults to "localhost:9092" if not set
 #kafka.bootstrap_hosts=localhost:9092
 
 ## If using kafka, the following is mandatory
