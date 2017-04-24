@@ -249,6 +249,14 @@ webui_login_page_special_instructions=
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
 
 
+# Text about data in FAQ
+webui_faq_data_text = We use real data and customer profiles which have been anonymized.
+
+# Link to FAQ
+webui_faq_url = https://openbankproject.com/faq/
+
+# Email address in FAQ for further inquiries
+webui_faq_email = contact@openbankproject.com
 
 ## For partner logos and links
 webui_main_partners=[\

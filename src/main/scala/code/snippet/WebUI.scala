@@ -150,6 +150,26 @@ class WebUI extends MdcLoggable{
     ".sdks_link a [href]" #> scala.xml.Unparsed(Props.get("webui_sdks_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS"))
   }
 
+  // Text about data in FAQ
+  def faqDataText: CssSel = {
+    ".faq-data-text *" #> scala.xml.Unparsed(Props.get("webui_faq_data_text", "We use real data and customer profiles which have been anonymized."))
+  }
+
+  // Link to FAQ
+  def faqLink: CssSel = {
+    val link = scala.xml.Unparsed(Props.get("webui_faq_url", "https://openbankproject.com/faq/"))
+    ".faq-link a *" #>  link &
+    ".faq-link a [href]" #> link
+  }
+
+  // Email address re FAQ
+  def faqEmail: CssSel = {
+    val email = scala.xml.Unparsed(Props.get("webui_faq_email", "contact@openbankproject.com"))
+    val emailMailto = scala.xml.Unparsed("mailto:" + email.toString())
+    ".faq-email a *" #>  email &
+    ".faq-email a [href]" #> emailMailto
+  }
+
   def mainStyleSheet: CssSel = {
     "#main_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_main_style_sheet", "/media/css/website.css"))
   }
