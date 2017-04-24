@@ -5,7 +5,7 @@ import code.sanitycheck.{RemotedataSanityCheckCaseClasses, SanityChecks}
 import net.liftweb.common.Box
 
 
-object RemotedataSanityCheck extends ActorInit with SanityChecks {
+object RemotedataSanityCheck extends RemotedataActorInit with SanityChecks {
 
   val cc = RemotedataSanityCheckCaseClasses
 

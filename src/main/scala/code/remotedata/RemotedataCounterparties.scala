@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataCounterparties extends ActorInit with Counterparties {
+object RemotedataCounterparties extends RemotedataActorInit with Counterparties {
 
   val cc = RemotedataCounterpartiesCaseClasses
 

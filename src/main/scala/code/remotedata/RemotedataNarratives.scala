@@ -7,7 +7,7 @@ import scala.concurrent.Await
 
 
 
-object RemotedataNarratives extends ActorInit with Narrative {
+object RemotedataNarratives extends RemotedataActorInit with Narrative {
 
   val cc = RemoteNarrativesCaseClasses
 

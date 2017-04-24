@@ -13,7 +13,7 @@ import scala.collection.immutable.List
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-object RemotedataViews extends ActorInit with Views {
+object RemotedataViews extends RemotedataActorInit with Views {
 
   val cc = RemotedataViewsCaseClasses
 

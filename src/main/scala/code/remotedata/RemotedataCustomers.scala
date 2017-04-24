@@ -10,7 +10,7 @@ import net.liftweb.common.{Full, _}
 
 
 
-object RemotedataCustomers extends ActorInit with CustomerProvider {
+object RemotedataCustomers extends RemotedataActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
 

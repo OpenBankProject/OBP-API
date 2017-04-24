@@ -6,7 +6,7 @@ import code.usercustomerlinks.{RemotedataUserCustomerLinkProviderCaseClass, User
 import net.liftweb.common._
 
 
-object RemotedataUserCustomerLinks extends ActorInit with UserCustomerLinkProvider {
+object RemotedataUserCustomerLinks extends RemotedataActorInit with UserCustomerLinkProvider {
 
   val cc = RemotedataUserCustomerLinkProviderCaseClass
 

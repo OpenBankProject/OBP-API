@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.actor.Actor
 import akka.event.Logging
+import code.actorsystem.ActorUtils.ActorHelper
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._

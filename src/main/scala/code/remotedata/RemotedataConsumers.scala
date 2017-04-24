@@ -6,7 +6,7 @@ import code.model._
 import net.liftweb.common._
 
 
-object RemotedataConsumers extends ActorInit with ConsumersProvider {
+object RemotedataConsumers extends RemotedataActorInit with ConsumersProvider {
 
   val cc = RemotedataConsumersCaseClasses
 

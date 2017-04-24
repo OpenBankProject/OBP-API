@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataTransactionImages extends ActorInit with TransactionImages {
+object RemotedataTransactionImages extends RemotedataActorInit with TransactionImages {
 
   val cc = RemotedataTransactionImagesCaseClasses
 

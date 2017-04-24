@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.actor.Actor
 import akka.event.Logging
+import code.actorsystem.ActorUtils.ActorHelper
 import code.consumer.RemotedataConsumersCaseClasses
 import code.model.{MappedConsumersProvider, _}
 import code.util.Helper.MdcLoggable

@@ -8,7 +8,7 @@ import code.customer.{AmountOfMoney => _}
 import code.metrics.{APIMetric, APIMetrics, RemotedataMetricsCaseClasses}
 
 
-object RemotedataMetrics extends ActorInit with APIMetrics {
+object RemotedataMetrics extends RemotedataActorInit with APIMetrics {
 
   val cc = RemotedataMetricsCaseClasses
 

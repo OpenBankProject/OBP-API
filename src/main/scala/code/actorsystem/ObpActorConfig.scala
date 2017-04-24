@@ -1,13 +1,10 @@
-package code.remotedata
+package code.actorsystem
 
-
-import akka.actor.ActorSystem
 import code.util.Helper
-import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
 
 
-object RemotedataConfig {
+object ObpActorConfig {
 
   val remoteHostname = Props.get("remotedata.hostname").openOr("127.0.0.1")
   val remotePort = Props.get("remotedata.port").openOr("2662")

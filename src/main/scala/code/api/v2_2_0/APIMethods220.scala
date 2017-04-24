@@ -3,6 +3,7 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
+import code.actorsystem.ObpActorConfig
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -13,7 +14,6 @@ import code.bankconnectors._
 import code.metrics.{APIMetric, APIMetrics, ConnMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
-import code.remotedata.RemotedataConfig
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
@@ -48,8 +48,8 @@ trait APIMethods220 {
       val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
       val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
 
-      val akkaPorts = PortJSON("remotedata.local.port", RemotedataConfig.localPort.toString) :: PortJSON("remotedata.port", RemotedataConfig.remotePort) :: Nil
-      val akka = AkkaJSON(akkaPorts, RemotedataConfig.akka_loglevel)
+      val akkaPorts = PortJSON("remotedata.local.port", ObpActorConfig.localPort.toString) :: PortJSON("remotedata.port", ObpActorConfig.remotePort) :: Nil
+      val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel)
       val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
 
       val metrics = MetricsJSON("es.metrics.port.tcp", Props.get("es.metrics.port.tcp", "9300")) ::

@@ -8,7 +8,7 @@ import code.transactionrequests.TransactionRequests.{TransactionRequest, Transac
 import code.transactionrequests.{MappedTransactionRequest, RemotedataTransactionRequestsCaseClasses, TransactionRequestProvider}
 import net.liftweb.common.Box
 
-object RemotedataTransactionRequests extends ActorInit with TransactionRequestProvider {
+object RemotedataTransactionRequests extends RemotedataActorInit with TransactionRequestProvider {
 
   val cc = RemotedataTransactionRequestsCaseClasses
 

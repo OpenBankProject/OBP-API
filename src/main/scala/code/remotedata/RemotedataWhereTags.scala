@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataWhereTags extends ActorInit with WhereTags {
+object RemotedataWhereTags extends RemotedataActorInit with WhereTags {
 
   val cc = RemotedataWhereTagsCaseClasses
 

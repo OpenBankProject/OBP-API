@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataComments extends ActorInit with Comments {
+object RemotedataComments extends RemotedataActorInit with Comments {
 
    val cc = RemotedataCommentsCaseClasses
 

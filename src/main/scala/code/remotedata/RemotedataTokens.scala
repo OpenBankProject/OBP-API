@@ -9,7 +9,7 @@ import code.model.TokenType.TokenType
 import net.liftweb.common._
 
 
-object RemotedataTokens extends ActorInit with TokensProvider {
+object RemotedataTokens extends RemotedataActorInit with TokensProvider {
 
   val cc = RemotedataTokensCaseClasses
 

@@ -53,13 +53,13 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import code.util.Helper.MdcLoggable
+import akka.pattern.ask
 
-object KafkaMappedConnector extends Connector with MdcLoggable {
-
-  val kafkaHelper = new KafkaHelper
+object KafkaMappedConnector extends Connector with KafkaHelperActorInit with MdcLoggable {
 
   def process(request: Map[String,String]): json.JValue = {
-    kafkaHelper.process(request)
+    val result = actor ? request
+    json.parse(extractFuture(result)) \\ "data"
   }
 
   type AccountType = KafkaBankAccount

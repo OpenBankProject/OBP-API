@@ -9,7 +9,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataAccountHolders extends ActorInit with AccountHolders {
+object RemotedataAccountHolders extends RemotedataActorInit with AccountHolders {
 
   val cc = RemotedataAccountHoldersCaseClasses
 

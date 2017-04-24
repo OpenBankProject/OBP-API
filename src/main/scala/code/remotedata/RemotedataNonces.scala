@@ -8,7 +8,7 @@ import net.liftweb.common.Box
 import akka.pattern.ask
 
 
-object RemotedataNonces extends ActorInit with NoncesProvider {
+object RemotedataNonces extends RemotedataActorInit with NoncesProvider {
 
   val cc = RemotedataNoncesCaseClasses
 

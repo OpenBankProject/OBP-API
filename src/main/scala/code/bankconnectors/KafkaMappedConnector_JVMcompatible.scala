@@ -72,13 +72,15 @@ import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
+import akka.pattern.ask
 
-
-object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
+object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelperActorInit with MdcLoggable {
 
   def process(request: Map[String,String]): json.JValue = {
-    KafkaHelper.process(request)
+    val result = actor ? request
+    json.parse(extractFuture(result)) \\ "data"
   }
+
   type AccountType = KafkaBankAccount
   
   // Maybe we should read the date format from props?

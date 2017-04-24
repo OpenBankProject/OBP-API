@@ -7,7 +7,7 @@ import code.bankconnectors.OBPQueryParam
 import code.metrics.{ConnMetrics, MappedConnectorMetric, RemotedataConnectorMetricsCaseClasses}
 
 
-object RemotedataConnectorMetrics extends ActorInit with ConnMetrics {
+object RemotedataConnectorMetrics extends RemotedataActorInit with ConnMetrics {
 
   val cc = RemotedataConnectorMetricsCaseClasses
 
