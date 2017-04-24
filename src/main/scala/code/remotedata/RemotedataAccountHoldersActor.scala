@@ -6,7 +6,7 @@ import akka.actor.Actor
 import akka.event.Logging
 import akka.util.Timeout
 import code.accountholder.{MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
-import code.actorsystem.ActorUtils.ActorHelper
+import code.actorsystem.ActorHelper
 import code.model._
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._

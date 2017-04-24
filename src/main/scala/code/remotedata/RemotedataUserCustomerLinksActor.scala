@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import akka.event.Logging
-import code.actorsystem.ActorUtils.ActorHelper
+import code.actorsystem.ActorHelper
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, RemotedataUserCustomerLinkProviderCaseClass}
 import code.util.Helper.MdcLoggable
 

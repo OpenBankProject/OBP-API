@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.Actor
 import akka.event.Logging
 import akka.util.Timeout
-import code.actorsystem.ActorUtils.ActorHelper
+import code.actorsystem.ActorHelper
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemotedataUsersCaseClasses}

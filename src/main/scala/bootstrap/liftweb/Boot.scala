@@ -36,12 +36,14 @@ import java.util.Locale
 import javax.mail.internet.MimeMessage
 
 import code.accountholder.MapperAccountHolders
+import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.{APIUtil, ErrorMessages}
 import code.atms.MappedAtm
+import code.bankconnectors.KafkaHelperActors
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
@@ -202,13 +204,15 @@ class Boot extends MdcLoggable {
     logger.debug(s"If you can read this, logging level is debug")
 
 
+    val actorSystem = ObpActorSystem.startLocalActorSystem()
+    KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
 
     if (!Props.getBool("remotedata.enable", false)) {
       try {
-        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
-        RemotedataActors.startLocalWorkerSystem()
+        logger.info(s"RemotedataActors.startLocalRemotedataWorkers(actorSystem) starting")
+        RemotedataActors.startLocalRemotedataWorkers(actorSystem)
       } catch {
-        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
+        case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers(${actorSystem}) could not start: $ex")
       }
     }
 

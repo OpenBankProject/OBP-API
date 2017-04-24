@@ -1,16 +1,13 @@
 package code.bankconnectors
 
 import java.util
-import java.util.{Collection, Properties, UUID}
+import java.util.{Properties, UUID}
 
 import akka.actor.Actor
 import code.actorsystem.ActorHelper
-import code.actorsystem.ObpLookupSystem
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json._
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
@@ -19,8 +16,16 @@ import org.apache.kafka.common.errors.WakeupException
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionException, Future}
 
+//object KafkaHelperActor extends KafkaHelperActor with KafkaHelperActorInit {
+//
+//}
 
-class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
+object KafkaHelper extends Actor with KafkaHelperActorInit with MdcLoggable {
+
+  def receive = {
+
+    case message => logger.warn("[KAFKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
+  }
 
 
   val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
@@ -94,11 +99,6 @@ class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
     val jsonRequest = Extraction.decompose(request)
     processRequest(jsonRequest, reqId)
   }
-
-  def receive = {
-    case message => logger.warn("[KAFKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
-  }
-
 
 }
 

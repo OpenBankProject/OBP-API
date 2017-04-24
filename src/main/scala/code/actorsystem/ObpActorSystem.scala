@@ -6,17 +6,20 @@ import code.util.Helper.MdcLoggable
 import com.typesafe.config.ConfigFactory
 
 
-trait ObpActorSystem extends MdcLoggable {
-  var obpActorSystem: ActorSystem = null
-  val props_hostname = Helper.getHostname
 
-  def init () = {
-    if (obpActorSystem == null ) {
-      val system = ActorSystem("LookupSystem", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.lookupConf)))
-      logger.info(ObpActorConfig.lookupConf)
-      obpActorSystem = system
-    }
+object ObpActorSystem extends ObpActorSystem {
+
+}
+
+trait ObpActorSystem extends MdcLoggable {
+
+  val props_hostname = Helper.getHostname
+  var obpActorSystem: ActorSystem = _
+
+  def startLocalActorSystem(): ActorSystem = {
+    logger.info("Starting local actor system")
+    //logger.info(ObpActorConfig.localConf)
+    obpActorSystem = ActorSystem.create(s"ObpActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
     obpActorSystem
   }
-
 }

@@ -1,4 +1,4 @@
-package code.actorsystem.ActorUtils
+package code.actorsystem
 
 import akka.util.Timeout
 import code.api.APIFailure

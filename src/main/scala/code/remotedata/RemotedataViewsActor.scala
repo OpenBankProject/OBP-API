@@ -1,7 +1,7 @@
 package code.remotedata
 
 import akka.actor.Actor
-import code.actorsystem.ActorUtils.ActorHelper
+import code.actorsystem.ActorHelper
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable

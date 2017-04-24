@@ -1,7 +1,7 @@
 package code.bankconnectors
 
 import akka.actor.{ActorSystem, Props => ActorProps}
-import code.actorsystem.ActorUtils.ActorUtils
+import code.actorsystem.ActorUtils
 import code.actorsystem.ObpActorConfig
 import code.remotedata._
 import code.util.Helper
@@ -15,7 +15,7 @@ trait KafkaHelperActorInit extends ActorUtils {
   ACTOR_TIMEOUT = Props.getLong("connector.timeout").openOr(3)
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
-  val actor = KafkaHelperActorSystem.getKafkaHelperActor(actorName)
+  val actor = KafkaHelperLookupSystem.getKafkaHelperActor(actorName)
 
   def CreateActorNameFromClassName(c: String): String = {
     val n = c.replaceFirst("^.*KafkaHelper", "")
@@ -29,15 +29,15 @@ object KafkaHelperActors extends MdcLoggable {
 
   def startKafkaHelperActors(actorSystem: ActorSystem) = {
     val actorsKafkaHelper = Map(
-      ActorProps[KafkaHelperActor]       -> KafkaHelperActor.actorName
+      ActorProps[KafkaHelperActor]       -> KafkaHelper.actorName
     )
     actorsKafkaHelper.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
   }
 
-  def startLocalKafkaHelperWorkerSystem(): Unit = {
-    logger.info("Starting local KafkaHelperActorSystem")
-    logger.info(ObpActorConfig.localConf)
-    val system = ActorSystem.create(s"KafkaHelperActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
+  def startLocalKafkaHelperWorkers(system: ActorSystem): Unit = {
+    logger.info("Starting local KafkaHelper workers")
+    //logger.info(ObpActorConfig.localConf)
+    //val system = ActorSystem.create(s"ObpActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
     startKafkaHelperActors(system)
   }
 

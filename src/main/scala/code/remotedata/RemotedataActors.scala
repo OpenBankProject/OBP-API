@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
 import bootstrap.liftweb.ToSchemify
-import code.actorsystem.ActorUtils.ActorUtils
+import code.actorsystem.ActorUtils
 import code.actorsystem.ObpActorConfig
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
@@ -26,7 +26,7 @@ trait RemotedataActorInit extends ActorUtils {
   ACTOR_TIMEOUT = Props.getLong("remotedata.timeout").openOr(3)
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
-  val actor = RemotedataActorSystem.getRemotedataActor(actorName)
+  val actor = RemotedataLookupSystem.getRemotedataActor(actorName)
 
   def CreateActorNameFromClassName(c: String): String = {
     val n = c.replaceFirst("^.*Remotedata", "")
@@ -65,15 +65,15 @@ object RemotedataActors extends MdcLoggable {
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
   }
 
-  def startLocalWorkerSystem(): Unit = {
-    logger.info("Starting local RemotedataActorSystem")
-    logger.info(ObpActorConfig.localConf)
-    val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
+  def startLocalRemotedataWorkers( system: ActorSystem ): Unit = {
+    logger.info("Starting local Remotedata actors")
+    //logger.info(ObpActorConfig.localConf)
+    //val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
     startRemotedataActors(system)
   }
 
   def startRemoteWorkerSystem(): Unit = {
-    logger.info("Starting remote RemotedataActorSystem")
+    logger.info("Starting remote RemotedataLookupSystem")
     logger.info(ObpActorConfig.remoteConf)
     val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.remoteConf)))
     startRemotedataActors(system)
