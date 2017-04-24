@@ -629,7 +629,7 @@ object APIUtil extends MdcLoggable {
     requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
     summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
     description: String, // Longer description (originally taken from github wiki)
-    exampleRequestBody: JValue, // An example of the body required (maybe empty)
+    exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
     successResponseBody: scala.Product, // A successful response body
     errorResponseBodies: List[JValue], // Possible error responses
     catalogs: Catalogs,

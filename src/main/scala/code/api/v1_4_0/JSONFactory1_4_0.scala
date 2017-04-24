@@ -281,7 +281,7 @@ object JSONFactory1_4_0 {
                          request_url: String,
                          summary: String,
                          description: String,
-                         example_request_body: JValue,
+                         example_request_body: scala.Product,
                          success_response_body: scala.Product,
                          implemented_by: ImplementedByJson,
                          is_core: Boolean,

@@ -2,6 +2,8 @@ package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
+import code.model.CreateViewJSON
+import net.liftweb.json.Extraction
 /**
   * Created by zhanghongwei on 07/04/2017.
   * This object prepare all the JSON case classes for Swagger .

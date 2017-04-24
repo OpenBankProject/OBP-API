@@ -601,7 +601,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
-      Extraction.decompose(PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate)),
+      PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -648,7 +648,14 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media.",
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
-      Extraction.decompose(PostKycMediaJSON("1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
+      PostKycMediaJSON(
+        "1239879", 
+        "image", 
+        "http://www.example.com/id-docs/123/image.png",
+        exampleDate, 
+        "wuwjfuha234678", 
+        "98FRd987auhf87jab"
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -691,7 +698,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
-      Extraction.decompose(PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
+      PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, ""),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -735,7 +742,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
-      Extraction.decompose(PostKycStatusJSON("8762893876", true, exampleDate)),
+      PostKycStatusJSON("8762893876", true, exampleDate),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -774,7 +781,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
-      Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
+      SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1042,7 +1049,7 @@ trait APIMethods200 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0"))),
+      CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1206,11 +1213,10 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      Extraction.decompose(TransactionRequestBodyJSON (
+      TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
         "A description for the transaction to be created"
-      )
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1270,7 +1276,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
-      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
+      ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
@@ -1403,7 +1409,7 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
+      CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
@@ -1470,7 +1476,7 @@ trait APIMethods200 {
         |
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
-      Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
+      CreateMeetingJSON("tokbox", "onboarding"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1619,9 +1625,9 @@ trait APIMethods200 {
         |Dates need to be in the format 2013-01-21T23:08:00Z
         |${authenticationRequiredMessage(true)}
         |""",
-      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
+      CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
+        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1762,7 +1768,7 @@ trait APIMethods200 {
         |For now the authenticated user can create at most one linked customer at any one bank.
         |${authenticationRequiredMessage(true)}
         |""",
-      Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
+      CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1810,7 +1816,7 @@ trait APIMethods200 {
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
-      Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
+      CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),

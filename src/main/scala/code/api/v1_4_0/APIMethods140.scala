@@ -143,7 +143,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Add Customer Message.",
       "Add a message for the customer specified by CUSTOMER_ID",
       // We use Extraction.decompose to convert to json
-      Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
+      AddCustomerMessageJson("message to send", "from department", "from person"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -459,13 +459,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |Please see later versions of this call in 2.0.0 or 2.1.0.
         |""",
-      Extraction.decompose(TransactionRequestBodyJSON (
-                                TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
-                                AmountOfMoneyJSON("EUR", "100.53"),
-                                "A description for the transaction to be created",
-                                "one of the transaction types possible for the account"
-                                )
-                          ),
+      TransactionRequestBodyJSON(
+        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
+        AmountOfMoneyJSON("EUR", "100.53"),
+        "A description for the transaction to be created",
+        "one of the transaction types possible for the account"
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
@@ -513,7 +512,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
-      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
+      ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
@@ -555,16 +554,30 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/customer",
       "Add a customer.",
       s"""Add a customer linked to the currently authenticated user.
-        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
-        |This call may require additional permissions/role in the future.
-        |For now the authenticated user can create at most one linked customer.
-        |Dates need to be in the format 2013-01-21T23:08:00Z
-        |${authenticationRequiredMessage(true)}
-        |Note: This call is depreciated in favour of v.2.0.0 createCustomer
-        |""",
-      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
-        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
+         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |This call may require additional permissions/role in the future.
+         |For now the authenticated user can create at most one linked customer.
+         |Dates need to be in the format 2013-01-21T23:08:00Z
+         |${authenticationRequiredMessage(true) }
+         |Note: This call is depreciated in favour of v.2.0.0 createCustomer
+         |""",
+      CreateCustomerJson(
+        "user_id to attach this customer to e.g. 123213",
+        "new customer number 687687678",
+        "Joe David Bloggs",
+        "+44 07972 444 876",
+        "person@example.com",
+        CustomerFaceImageJson("www.example.com/person/123/image.png",
+          exampleDate
+        ),
+        exampleDate, "Single",
+        1,
+        List(exampleDate),
+        "Bachelor’s Degree",
+        "Employed",
+        true,
+        exampleDate
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),

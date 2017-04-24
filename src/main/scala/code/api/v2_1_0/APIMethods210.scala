@@ -235,11 +235,10 @@ trait APIMethods210 {
       s"""$transactionRequestGeneralText
          |
        """.stripMargin,
-      Extraction.decompose(TransactionRequestBodyJSON (
+      TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("bank_id", "account_id"),
         AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to be created"
-      )
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -262,12 +261,11 @@ trait APIMethods210 {
          |The routing details of the counterparty will be forwarded for the transfer.
          |
        """.stripMargin,
-      Extraction.decompose(TransactionRequestBodyCounterpartyJSON(
+      TransactionRequestBodyCounterpartyJSON(
         CounterpartyIdJson("lalalalwieuryi79878987fds"),
         AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to the counterparty",
       "SHARED"
-      )
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -294,7 +292,11 @@ trait APIMethods210 {
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
-      Extraction.decompose(TransactionRequestBodySEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
+      TransactionRequestBodySEPAJSON(
+        lowAmount, 
+        IbanJson("IBAN-798789873234"), 
+        "This is a SEPA Transaction Request", 
+        sharedChargePolicy.toString
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -479,7 +481,7 @@ trait APIMethods210 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
-      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
+      ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
@@ -767,7 +769,7 @@ trait APIMethods210 {
       s"""Enable/Disable a Consumer specified by CONSUMER_ID.
         |
         |""",
-      Extraction.decompose(PutEnabledJSON(false)),
+      PutEnabledJSON(false),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -809,7 +811,8 @@ trait APIMethods210 {
           |This is can be used to create cards which are stored in the local RDBMS.
           |${authenticationRequiredMessage(true)}
           |""",
-      Extraction.decompose(PostPhysicalCardJSON(bank_card_number="4012888888881881",
+        PostPhysicalCardJSON(
+        bank_card_number="4012888888881881",
         name_on_card="Internet pay",
         issue_number="34",
         serial_number ="6546",
@@ -825,7 +828,8 @@ trait APIMethods210 {
         replacement = ReplacementJSON(requested_date = new Date(), reason_requested = "stolen"),
         pin_reset=List(PinResetJSON(requested_date = new Date(), reason_requested = "routine_security"), PinResetJSON(requested_date = new Date(), reason_requested = "forgot")),
         collected=new Date(),
-        posted=new Date() )),
+        posted=new Date() 
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -927,7 +931,11 @@ trait APIMethods210 {
           |  * charge : The charge to the customer for each one of these
           |
           |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
-      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
+      TransactionTypeJSON(
+        TransactionTypeId("wuwjfuha234678"),
+        "1", "2", "3", "4",
+        AmountOfMoneyJSON("EUR", "123")
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1174,7 +1182,7 @@ trait APIMethods210 {
           |
           |${authenticationRequiredMessage(true)}
           |""",
-      Extraction.decompose(PostCounterpartyJSON(
+      PostCounterpartyJSON(
         name="",
         other_account_routing_scheme="IBAN",
         other_account_routing_address="7987987-2348987-234234",
@@ -1183,7 +1191,7 @@ trait APIMethods210 {
         other_branch_routing_scheme = "OBP",
         other_branch_routing_address ="Berlin",
         is_beneficiary = true
-      )),
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1246,7 +1254,7 @@ trait APIMethods210 {
           |Dates need to be in the format 2013-01-21T23:08:00Z
           |${authenticationRequiredMessage(true)}
           |""",
-      Extraction.decompose(code.api.v2_1_0.PostCustomerJson("user_id to attach this customer to e.g. 123213",
+      code.api.v2_1_0.PostCustomerJson("user_id to attach this customer to e.g. 123213",
         "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com",
         CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
@@ -1259,7 +1267,8 @@ trait APIMethods210 {
         "Bachelor’s Degree",
         "Employed",
         true,
-        exampleDate)),
+        exampleDate
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1392,13 +1401,13 @@ trait APIMethods210 {
       s"""Update an existing branch for a bank account (Authenticated access).
          |${authenticationRequiredMessage(true)}
          |""",
-      Extraction.decompose(BranchJsonPut("gh.29.fi", "OBP",
+      BranchJsonPut("gh.29.fi", "OBP",
         AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
         LocationJson(1.2, 2.1),
         MetaJson(LicenseJson("","")),
         LobbyJson(""),
         DriveUpJson("")
-      )),
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
@@ -1437,13 +1446,13 @@ trait APIMethods210 {
       s"""Create branch for the bank (Authenticated access).
           |${authenticationRequiredMessage(true)}
           |""",
-      Extraction.decompose(BranchJsonPost("123","gh.29.fi", "OBP",
+      BranchJsonPost("123","gh.29.fi", "OBP",
         AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
         LocationJson(1.2, 2.1),
         MetaJson(LicenseJson("", "")),
         LobbyJson(""),
         DriveUpJson("")
-      )),
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
@@ -1483,7 +1492,7 @@ trait APIMethods210 {
          | Or use the endpoint 'Get Consumers' to get it  
          | 
        """.stripMargin,
-      Extraction.decompose(ConsumerRedirectUrlJSON("http://localhost:8888")),
+      ConsumerRedirectUrlJSON("http://localhost:8888"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),

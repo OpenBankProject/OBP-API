@@ -158,7 +158,15 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      Extraction.decompose(CreateViewJSON("_name-of-view-to-create", "Description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags", "can_add_counterparty"))),
+      CreateViewJSON(
+        "_name-of-view-to-create",
+        "Description of view",
+        false, "_public_", true,
+        List("can_see_transaction_start_date", 
+          "can_see_bank_account_label",
+          "can_see_tags", "can_add_counterparty"
+        )
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -194,7 +202,15 @@ trait APIMethods220 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
+      UpdateViewJSON(
+        "New description of view",
+        false, "_public_",
+        true,
+        List(
+          "can_see_transaction_start_date",
+          "can_see_bank_account_label"
+        )
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -330,19 +346,17 @@ trait APIMethods220 {
       s"""Create a new bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      Extraction.decompose(
-        BankJSON(
-          id = "gh.29.uk.x",
-          full_name = "uk",
-          short_name = "uk",
-          logo_url = "https://static.openbankproject.com/images/sandbox/bank_x.png",
-          website_url = "https://www.example.com",
-          swift_bic = "IIIGGB22",
-          national_identifier = "UK97ZZZ1234567890",
-          bank_routing = BankRoutingJSON(
-            scheme = "IIIGGB22",
-            address = "UK97ZZZ1234567890"
-          )
+      BankJSON(
+        id = "gh.29.uk.x",
+        full_name = "uk",
+        short_name = "uk",
+        logo_url = "https://static.openbankproject.com/images/sandbox/bank_x.png",
+        website_url = "https://www.example.com",
+        swift_bic = "IIIGGB22",
+        national_identifier = "UK97ZZZ1234567890",
+        bank_routing = BankRoutingJSON(
+          scheme = "IIIGGB22",
+          address = "UK97ZZZ1234567890"
         )
       ),
       emptyObjectJson,
@@ -386,20 +400,18 @@ trait APIMethods220 {
       s"""Create branch for the bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      Extraction.decompose(
-        BranchJSON(
-          id = "123",
-          bank_id = "gh.29.uk",
-          name = "OBP",
-          address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
-          location = LocationJson(1.2, 2.1),
-          meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
-          lobby = LobbyJson("Ma-Pe 10:00-16:30"),
-          drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
-          branch_routing = BranchRoutingJSON(
-            scheme = "IIIGGB22",
-            address = "UK97ZZZ1234567890"
-          )
+      BranchJSON(
+        id = "123",
+        bank_id = "gh.29.uk",
+        name = "OBP",
+        address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        location = LocationJson(1.2, 2.1),
+        meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
+        lobby = LobbyJson("Ma-Pe 10:00-16:30"),
+        drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
+        branch_routing = BranchRoutingJSON(
+          scheme = "IIIGGB22",
+          address = "UK97ZZZ1234567890"
         )
       ),
       emptyObjectJson,
@@ -453,20 +465,18 @@ trait APIMethods220 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      Extraction.decompose(
-        CreateAccountJSON( 
-          user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
-          label = "Label",
-          `type` = "CURRENT",
-          balance = AmountOfMoneyJSON(
-            "EUR",
-            "0"
-          ),
-          branch_id = "1234",
-          account_routing = AccountRoutingJSON(
-            scheme = "OBP",
-            address = "UK123456"
-          )
+      CreateAccountJSON(
+        user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
+        label = "Label",
+        `type` = "CURRENT",
+        balance = AmountOfMoneyJSON(
+          "EUR",
+          "0"
+        ),
+        branch_id = "1234",
+        account_routing = AccountRoutingJSON(
+          scheme = "OBP",
+          address = "UK123456"
         )
       ),
       emptyObjectJson,

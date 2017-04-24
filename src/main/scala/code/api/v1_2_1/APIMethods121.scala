@@ -421,11 +421,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Update Account Label.",
       "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
-      Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
+      UpdateAccountJSON(
+        "ACCOUNT_ID of the account we want to update",
+        "New label",
+        "BANK_ID"
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagMetaData))
+      List(apiTagAccount, apiTagMetaData)
+    )
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
@@ -515,11 +520,23 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
+      CreateViewJSON(
+        "Name of view to create",
+        "Description of view (this example is public, uses the public alias, and has limited access to account data)",
+        true,
+        "_public_",
+        true,
+        List(
+          "can_see_transaction_start_date",
+          "can_see_bank_account_label",
+          "can_see_tags"
+        )
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagAccount, apiTagView)
+    )
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
@@ -550,20 +567,29 @@ trait APIMethods121 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
+      UpdateViewJSON(
+        "New description of view", 
+        false, 
+        "_public_", 
+        true,
+        List("can_see_transaction_start_date", "can_see_bank_account_label")
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
-
-    lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView)
+    )
+  
+    lazy val updateViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
+      ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
             u <- user ?~ "user not found"
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
+            updateJson <- tryo
+            { json.extract[UpdateViewJSON] } ?~ "wrong JSON format"
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
@@ -571,7 +597,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       deleteViewForBankAccount,
       apiVersion,
@@ -584,20 +610,22 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
-
-    lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView)
+    )
+  
+    lazy val deleteViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //deletes a view on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
+      ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
           for {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
-            view <- account removeView (u, viewId)
+            view <- account removeView(u, viewId)
           } yield noContentJsonResponse
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       getPermissionsForBankAccount,
       apiVersion,
@@ -614,8 +642,8 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
-
-    lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+  
+    lazy val getPermissionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
@@ -629,7 +657,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       getPermissionForUserForBankAccount,
       apiVersion,
@@ -638,16 +666,17 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
       """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
-         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-         |
-         |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView, apiTagEntitlement))
-
-    lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView, apiTagEntitlement)
+    )
+  
+    lazy val getPermissionForUserForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
@@ -661,7 +690,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       addPermissionForUserForBankAccountForMultipleViews,
       apiVersion,
@@ -670,11 +699,11 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Grant User access to a list of views.",
       """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
-         |
-         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-         |
-         |OAuth authentication is required and the user needs to have access to the owner view.""",
-      Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
+        |
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      ViewIdsJson(List("owner", "auditor", "investor")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -934,7 +963,7 @@ trait APIMethods121 {
          |the public alias was deleted.
          |
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
-      Extraction.decompose(AliasJSON("An Alias")),
+      AliasJSON("An Alias"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -970,7 +999,7 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
+      AliasJSON("An Alias"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1073,7 +1102,7 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
+      AliasJSON("An Alias"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1110,7 +1139,7 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
+      AliasJSON("An Alias"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1179,7 +1208,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add Counterparty More Info",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
-      Extraction.decompose(MoreInfoJSON("More info")),
+      MoreInfoJSON("More info"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1213,7 +1242,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update Counterparty More Info",
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
-      Extraction.decompose(MoreInfoJSON("More info")),
+      MoreInfoJSON("More info"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1279,7 +1308,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Add url to other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      Extraction.decompose(UrlJSON("www.example.com")),
+      UrlJSON("www.example.com"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1314,7 +1343,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Update url of other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      Extraction.decompose(UrlJSON("www.example.com")),
+      UrlJSON("www.example.com"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1380,7 +1409,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Add image url to other bank account.",
       "Add a url that points to the logo of the counterparty",
-      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
+      ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1414,7 +1443,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update Counterparty Image Url",
       "Update the url that points to the logo of the counterparty",
-      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
+      ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1480,7 +1509,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty",
       "Add open corporates url to other bank account.",
-      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
+      OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1514,7 +1543,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update Open Corporates Url of Counterparty",
       "Update open corporate url of other bank account.",
-      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
+      OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1580,7 +1609,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Add Corporate Location to Counterparty",
       "Add the geolocation of the counterparty's registered address",
-      Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1616,7 +1645,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Update Counterparty Corporate Location",
       "Update the geolocation of the counterparty's registered address",
-      Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1688,7 +1717,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Add physical location to other bank account.",
       "Add geocoordinates of the counterparty's main location",
-      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1725,7 +1754,7 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Update Counterparty Physical Location",
       "Update geocoordinates of the counterparty's main location",
-      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1912,7 +1941,7 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.
          |""",
-      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
+      TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1945,7 +1974,7 @@ trait APIMethods121 {
       """Updates the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
-      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
+      TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2040,7 +2069,7 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required since the comment is linked with the user.""",
-      Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
+      PostTransactionCommentJSON("Why did we spend money on this again?"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2136,7 +2165,7 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      Extraction.decompose(PostTransactionTagJSON("holiday")),
+      PostTransactionTagJSON("holiday"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2231,14 +2260,18 @@ Authentication via OAuth is required if the view is not public.""",
       "Add an image.",
       s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(true) }
          |
          |The image is linked with the user.""",
-      Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
+      PostTransactionImageJSON(
+        "The new printer",
+        "www.example.com/images/printer.png"
+      ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagMetaData, apiTagTransaction)
+    )
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
@@ -2331,7 +2364,7 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2368,7 +2401,7 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
+      PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2478,7 +2511,7 @@ Authentication via OAuth is required if the view is not public.""",
          |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
          |
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
-      Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
+      MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
