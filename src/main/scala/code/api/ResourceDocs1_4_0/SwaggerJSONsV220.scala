@@ -552,10 +552,10 @@ object SwaggerJSONsV220 {
       can_see_where_tag = true
     )
   
-  //  val viewsJSONV220 =
-  //    code.api.v2_2_0.ViewsJSONV220(
-  //      views = List(viewJSONV220)
-  //    )
+    val viewsJSONV220 =
+      code.api.v2_2_0.ViewsJSONV220(
+        views = List(viewJSONV220)
+      )
   
   val otherAccountsJSON =
     code.api.v1_2_1.OtherAccountsJSON(

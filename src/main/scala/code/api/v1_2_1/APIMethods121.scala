@@ -89,7 +89,7 @@ trait APIMethods121 {
   val Implementations1_2_1 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson : JValue = Nil
+    val emptyObjectJson = null
     val apiVersion : String = "1_2_1"
     val apiVersionStatus : String = "STABLE"
 
@@ -132,7 +132,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk"))))),
+      BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")))),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
@@ -168,7 +168,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk"))),
+      BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)

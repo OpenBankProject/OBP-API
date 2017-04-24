@@ -3,6 +3,7 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
+import code.api.ResourceDocs1_4_0.SwaggerJSONsV220._
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -71,7 +72,7 @@ trait APIMethods220 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson: JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion: String = "2_2_0"
 
     val exampleDateString: String = "22/08/2013"
@@ -113,7 +114,7 @@ trait APIMethods220 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
+      viewsJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))

@@ -24,7 +24,7 @@ trait APIMethods130 {
   val Implementations1_3_0 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson : JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion : String = "1_3_0"
 
 

@@ -6,6 +6,7 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
+import code.api.ResourceDocs1_4_0.SwaggerJSONsV220._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
@@ -122,7 +123,7 @@ trait APIMethods200 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson: JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion: String = "2_0_0"
 
     val exampleDateString: String = "22/08/2013"
@@ -153,7 +154,7 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
-      emptyObjectJson,
+      basicAccountJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))

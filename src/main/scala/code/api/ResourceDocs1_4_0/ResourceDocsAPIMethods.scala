@@ -39,7 +39,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   val ImplementationsResourceDocs = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson : JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion : String = "1_4_0"
 
     val exampleDateString : String ="22/08/2013"
