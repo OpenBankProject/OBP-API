@@ -164,7 +164,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 user, bankId, postedData.message, postedData.from_department, postedData.from_person),
               "Server error: could not add message")
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
           }
         }
       }

@@ -34,9 +34,9 @@ package code.api.v2_1_0
 import java.util.Date
 
 import code.api.util.ApiRole
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON, BankRoutingJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJSON, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJSON}
-import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.branches.Branches.BranchId
 import code.common.{License, Meta}
 import code.customer.Customer
@@ -59,8 +59,8 @@ case class AvailableRolesJSON(roles: List[AvailableRoleJSON])
 
 // Transaction related case classes:
 // This the TransactionRequestTypes : FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
-case class TransactionRequestTypeJSON(transaction_request_type: String)
-case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
+case class TransactionRequestTypeJSONV210(transaction_request_type: String)
+case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSONV210])
 
 //For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
 case class CounterpartyIdJson (val counterparty_id : String)
@@ -166,7 +166,7 @@ case class TransactionRequestWithChargeJSON210(
                                              start_date: Date,
                                              end_date: Date,
                                              challenge: ChallengeJSON,
-                                             charge : TransactionRequestChargeJSON
+                                             charge : TransactionRequestChargeJsonV200
                                            )
 
 case class TransactionRequestWithChargeJSONs210(
@@ -228,14 +228,9 @@ case class CounterpartyMetadataJSON(
                                      URL: String,
                                      image_URL: String,
                                      open_corporates_URL: String,
-                                     corporate_location: LocationJSON,
-                                     physical_location: LocationJSON
+                                     corporate_location: LocationJSONV210,
+                                     physical_location: LocationJSONV210
                                    )
-
-case class BankRoutingJSON(
-                               scheme: String,
-                               address: String
-                             )
 
 
 case class UsedByAccountJSON(
@@ -250,21 +245,21 @@ case class CounterpartyNameJSON(
                             )
 
 
-case class LocationJSON(
+case class LocationJSONV210(
                          latitude: Double,
                          longitude: Double,
                          date: Date,
-                         user: UserJSON
+                         user: UserJSONV210
                        )
 
-case class UserJSON(
+case class UserJSONV210(
                      id: String,
                      provider: String,
                      username: String
                    )
 
 
-case class PostCustomerJson(
+case class PostCustomerJsonV210(
                              user_id: String,
                              customer_number : String,
                              legal_name : String,
@@ -282,7 +277,7 @@ case class PostCustomerJson(
                              kyc_status: Boolean,
                              last_ok_date: Date)
 
-case class CustomerJson(customer_id: String,
+case class CustomerJsonV210(customer_id: String,
                         customer_number : String,
                         legal_name : String,
                         mobile_phone_number : String,
@@ -298,12 +293,12 @@ case class CustomerJson(customer_id: String,
                         employment_status: String,
                         kyc_status: Boolean,
                         last_ok_date: Date)
-case class CustomerJSONs(customers: List[CustomerJson])
+case class CustomerJSONs(customers: List[CustomerJsonV210])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
 //V210 added details and description fields
-case class ProductJson(code : String,
+case class ProductJsonV210(code : String,
                        name : String,
                        category: String,
                        family : String,
@@ -312,7 +307,7 @@ case class ProductJson(code : String,
                        details: String,
                        description: String,
                        meta : MetaJson)
-case class ProductsJson (products : List[ProductJson])
+case class ProductsJsonV210 (products : List[ProductJsonV210])
 
 //V210 add bank_id field and delete id
 case class BranchJsonPut(
@@ -426,8 +421,8 @@ case class MetricsJson(metrics: List[MetricJson])
 
 
 object JSONFactory210{
-  def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
-    new TransactionRequestTypeJSON(
+  def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSONV210 = {
+    new TransactionRequestTypeJSONV210(
       transactionRequestType
     )
   }
@@ -473,7 +468,7 @@ object JSONFactory210{
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
       },
-      charge = TransactionRequestChargeJSON (summary = tr.charge.summary,
+      charge = TransactionRequestChargeJsonV200 (summary = tr.charge.summary,
         value = AmountOfMoneyJSON(currency = tr.charge.value.currency,
           amount = tr.charge.value.amount)
       )
@@ -546,7 +541,7 @@ object JSONFactory210{
     )
   }
 
-  def createLocationJSON(loc : Option[GeoTag]) : LocationJSON = {
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJSONV210 = {
     loc match {
       case Some(location) => {
         val user = createUserJSON(location.postedBy)
@@ -554,7 +549,7 @@ object JSONFactory210{
         if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
           null
         else
-          new LocationJSON(
+          new LocationJSONV210(
             latitude = location.latitude,
             longitude = location.longitude,
             date = location.datePosted,
@@ -565,15 +560,15 @@ object JSONFactory210{
     }
   }
 
-  def createUserJSON(user : Box[User]) : UserJSON = {
+  def createUserJSON(user : Box[User]) : UserJSONV210 = {
     user match {
       case Full(u) => createUserJSON(u)
       case _ => null
     }
   }
 
-  def createUserJSON(user : User) : UserJSON = {
-    new UserJSON(
+  def createUserJSON(user : User) : UserJSONV210 = {
+    new UserJSONV210(
       user.idGivenByProvider,
       stringOrNull(user.provider),
       stringOrNull(user.emailAddress) //TODO: shouldn't this be the display name?
@@ -593,9 +588,9 @@ object JSONFactory210{
       case _ => null
     }
 
-  def createCustomerJson(cInfo : Customer) : CustomerJson = {
+  def createCustomerJson(cInfo : Customer) : CustomerJsonV210 = {
 
-    CustomerJson(
+    CustomerJsonV210(
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,
       legal_name = cInfo.legalName,
@@ -638,8 +633,8 @@ object JSONFactory210{
   }
 
   // V210 Products
-  def createProductJson(product: Product) : ProductJson = {
-    ProductJson(product.code.value,
+  def createProductJson(product: Product) : ProductJsonV210 = {
+    ProductJsonV210(product.code.value,
       product.name,
       product.category,
       product.family,
@@ -650,8 +645,8 @@ object JSONFactory210{
       createMetaJson(product.meta))
   }
 
-  def createProductsJson(productsList: List[Product]) : ProductsJson = {
-    ProductsJson(productsList.map(createProductJson))
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV210 = {
+    ProductsJsonV210(productsList.map(createProductJson))
   }
   def createMetaJson(meta: Meta) : MetaJson = {
     MetaJson(createLicenseJson(meta.license))

@@ -4,15 +4,17 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
+import code.api.util.APIUtil.exampleDate
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.{AmountOfMoneyJSON, SuccessMessage}
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_0_0.{TransactionRequestBodyJSON, _}
+import code.api.v2_0_0.JSONFactory200.UsersJSONV200
+import code.api.v2_0_0.{TransactionRequestBodyJsonV200, _}
 import code.api.v2_1_0.JSONFactory210._
-import code.api.v2_2_0.JSONFactory220
+import code.api.v2_2_0.{BranchRoutingJSON, CounterpartyJsonV220, JSONFactory220}
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors._
@@ -32,7 +34,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
-import net.liftweb.json.Extraction
+import net.liftweb.json.{Extraction, JValue}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -54,7 +56,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -97,7 +99,7 @@ trait APIMethods210 {
          |${authenticationRequiredMessage(true)}
           |""",
       emptyObjectJson,
-      emptyObjectJson,
+      SuccessMessage(success = "Success"),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -115,7 +117,7 @@ trait APIMethods210 {
             importData <- tryo {json.extract[SandboxDataImport]} ?~! {ErrorMessages.InvalidJsonFormat}
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
           }
       }
     }
@@ -135,7 +137,7 @@ trait APIMethods210 {
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      TransactionRequestTypesJSON(transaction_request_types = List(transactionRequestTypeJSONV210)),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
@@ -235,12 +237,23 @@ trait APIMethods210 {
       s"""$transactionRequestGeneralText
          |
        """.stripMargin,
-      TransactionRequestBodyJSON (
+      TransactionRequestBodyJsonV200 (
         TransactionRequestAccountJSON("bank_id", "account_id"),
         AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to be created"
       ),
-      emptyObjectJson,
+      TransactionRequestWithChargeJSON210(
+        id = "123",
+        `type` = "SANDBOX_TAN",
+        from = transactionRequestAccountJSON,
+        details = defaultJValue,
+        transaction_ids = List("123"),
+        status = "Complete",
+        start_date = exampleDate,
+        end_date = exampleDate,
+        challenge = challengeJSON,
+        charge = transactionRequestChargeJsonV200
+      ),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -267,7 +280,18 @@ trait APIMethods210 {
         "A description for the transaction to the counterparty",
       "SHARED"
       ),
-      emptyObjectJson,
+      TransactionRequestWithChargeJSON210(
+        id = "123",
+        `type` = "COUNTERPARTY",
+        from = transactionRequestAccountJSON,
+        details = defaultJValue,
+        transaction_ids = List("123"),
+        status = "Complete",
+        start_date = exampleDate,
+        end_date = exampleDate,
+        challenge = challengeJSON,
+        charge = transactionRequestChargeJsonV200
+      ),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -298,7 +322,18 @@ trait APIMethods210 {
         "This is a SEPA Transaction Request", 
         sharedChargePolicy.toString
       ),
-      emptyObjectJson,
+      TransactionRequestWithChargeJSON210(
+        id = "123",
+        `type` = "SEPA",
+        from = transactionRequestAccountJSON,
+        details = defaultJValue,
+        transaction_ids = List("123"),
+        status = "Complete",
+        start_date = exampleDate,
+        end_date = exampleDate,
+        challenge = challengeJSON,
+        charge = transactionRequestChargeJsonV200
+      ),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -482,7 +517,18 @@ trait APIMethods210 {
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
-      emptyObjectJson,
+      TransactionRequestWithChargeJSON(
+        id=  "1234",
+        `type`=  "SEPA",
+        from= transactionRequestAccountJSON,
+        details = defaultJValue,
+        transaction_ids=  "123",
+        status= "Complete",
+        start_date = exampleDate,
+        end_date = exampleDate,
+        challenge = challengeJSON,
+        charge = transactionRequestChargeJsonV200
+      ),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -580,7 +626,9 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      TransactionRequestWithChargeJSONs210(
+        transaction_requests_with_charges = List(transactionRequestWithChargeJSON210)
+      ),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -622,7 +670,7 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      AvailableRolesJSON(roles = List(availableRoleJSON)),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
@@ -656,7 +704,7 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      EntitlementJSONs(list=  List(entitlementJSON)),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
@@ -704,7 +752,18 @@ trait APIMethods210 {
         |
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      ConsumerJSON(
+        consumer_id = 1213,
+        app_name = "SOFI",
+        app_type = "Web",
+        description = "Account Management",
+        developer_email = "contact@tesobe.com",
+        redirect_url = "www.openbankproject.com",
+        created_by_user_id = "123213",
+        created_by_user = resourceUserJSON,
+        enabled = true,
+        created = exampleDate
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -737,7 +796,18 @@ trait APIMethods210 {
           |
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      ConsumerJSONs(list =List(ConsumerJSON(
+        consumer_id = 1213,
+        app_name = "SOFI",
+        app_type = "Web",
+        description = "Account Management",
+        developer_email = "contact@tesobe.com",
+        redirect_url = "www.openbankproject.com",
+        created_by_user_id = "123213",
+        created_by_user = resourceUserJSON,
+        enabled = true,
+        created = exampleDate
+      ))),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -770,7 +840,7 @@ trait APIMethods210 {
         |
         |""",
       PutEnabledJSON(false),
-      emptyObjectJson,
+      PutEnabledJSON(false),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -821,16 +891,34 @@ trait APIMethods210 {
         enabled=true,
         cancelled=false,
         on_hot_list=false,
-        technology ="",
-        networks=List(),
-        allows=List(),
-        account_id="",
+        technology ="Scala",
+        networks=List("networks"),
+        allows=List("networks"),
+        account_id="12345",
         replacement = ReplacementJSON(requested_date = new Date(), reason_requested = "stolen"),
-        pin_reset=List(PinResetJSON(requested_date = new Date(), reason_requested = "routine_security"), PinResetJSON(requested_date = new Date(), reason_requested = "forgot")),
+        pin_reset=List(PinResetJSON(requested_date = new Date(), reason_requested = "forgot")),
         collected=new Date(),
         posted=new Date() 
       ),
-      emptyObjectJson,
+      PhysicalCardJSON(
+        bank_card_number ="4012888888881881",
+        name_on_card ="Internet pay",
+        issue_number ="34",
+        serial_number ="6546",
+        valid_from_date = exampleDate,
+        expires_date = exampleDate,
+        enabled = true,
+        cancelled = true,
+        on_hot_list = true,
+        technology = "Scala",
+        networks=List("networks"),
+        allows=List("networks"),
+        account = accountJSON,
+        replacement = ReplacementJSON(requested_date = new Date(), reason_requested = "stolen"),
+        pin_reset = List(PinResetJSON(requested_date = new Date(), reason_requested = "forgot")),
+        collected = exampleDate,
+        posted = exampleDate
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -890,7 +978,7 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      UsersJSONV200(users =  List(userJSONV200)),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
@@ -936,7 +1024,14 @@ trait APIMethods210 {
         "1", "2", "3", "4",
         AmountOfMoneyJSON("EUR", "123")
       ),
-      emptyObjectJson,
+      code.TransactionTypes.TransactionType.TransactionType(
+        id = transactionTypeId,
+        bankId = bankId,
+        shortCode = "80080",
+        summary = "good",
+        description = "good",
+        charge = amountOfMoney
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank)
@@ -978,7 +1073,13 @@ trait APIMethods210 {
           |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      AtmJson(
+        id = "1234",
+        name = "UK",
+        address = addressJson,
+        location = locationJson,
+        meta = metaJson
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -1024,7 +1125,16 @@ trait APIMethods210 {
           |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      BranchJson(
+        id = "123",
+        name = "Good",
+        address = addressJson,
+        location = locationJson,
+        lobby = lobbyJson,
+        drive_up = driveUpJson,
+        meta = metaJson,
+        branch_routing = branchRoutingJSON
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -1073,7 +1183,17 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      ProductJsonV210(
+        code = "123",
+        name = "Good",
+        category = "OBP",
+        family = "Mother",
+        super_family = "GOOD",
+        more_info_url = "www.openbankproject.com",
+        details = "good ides",
+        description = "Good boy",
+        meta = metaJson
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -1120,7 +1240,18 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      ProductsJsonV210 (products = List(
+        ProductJsonV210(
+        code = "123",
+        name = "Good",
+        category = "OBP",
+        family = "Mother",
+        super_family = "GOOD",
+        more_info_url = "www.openbankproject.com",
+        details = "good ides",
+        description = "Good boy",
+        meta = metaJson
+      ))),
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
@@ -1183,7 +1314,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(true)}
           |""",
       PostCounterpartyJSON(
-        name="",
+        name="GOOD",
         other_account_routing_scheme="IBAN",
         other_account_routing_address="7987987-2348987-234234",
         other_bank_routing_scheme="BIC",
@@ -1192,7 +1323,21 @@ trait APIMethods210 {
         other_branch_routing_address ="Berlin",
         is_beneficiary = true
       ),
-      emptyObjectJson,
+      CounterpartyJsonV220(
+        name = "GOOD",
+        created_by_user_id = "123",
+        this_bank_id = "uk.hk.29",
+        this_account_id = "1231321",
+        this_view_id = "owner",
+        counterparty_id = "87",
+        other_account_routing_scheme = "IBAN",
+        other_account_routing_address = "7987987-2348987-234234",
+        other_bank_routing_scheme = "BIC",
+        other_bank_routing_address = "123456",
+        other_branch_routing_scheme = "OBP",
+        other_branch_routing_address = "Berlin",
+        is_beneficiary = true
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List())
@@ -1254,7 +1399,7 @@ trait APIMethods210 {
           |Dates need to be in the format 2013-01-21T23:08:00Z
           |${authenticationRequiredMessage(true)}
           |""",
-      code.api.v2_1_0.PostCustomerJson("user_id to attach this customer to e.g. 123213",
+      code.api.v2_1_0.PostCustomerJsonV210("user_id to attach this customer to e.g. 123213",
         "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com",
         CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
@@ -1269,7 +1414,24 @@ trait APIMethods210 {
         true,
         exampleDate
       ),
-      emptyObjectJson,
+      CustomerJsonV210(
+        customer_id = "123",
+        customer_number = "123",
+        legal_name = "legal_name",
+        mobile_phone_number = "123",
+        email = "contact@tesobe.com",
+        face_image = customerFaceImageJson,
+        date_of_birth = exampleDate,
+        relationship_status = "123",
+        dependants = 123,
+        dob_of_dependants = List(exampleDate),
+        credit_rating = Option(customerCreditRatingJSON),
+        credit_limit = Option(amountOfMoneyJSON),
+        highest_education_attained = "123",
+        employment_status = "123",
+        kyc_status = true,
+        last_ok_date = exampleDate
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -1289,7 +1451,7 @@ trait APIMethods210 {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = CanCreateCustomer ::
               CanCreateUserCustomerLink ::
               Nil
@@ -1335,7 +1497,7 @@ trait APIMethods210 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      MetricsJson(metrics=  List(metricJson)),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -1349,7 +1511,6 @@ trait APIMethods210 {
             customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
-            println("APIUtil.getCustomers(customerIds) " + APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -1367,7 +1528,24 @@ trait APIMethods210 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      CustomerJsonV210(
+        customer_id = "123",
+        customer_number = "123",
+        legal_name = "legal_name",
+        mobile_phone_number = "123",
+        email = "contact@tesobe.com",
+        face_image = customerFaceImageJson,
+        date_of_birth = exampleDate,
+        relationship_status = "123",
+        dependants = 123,
+        dob_of_dependants = List(exampleDate),
+        credit_rating = Option(customerCreditRatingJSON),
+        credit_limit = Option(amountOfMoneyJSON),
+        highest_education_attained = "123",
+        employment_status = "123",
+        kyc_status = true,
+        last_ok_date = exampleDate
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
@@ -1402,13 +1580,22 @@ trait APIMethods210 {
          |${authenticationRequiredMessage(true)}
          |""",
       BranchJsonPut("gh.29.fi", "OBP",
-        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        AddressJson("VALTATIE 8", "1", "2", "AKAA", "3", "4", "37800"),
         LocationJson(1.2, 2.1),
-        MetaJson(LicenseJson("","")),
-        LobbyJson(""),
-        DriveUpJson("")
+        MetaJson(LicenseJson("1","4")),
+        LobbyJson("4"),
+        DriveUpJson("4")
       ),
-      emptyObjectJson,
+      BranchJson(
+        id = "123",
+        name = "Good",
+        address = addressJson,
+        location = locationJson,
+        lobby = lobbyJson,
+        drive_up = driveUpJson,
+        meta = metaJson,
+        branch_routing = branchRoutingJSON
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -1447,13 +1634,22 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(true)}
           |""",
       BranchJsonPost("123","gh.29.fi", "OBP",
-        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        AddressJson("VALTATIE 8", "1", "2", "AKAA", "3", "4", "37800"),
         LocationJson(1.2, 2.1),
-        MetaJson(LicenseJson("", "")),
-        LobbyJson(""),
-        DriveUpJson("")
+        MetaJson(LicenseJson("4", "4")),
+        LobbyJson("4"),
+        DriveUpJson("4")
       ),
-      emptyObjectJson,
+      BranchJson(
+        id = "123",
+        name = "Good",
+        address = addressJson,
+        location = locationJson,
+        lobby = lobbyJson,
+        drive_up = driveUpJson,
+        meta = metaJson,
+        branch_routing = branchRoutingJSON
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -1493,7 +1689,18 @@ trait APIMethods210 {
          | 
        """.stripMargin,
       ConsumerRedirectUrlJSON("http://localhost:8888"),
-      emptyObjectJson,
+      ConsumerJSON(
+        consumer_id = 1213,
+        app_name = "SOFI",
+        app_type = "Web",
+        description = "Account Management",
+        developer_email = "contact@tesobe.com",
+        redirect_url = "http://localhost:8888",
+        created_by_user_id = "123213",
+        created_by_user = resourceUserJSON,
+        enabled = true,
+        created = exampleDate
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -1565,7 +1772,7 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      MetricsJson(metrics = List(metricJson)),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)

@@ -33,7 +33,7 @@ object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
           importData <- tryo{json.extract[SandboxDataImport]} ?~ ErrorMessages.InvalidJsonFormat
           importWorked <- OBPDataImport.importer.vend.importData(importData)
         } yield {
-          successJsonResponse(JsRaw("{}"), 201)
+          successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
         }
 
     }

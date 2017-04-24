@@ -3,12 +3,10 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.ResourceDocs1_4_0.SwaggerJSONsV220._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
-import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{BranchJsonPost, JSONFactory210}
 import code.bankconnectors._
 import code.metrics.{APIMetric, APIMetrics, ConnMetric, ConnMetrics}
@@ -23,13 +21,11 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-// Makes JValue assignment to Nil work
 import code.api.util.APIUtil._
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonDSL._
 
 
 trait APIMethods220 {
@@ -37,7 +33,7 @@ trait APIMethods220 {
   self: RestHelper =>
 
   // helper methods begin here
-  private def getConfigInfoJSON() = {
+  private def getConfigInfoJSON(): JValue = {
     val apiConfiguration: JValue = {
 
       val f1 = CachedFunctionJSON("getBank", Props.get("connector.cache.ttl.seconds.getBank", "0").toInt)
@@ -158,16 +154,8 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      CreateViewJSON(
-        "_name-of-view-to-create",
-        "Description of view",
-        false, "_public_", true,
-        List("can_see_transaction_start_date", 
-          "can_see_bank_account_label",
-          "can_see_tags", "can_add_counterparty"
-        )
-      ),
-      emptyObjectJson,
+      createViewJSON,
+      viewJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -202,16 +190,8 @@ trait APIMethods220 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      UpdateViewJSON(
-        "New description of view",
-        false, "_public_",
-        true,
-        List(
-          "can_see_transaction_start_date",
-          "can_see_bank_account_label"
-        )
-      ),
-      emptyObjectJson,
+      updateViewJSON,
+      viewJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -241,7 +221,7 @@ trait APIMethods220 {
       "Get Current FxRate",
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
-      emptyObjectJson,
+      fXRateJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -261,8 +241,6 @@ trait APIMethods220 {
       }
     }    
 
-    //
-
     resourceDocs += ResourceDoc(
       getCounterpartiesForAccount,
       apiVersion,
@@ -275,7 +253,7 @@ trait APIMethods220 {
           |${authenticationRequiredMessage(true)}
           |""",
       emptyObjectJson,
-      emptyObjectJson,
+      counterpartiesJsonV220,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
@@ -298,11 +276,6 @@ trait APIMethods220 {
       }
     }
 
-
-
-
-
-
     resourceDocs += ResourceDoc(
       getMessageDocs,
       apiVersion,
@@ -315,7 +288,7 @@ trait APIMethods220 {
         | Note: To enable Kafka connector and this message format, you must set conenctor=kafka_vMar2017 in your Props
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      messageDocsJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
@@ -346,20 +319,8 @@ trait APIMethods220 {
       s"""Create a new bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      BankJSON(
-        id = "gh.29.uk.x",
-        full_name = "uk",
-        short_name = "uk",
-        logo_url = "https://static.openbankproject.com/images/sandbox/bank_x.png",
-        website_url = "https://www.example.com",
-        swift_bic = "IIIGGB22",
-        national_identifier = "UK97ZZZ1234567890",
-        bank_routing = BankRoutingJSON(
-          scheme = "IIIGGB22",
-          address = "UK97ZZZ1234567890"
-        )
-      ),
-      emptyObjectJson,
+      bankJSONV220,
+      bankJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
@@ -371,7 +332,7 @@ trait APIMethods220 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             canCreateBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
-            bank <- tryo{ json.extract[BankJSON] } ?~! ErrorMessages.InvalidJsonFormat
+            bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
               bank.full_name,
@@ -400,21 +361,8 @@ trait APIMethods220 {
       s"""Create branch for the bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      BranchJSON(
-        id = "123",
-        bank_id = "gh.29.uk",
-        name = "OBP",
-        address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
-        location = LocationJson(1.2, 2.1),
-        meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
-        lobby = LobbyJson("Ma-Pe 10:00-16:30"),
-        drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
-        branch_routing = BranchRoutingJSON(
-          scheme = "IIIGGB22",
-          address = "UK97ZZZ1234567890"
-        )
-      ),
-      emptyObjectJson,
+      branchJSONV220,
+      branchJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
@@ -427,7 +375,7 @@ trait APIMethods220 {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            branch <- tryo {json.extract[BranchJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
                 branch.id,
@@ -465,21 +413,8 @@ trait APIMethods220 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      CreateAccountJSON(
-        user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
-        label = "Label",
-        `type` = "CURRENT",
-        balance = AmountOfMoneyJSON(
-          "EUR",
-          "0"
-        ),
-        branch_id = "1234",
-        account_routing = AccountRoutingJSON(
-          scheme = "OBP",
-          address = "UK123456"
-        )
-      ),
-      emptyObjectJson,
+      createAccountJSONV220,
+      createAccountJSONV220,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
@@ -493,7 +428,7 @@ trait APIMethods220 {
         
           for {
             loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
-            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
+            jsonBody <- tryo (json.extract[CreateAccountJSONV220]) ?~ ErrorMessages.InvalidJsonFormat
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
             isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
             isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidBankIdFormat
@@ -546,7 +481,7 @@ trait APIMethods220 {
         |* Elastic search ports
         |* Cached function """,
       emptyObjectJson,
-      emptyObjectJson,
+      configurationJSON,
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
@@ -599,7 +534,7 @@ trait APIMethods220 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      connectorMetricsJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -686,8 +621,6 @@ trait APIMethods220 {
         }
       }
     }
-
-  
   }
 }
 

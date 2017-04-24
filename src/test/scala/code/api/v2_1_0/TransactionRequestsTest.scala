@@ -7,7 +7,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.TransactionRequestBodyJSON
+import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.api.{APIResponse, ChargePolicy, DefaultUsers, ServerSetupWithTestData}
 import code.bankconnectors.Connector
 import code.fx.fx
@@ -80,7 +80,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
       var bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
       val discription = "Just test it!"
-      var transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, discription)
+      var transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, discription)
 
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""

@@ -218,17 +218,17 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
     }
   }
 
-  def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSONV220 => Boolean): Unit = {
+  def assertViewExistsWithCondition(accJson: AccountsJSONV220, cond: ViewJSONV220 => Boolean): Unit = {
     val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
     exists should equal(true)
   }
 
-  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSONV220 => Boolean): Unit = {
+  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSONV220, cond: ViewJSONV220 => Boolean): Unit = {
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
   }
 
-  def assertAccountsFromOneBank(accJson : AccountsJSON) : Unit = {
+  def assertAccountsFromOneBank(accJson : AccountsJSONV220) : Unit = {
     accJson.accounts.size should be > 0
     val theBankId = accJson.accounts.head.bank_id
     theBankId should not be ("")
@@ -236,7 +236,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
     accJson.accounts.foreach(acc => acc.bank_id should equal (theBankId))
   }
 
-  def assertNoDuplicateAccounts(accJson : AccountsJSON) : Unit = {
+  def assertNoDuplicateAccounts(accJson : AccountsJSONV220) : Unit = {
     //bankId : String, accountId: String
     type AccountIdentifier = (String, String)
     //unique accounts have unique bankId + accountId

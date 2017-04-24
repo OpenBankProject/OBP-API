@@ -15,7 +15,7 @@ import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
 import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v2_2_0.BranchRoutingJSON
 import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.common.Full
@@ -388,17 +388,17 @@ object JSONFactory1_4_0 {
   /**
     * package the transactionRequestTypeCharge
     */
-  def createTransactionRequestTypesJSON(transactionRequestTypeCharges: TransactionRequestTypeCharge): TransactionRequestTypeJSON = {
-    TransactionRequestTypeJSON(transactionRequestTypeCharges.transactionRequestTypeId,
-      TransactionRequestChargeJSON(transactionRequestTypeCharges.chargeSummary,
+  def createTransactionRequestTypesJSON(transactionRequestTypeCharges: TransactionRequestTypeCharge): TransactionRequestTypeJsonV140 = {
+    TransactionRequestTypeJsonV140(transactionRequestTypeCharges.transactionRequestTypeId,
+      TransactionRequestChargeJsonV140(transactionRequestTypeCharges.chargeSummary,
         AmountOfMoneyJSON(transactionRequestTypeCharges.chargeCurrency, transactionRequestTypeCharges.chargeAmount)))
   }
   
   /**
     * package the transactionRequestTypeCharges
     */
-  def createTransactionRequestTypesJSONs(transactionRequestTypeCharges: List[TransactionRequestTypeCharge]): TransactionRequestTypeJSONs = {
-    TransactionRequestTypeJSONs(transactionRequestTypeCharges.map(createTransactionRequestTypesJSON))
+  def createTransactionRequestTypesJSONs(transactionRequestTypeCharges: List[TransactionRequestTypeCharge]): TransactionRequestTypesJsonV140 = {
+    TransactionRequestTypesJsonV140(transactionRequestTypeCharges.map(createTransactionRequestTypesJSON))
   }
   
   case class TransactionRequestAccountJSON (
@@ -442,7 +442,12 @@ object JSONFactory1_4_0 {
                         )
   */
 
-  case class TransactionRequestTypeJSON(value: String, charge: TransactionRequestChargeJSON)
+  case class TransactionRequestChargeJsonV140(
+    val summary: String,
+    val value : AmountOfMoneyJSON
+  )
+  
+  case class TransactionRequestTypeJsonV140(value: String, charge: TransactionRequestChargeJsonV140)
 
-  case class TransactionRequestTypeJSONs(transaction_request_types: List[TransactionRequestTypeJSON])
+  case class TransactionRequestTypesJsonV140(transaction_request_types: List[TransactionRequestTypeJsonV140])
 }

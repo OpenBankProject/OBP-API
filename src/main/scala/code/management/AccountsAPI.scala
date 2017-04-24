@@ -26,7 +26,7 @@ object AccountsAPI extends OBPRestHelper with MdcLoggable {
           account <- BankAccount(bankId, accountId) ?~ "Account not found"
         } yield {
           account.remove(u) match {
-            case Full(_) => successJsonResponse(JsRaw("{}"), 204)
+            case Full(_) => successJsonResponse(JsRaw("""{"success":"Success"}"""), 204)
             case Failure(x, _, _) => errorJsonResponse("{'Error': '"+ x + "'}", 500)
             case _ => errorJsonResponse("{'Error': 'could not delete Account'}", 500)
           }

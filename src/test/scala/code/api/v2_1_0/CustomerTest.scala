@@ -26,7 +26,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
   val mockCustomerNumber2 = "93934903202"
 
   def createCustomerJson(customerNumber: String) = {
-    PostCustomerJson(
+    PostCustomerJsonV210(
       user_id = authuser1.userId,
       customer_number = customerNumber,
       legal_name = "Someone",
@@ -83,7 +83,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responsePost2.code should equal(201)
       And("We should get the right information back")
-      val infoPost = responsePost2.body.extract[CustomerJson]
+      val infoPost = responsePost2.body.extract[CustomerJsonV210]
 
       When("We make the request")
       val requestGet = (v2_1Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
@@ -93,7 +93,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
 
       And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJson]
+      val infoGet = responseGet.body.extract[CustomerJsonV210]
 
       And("POST feedback and GET feedback must be the same")
       infoGet should equal(infoPost)

@@ -6,7 +6,7 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
-import code.api.ResourceDocs1_4_0.SwaggerJSONsV220._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
@@ -154,7 +154,12 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
-      basicAccountJSON,
+      BasicAccountJSON(
+        id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        label = "NoneLabel",
+        bank_id = "gh.29.uk",
+        views_available = List(basicViewJSON)
+      ),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -808,7 +813,7 @@ trait APIMethods200 {
                 postedData.date_activated),
               "Server error: could not add")
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
           }
         }
       }
@@ -1213,7 +1218,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      TransactionRequestBodyJSON (
+      TransactionRequestBodyJsonV200 (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
         "A description for the transaction to be created"
@@ -1234,7 +1239,7 @@ trait APIMethods200 {
              * test: functionality, error messages if user not given or invalid, if any other value is not existing
             */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV200]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat

@@ -41,7 +41,7 @@ trait APIMethods121 {
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val views = account permittedViews user
-      val viewsAvailable : List[ViewJSON] =
+      val viewsAvailable : List[ViewJSONV121] =
         views.map( v => {
           JSONFactory.createViewJSON(v)
         })
