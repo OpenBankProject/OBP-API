@@ -19,9 +19,7 @@ import org.apache.kafka.common.errors.WakeupException
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionException, Future}
 
-
 class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
-
 
   val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
   val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")

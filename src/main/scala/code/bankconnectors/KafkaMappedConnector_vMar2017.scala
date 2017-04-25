@@ -62,30 +62,8 @@ import scala.collection.mutable.ArrayBuffer
 import code.util.Helper.MdcLoggable
 import akka.pattern.ask
 
-object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelperActorInit with MdcLoggable {
 
-
-  /**
-    * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
-    * In KafkaMappedConnector.scala, we use Map[String, String]. Now we change to case class
-    * eg: case class Company(name: String, address: String) -->
-    * Company("TESOBE","Berlin")
-    * Map(name->"TESOBE", address->"2")
-    *
-    * @param caseClassObject
-    * @return Map[String, String]
-    */
-  def transferCaseClassToMap(caseClassObject: scala.Product) =
-    caseClassObject.getClass.getDeclaredFields.map(_.getName) // all field names
-    .zip(caseClassObject.productIterator.to).toMap.asInstanceOf[Map[String, String]] // zipped with all values
-
-  def process(request: scala.Product): json.JValue = {
-    val reqId = UUID.randomUUID().toString
-    val mapRequest= transferCaseClassToMap(request)
-    val jsonRequest = Extraction.decompose(mapRequest)
-    val result = actor ? jsonRequest
-    json.parse(extractFuture(result)) \\ "data"
-  }
+object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
 
   type AccountType = BankAccount2
 

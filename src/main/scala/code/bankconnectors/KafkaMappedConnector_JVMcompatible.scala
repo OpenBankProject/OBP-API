@@ -74,12 +74,7 @@ import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
 import akka.pattern.ask
 
-object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelperActorInit with MdcLoggable {
-
-  def process(request: Map[String,String]): json.JValue = {
-    val result = actor ? request
-    json.parse(extractFuture(result)) \\ "data"
-  }
+object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
   type AccountType = KafkaBankAccount
   
