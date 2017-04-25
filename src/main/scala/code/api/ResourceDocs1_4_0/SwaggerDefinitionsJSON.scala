@@ -1,14 +1,10 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util.Date
-
 import code.api.util.APIUtil
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{defaultJValue, _}
 //import JSONFactory1_4_0.{PostCustomerJson, _}
 import code.api.v2_0_0.JSONFactory200._
 import code.api.v2_0_0._
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 
 /**
   * Created by zhanghongwei on 07/04/2017.
@@ -432,7 +428,13 @@ object SwaggerDefinitionsJSON {
   //V200 
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
-  
+
+  val basicAccountJSON = BasicAccountJSON(
+    id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    label = "NoneLabel",
+    bank_id = "gh.29.uk",
+    views_available = List(basicViewJSON)
+  )
   val basicViewJSON = BasicViewJSON(
     id = "1",
     short_name = "HHH",
