@@ -205,7 +205,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      List(basicAccountJSON),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -245,7 +245,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
       """,
       emptyObjectJson,
-      emptyObjectJson,
+      List(basicAccountJSON),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
@@ -293,7 +293,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      List(coreAccountJSON),
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
@@ -358,7 +358,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      basicAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
@@ -393,7 +393,7 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      List(basicAccountJSON),
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -423,7 +423,7 @@ trait APIMethods200 {
         |Passport, driving licence etc.
         |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycDocumentsJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))

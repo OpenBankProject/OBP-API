@@ -429,24 +429,45 @@ object SwaggerDefinitionsJSON {
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
 
+
+  val basicViewJSON = BasicViewJSON(
+    id = "1",
+    short_name = "HHH",
+    is_public = true
+  )
+
   val basicAccountJSON = BasicAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
     bank_id = "gh.29.uk",
     views_available = List(basicViewJSON)
   )
-  val basicViewJSON = BasicViewJSON(
-    id = "1",
-    short_name = "HHH",
-    is_public = true
-  )
+
   val coreAccountJSON = CoreAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
     bank_id = "gh.29.uk",
     _links = defaultJValue
   )
-  
+  val basicAccountsJSON = BasicAccountsJSON(
+    accounts = List(basicAccountJSON)
+  )
+
+  val kycDocumentJSON =  KycDocumentJSON(
+    bank_id = "bank_id",
+    customer_id = "customer_id",
+    id = "id",
+    customer_number = "customer_number",
+    `type` = "type",
+    number = "number",
+    issue_date = exampleDate,
+    issue_place = "issue_place",
+    expiry_date = exampleDate
+  )
+
+  val kycDocumentsJSON = KycDocumentsJSON(
+    documents =  List(kycDocumentJSON)
+  )
   
   val moderatedCoreAccountJSON =
     JSONFactory200.ModeratedCoreAccountJSON(
