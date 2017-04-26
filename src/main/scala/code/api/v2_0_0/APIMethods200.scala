@@ -134,7 +134,7 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
-      basicAccountJSON,
+      basicAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -162,7 +162,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |""",
       emptyObjectJson,
-      coreAccountJSON,
+      coreAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
@@ -205,7 +205,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |""",
       emptyObjectJson,
-      List(basicAccountJSON),
+      basicAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -245,7 +245,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
       """,
       emptyObjectJson,
-      List(basicAccountJSON),
+      basicAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
@@ -293,7 +293,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      List(coreAccountJSON),
+      coreAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
@@ -393,7 +393,7 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      List(basicAccountJSON),
+      basicAccountsJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -455,7 +455,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycMediasJSON,
       emptyObjectJson :: Nil,
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagCustomer, apiTagKyc))
@@ -487,7 +487,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycChecksJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -517,7 +517,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycStatusesJSON,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))

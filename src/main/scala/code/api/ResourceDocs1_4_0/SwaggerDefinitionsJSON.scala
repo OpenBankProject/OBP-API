@@ -452,23 +452,36 @@ object SwaggerDefinitionsJSON {
   val basicAccountsJSON = BasicAccountsJSON(
     accounts = List(basicAccountJSON)
   )
+  val coreAccountsJSON = CoreAccountsJSON(accounts = List(coreAccountJSON))
 
   val kycDocumentJSON =  KycDocumentJSON(
-    bank_id = "bank_id",
-    customer_id = "customer_id",
-    id = "id",
-    customer_number = "customer_number",
-    `type` = "type",
-    number = "number",
+    bank_id = "PlaceholderString",
+    customer_id = "PlaceholderString",
+    id = "PlaceholderString",
+    customer_number = "PlaceholderString",
+    `type` = "PlaceholderString",
+    number = "PlaceholderString",
     issue_date = exampleDate,
-    issue_place = "issue_place",
+    issue_place = "PlaceholderString",
     expiry_date = exampleDate
   )
 
   val kycDocumentsJSON = KycDocumentsJSON(
     documents =  List(kycDocumentJSON)
   )
-  
+  val kycMediaJSON = KycMediaJSON(
+                           bank_id = "PlaceholderString",
+                           customer_id = "PlaceholderString",
+                           id = "PlaceholderString",
+                           customer_number = "PlaceholderString",
+                           `type` = "PlaceholderString",
+                           url = "PlaceholderString",
+                           date = exampleDate,
+                           relates_to_kyc_document_id = "PlaceholderString",
+                           relates_to_kyc_check_id = "PlaceholderString"
+                         )
+  val kycMediasJSON = KycMediasJSON(medias = List(kycMediaJSON))
+
   val moderatedCoreAccountJSON =
     JSONFactory200.ModeratedCoreAccountJSON(
       id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -482,7 +495,28 @@ object SwaggerDefinitionsJSON {
       bank_id = "gh.29.uk",
       account_routing = accountRoutingJSON
     )
-  
+  val kycCheckJSON = KycCheckJSON(
+                           bank_id = "PlaceholderString",
+                           customer_id = "PlaceholderString",
+                           id = "PlaceholderString",
+                           customer_number = "PlaceholderString",
+                           date = exampleDate,
+                           how = "PlaceholderString",
+                           staff_user_id = "PlaceholderString",
+                           staff_name = "PlaceholderString",
+                           satisfied = true,
+                           comments = "PlaceholderString"
+                         )
+  var kycChecksJSON = KycChecksJSON(checks = List(kycCheckJSON))
+
+  var kycStatusJSON = KycStatusJSON(
+                            customer_id = "PlaceholderString",
+                            customer_number = "PlaceholderString",
+                            ok = true,
+                            date = exampleDate
+                          )
+  var kycStatusesJSON = KycStatusesJSON(statuses = List(kycStatusJSON))
+
   val entitlementJSON =
     code.api.v2_0_0.EntitlementJSON(
       entitlement_id = "6fb17583-1e49-4435-bb74-a14fe0996723",

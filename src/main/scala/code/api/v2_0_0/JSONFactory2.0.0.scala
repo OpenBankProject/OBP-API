@@ -35,15 +35,13 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJSON, ViewJSONV121}
-import code.api.v2_2_0.{AccountJSONV220, AccountsJSONV220}
+import code.api.v1_2_1.AccountRoutingJSON
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json
 import net.liftweb.json.Extraction
 
 // import code.api.util.APIUtil.ApiLink
@@ -164,6 +162,8 @@ case class CoreAccountJSON(
                              bank_id : String,
                              _links: JValue
                            )
+
+case class CoreAccountsJSON( accounts : List[CoreAccountJSON])
 
 case class PostKycDocumentJSON(
                                 customer_number: String,
