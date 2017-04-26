@@ -174,7 +174,7 @@ case class ModeratedAccountJSON(
   number : String,
   owners : List[UserJSONV121],
   `type` : String,
-  balance : AmountOfMoneyJSON,
+  balance : AmountOfMoneyJsonV121,
   IBAN : String,
   swift_bic: String,
   views_available : List[ViewJSONV121],
@@ -193,7 +193,7 @@ case class PermissionJSON(
   user : UserJSONV121,
   views : List[ViewJSONV121]
 )
-case class AmountOfMoneyJSON(
+case class AmountOfMoneyJsonV121(
   currency : String,
   amount : String
 )
@@ -244,8 +244,8 @@ case class TransactionDetailsJSON(
   description : String,
   posted : Date,
   completed : Date,
-  new_balance : AmountOfMoneyJSON,
-  value : AmountOfMoneyJSON
+  new_balance : AmountOfMoneyJsonV121,
+  value : AmountOfMoneyJsonV121
 )
 case class TransactionMetadataJSON(
   narrative : String,
@@ -672,22 +672,22 @@ object JSONFactory{
     ).toList
   }
 
-  def createAmountOfMoneyJSON(currency : String, amount  : String) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : String, amount  : String) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOrNull(currency),
       stringOrNull(amount)
     )
   }
 
-  def createAmountOfMoneyJSON(currency : Option[String], amount  : Option[String]) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : Option[String], amount  : Option[String]) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOptionOrNull(currency),
       stringOptionOrNull(amount)
     )
   }
 
-  def createAmountOfMoneyJSON(currency : Option[String], amount  : String) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : Option[String], amount  : String) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOptionOrNull(currency),
       stringOrNull(amount)
     )

@@ -17,7 +17,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-import code.api.v1_2_1.{Akka, AmountOfMoneyJSON}
+import code.api.v1_2_1.{Akka, AmountOfMoneyJsonV121}
 import code.api.v2_0_0.CreateCustomerJson
 
 import scala.collection.immutable.Nil
@@ -459,9 +459,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |Please see later versions of this call in 2.0.0 or 2.1.0.
         |""",
-      TransactionRequestBodyJSON(
-        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
-        AmountOfMoneyJSON("EUR", "100.53"),
+      TransactionRequestBodyJsonV140(
+        TransactionRequestAccountJsonV140("BANK_ID", "ACCOUNT_ID"),
+        AmountOfMoneyJsonV121("EUR", "100.53"),
         "A description for the transaction to be created",
         "one of the transaction types possible for the account"
       ),
@@ -481,7 +481,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV140]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}

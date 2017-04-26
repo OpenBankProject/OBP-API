@@ -3,7 +3,7 @@ package code.TransactionTypes
 
 import java.util.Date
 
-import code.api.v2_0_0.TransactionTypeJSON
+import code.api.v2_0_0.TransactionTypeJsonV200
 import code.model._
 import code.transaction_types.MappedTransactionTypeProvider
 import net.liftweb.common.{Box, Logger}
@@ -67,7 +67,7 @@ trait TransactionTypeProvider {
     getTransactionTypeFromProvider(transactionTypeId)
   }
 
-  final def createOrUpdateTransactionType(postedData: TransactionTypeJSON): Box[TransactionType] = {
+  final def createOrUpdateTransactionType(postedData: TransactionTypeJsonV200): Box[TransactionType] = {
     createOrUpdateTransactionTypeAtProvider(postedData)
   }
 
@@ -75,6 +75,6 @@ trait TransactionTypeProvider {
 
   protected def getTransactionTypeFromProvider(TransactionTypeId : TransactionTypeId) : Option[TransactionType]
 
-  protected def createOrUpdateTransactionTypeAtProvider(postedData: TransactionTypeJSON): Box[TransactionType]
+  protected def createOrUpdateTransactionTypeAtProvider(postedData: TransactionTypeJsonV200): Box[TransactionType]
 }
 

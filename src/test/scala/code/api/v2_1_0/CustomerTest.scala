@@ -10,7 +10,7 @@ import code.entitlement.Entitlement
 import code.model.BankId
 import net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 
@@ -38,7 +38,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       dependants = 1,
       dob_of_dependants = List(exampleDate),
       credit_rating = CustomerCreditRatingJSON(rating = "5", source = "Credit biro"),
-      credit_limit = AmountOfMoneyJSON(currency = "EUR", amount = "5000"),
+      credit_limit = AmountOfMoneyJsonV121(currency = "EUR", amount = "5000"),
       highest_education_attained = "Bachelor’s Degree",
       employment_status = "Employed",
       kyc_status = true,

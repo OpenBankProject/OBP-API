@@ -11,9 +11,9 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
-import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 
 import code.api.v2_0_0.JSONFactory200.bankAccountsListToJson
 
@@ -88,7 +88,7 @@ trait APIMethods200 {
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
-      val viewsAvailable : List[BasicViewJSON] =
+      val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
         })
@@ -100,7 +100,7 @@ trait APIMethods200 {
   private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
-      val viewsAvailable : List[BasicViewJSON] =
+      val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
         })
@@ -1219,7 +1219,7 @@ trait APIMethods200 {
         |
         |""",
       TransactionRequestBodyJsonV200 (
-        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
+        TransactionRequestAccountJsonV140("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
         "A description for the transaction to be created"
       ),
@@ -1414,7 +1414,7 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
+      CreateUserJson("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
@@ -1424,7 +1424,7 @@ trait APIMethods200 {
       case "users" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo {json.extract[CreateUserJson]} ?~! ErrorMessages.InvalidJsonFormat
             isValidStrongPassword <- tryo(assert(isValidStrongPassword(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
             if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
@@ -1481,7 +1481,7 @@ trait APIMethods200 {
         |
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
-      CreateMeetingJSON("tokbox", "onboarding"),
+      CreateMeetingJson("tokbox", "onboarding"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1499,7 +1499,7 @@ trait APIMethods200 {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              postedData <- tryo {json.extract[CreateMeetingJSON]} ?~! ErrorMessages.InvalidJsonFormat
+              postedData <- tryo {json.extract[CreateMeetingJson]} ?~! ErrorMessages.InvalidJsonFormat
               now = Calendar.getInstance().getTime()
               sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
               customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
@@ -1773,7 +1773,7 @@ trait APIMethods200 {
         |For now the authenticated user can create at most one linked customer at any one bank.
         |${authenticationRequiredMessage(true)}
         |""",
-      CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc"),
+      CreateUserCustomerLinkJson("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc"),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1789,7 +1789,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            postedData <- tryo{json.extract[CreateUserCustomerLinkJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[CreateUserCustomerLinkJson]} ?~! ErrorMessages.InvalidJsonFormat
             user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~ "Field user_id is not defined in the posted json!"
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
