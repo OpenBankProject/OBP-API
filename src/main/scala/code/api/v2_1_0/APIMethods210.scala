@@ -57,6 +57,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -100,7 +101,7 @@ trait APIMethods210 {
           |""",
       emptyObjectJson,
       successMessage,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -138,7 +139,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       transactionRequestTypesJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
 
@@ -239,7 +240,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -261,7 +262,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
       transactionRequestWithChargeJSON210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -287,7 +288,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodySEPAJSON,
       transactionRequestWithChargeJSON210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -471,7 +472,7 @@ trait APIMethods210 {
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       challengeAnswerJSON,
       transactionRequestWithChargeJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -569,7 +570,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargeJSONs210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -611,7 +612,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -645,7 +646,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -693,7 +694,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       consumerJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -726,7 +727,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       consumersJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -759,7 +760,7 @@ trait APIMethods210 {
         |""",
       putEnabledJSON,
       putEnabledJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -801,7 +802,7 @@ trait APIMethods210 {
           |""",
       postPhysicalCardJSON,
       physicalCardJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -861,7 +862,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -903,7 +904,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
       transactionTypeJsonV200,
       transactionType,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank)
     )
@@ -945,7 +946,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -991,7 +992,7 @@ trait APIMethods210 {
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1040,7 +1041,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productJsonV210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1087,7 +1088,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productsJsonV210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1150,7 +1151,7 @@ trait APIMethods210 {
           |""",
       postCounterpartyJSON,
       counterpartyJsonV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -1213,7 +1214,7 @@ trait APIMethods210 {
           |""",
       postCustomerJsonV210,
       customerJsonV210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1277,7 +1278,7 @@ trait APIMethods210 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       metricsJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1308,7 +1309,7 @@ trait APIMethods210 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customerJsonV210,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -1343,7 +1344,7 @@ trait APIMethods210 {
          |""",
       branchJsonPut,
       branchJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -1382,7 +1383,7 @@ trait APIMethods210 {
           |""",
       branchJsonPost,
       branchJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -1422,7 +1423,7 @@ trait APIMethods210 {
        """.stripMargin,
       consumerRedirectUrlJSON,
       consumerJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil
     )
@@ -1495,7 +1496,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       metricsJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
