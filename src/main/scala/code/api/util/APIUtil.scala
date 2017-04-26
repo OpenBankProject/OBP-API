@@ -189,6 +189,16 @@ object ErrorMessages {
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
+  
+  val allFields =
+    for (
+      v <- this.getClass.getDeclaredFields
+      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
+      if (APIUtil.notExstingBaseClass(v.getName()))
+    ) yield {
+      v.setAccessible(true)
+      v.getName() -> v.get(this)
+    }
 }
 
 
@@ -318,8 +328,9 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
-  def noContentJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(SuccessMessage("Success")), headers, Nil, 204)
+  //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
+  def defaultSuccessJsonResponse : JsonResponse =
+    JsonResponse(Extraction.decompose(SuccessMessage("Success")), headers, Nil, 200)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
@@ -619,7 +630,12 @@ object APIUtil extends MdcLoggable {
   val notCore = false
   val notPSD2 = false
   val notOBWG = false
-
+  
+  case class BaseErrorResponseBody(
+    code: String,
+    message: String
+  ) 
+  
   // Used to document the API calls
   case class ResourceDoc(
     partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -631,7 +647,7 @@ object APIUtil extends MdcLoggable {
     description: String, // Longer description (originally taken from github wiki)
     exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
     successResponseBody: scala.Product, // A successful response body
-    errorResponseBodies: List[JValue], // Possible error responses
+    errorResponseBodies: List[BaseErrorResponseBody], // Possible error responses
     catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )

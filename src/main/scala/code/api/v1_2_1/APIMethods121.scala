@@ -622,7 +622,7 @@ trait APIMethods121 {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
             view <- account removeView(u, viewId)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
   
@@ -786,7 +786,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId)
             isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -815,7 +815,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId)
             isRevoked <- account revokeAllPermissions(u, providerId, userId)
             if(isRevoked)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1053,7 +1053,7 @@ trait APIMethods121 {
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
             if(added)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1194,7 +1194,7 @@ trait APIMethods121 {
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
             if(added)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1294,7 +1294,7 @@ trait APIMethods121 {
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
             deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
             if(deleted)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1395,7 +1395,7 @@ trait APIMethods121 {
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(added)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1495,7 +1495,7 @@ trait APIMethods121 {
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
             deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(deleted)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1595,7 +1595,7 @@ trait APIMethods121 {
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
             deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(deleted)
-          } yield noContentJsonResponse
+          } yield defaultSuccessJsonResponse
       }
     }
 
@@ -1700,7 +1700,7 @@ trait APIMethods121 {
             deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
           } yield {
             if(deleted)
-              noContentJsonResponse
+              defaultSuccessJsonResponse
             else
               errorJsonResponse("Delete not completed")
           }
@@ -1810,7 +1810,7 @@ trait APIMethods121 {
             deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
           } yield {
             if(deleted)
-              noContentJsonResponse
+              defaultSuccessJsonResponse
             else
               errorJsonResponse("Delete not completed")
           }
@@ -2022,7 +2022,7 @@ trait APIMethods121 {
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow deleting the narrative"}
           } yield {
             addNarrative("")
-            noContentJsonResponse
+            defaultSuccessJsonResponse
           }
       }
     }
@@ -2118,7 +2118,7 @@ trait APIMethods121 {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             delete <- metadata.deleteComment(commentId, user, account)
           } yield {
-            noContentJsonResponse
+            defaultSuccessJsonResponse
           }
       }
     }
@@ -2216,7 +2216,7 @@ Authentication via OAuth is required. The user must either have owner privileges
             bankAccount <- BankAccount(bankId, accountId)
             deleted <- metadata.deleteTag(tagId, user, bankAccount)
           } yield {
-            noContentJsonResponse
+            defaultSuccessJsonResponse
           }
       }
     }
@@ -2315,7 +2315,7 @@ Authentication via OAuth is required if the view is not public.""",
             bankAccount <- BankAccount(bankId, accountId)
             deleted <- Box(metadata.deleteImage(imageId, user, bankAccount))
           } yield {
-            noContentJsonResponse
+            defaultSuccessJsonResponse
           }
       }
     }
@@ -2455,7 +2455,7 @@ Authentication via OAuth is required if the view is not public.""",
             deleted <- metadata.deleteWhereTag(viewId, user, bankAccount)
           } yield {
             if(deleted)
-              noContentJsonResponse
+              defaultSuccessJsonResponse
             else
               errorJsonResponse("Delete not completed")
           }

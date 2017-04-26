@@ -244,7 +244,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
           view <- account removeView (u, viewId)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -318,7 +318,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           u <- user ?~ "user not found"
           isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), authProvider, userId)
           if(isRevoked)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -331,7 +331,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           u <- user ?~ "user not found"
           isRevoked <- account revokeAllPermissions(u, authProvider, userId)
           if(isRevoked)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -448,7 +448,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
           added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
           if(added)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -522,7 +522,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
           added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
           if(added)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -578,7 +578,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
           deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
           if(deleted)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -634,7 +634,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
           added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
           if(added)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -690,7 +690,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
           deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
           if(deleted)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -746,7 +746,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
           deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
           if(deleted)
-        } yield noContentJsonResponse
+        } yield defaultSuccessJsonResponse
     }
   })
 
@@ -807,7 +807,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
         } yield {
           if(deleted)
-            noContentJsonResponse
+            defaultSuccessJsonResponse
           else
             errorJsonResponse("Delete not completed")
         }
@@ -878,7 +878,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
         } yield {
             if(deleted)
-              noContentJsonResponse
+              defaultSuccessJsonResponse
             else
               errorJsonResponse("Delete not completed")
         }
@@ -975,7 +975,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow deleting the narrative"}
         } yield {
           addNarrative("")
-          noContentJsonResponse
+          defaultSuccessJsonResponse
         }
     }
   })
@@ -1019,7 +1019,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
           delete <- metadata.deleteComment(commentId, user, account)
         } yield {
-          noContentJsonResponse
+          defaultSuccessJsonResponse
         }
     }
   })
@@ -1065,7 +1065,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           bankAccount <- BankAccount(bankId, accountId)
           deleted <- metadata.deleteTag(tagId, user, bankAccount)
         } yield {
-          noContentJsonResponse
+          defaultSuccessJsonResponse
         }
     }
   })
@@ -1110,7 +1110,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           bankAccount <- BankAccount(bankId, accountId)
           deleted <- Box(metadata.deleteImage(imageId, user, bankAccount))
         } yield {
-          noContentJsonResponse
+          defaultSuccessJsonResponse
         }
     }
   })
@@ -1176,7 +1176,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           deleted <- metadata.deleteWhereTag(viewId, user, bankAccount)
         } yield {
             if(deleted)
-              noContentJsonResponse
+              defaultSuccessJsonResponse
             else
               errorJsonResponse("Delete not completed")
         }

@@ -1927,7 +1927,7 @@ trait APIMethods200 {
               entitlement <- tryo{Entitlement.entitlement.vend.getEntitlement(entitlementId)} ?~ "EntitlementId not found"
               deleted <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
             }
-            yield noContentJsonResponse
+            yield defaultSuccessJsonResponse
       }
     }
 
