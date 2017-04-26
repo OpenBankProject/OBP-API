@@ -63,6 +63,8 @@ import scala.collection.JavaConverters._
 import code.util.Helper.SILENCE_IS_GOLDEN
 import code.util.Helper.MdcLoggable
 
+import scala.concurrent.Future
+
 object ErrorMessages {
 
   // Infrastructure / config messages
@@ -928,7 +930,10 @@ Returns a string showed to the developer
     // call-by-name
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
-      ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future {
+        ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+      }
     }
     result
   }
