@@ -40,7 +40,7 @@ class MappedEntitlementTest extends ServerSetup {
       MappedEntitlement.findAll().size should equal(0)
 
       When("We try to get it all")
-      val found = MappedEntitlement.getEntitlements.openOr(List())
+      val found = MappedEntitlementsProvider.getEntitlements.openOr(List())
 
       Then("We don't")
       found.size should equal(0)
@@ -57,7 +57,7 @@ class MappedEntitlementTest extends ServerSetup {
     ).isDefined should equal(true)
 
     When("We try to get it by bank, user and role")
-    val foundOpt = MappedEntitlement.getEntitlement(bankId1, userId1, role1.toString)
+    val foundOpt = MappedEntitlementsProvider.getEntitlement(bankId1, userId1, role1.toString)
 
     Then("We do")
     foundOpt.isDefined should equal(true)
@@ -76,7 +76,7 @@ class MappedEntitlementTest extends ServerSetup {
     val entitlement2 = createEntitlement(bankId2, userId2, role1.toString)
 
     When("We try to get it all")
-    val found = MappedEntitlement.getEntitlements.openOr(List())
+    val found = MappedEntitlementsProvider.getEntitlements.openOr(List())
 
     Then("We don't")
     found.size should equal(2)
@@ -92,7 +92,7 @@ class MappedEntitlementTest extends ServerSetup {
     And("We try to delete all rows")
     found.foreach {
       d => {
-        MappedEntitlement.deleteEntitlement(Full(d)) should equal(Full(true))
+        MappedEntitlementsProvider.deleteEntitlement(Full(d)) should equal(Full(true))
       }
     }
   }
