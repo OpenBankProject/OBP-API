@@ -550,7 +550,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      socialMediasJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -584,7 +584,7 @@ trait APIMethods200 {
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
-      emptyObjectJson,
+      kycDocumentJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -638,7 +638,7 @@ trait APIMethods200 {
         "wuwjfuha234678", 
         "98FRd987auhf87jab"
       ),
-      emptyObjectJson,
+      kycMediaJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -681,7 +681,7 @@ trait APIMethods200 {
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, ""),
-      emptyObjectJson,
+      kycCheckJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -725,7 +725,7 @@ trait APIMethods200 {
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       PostKycStatusJSON("8762893876", true, exampleDate),
-      emptyObjectJson,
+      kycStatusJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -764,7 +764,7 @@ trait APIMethods200 {
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
       SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate),
-      emptyObjectJson,
+      successMessage,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
@@ -816,8 +816,7 @@ trait APIMethods200 {
         |
         |OAuth authentication is required""",
       emptyObjectJson,
-      //TODO: Swagger
-      emptyObjectJson,
+      moderatedCoreAccountJSON,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -868,7 +867,7 @@ trait APIMethods200 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson,
+      moderatedCoreAccountJSON,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
@@ -921,7 +920,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       //TODO: Swagger
-      emptyObjectJson,
+      moderatedAccountJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -960,8 +959,7 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      //TODO: Swagger
-      emptyObjectJson,
+      permissionsJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
@@ -995,7 +993,7 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
+      viewsJSONV121,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
@@ -1035,7 +1033,7 @@ trait APIMethods200 {
         |
         |Note: The Amount must be zero.""".stripMargin,
       CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
-      emptyObjectJson,
+      coreAccountJSON,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
@@ -1119,7 +1117,7 @@ trait APIMethods200 {
           |
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      transactionTypesJsonV200,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, notOBWG),
       List(apiTagBank)
@@ -1263,7 +1261,7 @@ trait APIMethods200 {
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
       //TODO: Swagger
-      emptyObjectJson,
+      transactionRequestWithChargeJson,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1349,7 +1347,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       //TODO: Swagger
-      emptyObjectJson,
+      transactionRequestWithChargesJson,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1397,7 +1395,7 @@ trait APIMethods200 {
         |
         |""",
       CreateUserJson("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
-      emptyObjectJson,
+      userJSONV200,
       userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagOnboarding, apiTagUser))
@@ -1464,7 +1462,7 @@ trait APIMethods200 {
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
       CreateMeetingJson("tokbox", "onboarding"),
-      emptyObjectJson,
+      meetingJson,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1514,7 +1512,7 @@ trait APIMethods200 {
         |
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
-      emptyObjectJson,
+      meetingsJson,
       emptyObjectJson,
       userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),

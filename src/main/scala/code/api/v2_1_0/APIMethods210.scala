@@ -471,7 +471,7 @@ trait APIMethods210 {
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       challengeAnswerJSON,
-      transactionRequestWithChargeJSON,
+      transactionRequestWithChargeJson,
       userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
