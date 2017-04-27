@@ -3,8 +3,8 @@ package code.api.v2_0_0
 import code.api.util.ErrorMessages
 import code.api.{ErrorMessage, DefaultUsers, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, BankAccount, TransactionRequestId}
@@ -69,10 +69,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
@@ -213,10 +213,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
@@ -339,10 +339,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val fromAccount = getFromAccount
         val toAccount = getToAccount
 
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest with a user without owner view access
@@ -399,10 +399,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val beforeToBalance = toAccount.balance
 
         val transactionRequestId = TransactionRequestId("__trans2")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
@@ -479,10 +479,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
 
-        val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
@@ -666,7 +666,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val beforeToBalance = toAccount.balance
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         //1. TODO: get possible challenge types from account
 
@@ -674,7 +674,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(
                                                             toAccountJson,
                                                             bodyValue,
@@ -863,10 +863,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
 
-        val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        val bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest

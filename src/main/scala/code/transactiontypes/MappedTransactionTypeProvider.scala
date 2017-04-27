@@ -8,7 +8,7 @@ import code.util.DefaultStringField
 import net.liftweb.common._
 import net.liftweb.mapper._
 import code.api.util.ErrorMessages
-import code.api.v2_0_0.TransactionTypeJSON
+import code.api.v2_0_0.TransactionTypeJsonV200
 import net.liftweb.util.Helpers._
 import java.util.Date
 
@@ -27,7 +27,7 @@ object MappedTransactionTypeProvider extends TransactionTypeProvider {
     * uniqueness in the database
     *
     */
-  override def createOrUpdateTransactionTypeAtProvider(transactionType: TransactionTypeJSON): Box[TransactionType] = {
+  override def createOrUpdateTransactionTypeAtProvider(transactionType: TransactionTypeJsonV200): Box[TransactionType] = {
 
     // get the Input data from GUI and prepare to store and return
     val mappedTransactionType = MappedTransactionType.create

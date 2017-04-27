@@ -14,9 +14,8 @@ import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.api.v2_2_0.BranchRoutingJSON
 import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.common.Full
 
@@ -39,7 +38,7 @@ object JSONFactory1_4_0 {
                           last_ok_date: Date)
 
 
-  case class CustomerJson(customer_id: String,
+  case class CustomerJsonV140(customer_id: String,
                           customer_number : String,
                           legal_name : String,
                           mobile_phone_number : String,
@@ -54,7 +53,7 @@ object JSONFactory1_4_0 {
                           kyc_status: Boolean,
                           last_ok_date: Date)
 
-  case class CustomerJSONs(customers: List[CustomerJson])
+  case class CustomersJsonV140(customers: List[CustomerJsonV140])
 
   case class CustomerFaceImageJson(url : String, date : Date)
 
@@ -71,8 +70,13 @@ object JSONFactory1_4_0 {
 
   case class DriveUpJson(hours : String)
   case class LobbyJson(hours : String)
-
-
+  
+  
+  
+  case class BranchRoutingJSON(
+    scheme: String,
+    address: String
+  )
 
   case class BranchJson(id : String,
                         name : String,
@@ -101,9 +105,9 @@ object JSONFactory1_4_0 {
 
 
 
-  def createCustomerJson(cInfo : Customer) : CustomerJson = {
+  def createCustomerJson(cInfo : Customer) : CustomerJsonV140 = {
 
-    CustomerJson(
+    CustomerJsonV140(
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,
       legal_name = cInfo.legalName,
@@ -125,8 +129,8 @@ object JSONFactory1_4_0 {
 
   }
 
-  def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
-    CustomerJSONs(customers.map(createCustomerJson))
+  def createCustomersJson(customers : List[Customer]) : CustomersJsonV140 = {
+    CustomersJsonV140(customers.map(createCustomerJson))
   }
 
   def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJson = {
@@ -328,7 +332,7 @@ object JSONFactory1_4_0 {
 
 
   //transaction requests
-  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJSON) : TransactionRequestBody = {
+  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJsonV140) : TransactionRequestBody = {
     val toAcc = TransactionRequestAccount (
       bank_id = body.to.bank_id,
       account_id = body.to.account_id
@@ -345,7 +349,7 @@ object JSONFactory1_4_0 {
     )
   }
 
-  def getTransactionRequestFromJson(json : TransactionRequestJSON) : TransactionRequest = {
+  def getTransactionRequestFromJson(json : TransactionRequestJsonV140) : TransactionRequest = {
     val fromAcc = TransactionRequestAccount (
       json.from.bank_id,
       json.from.account_id
@@ -391,7 +395,7 @@ object JSONFactory1_4_0 {
   def createTransactionRequestTypesJSON(transactionRequestTypeCharges: TransactionRequestTypeCharge): TransactionRequestTypeJsonV140 = {
     TransactionRequestTypeJsonV140(transactionRequestTypeCharges.transactionRequestTypeId,
       TransactionRequestChargeJsonV140(transactionRequestTypeCharges.chargeSummary,
-        AmountOfMoneyJSON(transactionRequestTypeCharges.chargeCurrency, transactionRequestTypeCharges.chargeAmount)))
+        AmountOfMoneyJsonV121(transactionRequestTypeCharges.chargeCurrency, transactionRequestTypeCharges.chargeAmount)))
   }
   
   /**
@@ -401,31 +405,31 @@ object JSONFactory1_4_0 {
     TransactionRequestTypesJsonV140(transactionRequestTypeCharges.map(createTransactionRequestTypesJSON))
   }
   
-  case class TransactionRequestAccountJSON (
+  case class TransactionRequestAccountJsonV140 (
                              bank_id: String,
                              account_id : String
                             )
 
-  case class TransactionRequestBodyJSON (
-                              to: TransactionRequestAccountJSON,
-                              value : AmountOfMoneyJSON,
+  case class TransactionRequestBodyJsonV140 (
+                              to: TransactionRequestAccountJsonV140,
+                              value : AmountOfMoneyJsonV121,
                               description : String,
                               challenge_type : String
                              )
 
-  case class TransactionRequestJSON(
+  case class TransactionRequestJsonV140(
                           id: String,
                           `type`: String,
-                          from: TransactionRequestAccountJSON,
-                          body: TransactionRequestBodyJSON,
+                          from: TransactionRequestAccountJsonV140,
+                          body: TransactionRequestBodyJsonV140,
                           transaction_ids: String,
                           status: String,
                           start_date: Date,
                           end_date: Date,
-                          challenge: ChallengeJSON
+                          challenge: ChallengeJsonV140
                           )
 
-  case class ChallengeJSON (
+  case class ChallengeJsonV140 (
                            id: String,
                            allowed_attempts : Int,
                            challenge_type: String
@@ -436,15 +440,9 @@ object JSONFactory1_4_0 {
                              answer : String
                            )
 
-  /*case class ChallengeErrorJSON (
-                          code : Int,
-                          message: String
-                        )
-  */
-
   case class TransactionRequestChargeJsonV140(
     val summary: String,
-    val value : AmountOfMoneyJSON
+    val value : AmountOfMoneyJsonV121
   )
   
   case class TransactionRequestTypeJsonV140(value: String, charge: TransactionRequestChargeJsonV140)

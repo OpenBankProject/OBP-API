@@ -3,9 +3,8 @@ package code.api.ResourceDocs1_4_0
 import java.util.{Date, UUID}
 
 import code.api.Constant._
-import code.api.util.APIUtil
-import code.api.util.APIUtil.ResourceDoc
-import code.api.v2_2_0.BankJSONV220
+import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
 import net.liftweb
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -95,29 +94,6 @@ object SwaggerJSONFactory {
     schema: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
   )extends OperationParameter
   
-  case class ErrorPropertiesMessageJson(
-    `type`: String
-  )
-  case class ErrorPropertiesCodeJson(
-    `type`: String,
-    format: String
-  )
-  case class ErrorPropertiesJson(
-    code: ErrorPropertiesCodeJson,
-    message: ErrorPropertiesMessageJson
-  )
-  case class ErrorDefinitionJson(
-    `type`: String,
-    required: List[String],
-    properties: ErrorPropertiesJson
-  )
-  
-  //in Swagger Definitions part, there are many sub-definitions, here just set the Error field.
-  //other fields are set in "def loadDefinitions(resourceDocList: List[ResourceDoc])" method
-  // Definitions Object
-  // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  case class DefinitionsJson(Error: ErrorDefinitionJson)
-  
   case class SwaggerResourceDoc(
     swagger: String,
     info: InfoJson,
@@ -126,9 +102,10 @@ object SwaggerJSONFactory {
     schemes: List[String],
     securityDefinitions: SecurityDefinitionsJson,
     security: List[SecurityJson],
-    paths: Map[String, Map[String, OperationObjectJson]],
-    definitions: DefinitionsJson
+    paths: Map[String, Map[String, OperationObjectJson]]
   )
+  
+  val userNotLoggedIn = BaseErrorResponseBody("401", "UserNotLoggedIn")
   
   /**
     *Package the SwaggerResourceDoc with the ResourceDoc.
@@ -159,7 +136,6 @@ object SwaggerJSONFactory {
     *   securityDefinitions: SecurityDefinitionsJson,
     *   security: List[SecurityJson],
     *   paths: Map[String, Map[String, OperationObjectJson]],
-    *   definitions: DefinitionsJson
     * )
     *
     * @param resourceDocList     list of ResourceDoc
@@ -319,18 +295,21 @@ object SwaggerJSONFactory {
                 }
                 OperationParameterBodyJson(schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
               },
-            responses = Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)), 
-                            "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
+            responses =
+              if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
+                val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
+                  e.code -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
+              } else{
+                val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
+                  e.code -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                Map( "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
+              }
+          )
+        )
       ).toMap
       (path, operationObjects.toSeq.sortBy(m => m._1).toMap)
     }(collection.breakOut)
-
-    val errorRequired = List("code", "message")
-    val errorPropertiesCode = ErrorPropertiesCodeJson("integer", "int32")
-    val errorPropertiesMessage = ErrorPropertiesMessageJson("string")
-    val errorProperties = ErrorPropertiesJson(errorPropertiesCode, errorPropertiesMessage)
-    val errorDefinition = ErrorDefinitionJson("object", errorRequired, errorProperties)
-    val definitions = DefinitionsJson(errorDefinition)
 
     SwaggerResourceDoc(
       swagger = "2.0",
@@ -340,11 +319,9 @@ object SwaggerJSONFactory {
       schemes = schemas,
       securityDefinitions = SecurityDefinitionsJson(DirectLoginJson()), //default value
       security = SecurityJson()::Nil, //default value
-      paths = paths,
-      definitions = definitions
+      paths = paths
     )
   }
-
   
   /**
     * @param entity - Any, maybe a case class, maybe a list ,maybe a string
@@ -445,13 +422,13 @@ object SwaggerJSONFactory {
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         //TODO this should be improved, matching the JValue,now just support the default value
-        case APIUtil.defaultJValue                 => "\""  + key + """": {"type":"string","example":""}"""
+        case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string","example":""}"""
         //the case classes.  
-        case List(f)                        => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case Some(f)                        => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case List(Some(f))                  => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case Some(List(f))                  => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case f                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case List(f)                       => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case List(Some(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case Some(List(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case _ => "unknown"
       }
     }
@@ -482,6 +459,7 @@ object SwaggerJSONFactory {
     *           }
     *         } ...
     */
+  // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
   
     implicit val formats = DefaultFormats
@@ -499,38 +477,38 @@ object SwaggerJSONFactory {
         yield {
           translateEntity(e.successResponseBody)
         }
-    val ListNestingMissDefinition =
+    val listNestingMissDefinition =
       for (e <- allSwaggerDefinitionCaseClasses.toList if e!= null)
         yield {
           translateEntity(e)
         }
-    //Add a comma between elements of a list and make a string 
-    val particularDefinitionsPart = (listOfExampleRequestBodyDefinition:::listOfSuccessRequestBodyDefinition:::ListNestingMissDefinition).toSet mkString (",")
   
-  
-//    val listOfExampleRequestBodyDefinition =
-//      for (e <- resourceDocList if e.exampleRequestBody != null)
-//        yield {
-//          translateEntity(e.exampleRequestBody)
-//        }
-//    val listOfSuccessRequestBodyDefinition =
-//      for (e <- resourceDocList if e.successResponseBody != null)
-//        yield {
-//          translateEntity(e.successResponseBody!= null)
-//        }
-//    val ListNestingMissDefinition =
-//      for (e <- allSwaggerDefinitionCaseClasses.toList if e!= null)
-//        yield {
-//          translateEntity(e)
-//        }
-//    //Add a comma between elements of a list and make a string 
-//    val particularDefinitionsPart = (listOfSuccessRequestBodyDefinition:::ListNestingMissDefinition).toSet mkString (",")
-//    
+    //TODO, the errors are just String, not the case classes. need to be fixed 
+    val errorMessageList = ErrorMessages.allFields.toList
+    val listErrorDefinition =
+      for (e <- errorMessageList if e != null)
+        yield {
+          s""""Error${e._1 }": {
+               "properties": {
+                 "message": {
+                   "type": "string",
+                   "example": "${e._2} "
+                 }
+               }
+             }"""
+        }
     
+    //Add a comma between elements of a list and make a string 
+    val particularDefinitionsPart = (
+      listErrorDefinition 
+        :::listOfExampleRequestBodyDefinition 
+        :::listNestingMissDefinition
+        :::listOfSuccessRequestBodyDefinition
+      ) mkString (",")
+  
     //Make a final string
     val definitions = "{\"definitions\":{" + particularDefinitionsPart + "}}"
     //Make a jsonAST from a string
     parse(definitions)
   }
- 
 }

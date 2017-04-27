@@ -6,7 +6,7 @@ import java.util.{Date, Locale}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_1_0.{BranchJsonPost, JSONFactory210}
 import code.bankconnectors._
 import code.metrics.{APIMetric, APIMetrics, ConnMetric, ConnMetrics}
@@ -26,6 +26,8 @@ import code.util.Helper._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
+import code.api.util.ErrorMessages._
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 
 trait APIMethods220 {
@@ -111,7 +113,7 @@ trait APIMethods220 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -120,7 +122,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~ UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
@@ -156,7 +158,7 @@ trait APIMethods220 {
         | """,
       createViewJSON,
       viewJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -165,7 +167,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~ UserNotLoggedIn
             json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
             account <- BankAccount(bankId, accountId)
             view <- account createView (u, json)
@@ -192,7 +194,7 @@ trait APIMethods220 {
         |of a view is not editable (it is only set when a view is created)""",
       updateViewJSON,
       viewJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -202,7 +204,7 @@ trait APIMethods220 {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
-            u <- user ?~ "user not found"
+            u <- user ?~ UserNotLoggedIn
             updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
@@ -222,7 +224,7 @@ trait APIMethods220 {
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
       fXRateJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -230,7 +232,7 @@ trait APIMethods220 {
       case "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- user ?~! UserNotLoggedIn
             isValidCurrencyISOCodeFrom <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             isValidCurrencyISOCodeTo <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(fromCurrencyCode, toCurrencyCode).get) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
@@ -254,7 +256,7 @@ trait APIMethods220 {
           |""",
       emptyObjectJson,
       counterpartiesJsonV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -263,6 +265,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
         user =>
           for {
+            u <- user ?~! UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             view <- View.fromUrl(viewId, account)?~! {ErrorMessages.ViewNotFound}
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
@@ -289,7 +292,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -321,7 +324,7 @@ trait APIMethods220 {
          |""",
       bankJSONV220,
       bankJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -363,7 +366,7 @@ trait APIMethods220 {
          |""",
       branchJSONV220,
       branchJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -415,7 +418,7 @@ trait APIMethods220 {
         |Note: The Amount must be zero.""".stripMargin,
       createAccountJSONV220,
       createAccountJSONV220,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -482,7 +485,7 @@ trait APIMethods220 {
         |* Cached function """,
       emptyObjectJson,
       configurationJSON,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -535,7 +538,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       connectorMetricsJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 

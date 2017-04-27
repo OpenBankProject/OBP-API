@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -113,7 +114,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -218,7 +219,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -283,7 +284,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
           |_etc_...""",
         emptyObjectJson,
         emptyObjectJson,
-        emptyObjectJson :: Nil,
+        userNotLoggedIn :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }

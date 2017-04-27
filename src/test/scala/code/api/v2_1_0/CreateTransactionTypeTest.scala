@@ -4,8 +4,8 @@ import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanCreateTransactionType, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v2_0_0.{CreateAccountJSON, TransactionTypeJSON}
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v2_0_0.{CreateAccountJSON, TransactionTypeJsonV200}
 import code.entitlement.Entitlement
 import code.model.dataAccess.MappedBankAccount
 import code.model.{AmountOfMoney, BankId, TransactionTypeId}
@@ -21,13 +21,13 @@ import org.scalatest.BeforeAndAfter
 class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
   val mockBankId = "testBank1"
-  lazy val transactionTypeJSON = TransactionTypeJSON(
+  lazy val transactionTypeJSON = TransactionTypeJsonV200(
     TransactionTypeId("1"), //mockTransactionTypeId,
     "1", //mockBankId.value,
     "1", //short_code
     "This is for test ", //summary,
     "Many data here", //description,
-    AmountOfMoneyJSON("EUR", "0"))
+    AmountOfMoneyJsonV121("EUR", "0"))
 
   override def beforeAll() {
     super.beforeAll()
@@ -78,13 +78,13 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut1.code should equal(200)
 
       Then("update input value and We make the request")
-      lazy val transactionTypeJSON2 = TransactionTypeJSON(
+      lazy val transactionTypeJSON2 = TransactionTypeJsonV200(
         TransactionTypeId("1"), //mockTransactionTypeId,
         "1", //mockBankId.value,
         "1", //short_code
         "change here  ", //summary,
         "Many data here", //description,
-        AmountOfMoneyJSON("EUR", "0"))
+        AmountOfMoneyJsonV121("EUR", "0"))
 
       val requestPut = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON2))
@@ -105,13 +105,13 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut1.code should equal(200)
 
       Then("insert new data and We make the request")
-      lazy val transactionTypeJSON1 = TransactionTypeJSON(
+      lazy val transactionTypeJSON1 = TransactionTypeJsonV200(
         TransactionTypeId("3"), //mockTransactionTypeId,
         "1", //mockBankId.value,
         "1", //short_code
         "1  ", //summary,
         "1", //description,
-        AmountOfMoneyJSON("EUR", "0"))
+        AmountOfMoneyJsonV121("EUR", "0"))
 
       val requestPut2 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
       val responsePut2 = makePutRequest(requestPut2, write(transactionTypeJSON1))
@@ -124,13 +124,13 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
 
       Then("insert new data and We make the request")
-      lazy val transactionTypeJSON2 = TransactionTypeJSON(
+      lazy val transactionTypeJSON2 = TransactionTypeJsonV200(
         TransactionTypeId("1"), //mockTransactionTypeId,
         "1", //mockBankId.value,
         "1", //short_code
         "1  ", //summary,
         "1", //description,
-        AmountOfMoneyJSON("EUReeeeeeee", "0"))
+        AmountOfMoneyJsonV121("EUReeeeeeee", "0"))
 
       val requestPut3 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
       val responsePut3 = makePutRequest(requestPut3, write(transactionTypeJSON2))

@@ -8,14 +8,9 @@ import code.model.{Bank, BankId, PhysicalCard, User}
 import code.bankconnectors.Connector
 import net.liftweb.json.Extraction
 import APIUtil._
-import net.liftweb.json.JsonAST.JValue
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.Nil
-
-// Makes JValue assignment to Nil work
-import net.liftweb.json.JsonDSL._
-
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -38,7 +33,7 @@ trait APIMethods130 {
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -73,7 +68,7 @@ trait APIMethods130 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

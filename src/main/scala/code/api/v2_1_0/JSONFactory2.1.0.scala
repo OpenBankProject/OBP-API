@@ -34,8 +34,8 @@ package code.api.v2_1_0
 import java.util.Date
 
 import code.api.util.ApiRole
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON, BankRoutingJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJSON, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJSON}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJsonV140, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.branches.Branches.BranchId
 import code.common.{License, Meta}
@@ -73,35 +73,35 @@ case class IbanJson (val iban : String)
 //They share the same AmountOfMoney and description fields
 //Note : in scala case-to-case inheritance is prohibited, so used trait instead
 trait TransactionRequestCommonBodyJSON {
-  val value : AmountOfMoneyJSON
+  val value : AmountOfMoneyJsonV121
   val description: String
 }
 
 // the common parts of four types
 // note: there is TransactionRequestCommonBodyJSON trait, so this case class call TransactionRequestBodyCommonJSON
 case class TransactionRequestBodyCommonJSON(
-                                             value: AmountOfMoneyJSON,
+                                             value: AmountOfMoneyJsonV121,
                                              description: String
                                            ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodySandBoxTanJSON(
-                                                 to: TransactionRequestAccountJSON,
-                                                 value: AmountOfMoneyJSON,
+                                                 to: TransactionRequestAccountJsonV140,
+                                                 value: AmountOfMoneyJsonV121,
                                                  description: String
                                                ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyCounterpartyJSON(
                                                    to: CounterpartyIdJson,
-                                                   value: AmountOfMoneyJSON,
+                                                   value: AmountOfMoneyJsonV121,
                                                    description: String,
                                                    charge_policy: String
                                                  ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodySEPAJSON(
-                                           value: AmountOfMoneyJSON,
+                                           value: AmountOfMoneyJsonV121,
                                            to: IbanJson,
                                            description: String,
                                            charge_policy: String
@@ -109,7 +109,7 @@ case class TransactionRequestBodySEPAJSON(
 
 // Note: FreeForm is not used yet, the format maybe changed latter. the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyFreeFormJSON(
-                                               value: AmountOfMoneyJSON,
+                                               value: AmountOfMoneyJsonV121,
                                                description: String
                                              ) extends TransactionRequestCommonBodyJSON
 
@@ -119,8 +119,8 @@ case class TransactionRequestBodyFreeFormJSON(
 //And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
 // code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
 case class TransactionRequestDetailsMapperJSON(
-                                                to: TransactionRequestAccountJSON,
-                                                value: AmountOfMoneyJSON,
+                                                to: TransactionRequestAccountJsonV140,
+                                                value: AmountOfMoneyJsonV121,
                                                 description: String
                                               ) extends TransactionRequestCommonBodyJSON
 
@@ -129,8 +129,8 @@ case class TransactionRequestDetailsMapperJSON(
 // code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
 case class TransactionRequestDetailsMapperCounterpartyJSON(
                                                             counterparty_id: String,
-                                                            to: TransactionRequestAccountJSON,
-                                                            value: AmountOfMoneyJSON,
+                                                            to: TransactionRequestAccountJsonV140,
+                                                            value: AmountOfMoneyJsonV121,
                                                             description: String,
                                                             charge_policy: String
                                                           ) extends TransactionRequestCommonBodyJSON
@@ -140,8 +140,8 @@ case class TransactionRequestDetailsMapperCounterpartyJSON(
 // code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
 case class TransactionRequestDetailsMapperSEPAJSON(
                                                     iban: String,
-                                                    to: TransactionRequestAccountJSON,
-                                                    value: AmountOfMoneyJSON,
+                                                    to: TransactionRequestAccountJsonV140,
+                                                    value: AmountOfMoneyJsonV121,
                                                     description: String,
                                                     charge_policy: String
                                                   ) extends TransactionRequestCommonBodyJSON
@@ -151,21 +151,21 @@ case class TransactionRequestDetailsMapperSEPAJSON(
 //And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
 // code : detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
 case class TransactionRequestDetailsMapperFreeFormJSON(
-                                                        to: TransactionRequestAccountJSON,
-                                                        value: AmountOfMoneyJSON,
+                                                        to: TransactionRequestAccountJsonV140,
+                                                        value: AmountOfMoneyJsonV121,
                                                         description: String
                                                       ) extends TransactionRequestCommonBodyJSON
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
                                              `type`: String,
-                                             from: TransactionRequestAccountJSON,
+                                             from: TransactionRequestAccountJsonV140,
                                              details: JValue,
                                              transaction_ids: List[String],
                                              status: String,
                                              start_date: Date,
                                              end_date: Date,
-                                             challenge: ChallengeJSON,
+                                             challenge: ChallengeJsonV140,
                                              charge : TransactionRequestChargeJsonV200
                                            )
 
@@ -194,7 +194,7 @@ case class ConsumerJSON(consumer_id: Long,
                         created: Date
                        )
 
-case class ConsumerJSONs(list: List[ConsumerJSON])
+case class ConsumersJson(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
                                 other_account_routing_scheme: String,
@@ -271,7 +271,7 @@ case class PostCustomerJsonV210(
                              dependants: Int,
                              dob_of_dependants: List[Date],
                              credit_rating: CustomerCreditRatingJSON,
-                             credit_limit: AmountOfMoneyJSON,
+                             credit_limit: AmountOfMoneyJsonV121,
                              highest_education_attained: String,
                              employment_status: String,
                              kyc_status: Boolean,
@@ -288,7 +288,7 @@ case class CustomerJsonV210(customer_id: String,
                         dependants: Int,
                         dob_of_dependants: List[Date],
                         credit_rating: Option[CustomerCreditRatingJSON],
-                        credit_limit: Option[AmountOfMoneyJSON],
+                        credit_limit: Option[AmountOfMoneyJsonV121],
                         highest_education_attained: String,
                         employment_status: String,
                         kyc_status: Boolean,
@@ -453,7 +453,7 @@ object JSONFactory210{
     new TransactionRequestWithChargeJSON210(
       id = tr.id.value,
       `type` = tr.`type`,
-      from = TransactionRequestAccountJSON (
+      from = TransactionRequestAccountJsonV140 (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id
       ),
@@ -464,12 +464,12 @@ object JSONFactory210{
       end_date = tr.end_date,
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenge = {
-        try {ChallengeJSON (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
+        try {ChallengeJsonV140 (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
       },
       charge = TransactionRequestChargeJsonV200 (summary = tr.charge.summary,
-        value = AmountOfMoneyJSON(currency = tr.charge.value.currency,
+        value = AmountOfMoneyJsonV121(currency = tr.charge.value.currency,
           amount = tr.charge.value.amount)
       )
     )
@@ -504,8 +504,8 @@ object JSONFactory210{
       created=c.createdAt
     )
   }
-  def createConsumerJSONs(l : List[Consumer]): ConsumerJSONs = {
-    ConsumerJSONs(l.map(createConsumerJSON))
+  def createConsumerJSONs(l : List[Consumer]): ConsumersJson = {
+    ConsumersJson(l.map(createConsumerJSON))
   }
 
   def createCounterpartyJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartyTrait) : CounterpartyJSON = {
@@ -603,7 +603,7 @@ object JSONFactory210{
       dependants = cInfo.dependents,
       dob_of_dependants = cInfo.dobOfDependents,
       credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
-      credit_limit = Option(AmountOfMoneyJSON(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
       highest_education_attained = cInfo.highestEducationAttained,
       employment_status = cInfo.employmentStatus,
       kyc_status = cInfo.kycStatus,

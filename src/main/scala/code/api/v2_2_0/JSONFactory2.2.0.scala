@@ -34,7 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON, BankRoutingJSON}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson}
 import code.branches.Branches.Branch
@@ -186,17 +186,12 @@ case class BranchJSONV220(
   branch_routing: BranchRoutingJSON
 )
 
-case class BranchRoutingJSON(
-  scheme: String,
-  address: String
-)
-
 // keep similar to case class CreateAccountJSON - v200
 case class CreateAccountJSONV220(
   user_id : String,
   label   : String,
   `type` : String,
-  balance : AmountOfMoneyJSON,
+  balance : AmountOfMoneyJsonV121,
   branch_id : String,
   account_routing: AccountRoutingJSON
 )
@@ -381,7 +376,7 @@ object JSONFactory220{
       user_id = userId,
       label = account.label,
       `type` = account.accountType,
-      balance = AmountOfMoneyJSON(
+      balance = AmountOfMoneyJsonV121(
         account.currency,
         account.balance.toString()
       ),

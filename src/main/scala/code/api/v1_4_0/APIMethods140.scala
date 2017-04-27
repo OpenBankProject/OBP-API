@@ -17,7 +17,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-import code.api.v1_2_1.{Akka, AmountOfMoneyJSON}
+import code.api.v1_2_1.{Akka, AmountOfMoneyJsonV121}
 import code.api.v2_0_0.CreateCustomerJson
 
 import scala.collection.immutable.Nil
@@ -46,7 +46,7 @@ import code.api.util.APIUtil.ResourceDoc
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.authenticationRequiredMessage
-
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -77,7 +77,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -113,7 +113,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -145,7 +145,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       AddCustomerMessageJson("message to send", "from department", "from person"),
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
     )
@@ -190,7 +190,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -234,7 +234,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -286,7 +286,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -323,7 +323,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -374,7 +374,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -411,7 +411,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -459,14 +459,14 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |Please see later versions of this call in 2.0.0 or 2.1.0.
         |""",
-      TransactionRequestBodyJSON(
-        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
-        AmountOfMoneyJSON("EUR", "100.53"),
+      TransactionRequestBodyJsonV140(
+        TransactionRequestAccountJsonV140("BANK_ID", "ACCOUNT_ID"),
+        AmountOfMoneyJsonV121("EUR", "100.53"),
         "A description for the transaction to be created",
         "one of the transaction types possible for the account"
       ),
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -481,7 +481,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV140]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
@@ -514,7 +514,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -579,7 +579,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         exampleDate
       ),
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -659,7 +659,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |_etc_...""",
           emptyObjectJson,
           emptyObjectJson,
-        emptyObjectJson :: Nil,
+        userNotLoggedIn :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         Nil)
       }

@@ -5,7 +5,7 @@ import java.util.Date
 
 import code.api.DefaultUsers
 import code.api.util.{APIUtil, ApiRole}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJson, CustomerMessagesJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJsonV140, CustomerMessagesJson}
 import code.customer.{Customer, MappedCustomerMessage, MockCustomerFaceImage}
 import code.model.BankId
 import code.usercustomerlinks.UserCustomerLink
