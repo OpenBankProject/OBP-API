@@ -28,6 +28,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
 import code.api.util.ErrorMessages._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 
 trait APIMethods220 {
@@ -113,7 +114,7 @@ trait APIMethods220 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -158,7 +159,7 @@ trait APIMethods220 {
         | """,
       createViewJSON,
       viewJSONV220,
-      userNotLoggedIn :: hostnameNotSpecified :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -194,7 +195,7 @@ trait APIMethods220 {
         |of a view is not editable (it is only set when a view is created)""",
       updateViewJSON,
       viewJSONV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -224,7 +225,7 @@ trait APIMethods220 {
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
       fXRateJSON,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -256,7 +257,7 @@ trait APIMethods220 {
           |""",
       emptyObjectJson,
       counterpartiesJsonV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -292,7 +293,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -324,7 +325,7 @@ trait APIMethods220 {
          |""",
       bankJSONV220,
       bankJSONV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -366,7 +367,7 @@ trait APIMethods220 {
          |""",
       branchJSONV220,
       branchJSONV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -418,7 +419,7 @@ trait APIMethods220 {
         |Note: The Amount must be zero.""".stripMargin,
       createAccountJSONV220,
       createAccountJSONV220,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -485,7 +486,7 @@ trait APIMethods220 {
         |* Cached function """,
       emptyObjectJson,
       configurationJSON,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -538,7 +539,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       connectorMetricsJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 

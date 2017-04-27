@@ -13,6 +13,7 @@ import org.pegdown.PegDownProcessor
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
+import code.api.util.ErrorMessages._
 
 object SwaggerJSONFactory {
   //Info Object
@@ -114,15 +115,6 @@ object SwaggerJSONFactory {
     securityDefinitions: SecurityDefinitionsJson,
     security: List[SecurityJson],
     paths: Map[String, Map[String, OperationObjectJson]]
-  )
-  
-  val userNotLoggedIn = BaseErrorResponseBody(
-    name = "UserNotLoggedIn",
-    detail = ErrorMessages.UserNotLoggedIn
-  )
-  val hostnameNotSpecified = BaseErrorResponseBody(
-    name = "HostnameNotSpecified",
-    detail = ErrorMessages.HostnameNotSpecified
   )
   
   /**
@@ -239,6 +231,7 @@ object SwaggerJSONFactory {
         .replaceAll("/KYC_DOCUMENT_ID", "/{KYC_DOCUMENT_ID}")
         .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
         .replaceAll("/AMT_ID", "/{AMT_ID}")
+        .replaceAll("/API_VERSION", "/{API_VERSION}")
       
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
@@ -289,6 +282,8 @@ object SwaggerJSONFactory {
         pathParameters = OperationParameterPathJson(name="KYC_MEDIA_ID", description="The kyc media id") :: pathParameters
       if(path.contains("/{AMT_ID}"))
         pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
+      if(path.contains("/{API_VERSION}"))
+        pathParameters = OperationParameterPathJson(name="API_VERSION", description="v2.2.0") :: pathParameters
   
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
@@ -316,15 +311,15 @@ object SwaggerJSONFactory {
             responses =
               if (rd.requestVerb.toLowerCase == "get" ){
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
+                  "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(e)}")))
                 Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
               } else if (rd.requestVerb.toLowerCase == "delete"){
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(e)}")))
                 Map("204" -> ResponseNoContentObjectJson(Some("No Content")))++errorResponseBodies.toMap
               } else{
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(e)}")))
                 Map( "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
               }
           )
@@ -512,11 +507,7 @@ object SwaggerJSONFactory {
         yield {
           s""""Error${e._1 }": {
                "properties": {
-                 "name": {
-                   "type": "string",
-                   "example": "${e._1}"
-                 },
-                 "detail": {
+                 "message": {
                     "type": "string",
                     "example": "${e._2}"
                  }

@@ -22,6 +22,7 @@ import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import net.liftweb.json.JsonDSL._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 
 
@@ -107,7 +108,7 @@ trait APIMethods121 {
         |* Git Commit""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -133,7 +134,7 @@ trait APIMethods121 {
         |* Website""",
       emptyObjectJson,
       BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")))),
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -169,7 +170,7 @@ trait APIMethods121 {
         |* Website""",
       emptyObjectJson,
       BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")),
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -208,7 +209,7 @@ trait APIMethods121 {
          |""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -233,7 +234,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -261,7 +262,7 @@ trait APIMethods121 {
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -292,7 +293,7 @@ trait APIMethods121 {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -322,7 +323,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -352,7 +353,7 @@ trait APIMethods121 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
@@ -392,7 +393,7 @@ trait APIMethods121 {
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -427,7 +428,7 @@ trait APIMethods121 {
         "BANK_ID"
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData)
     )
@@ -481,7 +482,7 @@ trait APIMethods121 {
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -533,7 +534,7 @@ trait APIMethods121 {
         )
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -575,7 +576,7 @@ trait APIMethods121 {
         List("can_see_transaction_start_date", "can_see_bank_account_label")
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -608,7 +609,7 @@ trait APIMethods121 {
       "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -638,7 +639,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -671,7 +672,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -705,7 +706,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       ViewIdsJson(List("owner", "auditor", "investor")),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -739,7 +740,7 @@ trait APIMethods121 {
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -773,7 +774,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -802,7 +803,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -831,7 +832,7 @@ trait APIMethods121 {
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -862,7 +863,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
@@ -894,7 +895,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -926,7 +927,7 @@ trait APIMethods121 {
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -965,7 +966,7 @@ trait APIMethods121 {
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1001,7 +1002,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1037,7 +1038,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1070,7 +1071,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1104,7 +1105,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1141,7 +1142,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1178,7 +1179,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1210,7 +1211,7 @@ trait APIMethods121 {
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       MoreInfoJSON("More info"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1244,7 +1245,7 @@ trait APIMethods121 {
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
       MoreInfoJSON("More info"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1278,7 +1279,7 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1310,7 +1311,7 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       UrlJSON("www.example.com"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1345,7 +1346,7 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       UrlJSON("www.example.com"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1379,7 +1380,7 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1411,7 +1412,7 @@ trait APIMethods121 {
       "Add a url that points to the logo of the counterparty",
       ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1445,7 +1446,7 @@ trait APIMethods121 {
       "Update the url that points to the logo of the counterparty",
       ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1479,7 +1480,7 @@ trait APIMethods121 {
       "Delete image url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
@@ -1511,7 +1512,7 @@ trait APIMethods121 {
       "Add open corporates url to other bank account.",
       OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1545,7 +1546,7 @@ trait APIMethods121 {
       "Update open corporate url of other bank account.",
       OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1579,7 +1580,7 @@ trait APIMethods121 {
       "Delete open corporate url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1611,7 +1612,7 @@ trait APIMethods121 {
       "Add the geolocation of the counterparty's registered address",
       CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1647,7 +1648,7 @@ trait APIMethods121 {
       "Update the geolocation of the counterparty's registered address",
       CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1683,7 +1684,7 @@ trait APIMethods121 {
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1719,7 +1720,7 @@ trait APIMethods121 {
       "Add geocoordinates of the counterparty's main location",
       PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1756,7 +1757,7 @@ trait APIMethods121 {
       "Update geocoordinates of the counterparty's main location",
       PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1793,7 +1794,7 @@ trait APIMethods121 {
       "Delete physical location of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1840,7 +1841,7 @@ trait APIMethods121 {
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1877,7 +1878,7 @@ trait APIMethods121 {
          |""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1908,7 +1909,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1943,7 +1944,7 @@ trait APIMethods121 {
          |""",
       TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1976,7 +1977,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2009,7 +2010,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2039,7 +2040,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2071,7 +2072,7 @@ trait APIMethods121 {
          |Authentication is required since the comment is linked with the user.""",
       PostTransactionCommentJSON("Why did we spend money on this again?"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2105,7 +2106,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2135,7 +2136,7 @@ trait APIMethods121 {
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2167,7 +2168,7 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication is required as the tag is linked with the user.""",
       PostTransactionTagJSON("holiday"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2202,7 +2203,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2233,7 +2234,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2268,7 +2269,7 @@ Authentication via OAuth is required if the view is not public.""",
         "www.example.com/images/printer.png"
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction)
     )
@@ -2302,7 +2303,7 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2333,7 +2334,7 @@ Authentication via OAuth is required if the view is not public.""",
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2366,7 +2367,7 @@ Authentication via OAuth is required if the view is not public.""",
          |The geo tag is linked with the user.""",
       PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2403,7 +2404,7 @@ Authentication via OAuth is required if the view is not public.""",
          |The geo tag is linked with the user.""",
       PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2440,7 +2441,7 @@ Authentication via OAuth is required if the view is not public.""",
         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2475,7 +2476,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
@@ -2513,7 +2514,7 @@ Authentication via OAuth is required if the view is not public.""",
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
       MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 

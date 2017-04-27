@@ -11,6 +11,7 @@ import APIUtil._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.Nil
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -33,7 +34,7 @@ trait APIMethods130 {
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -68,7 +69,7 @@ trait APIMethods130 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

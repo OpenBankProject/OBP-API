@@ -675,10 +675,6 @@ object SwaggerDefinitionsJSON {
     version = "1_4_0",
     function = "getBranches"
   )
-  val baseErrorResponseBody =  BaseErrorResponseBody(
-    name ="InvalidJsonFormat",
-    detail= "OBP-10001: Incorrect json format."
-  )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   val resourceDocJson = ResourceDocJson(
     operation_id = "String",
@@ -688,7 +684,7 @@ object SwaggerDefinitionsJSON {
     description = "String",
     example_request_body = successMessage, //TODO maybe need fix
     success_response_body = successMessage,
-    error_response_bodies = List(baseErrorResponseBody),
+    error_response_bodies = List("OBP-10001: Incorrect json format."),
     implemented_by = implementedByJson,
     is_core = true,
     is_psd2 = true,

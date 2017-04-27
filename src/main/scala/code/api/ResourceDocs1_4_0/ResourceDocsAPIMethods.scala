@@ -98,7 +98,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       apiVersion,
       "getResourceDocsObp",
       "GET",
-      "/resource-docs/obp",
+      "/resource-docs/API_VERSION/obp",
       "Get Resource Documentation in OBP format.",
       """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
         | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
@@ -114,7 +114,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       """,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -219,7 +219,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -284,7 +284,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
           |_etc_...""",
         emptyObjectJson,
         emptyObjectJson,
-        userNotLoggedIn :: Nil,
+        emptyObjectJson :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }

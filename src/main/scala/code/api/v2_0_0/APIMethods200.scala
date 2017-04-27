@@ -63,6 +63,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonDSL._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -160,7 +161,7 @@ trait APIMethods200 {
         bank_id = "gh.29.uk",
         views_available = List(basicViewJSON)
       ),
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -188,7 +189,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -231,7 +232,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -271,7 +272,7 @@ trait APIMethods200 {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
@@ -319,7 +320,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -384,7 +385,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -419,7 +420,7 @@ trait APIMethods200 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -449,7 +450,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -481,7 +482,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagCustomer, apiTagKyc))
 
@@ -513,7 +514,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -543,7 +544,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -574,7 +575,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -608,7 +609,7 @@ trait APIMethods200 {
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -662,7 +663,7 @@ trait APIMethods200 {
         "98FRd987auhf87jab"
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -705,7 +706,7 @@ trait APIMethods200 {
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, ""),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -749,7 +750,7 @@ trait APIMethods200 {
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       PostKycStatusJSON("8762893876", true, exampleDate),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -788,7 +789,7 @@ trait APIMethods200 {
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
       SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -840,7 +841,7 @@ trait APIMethods200 {
         |OAuth authentication is required""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -891,7 +892,7 @@ trait APIMethods200 {
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
     
@@ -943,7 +944,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -982,7 +983,7 @@ trait APIMethods200 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -1016,7 +1017,7 @@ trait APIMethods200 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
@@ -1056,7 +1057,7 @@ trait APIMethods200 {
         |Note: The Amount must be zero.""".stripMargin,
       CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -1140,7 +1141,7 @@ trait APIMethods200 {
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, notOBWG),
       List(apiTagBank)
     )
@@ -1224,7 +1225,7 @@ trait APIMethods200 {
         "A description for the transaction to be created"
       ),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1283,7 +1284,7 @@ trait APIMethods200 {
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1368,7 +1369,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1416,7 +1417,7 @@ trait APIMethods200 {
         |""",
       CreateUserJson("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagOnboarding, apiTagUser))
 
@@ -1483,7 +1484,7 @@ trait APIMethods200 {
       """.stripMargin,
       CreateMeetingJson("tokbox", "onboarding"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1534,7 +1535,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1584,7 +1585,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1634,7 +1635,7 @@ trait APIMethods200 {
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1703,7 +1704,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1738,7 +1739,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1775,7 +1776,7 @@ trait APIMethods200 {
         |""",
       CreateUserCustomerLinkJson("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagCustomer))
 
@@ -1823,7 +1824,7 @@ trait APIMethods200 {
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser"),
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser))
 
@@ -1868,7 +1869,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1913,7 +1914,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1947,7 +1948,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -2042,7 +2043,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson,
-        userNotLoggedIn :: Nil,
+        UserNotLoggedIn :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2129,7 +2130,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson,
-        userNotLoggedIn :: Nil,
+        UserNotLoggedIn :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2160,7 +2161,7 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      userNotLoggedIn :: Nil,
+      UserNotLoggedIn :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 

@@ -190,6 +190,9 @@ object ErrorMessages {
   val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
   
+  //For Swagger, used reflect to  list all the varible names and values.
+  // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
+  //   -->(InvalidUserId, "OBP-30107: Invalid User Id.")
   val allFields =
     for (
       v <- this.getClass.getDeclaredFields
@@ -199,6 +202,15 @@ object ErrorMessages {
       v.setAccessible(true)
       v.getName() -> v.get(this)
     }
+  
+  //For Swagger, get varible name by value: 
+  // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
+  //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
+  def getFildNameByValue(value: String) = {
+    val strings = for (e <- allFields if (e._2 == (value))) yield e._1
+    strings.head
+  }
+
 }
 
 
@@ -649,7 +661,7 @@ object APIUtil extends MdcLoggable {
     description: String, // Longer description (originally taken from github wiki)
     exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
     successResponseBody: scala.Product, // A successful response body
-    errorResponseBodies: List[BaseErrorResponseBody], // Possible error responses
+    errorResponseBodies: List[String], // Possible error responses
     catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )
