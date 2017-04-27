@@ -103,7 +103,7 @@ trait APIMethods210 {
           |""",
       emptyObjectJson,
       successMessage,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -141,7 +141,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       transactionRequestTypesJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
 
@@ -242,7 +242,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -264,7 +264,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
       transactionRequestWithChargeJSON210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -290,7 +290,7 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodySEPAJSON,
       transactionRequestWithChargeJSON210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -474,7 +474,7 @@ trait APIMethods210 {
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       challengeAnswerJSON,
       transactionRequestWithChargeJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -503,7 +503,7 @@ trait APIMethods210 {
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.BankAccountNotFound}
 
               // Check User has access to the View
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {ErrorMessages.ViewAccessNoPermission}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {ErrorMessages.UserNoPermissionAccessView}
 
               // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
@@ -572,7 +572,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargeJSONs210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -584,7 +584,7 @@ trait APIMethods210 {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {"Current user does not have access to the view " + viewId}
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {
@@ -614,7 +614,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -648,7 +648,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -696,7 +696,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       consumerJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -729,7 +729,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       consumersJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -762,7 +762,7 @@ trait APIMethods210 {
         |""",
       putEnabledJSON,
       putEnabledJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -804,7 +804,7 @@ trait APIMethods210 {
           |""",
       postPhysicalCardJSON,
       physicalCardJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -819,7 +819,7 @@ trait APIMethods210 {
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
-              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~ {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
+              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
             }
             account <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {ErrorMessages.AccountNotFound}
             card <- Connector.connector.vend.AddPhysicalCard(
@@ -864,7 +864,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -906,7 +906,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
       transactionTypeJsonV200,
       transactionType,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank)
     )
@@ -948,7 +948,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -994,7 +994,7 @@ trait APIMethods210 {
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1043,7 +1043,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productJsonV210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1090,7 +1090,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productsJsonV210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1153,7 +1153,7 @@ trait APIMethods210 {
           |""",
       postCounterpartyJSON,
       counterpartyJsonV220,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -1170,7 +1170,7 @@ trait APIMethods210 {
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
-            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! {"Current user does not have access to the view " + viewId}
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
@@ -1189,7 +1189,7 @@ trait APIMethods210 {
               isBeneficiary=postJson.is_beneficiary
             )
 //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
-//            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~ "Cannot find the metadata"
+//            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~! "Cannot find the metadata"
 //            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
             val list = JSONFactory220.createCounterpartyJSON(counterparty)
@@ -1216,7 +1216,7 @@ trait APIMethods210 {
           |""",
       postCustomerJsonV210,
       customerJsonV210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1240,7 +1240,7 @@ trait APIMethods210 {
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
             hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
-            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
+            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               postedData.customer_number,
@@ -1258,7 +1258,7 @@ trait APIMethods210 {
               postedData.last_ok_date,
               Option(MockCreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(MockCreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! "Could not create customer"
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val json = JSONFactory210.createCustomerJson(customer)
@@ -1280,7 +1280,7 @@ trait APIMethods210 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       metricsJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1311,7 +1311,7 @@ trait APIMethods210 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customerJsonV210,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -1346,7 +1346,7 @@ trait APIMethods210 {
          |""",
       branchJsonPut,
       branchJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -1385,7 +1385,7 @@ trait APIMethods210 {
           |""",
       branchJsonPost,
       branchJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -1425,7 +1425,7 @@ trait APIMethods210 {
        """.stripMargin,
       consumerRedirectUrlJSON,
       consumerJSON,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil
     )
@@ -1498,7 +1498,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       metricsJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 

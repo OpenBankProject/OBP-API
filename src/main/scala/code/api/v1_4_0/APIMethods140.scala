@@ -78,7 +78,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -114,7 +114,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -146,7 +146,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       AddCustomerMessageJson("message to send", "from department", "from person"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
     )
@@ -191,7 +191,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -235,7 +235,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -287,7 +287,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -324,7 +324,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -375,7 +375,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -412,7 +412,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -467,7 +467,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "one of the transaction types possible for the account"
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -515,7 +515,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -580,7 +580,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         exampleDate
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -660,7 +660,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |_etc_...""",
           emptyObjectJson,
           emptyObjectJson,
-        UserNotLoggedIn :: Nil,
+        List(UserNotLoggedIn, UnKnownError),
         Catalogs(notCore, notPSD2, notOBWG),
         Nil)
       }

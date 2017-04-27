@@ -108,7 +108,7 @@ trait APIMethods121 {
         |* Git Commit""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -134,7 +134,7 @@ trait APIMethods121 {
         |* Website""",
       emptyObjectJson,
       BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")))),
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -170,7 +170,7 @@ trait APIMethods121 {
         |* Website""",
       emptyObjectJson,
       BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")),
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -209,7 +209,7 @@ trait APIMethods121 {
          |""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -234,7 +234,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -262,7 +262,7 @@ trait APIMethods121 {
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -293,7 +293,7 @@ trait APIMethods121 {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -323,7 +323,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -353,7 +353,7 @@ trait APIMethods121 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
@@ -393,7 +393,7 @@ trait APIMethods121 {
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -428,7 +428,7 @@ trait APIMethods121 {
         "BANK_ID"
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData)
     )
@@ -482,7 +482,7 @@ trait APIMethods121 {
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -534,7 +534,7 @@ trait APIMethods121 {
         )
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -576,7 +576,7 @@ trait APIMethods121 {
         List("can_see_transaction_start_date", "can_see_bank_account_label")
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -590,7 +590,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId)
             u <- user ?~ "user not found"
             updateJson <- tryo
-            { json.extract[UpdateViewJSON] } ?~ "wrong JSON format"
+            { json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
@@ -609,7 +609,7 @@ trait APIMethods121 {
       "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -639,7 +639,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -672,10 +672,11 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
+  
   
     lazy val getPermissionForUserForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
@@ -706,7 +707,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       ViewIdsJson(List("owner", "auditor", "investor")),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -740,7 +741,7 @@ trait APIMethods121 {
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -774,7 +775,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -803,7 +804,7 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -832,7 +833,7 @@ trait APIMethods121 {
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -863,7 +864,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
@@ -895,7 +896,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -927,7 +928,7 @@ trait APIMethods121 {
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -966,7 +967,7 @@ trait APIMethods121 {
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -980,7 +981,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
             if(added)
           } yield {
@@ -1002,7 +1003,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1016,7 +1017,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
             if(added)
           } yield {
@@ -1038,7 +1039,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1071,7 +1072,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1105,7 +1106,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1119,7 +1120,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
             if(added)
           } yield {
@@ -1142,7 +1143,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       AliasJSON("An Alias"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1156,7 +1157,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
             if(updated)
           } yield {
@@ -1179,7 +1180,7 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1211,7 +1212,7 @@ trait APIMethods121 {
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       MoreInfoJSON("More info"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1225,7 +1226,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
-            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
+            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
             if(added)
           } yield {
@@ -1245,7 +1246,7 @@ trait APIMethods121 {
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
       MoreInfoJSON("More info"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1259,7 +1260,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
-            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
+            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
             if(updated)
           } yield {
@@ -1279,7 +1280,7 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1311,7 +1312,7 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       UrlJSON("www.example.com"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1326,7 +1327,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
-            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
+            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1346,7 +1347,7 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       UrlJSON("www.example.com"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1360,7 +1361,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
-            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
+            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
             if(added)
           } yield {
@@ -1380,7 +1381,7 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1412,7 +1413,7 @@ trait APIMethods121 {
       "Add a url that points to the logo of the counterparty",
       ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1426,7 +1427,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
+            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1446,7 +1447,7 @@ trait APIMethods121 {
       "Update the url that points to the logo of the counterparty",
       ImageUrlJSON("www.example.com/logo.png"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1460,7 +1461,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
+            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
             if(updated)
           } yield {
@@ -1480,7 +1481,7 @@ trait APIMethods121 {
       "Delete image url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
@@ -1512,7 +1513,7 @@ trait APIMethods121 {
       "Add open corporates url to other bank account.",
       OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1526,7 +1527,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
-            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1546,7 +1547,7 @@ trait APIMethods121 {
       "Update open corporate url of other bank account.",
       OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1560,7 +1561,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
-            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
             if(updated)
           } yield {
@@ -1580,7 +1581,7 @@ trait APIMethods121 {
       "Delete open corporate url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1612,7 +1613,7 @@ trait APIMethods121 {
       "Add the geolocation of the counterparty's registered address",
       CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1627,7 +1628,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
-            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
+            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
             added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
             if(added)
@@ -1648,7 +1649,7 @@ trait APIMethods121 {
       "Update the geolocation of the counterparty's registered address",
       CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1663,7 +1664,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
-            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
+            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
             updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
             if(updated)
@@ -1684,7 +1685,7 @@ trait APIMethods121 {
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1720,7 +1721,7 @@ trait APIMethods121 {
       "Add geocoordinates of the counterparty's main location",
       PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1735,7 +1736,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
-            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
+            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
@@ -1757,7 +1758,7 @@ trait APIMethods121 {
       "Update geocoordinates of the counterparty's main location",
       PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1772,7 +1773,7 @@ trait APIMethods121 {
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
-            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
+            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
@@ -1794,7 +1795,7 @@ trait APIMethods121 {
       "Delete physical location of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1841,7 +1842,7 @@ trait APIMethods121 {
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1878,7 +1879,7 @@ trait APIMethods121 {
          |""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1909,7 +1910,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1944,7 +1945,7 @@ trait APIMethods121 {
          |""",
       TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1954,7 +1955,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
+            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
           } yield {
@@ -1977,7 +1978,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       TransactionNarrativeJSON("My new (old!) piano"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1987,7 +1988,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
+            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
           } yield {
@@ -2010,7 +2011,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2040,7 +2041,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2072,7 +2073,7 @@ trait APIMethods121 {
          |Authentication is required since the comment is linked with the user.""",
       PostTransactionCommentJSON("Why did we spend money on this again?"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2082,7 +2083,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
+            commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
             postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
@@ -2106,7 +2107,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2136,7 +2137,7 @@ trait APIMethods121 {
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2168,7 +2169,7 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication is required as the tag is linked with the user.""",
       PostTransactionTagJSON("holiday"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2203,7 +2204,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2234,7 +2235,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2269,7 +2270,7 @@ Authentication via OAuth is required if the view is not public.""",
         "www.example.com/images/printer.png"
       ),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction)
     )
@@ -2303,7 +2304,7 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2334,7 +2335,7 @@ Authentication via OAuth is required if the view is not public.""",
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2367,7 +2368,7 @@ Authentication via OAuth is required if the view is not public.""",
          |The geo tag is linked with the user.""",
       PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2380,7 +2381,7 @@ Authentication via OAuth is required if the view is not public.""",
             view <- View.fromUrl(viewId, accountId, bankId)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
+            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
@@ -2404,7 +2405,7 @@ Authentication via OAuth is required if the view is not public.""",
          |The geo tag is linked with the user.""",
       PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2417,7 +2418,7 @@ Authentication via OAuth is required if the view is not public.""",
             view <- View.fromUrl(viewId, accountId, bankId)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
+            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
@@ -2441,7 +2442,7 @@ Authentication via OAuth is required if the view is not public.""",
         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2476,7 +2477,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
@@ -2514,7 +2515,7 @@ Authentication via OAuth is required if the view is not public.""",
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
       MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45"),
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
@@ -2524,7 +2525,7 @@ Authentication via OAuth is required if the view is not public.""",
           if (Props.getBool("payments_enabled", false)) {
             for {
               u <- user ?~ "User not found"
-              makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {"wrong json format"}
+              makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               toAccountUID = BankAccountUID(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
               createdPaymentId <- Connector.connector.vend.makePayment(u, BankAccountUID(bankId, accountId), toAccountUID, rawAmt, "")

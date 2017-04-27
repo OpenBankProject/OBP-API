@@ -34,7 +34,7 @@ trait APIMethods130 {
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -69,7 +69,7 @@ trait APIMethods130 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      UserNotLoggedIn :: Nil,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

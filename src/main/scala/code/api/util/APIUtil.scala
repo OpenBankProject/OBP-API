@@ -104,7 +104,7 @@ object ErrorMessages {
 
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
 
-  val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
+  val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   
@@ -141,6 +141,7 @@ object ErrorMessages {
   
   val CreateBankInsertError = "OBP-30020: Could not create the Bank"
   val CreateBankUpdateError = "OBP-30021: Could not update the Bank"
+  val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
   
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -171,7 +172,7 @@ object ErrorMessages {
 
   val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
-
+  val AccountIdHasExsited = "OBP-30208: Account_ID already exists at the Bank."
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -189,6 +190,8 @@ object ErrorMessages {
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
+  
+  val UnKnownError = "OBP-50000: Unknown Error."
   
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
