@@ -158,7 +158,7 @@ trait APIMethods220 {
         | """,
       createViewJSON,
       viewJSONV220,
-      userNotLoggedIn :: Nil,
+      userNotLoggedIn :: hostnameNotSpecified :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 

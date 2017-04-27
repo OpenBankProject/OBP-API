@@ -116,7 +116,14 @@ object SwaggerJSONFactory {
     paths: Map[String, Map[String, OperationObjectJson]]
   )
   
-  val userNotLoggedIn = BaseErrorResponseBody("UserNotLoggedIn")
+  val userNotLoggedIn = BaseErrorResponseBody(
+    name = "UserNotLoggedIn",
+    detail = ErrorMessages.UserNotLoggedIn
+  )
+  val hostnameNotSpecified = BaseErrorResponseBody(
+    name = "HostnameNotSpecified",
+    detail = ErrorMessages.HostnameNotSpecified
+  )
   
   /**
     *Package the SwaggerResourceDoc with the ResourceDoc.
@@ -309,15 +316,15 @@ object SwaggerJSONFactory {
             responses =
               if (rd.requestVerb.toLowerCase == "get" ){
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                  "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
                 Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
               } else if (rd.requestVerb.toLowerCase == "delete"){
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
                 Map("204" -> ResponseNoContentObjectJson(Some("No Content")))++errorResponseBodies.toMap
               } else{
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
                 Map( "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
               }
           )
@@ -505,9 +512,13 @@ object SwaggerJSONFactory {
         yield {
           s""""Error${e._1 }": {
                "properties": {
-                 "message": {
+                 "name": {
                    "type": "string",
-                   "example": "${e._2} "
+                   "example": "${e._1}"
+                 },
+                 "detail": {
+                    "type": "string",
+                    "example": "${e._2}"
                  }
                }
              }"""

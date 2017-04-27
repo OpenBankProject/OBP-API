@@ -632,8 +632,10 @@ object APIUtil extends MdcLoggable {
   val notOBWG = false
   
   case class BaseErrorResponseBody(
-//    code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
-    message: String
+    //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
+    //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
+    name: String,
+    detail: String
   ) 
   
   // Used to document the API calls
