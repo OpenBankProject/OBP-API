@@ -54,10 +54,21 @@ object SwaggerJSONFactory {
   )
   //Response Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#responsesObject
+  abstract class ResponseBaseObjectJson(
+    optionalFields: String*
+  ) {
+    def description: Option[String]
+  }
+  
   case class ResponseObjectJson(
     description: Option[String],
     schema: Option[ResponseObjectSchemaJson]
-  )
+  ) extends  ResponseBaseObjectJson
+  
+  case class ResponseNoContentObjectJson(
+    description: Option[String]
+  ) extends  ResponseBaseObjectJson
+  
   // Operation Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operation-object
   case class OperationObjectJson(
@@ -67,7 +78,7 @@ object SwaggerJSONFactory {
     description: String,
     operationId: String,
     parameters: List[OperationParameter],
-    responses: Map[String, ResponseObjectJson]
+    responses: Map[String, ResponseBaseObjectJson]
   )
   //Parameter Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#parameterObject
@@ -105,7 +116,14 @@ object SwaggerJSONFactory {
     paths: Map[String, Map[String, OperationObjectJson]]
   )
   
-  val userNotLoggedIn = BaseErrorResponseBody("401", "UserNotLoggedIn")
+  val userNotLoggedIn = BaseErrorResponseBody(
+    name = "UserNotLoggedIn",
+    detail = ErrorMessages.UserNotLoggedIn
+  )
+  val hostnameNotSpecified = BaseErrorResponseBody(
+    name = "HostnameNotSpecified",
+    detail = ErrorMessages.HostnameNotSpecified
+  )
   
   /**
     *Package the SwaggerResourceDoc with the ResourceDoc.
@@ -154,7 +172,7 @@ object SwaggerJSONFactory {
     //      "schema": {
     //         "$ref": "#/definitions/BankJSON"
     //TODO, try to make it work with reflection using rd.successResponseBody.extract[BanksJSON], but successResponseBody is JValue, that's tricky
-    def setReferenceObject(rd: ResourceDoc) = {
+    def setReferenceObject(rd: ResourceDoc): Option[ResponseObjectSchemaJson] = {
       val caseClassName = rd.successResponseBody match {
         case s:scala.Product => s.getClass.getSimpleName
         case _ => "NoSupportYet"
@@ -296,13 +314,17 @@ object SwaggerJSONFactory {
                 OperationParameterBodyJson(schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
               },
             responses =
-              if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
+              if (rd.requestVerb.toLowerCase == "get" ){
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  e.code -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                  "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
                 Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
+              } else if (rd.requestVerb.toLowerCase == "delete"){
+                val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
+                Map("204" -> ResponseNoContentObjectJson(Some("No Content")))++errorResponseBodies.toMap
               } else{
                 val errorResponseBodies = for (e <- rd.errorResponseBodies if e!= null) yield
-                  e.code -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.message}")))
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${e.name}")))
                 Map( "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)))++errorResponseBodies.toMap
               }
           )
@@ -490,9 +512,13 @@ object SwaggerJSONFactory {
         yield {
           s""""Error${e._1 }": {
                "properties": {
-                 "message": {
+                 "name": {
                    "type": "string",
-                   "example": "${e._2} "
+                   "example": "${e._1}"
+                 },
+                 "detail": {
+                    "type": "string",
+                    "example": "${e._2}"
                  }
                }
              }"""

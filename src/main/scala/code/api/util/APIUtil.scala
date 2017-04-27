@@ -329,8 +329,8 @@ object APIUtil extends MdcLoggable {
   }
 
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
-  def defaultSuccessJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(SuccessMessage("Success")), headers, Nil, 200)
+  def noContentJsonResponse : JsonResponse =
+    JsonResponse(JsRaw(""), headers, Nil, 204)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
@@ -632,8 +632,10 @@ object APIUtil extends MdcLoggable {
   val notOBWG = false
   
   case class BaseErrorResponseBody(
-    code: String,
-    message: String
+    //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
+    //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
+    name: String,
+    detail: String
   ) 
   
   // Used to document the API calls

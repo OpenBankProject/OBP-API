@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil.ResourceDoc
+import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
 import code.common.{Address, License, Location, Meta}
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
@@ -287,6 +287,7 @@ object JSONFactory1_4_0 {
                          description: String,
                          example_request_body: scala.Product,
                          success_response_body: scala.Product,
+                         error_response_bodies: List[BaseErrorResponseBody],
                          implemented_by: ImplementedByJson,
                          is_core: Boolean,
                          is_psd2: Boolean,
@@ -318,6 +319,7 @@ object JSONFactory1_4_0 {
       description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
+      error_response_bodies = rd.errorResponseBodies,
       implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
       is_core = rd.catalogs.core,
       is_psd2 = rd.catalogs.psd2,
