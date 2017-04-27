@@ -507,7 +507,7 @@ object SwaggerDefinitionsJSON {
   
   val transactionRequestChargeJsonV140 = TransactionRequestChargeJsonV140(
     summary = "Good",
-    value = amountOfMoneyJSON
+    value = amountOfMoneyJsonV121 //amountOfMoneyJSON
   )
   
   val transactionRequestTypeJsonV140 = TransactionRequestTypeJsonV140(
@@ -736,25 +736,20 @@ object SwaggerDefinitionsJSON {
     _links = defaultJValue
   )
   
-  
-  val moderatedCoreAccountJSON = ModeratedCoreAccountJSON(
-    id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-    label = "NoneLabel",
-    number = "123",
-    owners = List(userJSONV121),
-    `type` = "OBP",
-    balance = amountOfMoneyJsonV121,
-    IBAN = "GR1301720530005053000582373",
-    swift_bic = "UKTF3049auf",
-    bank_id = "gh.29.uk",
-    account_routing = accountRoutingJSON
-  )
+  val moderatedCoreAccountJSON =
+    JSONFactory200.ModeratedCoreAccountJSON(
+      id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+      label = "NoneLabel",
+      number = "123",
+      owners = List(userJSONV121),
+      `type` = "OBP",
+      balance = amountOfMoneyJsonV121,
+      IBAN = "GR1301720530005053000582373",
+      swift_bic = "UKTF3049auf",
+      bank_id = "gh.29.uk",
+      account_routing = accountRoutingJSON
+    )
 
-  val entitlementJSON = EntitlementJSON(
-    entitlement_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
-    role_name = "CanQueryOtherUser",
-    bank_id = "gh.29.uk"
-  )
   val basicAccountsJSON = BasicAccountsJSON(
     accounts = List(basicAccountJSON)
   )
@@ -788,19 +783,7 @@ object SwaggerDefinitionsJSON {
                          )
   val kycMediasJSON = KycMediasJSON(medias = List(kycMediaJSON))
 
-  val moderatedCoreAccountJSON =
-    JSONFactory200.ModeratedCoreAccountJSON(
-      id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-      label = "NoneLabel",
-      number = "123",
-      owners = List(userJSONV121),
-      `type` = "OBP",
-      balance = amountOfMoneyJSON,
-      IBAN = "GR1301720530005053000582373",
-      swift_bic = "UKTF3049auf",
-      bank_id = "gh.29.uk",
-      account_routing = accountRoutingJSON
-    )
+
   val kycCheckJSON = KycCheckJSON(
                            bank_id = "PlaceholderString",
                            customer_id = "PlaceholderString",
@@ -981,17 +964,6 @@ object SwaggerDefinitionsJSON {
     customer_id = "String"
   )
 
-  val basicAccountJSON = BasicAccountJSON(
-    id = "String",
-    label = "String",
-    bank_id = "String",
-    views_available = List(basicViewJSON)
-  )
-
-  val basicAccountsJSON = BasicAccountsJSON(
-    accounts = List(basicAccountJSON)
-  )
-
   val createAccountJSON = CreateAccountJSON(
     user_id = "String",
     label = "String",
@@ -1008,20 +980,6 @@ object SwaggerDefinitionsJSON {
     expiry_date = exampleDate
   )
 
-  val kycDocumentJSON = KycDocumentJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    `type` = "String",
-    number = "String",
-    issue_date = exampleDate,
-    issue_place = "String",
-    expiry_date = exampleDate
-  )
-
-  val kycDocumentsJSON = KycDocumentsJSON(documents = List(kycDocumentJSON))
-
   val postKycMediaJSON = PostKycMediaJSON(
     customer_number = "String",
     `type` = "String",
@@ -1030,20 +988,6 @@ object SwaggerDefinitionsJSON {
     relates_to_kyc_document_id = "String",
     relates_to_kyc_check_id = "String"
   )
-
-  val kycMediaJSON = KycMediaJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    `type` = "String",
-    url = "String",
-    date = exampleDate,
-    relates_to_kyc_document_id = "String",
-    relates_to_kyc_check_id = "String"
-  )
-
-  val kycMediasJSON = KycMediasJSON(medias = List(kycMediaJSON))
 
   val postKycCheckJSON = PostKycCheckJSON(
     customer_number = "String",
@@ -1055,35 +999,11 @@ object SwaggerDefinitionsJSON {
     comments = "String"
   )
 
-  val kycCheckJSON = KycCheckJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    date = exampleDate,
-    how = "String",
-    staff_user_id = "String",
-    staff_name = "String",
-    satisfied = true,
-    comments = "String"
-  )
-
-  val kycChecksJSON = KycChecksJSON(checks = List(kycCheckJSON))
-
   val postKycStatusJSON = PostKycStatusJSON(
     customer_number = "String",
     ok = true,
     date = exampleDate
   )
-
-  val kycStatusJSON = KycStatusJSON(
-    customer_id = "String",
-    customer_number = "String",
-    ok = true,
-    date = exampleDate
-  )
-
-  val kycStatusesJSON = KycStatusesJSON(statuses = List(kycStatusJSON))
 
   val socialMediaJSON = SocialMediaJSON(
     customer_number = "String",
