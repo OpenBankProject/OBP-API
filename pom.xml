@@ -239,6 +239,7 @@
       <groupId>com.sksamuel.elastic4s</groupId>
       <artifactId>elastic4s-tcp_${scala.version}</artifactId>
       <version>5.3.0</version>
+      <!-- TODO try to switch to slf4j from log4j
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>
@@ -252,7 +253,7 @@
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-1.2-api</artifactId>
         </exclusion>
-      </exclusions>
+      </exclusions> -->
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
