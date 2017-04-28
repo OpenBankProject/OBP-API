@@ -1,12 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util.Date
-
 import code.api.util.APIUtil
+import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
-import code.api.v2_2_0.CounterpartyJsonV220
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 
 /**
   * Created by zhanghongwei on 07/04/2017.
@@ -18,6 +14,7 @@ import net.liftweb.json.JsonAST.JValue
   *
   */
 object SwaggerDefinitionsJSON {
+  
   
   // from code.model, not from normal version JSON Factory
   ///////////////////////////////////////////////////////////////////////////
@@ -50,6 +47,14 @@ object SwaggerDefinitionsJSON {
   
   val bankId = BankId(value = "gh.uk.9j")
   
+  val transactionRequestId = TransactionRequestId(value = "123")
+  
+  val counterpartyId = CounterpartyId(value = "123")
+  
+  val accountId = AccountId(value = "123")
+  
+  val viewId = ViewId(value = "owner")
+  
   
   // from code.TransactionTypes.TransactionType, not from normal version Factory
   ///////////////////////////////////////////////////////////////////////////
@@ -66,6 +71,58 @@ object SwaggerDefinitionsJSON {
   )
   
   
+  // code.transactionrequests.TransactionRequests
+  ///////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
+  import code.transactionrequests.TransactionRequests._
+  
+  val transactionRequestCharge = TransactionRequestCharge(
+    summary = "String",
+    value = amountOfMoney
+  )
+  
+  val transactionRequestChallenge = TransactionRequestChallenge(
+    id= "String",
+    allowed_attempts= 4,
+    challenge_type= "String"
+  )
+  
+  val transactionRequestAccount = TransactionRequestAccount(
+    bank_id= "String",
+    account_id= "String"
+  )
+  
+  val transactionRequestBody = TransactionRequestBody(
+    to = transactionRequestAccount,
+    value= amountOfMoney,
+    description= "String"
+  )
+  
+  val transactionRequest = TransactionRequest(
+    id= transactionRequestId,
+    `type`= "String",
+    from= transactionRequestAccount,
+    details= defaultJValue, // Note= This is unstructured! (allows multiple "to" accounts etc.)
+    body= transactionRequestBody, // Note= This is structured with one "to" account etc.
+    transaction_ids= "String",
+    status= "String",
+    start_date= exampleDate,
+    end_date= exampleDate,
+    challenge= transactionRequestChallenge,
+    charge= transactionRequestCharge,
+    charge_policy= "String",
+    counterparty_id= counterpartyId,
+    name= "String",
+    this_bank_id= bankId,
+    this_account_id= accountId,
+    this_view_id= viewId,
+    other_account_routing_scheme= "String",
+    other_account_routing_address= "String",
+    other_bank_routing_scheme= "String",
+    other_bank_routing_address= "String",
+    is_beneficiary= true
+  )
+  
   // from code.bankconnectors, not from normal version Factory
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
@@ -81,16 +138,20 @@ object SwaggerDefinitionsJSON {
   
   val messageDocsJson = MessageDocsJson(messageDocs = List(messageDocJson))
   
-  
-  // from code.model, not from normal version JSON Factory
-  ///////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
-  
   //V121 - code.api.v1_2_1
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_2_1._
+  
+  val makePaymentJson = MakePaymentJson(
+    bank_id = "String",
+    account_id = "String",
+    amount = "String"
+  )
+  
+  val transactionIdJson = TransactionIdJson(
+    transaction_id = "123"
+  )
   
   val hostedBy = HostedBy(
     organisation = "String",
@@ -492,7 +553,7 @@ object SwaggerDefinitionsJSON {
     posted = exampleDate
   )
   
-  //V140 -- code.api.v1_4_0.JSONFactory1_4_0 
+  //V140 -- code.api.v1_4_0.JSONFactory1_4_0
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_4_0.JSONFactory1_4_0._
@@ -509,7 +570,7 @@ object SwaggerDefinitionsJSON {
   
   val transactionRequestChargeJsonV140 = TransactionRequestChargeJsonV140(
     summary = "Good",
-    value = amountOfMoneyJsonV121
+    value = amountOfMoneyJsonV121 //amountOfMoneyJSON
   )
   
   val transactionRequestTypeJsonV140 = TransactionRequestTypeJsonV140(
@@ -592,8 +653,9 @@ object SwaggerDefinitionsJSON {
     last_ok_date = exampleDate
   )
   
-  val customerJSONs = CustomersJsonV140(customers = List(customerJsonV140))
-  
+  val customersJsonV140 = CustomersJsonV140(
+    customers = List(customerJsonV140)
+  )
   
   val customerMessageJson = CustomerMessageJson(
     id = "String",
@@ -631,7 +693,6 @@ object SwaggerDefinitionsJSON {
   
   val branchesJson = BranchesJson(branches = List(branchJson))
   
-  
   val atmJson = AtmJson(
     id = "String",
     name = "String",
@@ -641,7 +702,6 @@ object SwaggerDefinitionsJSON {
   )
   
   val atmsJson = AtmsJson(atms = List(atmJson))
-  
   
   val productJson = ProductJson(
     code = "String",
@@ -684,7 +744,7 @@ object SwaggerDefinitionsJSON {
     description = "String",
     example_request_body = successMessage, //TODO maybe need fix
     success_response_body = successMessage,
-    error_response_bodies = List("OBP-10001: Incorrect json format."),
+    error_response_bodies = List("OBP-10001= Incorrect json format."),
     implemented_by = implementedByJson,
     is_core = true,
     is_psd2 = true,
@@ -712,7 +772,7 @@ object SwaggerDefinitionsJSON {
     challenge = challengeJsonV140
   )
   
-  //V200 
+  //V200
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v2_0_0.JSONFactory200._
@@ -723,13 +783,20 @@ object SwaggerDefinitionsJSON {
     short_name = "HHH",
     is_public = true
   )
+  
+  val basicAccountJSON = BasicAccountJSON(
+    id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    label = "NoneLabel",
+    bank_id = "gh.29.uk",
+    views_available = List(basicViewJSON)
+  )
+  
   val coreAccountJSON = CoreAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
     bank_id = "gh.29.uk",
     _links = defaultJValue
   )
-  
   
   val moderatedCoreAccountJSON = ModeratedCoreAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -744,11 +811,77 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJSON
   )
   
-  val entitlementJSON = EntitlementJSON(
-    entitlement_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
-    role_name = "CanQueryOtherUser",
-    bank_id = "gh.29.uk"
+  val basicAccountsJSON = BasicAccountsJSON(
+    accounts = List(basicAccountJSON)
   )
+  val coreAccountsJSON = CoreAccountsJSON(accounts = List(coreAccountJSON))
+  
+  val kycDocumentJSON = KycDocumentJSON(
+    bank_id = "PlaceholderString",
+    customer_id = "PlaceholderString",
+    id = "PlaceholderString",
+    customer_number = "PlaceholderString",
+    `type` = "PlaceholderString",
+    number = "PlaceholderString",
+    issue_date = exampleDate,
+    issue_place = "PlaceholderString",
+    expiry_date = exampleDate
+  )
+  
+  val kycDocumentsJSON = KycDocumentsJSON(
+    documents = List(kycDocumentJSON)
+  )
+  val kycMediaJSON = KycMediaJSON(
+    bank_id = "PlaceholderString",
+    customer_id = "PlaceholderString",
+    id = "PlaceholderString",
+    customer_number = "PlaceholderString",
+    `type` = "PlaceholderString",
+    url = "PlaceholderString",
+    date = exampleDate,
+    relates_to_kyc_document_id = "PlaceholderString",
+    relates_to_kyc_check_id = "PlaceholderString"
+  )
+  val kycMediasJSON = KycMediasJSON(medias = List(kycMediaJSON))
+  
+  
+  val kycCheckJSON = KycCheckJSON(
+    bank_id = "PlaceholderString",
+    customer_id = "PlaceholderString",
+    id = "PlaceholderString",
+    customer_number = "PlaceholderString",
+    date = exampleDate,
+    how = "PlaceholderString",
+    staff_user_id = "PlaceholderString",
+    staff_name = "PlaceholderString",
+    satisfied = true,
+    comments = "PlaceholderString"
+  )
+  var kycChecksJSON = KycChecksJSON(checks = List(kycCheckJSON))
+  
+  var kycStatusJSON = KycStatusJSON(
+    customer_id = "PlaceholderString",
+    customer_number = "PlaceholderString",
+    ok = true,
+    date = exampleDate
+  )
+  var kycStatusesJSON = KycStatusesJSON(statuses = List(kycStatusJSON))
+  
+  var socialMediaJSON = SocialMediaJSON(
+    customer_number = "PlaceholderString",
+    `type` = "PlaceholderString",
+    handle = "PlaceholderString",
+    date_added = exampleDate,
+    date_activated = exampleDate
+  )
+  var socialMediasJSON = SocialMediasJSON(checks = List(socialMediaJSON))
+  
+  val entitlementJSON =
+    code.api.v2_0_0.EntitlementJSON(
+      entitlement_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
+      role_name = "CanQueryOtherUser",
+      bank_id = "gh.29.uk"
+    )
   val entitlementJSONs = EntitlementJSONs(
     list = List(entitlementJSON)
   )
@@ -806,7 +939,7 @@ object SwaggerDefinitionsJSON {
     value = amountOfMoneyJsonV121
   )
   
-  val transactionRequestWithChargeJSON = TransactionRequestWithChargeJson(
+  val transactionRequestWithChargeJson = TransactionRequestWithChargeJson(
     id = "82f92531-9c63-4246-abfc-96c20ec46188",
     `type` = "SANDBOX_TAN",
     from = transactionRequestAccountJsonV140,
@@ -825,7 +958,18 @@ object SwaggerDefinitionsJSON {
     description = "Good"
   )
   
+  val transactionTypeJsonV200 = TransactionTypeJsonV200(
+    id = transactionTypeId,
+    bank_id = "PlaceholderString",
+    short_code = "PlaceholderString",
+    summary = "PlaceholderString",
+    description = "PlaceholderString",
+    charge = amountOfMoneyJsonV121
+  )
   
+  val transactionTypesJsonV200 = TransactionTypesJsonV200(
+    transaction_types = List(transactionTypeJsonV200)
+  )
   val linkJson = LinkJson(
     href = "String",
     rel = "String",
@@ -853,7 +997,7 @@ object SwaggerDefinitionsJSON {
     users = List(createUserJson)
   )
   
-  val createMeetingJSON = CreateMeetingJson(
+  val createMeetingJson = CreateMeetingJson(
     provider_id = "String",
     purpose_id = "String"
   )
@@ -869,7 +1013,7 @@ object SwaggerDefinitionsJSON {
     customer_user_id = "String"
   )
   
-  val meetingJSON = MeetingJson(
+  val meetingJson = MeetingJson(
     meeting_id = "String",
     provider_id = "String",
     purpose_id = "String",
@@ -879,12 +1023,12 @@ object SwaggerDefinitionsJSON {
     when = exampleDate
   )
   
-  val meetingJSONs = MeetingsJson(
-    meetings = List(meetingJSON)
+  val meetingsJson = MeetingsJson(
+    meetings = List(meetingJson)
   )
   
   
-  val userCustomerLinkJSON = UserCustomerLinkJson(
+  val userCustomerLinkJson = UserCustomerLinkJson(
     user_customer_link_id = "String",
     customer_id = "String",
     user_id = "String",
@@ -892,24 +1036,13 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )
   
-  val userCustomerLinkJSONs = UserCustomerLinksJson(
-    l = List(userCustomerLinkJSON)
+  val userCustomerLinksJson = UserCustomerLinksJson(
+    l = List(userCustomerLinkJson)
   )
   
-  val createUserCustomerLinkJSON = CreateUserCustomerLinkJson(
+  val createUserCustomerLinkJson = CreateUserCustomerLinkJson(
     user_id = "String",
     customer_id = "String"
-  )
-  
-  val basicAccountJSON = BasicAccountJSON(
-    id = "String",
-    label = "String",
-    bank_id = "String",
-    views_available = List(basicViewJSON)
-  )
-  
-  val basicAccountsJSON = BasicAccountsJSON(
-    accounts = List(basicAccountJSON)
   )
   
   val createAccountJSON = CreateAccountJSON(
@@ -928,20 +1061,6 @@ object SwaggerDefinitionsJSON {
     expiry_date = exampleDate
   )
   
-  val kycDocumentJSON = KycDocumentJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    `type` = "String",
-    number = "String",
-    issue_date = exampleDate,
-    issue_place = "String",
-    expiry_date = exampleDate
-  )
-  
-  val kycDocumentsJSON = KycDocumentsJSON(documents = List(kycDocumentJSON))
-  
   val postKycMediaJSON = PostKycMediaJSON(
     customer_number = "String",
     `type` = "String",
@@ -950,20 +1069,6 @@ object SwaggerDefinitionsJSON {
     relates_to_kyc_document_id = "String",
     relates_to_kyc_check_id = "String"
   )
-  
-  val kycMediaJSON = KycMediaJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    `type` = "String",
-    url = "String",
-    date = exampleDate,
-    relates_to_kyc_document_id = "String",
-    relates_to_kyc_check_id = "String"
-  )
-  
-  val kycMediasJSON = KycMediasJSON(medias = List(kycMediaJSON))
   
   val postKycCheckJSON = PostKycCheckJSON(
     customer_number = "String",
@@ -975,45 +1080,11 @@ object SwaggerDefinitionsJSON {
     comments = "String"
   )
   
-  val kycCheckJSON = KycCheckJSON(
-    bank_id = "String",
-    customer_id = "String",
-    id = "String",
-    customer_number = "String",
-    date = exampleDate,
-    how = "String",
-    staff_user_id = "String",
-    staff_name = "String",
-    satisfied = true,
-    comments = "String"
-  )
-  
-  val kycChecksJSON = KycChecksJSON(checks = List(kycCheckJSON))
-  
   val postKycStatusJSON = PostKycStatusJSON(
     customer_number = "String",
     ok = true,
     date = exampleDate
   )
-  
-  val kycStatusJSON = KycStatusJSON(
-    customer_id = "String",
-    customer_number = "String",
-    ok = true,
-    date = exampleDate
-  )
-  
-  val kycStatusesJSON = KycStatusesJSON(statuses = List(kycStatusJSON))
-  
-  val socialMediaJSON = SocialMediaJSON(
-    customer_number = "String",
-    `type` = "String",
-    handle = "String",
-    date_added = exampleDate,
-    date_activated = exampleDate
-  )
-  
-  val socialMediasJSON = SocialMediasJSON(checks = List(socialMediaJSON))
   
   val createCustomerJson = CreateCustomerJson(
     user_id = "String",
@@ -1032,19 +1103,6 @@ object SwaggerDefinitionsJSON {
     last_ok_date = exampleDate
   )
   
-  val transactionTypeJsonV200 = TransactionTypeJsonV200(
-    id = transactionTypeId,
-    bank_id = "String",
-    short_code = "String",
-    summary = "String",
-    description = "String",
-    charge = amountOfMoneyJsonV121
-  )
-  
-  val transactionTypesJSON = TransactionTypesJsonV200(
-    transaction_types = List(transactionTypeJsonV200)
-  )
-  
   val transactionRequestJsonV200 = TransactionRequestJsonV200(
     id = "String",
     `type` = "String",
@@ -1057,8 +1115,8 @@ object SwaggerDefinitionsJSON {
     challenge = challengeJsonV140
   )
   
-  val transactionRequestWithChargeJSONs = TransactionRequestWithChargesJson(
-    transaction_requests_with_charges = List(transactionRequestWithChargeJSON)
+  val transactionRequestWithChargesJson = TransactionRequestWithChargesJson(
+    transaction_requests_with_charges = List(transactionRequestWithChargeJson)
   )
   
   val usersJSONV200 = UsersJSONV200(
@@ -1069,7 +1127,7 @@ object SwaggerDefinitionsJSON {
     counterparties = List(coreCounterpartyJSON)
   )
   
-  //V210 
+  //V210
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v2_1_0._
@@ -1135,23 +1193,23 @@ object SwaggerDefinitionsJSON {
   )
   
   val customerJsonV210 = CustomerJsonV210(
-      customer_id = "123",
-      customer_number = "123",
-      legal_name = "legal_name",
-      mobile_phone_number = "123",
-      email = "contact@tesobe.com",
-      face_image = customerFaceImageJson,
-      date_of_birth = exampleDate,
-      relationship_status = "123",
-      dependants = 123,
-      dob_of_dependants = List(exampleDate),
-      credit_rating = Option(customerCreditRatingJSON),
-      credit_limit = Option(amountOfMoneyJsonV121),
-      highest_education_attained = "123",
-      employment_status = "123",
-      kyc_status = true,
-      last_ok_date = exampleDate
-    )
+    customer_id = "123",
+    customer_number = "123",
+    legal_name = "legal_name",
+    mobile_phone_number = "123",
+    email = "contact@tesobe.com",
+    face_image = customerFaceImageJson,
+    date_of_birth = exampleDate,
+    relationship_status = "123",
+    dependants = 123,
+    dob_of_dependants = List(exampleDate),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = "123",
+    employment_status = "123",
+    kyc_status = true,
+    last_ok_date = exampleDate
+  )
   
   val userJSONV210 = UserJSONV210(
     id = "123",
@@ -1269,7 +1327,7 @@ object SwaggerDefinitionsJSON {
     driveUpJson
   )
   
-  val branchJsonPost = BranchJsonPost("123","gh.29.fi", "OBP",
+  val branchJsonPost = BranchJsonPost("123", "gh.29.fi", "OBP",
     addressJson,
     locationJson,
     metaJson,

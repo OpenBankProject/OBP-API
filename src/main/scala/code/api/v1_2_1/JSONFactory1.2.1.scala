@@ -156,6 +156,7 @@ case class AccountJSON(
   views_available : List[ViewJSONV121],
   bank_id : String
 )
+case class TransactionIdJson(transaction_id : String)
 
 case class UpdateAccountJSON(
   id : String,
@@ -339,6 +340,12 @@ case class TransactionNarrativeJSON(
 
 case class ViewIdsJson(
   views : List[String]
+)
+
+case class MakePaymentJson(
+  bank_id : String,
+  account_id : String,
+  amount : String
 )
 
 object JSONFactory{

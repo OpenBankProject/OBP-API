@@ -10,8 +10,8 @@ import net.liftweb.json.Extraction
 import APIUtil._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.Nil
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 import code.api.util.ErrorMessages._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -33,7 +33,7 @@ trait APIMethods130 {
       "Get cards for the current user",
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
-      emptyObjectJson,
+      physicalCardsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
@@ -68,8 +68,8 @@ trait APIMethods130 {
       "Get cards for the specified bank",
       "",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      physicalCardsJSON,
+      List(UserNotLoggedIn,BankNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

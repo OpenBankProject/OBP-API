@@ -46,8 +46,8 @@ import code.api.util.APIUtil.ResourceDoc
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.authenticationRequiredMessage
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 import code.api.util.ErrorMessages._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -77,7 +77,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |
       |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      customerJsonV140,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
@@ -113,7 +113,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |
       |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      customerMessagesJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -144,8 +144,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Add Customer Message.",
       "Add a message for the customer specified by CUSTOMER_ID",
       // We use Extraction.decompose to convert to json
-      AddCustomerMessageJson("message to send", "from department", "from person"),
-      emptyObjectJson,
+      addCustomerMessageJson,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
@@ -165,7 +165,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 user, bankId, postedData.message, postedData.from_department, postedData.from_person),
               "Server error: could not add message")
           } yield {
-            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
+            successJsonResponse(Extraction.decompose(successMessage), 201)
           }
         }
       }
@@ -190,7 +190,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      branchesJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
@@ -234,7 +234,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      atmsJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
@@ -286,7 +286,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* License the data under this endpoint is released under
         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      productsJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
@@ -323,7 +323,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Get CRM Events for the logged in user",
       "",
       emptyObjectJson,
-      emptyObjectJson,
+      crmEventsJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
@@ -374,8 +374,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionRequestTypesJsonV140,
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -411,7 +411,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Get all Transaction Requests.",
       "",
       emptyObjectJson,
-      emptyObjectJson,
+      transactionRequest,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -460,13 +460,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |Please see later versions of this call in 2.0.0 or 2.1.0.
         |""",
-      TransactionRequestBodyJsonV140(
-        TransactionRequestAccountJsonV140("BANK_ID", "ACCOUNT_ID"),
-        AmountOfMoneyJsonV121("EUR", "100.53"),
-        "A description for the transaction to be created",
-        "one of the transaction types possible for the account"
-      ),
-      emptyObjectJson,
+      transactionRequestBodyJsonV140,
+      transactionRequest,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -513,8 +508,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
-      ChallengeAnswerJSON("89123812", "123345"),
-      emptyObjectJson,
+      challengeAnswerJSON,
+      transactionRequest,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -544,9 +539,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       }
     }
 
-
-
-
     resourceDocs += ResourceDoc(
       addCustomer,
       apiVersion,
@@ -562,24 +554,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |${authenticationRequiredMessage(true) }
          |Note: This call is depreciated in favour of v.2.0.0 createCustomer
          |""",
-      CreateCustomerJson(
-        "user_id to attach this customer to e.g. 123213",
-        "new customer number 687687678",
-        "Joe David Bloggs",
-        "+44 07972 444 876",
-        "person@example.com",
-        CustomerFaceImageJson("www.example.com/person/123/image.png",
-          exampleDate
-        ),
-        exampleDate, "Single",
-        1,
-        List(exampleDate),
-        "Bachelor’s Degree",
-        "Employed",
-        true,
-        exampleDate
-      ),
-      emptyObjectJson,
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createCustomerJson,
+      customerJsonV140,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
@@ -658,8 +634,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |There are (underscores_in_words_in_brackets)
             |
             |_etc_...""",
-          emptyObjectJson,
-          emptyObjectJson,
+        emptyObjectJson,
+        apiInfoJSON,
         List(UserNotLoggedIn, UnKnownError),
         Catalogs(notCore, notPSD2, notOBWG),
         Nil)

@@ -6,11 +6,12 @@ import code.api.util.ErrorMessages
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
 import net.liftweb.http.S
-import net.liftweb.http.js.JE.JsRaw
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.Extraction
 
 
 object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
@@ -33,7 +34,7 @@ object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
           importData <- tryo{json.extract[SandboxDataImport]} ?~ ErrorMessages.InvalidJsonFormat
           importWorked <- OBPDataImport.importer.vend.importData(importData)
         } yield {
-          successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
+          successJsonResponse(Extraction.decompose(successMessage), 201)
         }
 
     }

@@ -159,6 +159,8 @@ case class CoreAccountJSON(
                              _links: JValue
                            )
 
+case class CoreAccountsJSON( accounts: List[CoreAccountJSON])
+
 case class PostKycDocumentJSON(
                                 customer_number: String,
                                 `type`: String,

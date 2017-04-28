@@ -188,7 +188,7 @@ object ErrorMessages {
   val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not INITIATED."
   val CounterpartyNotFoundOtherAccountProvider = "OBP-40012: Please set up the otherAccountRoutingScheme and otherBankRoutingScheme fields of the Counterparty to 'OBP'"
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
-  val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
+  val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
   
   val UnKnownError = "OBP-50000: Unknown Error."

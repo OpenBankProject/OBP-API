@@ -120,7 +120,7 @@ trait APIMethods210 {
             importData <- tryo {json.extract[SandboxDataImport]} ?~! {ErrorMessages.InvalidJsonFormat}
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
-            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
+            successJsonResponse(Extraction.decompose(successMessage), 201)
           }
       }
     }
@@ -290,7 +290,24 @@ trait APIMethods210 {
        """.stripMargin,
       transactionRequestBodySEPAJSON,
       transactionRequestWithChargeJSON210,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        UserNoPermissionAccessView,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        UnKnownError
+      ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -473,8 +490,20 @@ trait APIMethods210 {
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       challengeAnswerJSON,
-      transactionRequestWithChargeJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionRequestWithChargeJson,
+      List(
+        UserNotLoggedIn,
+        InvalidBankIdFormat, 
+        InvalidAccountIdFormat, 
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNoPermissionAccessView,
+        TransactionRequestStatusNotInitiated,
+        TransactionRequestTypeHasChanged,
+        InvalidTransactionRequesChallengeId,
+        AllowedAttemptsUsedUp,
+        UnKnownError
+      ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -519,10 +548,10 @@ trait APIMethods210 {
               isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
             
               //Check the allowed attemps, Note: not support yet, the default value is 3
-              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),ErrorMessages.allowedAttemptsUsedUp)
+              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),ErrorMessages.AllowedAttemptsUsedUp)
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),ErrorMessages.allowedAttemptsUsedUp)
+              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),ErrorMessages.AllowedAttemptsUsedUp)
             
               challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
 
@@ -572,7 +601,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargeJSONs210,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn,BankNotFound,AccountNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1153,7 +1182,17 @@ trait APIMethods210 {
           |""",
       postCounterpartyJSON,
       counterpartyJsonV220,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        BankNotFound,
+        AccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        CounterpartyAlreadyExists,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -1311,7 +1350,7 @@ trait APIMethods210 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customerJsonV210,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, BankNotFound, CustomerDoNotExistsForUser, CustomerDoNotExistsForUser, CustomerNotFoundByCustomerId, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

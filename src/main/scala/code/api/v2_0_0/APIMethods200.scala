@@ -155,12 +155,7 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
-      BasicAccountJSON(
-        id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        label = "NoneLabel",
-        bank_id = "gh.29.uk",
-        views_available = List(basicViewJSON)
-      ),
+      basicAccountsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -188,7 +183,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      coreAccountsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
@@ -231,7 +226,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
+      basicAccountsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -271,8 +266,8 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
       """,
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      basicAccountsJSON,
+      List(BankNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
@@ -319,7 +314,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      coreAccountsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
@@ -384,8 +379,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      basicAccountsJSON,
+      List(UserNotLoggedIn, BankNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -419,7 +414,7 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      basicAccountsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
@@ -449,7 +444,7 @@ trait APIMethods200 {
         |Passport, driving licence etc.
         |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycDocumentsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -481,7 +476,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycMediasJSON,
       List(UserNotLoggedIn, UnKnownError),
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagCustomer, apiTagKyc))
@@ -513,7 +508,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycChecksJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -543,7 +538,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      kycStatusesJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -574,7 +569,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      socialMediasJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
@@ -608,7 +603,7 @@ trait APIMethods200 {
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
-      emptyObjectJson,
+      kycDocumentJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -662,7 +657,7 @@ trait APIMethods200 {
         "wuwjfuha234678", 
         "98FRd987auhf87jab"
       ),
-      emptyObjectJson,
+      kycMediaJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -705,7 +700,7 @@ trait APIMethods200 {
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, ""),
-      emptyObjectJson,
+      kycCheckJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -749,7 +744,7 @@ trait APIMethods200 {
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       PostKycStatusJSON("8762893876", true, exampleDate),
-      emptyObjectJson,
+      kycStatusJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
@@ -787,8 +782,8 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
-      SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate),
-      emptyObjectJson,
+      socialMediaJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
@@ -814,7 +809,7 @@ trait APIMethods200 {
                 postedData.date_activated),
               "Server error: could not add")
           } yield {
-            successJsonResponse(JsRaw("""{"success":"Success"}"""), 201)
+            successJsonResponse(Extraction.decompose(successMessage), 201)
           }
         }
       }
@@ -840,8 +835,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      moderatedCoreAccountJSON,
+      List(BankAccountNotFound,UnKnownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -853,7 +848,7 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -891,8 +886,8 @@ trait APIMethods200 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      moderatedCoreAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
     
@@ -905,7 +900,7 @@ trait APIMethods200 {
 
           for {
             params <- APIMethods121.getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
@@ -943,8 +938,8 @@ trait APIMethods200 {
         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      moderatedAccountJSON,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -967,10 +962,6 @@ trait APIMethods200 {
       }
     }
 
-
-    /////
-
-
     resourceDocs += ResourceDoc(
       getPermissionsForBankAccount,
       apiVersion,
@@ -982,8 +973,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      permissionsJSON,
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -1016,8 +1007,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      viewsJSONV121,
+      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
@@ -1056,8 +1047,20 @@ trait APIMethods200 {
         |
         |Note: The Amount must be zero.""".stripMargin,
       CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      coreAccountJSON,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidUserId,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserNotFoundById,
+        InvalidAccountBalanceAmount,
+        InvalidAccountType,
+        InvalidAccountInitialBalance,
+        InvalidAccountBalanceCurrency,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -1140,7 +1143,7 @@ trait APIMethods200 {
           |
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
+      transactionTypesJsonV200,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, notOBWG),
       List(apiTagBank)
@@ -1283,7 +1286,7 @@ trait APIMethods200 {
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
-      emptyObjectJson,
+      transactionRequestWithChargeJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1368,7 +1371,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      transactionRequestWithChargesJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1416,7 +1419,7 @@ trait APIMethods200 {
         |
         |""",
       CreateUserJson("someone@example.com", "my-username", "my-secure-password", "James", "Brown"),
-      emptyObjectJson,
+      userJSONV200,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagOnboarding, apiTagUser))
@@ -1483,7 +1486,7 @@ trait APIMethods200 {
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
       CreateMeetingJson("tokbox", "onboarding"),
-      emptyObjectJson,
+      meetingJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1534,7 +1537,7 @@ trait APIMethods200 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      meetingsJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1584,7 +1587,7 @@ trait APIMethods200 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      meetingJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1613,9 +1616,6 @@ trait APIMethods200 {
       }
     }
 
-    //
-
-
 
     resourceDocs += ResourceDoc(
       createCustomer,
@@ -1631,11 +1631,16 @@ trait APIMethods200 {
         |Dates need to be in the format 2013-01-21T23:08:00Z
         |${authenticationRequiredMessage(true)}
         |""",
-      CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
-        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      createCustomerJson,
+      customerJsonV140,
+      List(
+        InvalidBankIdFormat,
+        UserNotLoggedIn,
+        BankNotFound,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1651,7 +1656,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            u <- user ?~! UserNotLoggedIn// TODO. CHECK user has role to create a customer / create a customer for another user id.
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
@@ -1703,7 +1708,7 @@ trait APIMethods200 {
         |Login is required.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      userJSONV200,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
@@ -1738,7 +1743,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      usersJSONV200,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
@@ -1774,8 +1779,8 @@ trait APIMethods200 {
         |For now the authenticated user can create at most one linked customer at any one bank.
         |${authenticationRequiredMessage(true)}
         |""",
-      CreateUserCustomerLinkJson("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc"),
-      emptyObjectJson,
+      createUserCustomerLinkJson,
+      userCustomerLinkJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagCustomer))
@@ -1822,8 +1827,8 @@ trait APIMethods200 {
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
-      CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser"),
-      emptyObjectJson,
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1868,7 +1873,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      entitlementJSONs,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
@@ -1947,7 +1952,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      entitlementJSONs,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
@@ -2042,7 +2047,7 @@ trait APIMethods200 {
           |
         """,
         emptyObjectJson,
-        emptyObjectJson,
+        emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, UnKnownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
@@ -2160,7 +2165,7 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      customersJsonV140,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -2179,18 +2184,7 @@ trait APIMethods200 {
         }
       }
     }
-
-
-
-
-
-
-
-
-
   }
-
-
 }
 
 object APIMethods200 {

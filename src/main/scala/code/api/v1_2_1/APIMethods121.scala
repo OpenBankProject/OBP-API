@@ -19,19 +19,9 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-// Makes JValue assignment to Nil work
-import net.liftweb.json.JsonDSL._
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.ErrorMessages._
 
-
-
-
-
-case class MakePaymentJson(
-  bank_id : String,
-  account_id : String,
-  amount : String)
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -107,8 +97,8 @@ trait APIMethods121 {
         |* Hosted by information
         |* Git Commit""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      apiInfoJSON,
+      List(UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -133,8 +123,8 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")))),
-      List(UserNotLoggedIn, UnKnownError),
+      banksJSON,
+      List(UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -169,7 +159,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk")),
+      bankJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
@@ -208,8 +198,8 @@ trait APIMethods121 {
          |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
          |""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      accountJSON,
+      List(UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -233,7 +223,7 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      accountJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
@@ -243,7 +233,7 @@ trait APIMethods121 {
       case "accounts" :: "private" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
           } yield {
             val availableAccounts = BankAccount.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -261,8 +251,8 @@ trait APIMethods121 {
       """Returns the list of private (non-public) accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      accountJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -292,7 +282,7 @@ trait APIMethods121 {
         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
       """,
       emptyObjectJson,
-      emptyObjectJson,
+      accountJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
@@ -322,7 +312,7 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      accountJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
@@ -332,7 +322,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             bank <- Bank(bankId)
           } yield {
             val availableAccounts = bank.nonPublicAccounts(u)
@@ -352,7 +342,7 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson,
+      accountJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
@@ -392,7 +382,7 @@ trait APIMethods121 {
          |
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
-      emptyObjectJson,
+      moderatedAccountJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -422,13 +412,9 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Update Account Label.",
       "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
-      UpdateAccountJSON(
-        "ACCOUNT_ID of the account we want to update",
-        "New label",
-        "BANK_ID"
-      ),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      updateAccountJSON,
+      successMessage,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData)
     )
@@ -439,12 +425,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            json <- tryo { json.extract[UpdateAccountJSON] } ?~ "wrong JSON format"
+            u <- user ?~  UserNotLoggedIn
+            json <- tryo { json.extract[UpdateAccountJSON] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId)
           } yield {
             account.updateLabel(u, json.label)
-            successJsonResponse(Extraction.decompose(SuccessMessage("ok")), 200)
+            successJsonResponse(Extraction.decompose(successMessage), 200)
           }
       }
     }
@@ -481,7 +467,7 @@ trait APIMethods121 {
          |
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
+      viewsJSONV121,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -491,7 +477,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
@@ -521,20 +507,9 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      CreateViewJSON(
-        "Name of view to create",
-        "Description of view (this example is public, uses the public alias, and has limited access to account data)",
-        true,
-        "_public_",
-        true,
-        List(
-          "can_see_transaction_start_date",
-          "can_see_bank_account_label",
-          "can_see_tags"
-        )
-      ),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      createViewJSON,
+      viewJSONV121,
+      List(UserNotLoggedIn,InvalidJsonFormat, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -544,8 +519,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
+            u <- user ?~  UserNotLoggedIn
+            json <- tryo{json.extract[CreateViewJSON]} ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId)
             view <- account createView (u, json)
           } yield {
@@ -568,15 +543,9 @@ trait APIMethods121 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      UpdateViewJSON(
-        "New description of view", 
-        false, 
-        "_public_", 
-        true,
-        List("can_see_transaction_start_date", "can_see_bank_account_label")
-      ),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      updateViewJSON,
+      viewJSONV121,
+      List(InvalidJsonFormat,UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -587,10 +556,9 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         user =>
           for {
+            updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId)
-            u <- user ?~ "user not found"
-            updateJson <- tryo
-            { json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
+            u <- user ?~  UserNotLoggedIn
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
@@ -620,7 +588,7 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             view <- account removeView(u, viewId)
           } yield noContentJsonResponse
@@ -638,7 +606,7 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
+      permissionsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
@@ -649,7 +617,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             permissions <- account permissions u
           } yield {
@@ -671,7 +639,7 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
+      viewsJSONV121,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
@@ -683,7 +651,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             permission <- account permission(u, providerId, userId)
           } yield {
@@ -705,8 +673,8 @@ trait APIMethods121 {
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
-      ViewIdsJson(List("owner", "auditor", "investor")),
-      emptyObjectJson,
+      viewIdsJson,
+      viewsJSONV121,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
@@ -716,7 +684,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
             addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), providerId, userId)
@@ -740,7 +708,7 @@ trait APIMethods121 {
           |
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
-      emptyObjectJson,
+      viewJSONV121,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
@@ -750,7 +718,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             // TODO Check Error cases
             addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
@@ -784,7 +752,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
@@ -813,7 +781,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId)
             isRevoked <- account revokeAllPermissions(u, providerId, userId)
             if(isRevoked)
@@ -832,8 +800,11 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      otherAccountsJSON,
+      List(
+        BankAccountNotFound,
+        UnKnownError
+      ),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -842,7 +813,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
           } yield {
@@ -863,8 +834,8 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      otherAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
@@ -873,7 +844,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           } yield {
@@ -895,7 +866,7 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
+      otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -927,8 +898,8 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      aliasJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -965,9 +936,9 @@ trait APIMethods121 {
          |the public alias was deleted.
          |
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
-      AliasJSON("An Alias"),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      aliasJSON,
+      successMessage,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1001,8 +972,8 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      AliasJSON("An Alias"),
-      emptyObjectJson,
+      aliasJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1039,7 +1010,7 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List( UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1071,7 +1042,7 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
+      aliasJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1104,8 +1075,8 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
-      AliasJSON("An Alias"),
-      emptyObjectJson,
+      aliasJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1141,8 +1112,8 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      AliasJSON("An Alias"),
-      emptyObjectJson,
+      aliasJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1210,8 +1181,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add Counterparty More Info",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
-      MoreInfoJSON("More info"),
-      emptyObjectJson,
+      moreInfoJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1244,8 +1215,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update Counterparty More Info",
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
-      MoreInfoJSON("More info"),
-      emptyObjectJson,
+      moreInfoJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1310,8 +1281,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Add url to other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      UrlJSON("www.example.com"),
-      emptyObjectJson,
+      urlJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1345,8 +1316,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Update url of other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      UrlJSON("www.example.com"),
-      emptyObjectJson,
+      urlJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1411,8 +1382,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Add image url to other bank account.",
       "Add a url that points to the logo of the counterparty",
-      ImageUrlJSON("www.example.com/logo.png"),
-      emptyObjectJson,
+      imageUrlJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1445,9 +1416,9 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update Counterparty Image Url",
       "Update the url that points to the logo of the counterparty",
-      ImageUrlJSON("www.example.com/logo.png"),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      imageUrlJSON,
+      successMessage,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1481,7 +1452,7 @@ trait APIMethods121 {
       "Delete image url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
@@ -1511,9 +1482,9 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty",
       "Add open corporates url to other bank account.",
-      OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      openCorporateUrlJSON,
+      successMessage,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1545,8 +1516,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update Open Corporates Url of Counterparty",
       "Update open corporate url of other bank account.",
-      OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490"),
-      emptyObjectJson,
+      openCorporateUrlJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1611,8 +1582,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Add Corporate Location to Counterparty",
       "Add the geolocation of the counterparty's registered address",
-      CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      corporateLocationJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1647,8 +1618,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Update Counterparty Corporate Location",
       "Update the geolocation of the counterparty's registered address",
-      CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      corporateLocationJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1719,8 +1690,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Add physical location to other bank account.",
       "Add geocoordinates of the counterparty's main location",
-      PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      physicalLocationJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1756,8 +1727,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Update Counterparty Physical Location",
       "Update geocoordinates of the counterparty's main location",
-      PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      physicalLocationJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
@@ -1841,8 +1812,8 @@ trait APIMethods121 {
          |
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionsJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1878,8 +1849,8 @@ trait APIMethods121 {
          |
          |""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1888,7 +1859,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
           } yield {
@@ -1909,8 +1880,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionNarrativeJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1943,9 +1914,9 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.
          |""",
-      TransactionNarrativeJSON("My new (old!) piano"),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionNarrativeJSON,
+      successMessage,
+      List(InvalidJsonFormat, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1976,9 +1947,9 @@ trait APIMethods121 {
       """Updates the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
-      TransactionNarrativeJSON("My new (old!) piano"),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionNarrativeJSON,
+      successMessage,
+      List(InvalidJsonFormat, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2040,7 +2011,7 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
+      transactionCommentsJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2071,8 +2042,8 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required since the comment is linked with the user.""",
-      PostTransactionCommentJSON("Why did we spend money on this again?"),
-      emptyObjectJson,
+      postTransactionCommentJSON,
+      transactionCommentJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2107,7 +2078,7 @@ trait APIMethods121 {
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2116,7 +2087,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             delete <- metadata.deleteComment(commentId, user, account)
           } yield {
@@ -2133,11 +2104,10 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get tags.",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionTagJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2167,8 +2137,8 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      PostTransactionTagJSON("holiday"),
-      emptyObjectJson,
+      postTransactionTagJSON,
+      transactionTagJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2204,7 +2174,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2231,10 +2201,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get images.",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
+      transactionImagesJSON,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2265,12 +2234,9 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true) }
          |
          |The image is linked with the user.""",
-      PostTransactionImageJSON(
-        "The new printer",
-        "www.example.com/images/printer.png"
-      ),
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      postTransactionImageJSON,
+      transactionImageJSON,
+      List(InvalidJsonFormat, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction)
     )
@@ -2281,7 +2247,7 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           for {
             u <- user
-            imageJson <- tryo{json.extract[PostTransactionImageJSON]}
+            imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
             url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
@@ -2304,7 +2270,7 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2314,7 +2280,7 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             deleted <- Box(metadata.deleteImage(imageId, user, bankAccount))
           } yield {
             noContentJsonResponse
@@ -2334,8 +2300,8 @@ Authentication via OAuth is required if the view is not public.""",
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      transactionWhereJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2366,8 +2332,8 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      postTransactionWhereJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2403,8 +2369,8 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025)),
-      emptyObjectJson,
+      postTransactionWhereJSON,
+      successMessage,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
@@ -2473,11 +2439,10 @@ Authentication via OAuth is required if the view is not public.""",
       "Get Other Account of Transaction",
       """Get other account of a transaction.
          |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      otherAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
@@ -2486,7 +2451,7 @@ Authentication via OAuth is required if the view is not public.""",
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             transaction <- account.moderatedTransaction(transactionId, view, user)
             moderatedOtherBankAccount <- transaction.otherBankAccount
@@ -2498,7 +2463,7 @@ Authentication via OAuth is required if the view is not public.""",
       }
     }
 
-    case class TransactionIdJson(transaction_id : String)
+    
 
     resourceDocs += ResourceDoc(
       makePayment,
@@ -2513,8 +2478,8 @@ Authentication via OAuth is required if the view is not public.""",
          |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
          |
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
-      MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45"),
-      emptyObjectJson,
+      makePaymentJson,
+      transactionIdJson,
       List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
@@ -2524,7 +2489,7 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
+              u <- user ?~ UserNotLoggedIn
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               toAccountUID = BankAccountUID(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
