@@ -4,30 +4,27 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.isValidCurrencyISOCode
+import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
-import code.api.v2_1_0.{BranchJsonPost, JSONFactory210}
+import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages.{BankAccountNotFound, _}
+import code.api.v2_1_0.BranchJsonPost
 import code.bankconnectors._
-import code.metrics.{APIMetric, APIMetrics, ConnMetric, ConnMetrics}
+import code.metrics.{ConnMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.remotedata.RemotedataConfig
-import net.liftweb.http.{Req, S}
+import code.util.Helper._
+import net.liftweb.common.{Box, Full}
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.api.util.APIUtil._
-import code.util.Helper._
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.rest.RestHelper
-import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.util.ErrorMessages._
 
 
 trait APIMethods220 {
@@ -407,7 +404,7 @@ trait APIMethods220 {
         user =>
           for {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
             branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(

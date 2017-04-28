@@ -52,7 +52,7 @@ trait APIMethods121 {
 
   private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] ={
     for {
-      account <- BankAccount(bankId, accountId)
+      account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
       view <- View.fromUrl(viewId, account)
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
@@ -392,7 +392,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account)
             moderatedAccount <- account.moderatedBankAccount(view, user)
@@ -427,7 +427,7 @@ trait APIMethods121 {
           for {
             u <- user ?~  UserNotLoggedIn
             json <- tryo { json.extract[UpdateAccountJSON] } ?~ InvalidJsonFormat
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
           } yield {
             account.updateLabel(u, json.label)
             successJsonResponse(Extraction.decompose(successMessage), 200)
@@ -478,7 +478,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
@@ -521,7 +521,7 @@ trait APIMethods121 {
           for {
             u <- user ?~  UserNotLoggedIn
             json <- tryo{json.extract[CreateViewJSON]} ?~ InvalidJsonFormat
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
@@ -557,7 +557,7 @@ trait APIMethods121 {
         user =>
           for {
             updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             u <- user ?~  UserNotLoggedIn
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
@@ -589,7 +589,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account removeView(u, viewId)
           } yield noContentJsonResponse
       }
@@ -618,7 +618,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permissions <- account permissions u
           } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
@@ -652,7 +652,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permission <- account permission(u, providerId, userId)
           } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
@@ -685,7 +685,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
             addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), providerId, userId)
           } yield {
@@ -719,7 +719,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
             addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
           } yield {
@@ -753,7 +753,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
@@ -782,7 +782,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokeAllPermissions(u, providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
@@ -876,7 +876,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -908,7 +908,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -947,7 +947,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -983,7 +983,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1019,7 +1019,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1052,7 +1052,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1086,7 +1086,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1123,7 +1123,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1160,7 +1160,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1192,7 +1192,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1226,7 +1226,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1260,7 +1260,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1293,7 +1293,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1327,7 +1327,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1361,7 +1361,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1393,7 +1393,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1427,7 +1427,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1461,7 +1461,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1493,7 +1493,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1527,7 +1527,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1561,7 +1561,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1594,7 +1594,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1630,7 +1630,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1666,7 +1666,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1702,7 +1702,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1739,7 +1739,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1776,7 +1776,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
