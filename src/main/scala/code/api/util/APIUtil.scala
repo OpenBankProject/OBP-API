@@ -67,6 +67,9 @@ object ErrorMessages {
 
   // Infrastructure / config messages
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
+  val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
+  val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
+  val ServerAddDataError = "OBP-00004: Server error: could not add message"
 
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -74,6 +77,8 @@ object ErrorMessages {
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
+  val WrongInputJsonFormat = "OBP-10006: wrong format JSON "
+  val WrongRoleName = "OBP-10007: wrong role name "
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
@@ -142,6 +147,9 @@ object ErrorMessages {
   val CreateBankInsertError = "OBP-30020: Could not create the Bank"
   val CreateBankUpdateError = "OBP-30021: Could not update the Bank"
   val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
+  val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
+  val CreateConsumerError = "OBP-30024: Could not create customer "
+  val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

@@ -675,7 +675,11 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        "wrong format JSON",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 

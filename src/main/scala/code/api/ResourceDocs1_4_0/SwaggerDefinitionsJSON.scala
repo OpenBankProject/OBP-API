@@ -1071,11 +1071,11 @@ object SwaggerDefinitionsJSON {
   )
   
   val postKycCheckJSON = PostKycCheckJSON(
-    customer_number = "String",
+    customer_number = "1239879",
     date = exampleDate,
-    how = "String",
-    staff_user_id = "String",
-    staff_name = "String",
+    how = "online_meeting",
+    staff_user_id = "67876",
+    staff_name = "Simon",
     satisfied = true,
     comments = "String"
   )
