@@ -191,7 +191,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchesJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No branches available. License may not be set.",
+        UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -203,7 +207,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             u <- if(getBranchesIsPublic)
               Box(Some(1))
             else
-              user ?~! "User must be logged in to retrieve Branches data"
+              user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
@@ -235,7 +239,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmsJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No ATMs available. License may not be set.",
+        UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -249,7 +257,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             u <- if(getAtmsIsPublic)
               Box(Some(1))
             else
-              user ?~! "User must be logged in to retrieve ATM data"
+              user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
@@ -287,7 +295,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productsJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No products available.",
+        "License may not be set.",
+        UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -300,7 +313,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             u <- if(getProductsIsPublic)
               Box(Some(1))
             else
-              user ?~! "User must be logged in to retrieve Products data"
+              user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
@@ -324,7 +337,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       crmEventsJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No CRM Events available.",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -334,7 +351,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         user => {
           for {
             // Get crm events from the active provider
-            u <- user ?~! "User must be logged in to retrieve CRM Event information"
+            u <- user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
@@ -375,7 +392,16 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """.stripMargin,
       emptyObjectJson,
       transactionRequestTypesJsonV140,
-      List(UserNotLoggedIn, BankNotFound, AccountNotFound, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        AccountNotFound,
+        "Please specify a valid value for CURRENCY of your Bank Account. "
+        ,"Current user does not have access to the view ",
+        "account not found at bank",
+        "user does not have access to owner view",
+        "Sorry, Transaction Requests are not enabled in this API instance.",
+        UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -412,7 +438,14 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       transactionRequest,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        AccountNotFound,
+        "Current user does not have access to the view",
+        "account not found at bank",
+        "user does not have access to owner view",
+        UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -462,7 +495,22 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |""",
       transactionRequestBodyJsonV140,
       transactionRequest,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        CounterpartyNotFound,
+        "Counterparty and holder accounts have differing currencies.",
+        "Request currency and holder account currency can't be different.",
+        "Amount not convertible to number",
+        "account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}",
+        "user does not have access to owner view",
+        "amount ${body.value.amount} not convertible to number",
+        "Cannot send payment to account with different currency",
+        "Can't send a payment with a value of 0 or less.",
+        "Sorry, Transaction Requests are not enabled in this API instance.",
+        UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -510,7 +558,23 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
       challengeAnswerJSON,
       transactionRequest,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "Current user does not have access to the view ",
+        "Couldn't create Transaction",
+        "Sorry, Transaction Requests are not enabled in this API instance.",
+        "Need a non-empty answer",
+        "Need a numeric TAN",
+        "Need a positive TAN",
+        "unknown challenge type",
+        "Sorry, you've used up your allowed attempts.",
+        "Error getting Transaction Request",
+        "Transaction Request not found",
+        "Couldn't create Transaction",
+        UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -522,9 +586,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
+              fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
@@ -556,7 +620,17 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |""",
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createCustomerJson,
       customerJsonV140,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        "entitlements required",
+        CustomerNumberAlreadyExists,
+        "Problem getting user_id",
+        UserNotFoundById,
+        "Could not create customer",
+        "Could not create user_customer_links",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 

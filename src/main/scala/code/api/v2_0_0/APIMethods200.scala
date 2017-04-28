@@ -591,7 +591,7 @@ trait APIMethods200 {
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
       kycDocumentJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ,"Server error: could not add KycDocument", UnKnownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -1288,8 +1288,9 @@ trait APIMethods200 {
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       ChallengeAnswerJSON("89123812", "123345"),
       transactionRequestWithChargeJson,
-      List(UserNotLoggedIn,
-        InvalidAccountIdFormat
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
           InvalidBankIdFormat,
         BankNotFound,
         UserNoPermissionAccessView,
@@ -2118,7 +2119,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! UserDoesNotHaveRole + CanSearchWarehouse.toString
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2205,7 +2206,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! UserDoesNotHaveRole + CanSearchWarehouse.toString
+            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
