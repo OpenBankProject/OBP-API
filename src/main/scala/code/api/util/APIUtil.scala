@@ -69,6 +69,9 @@ object ErrorMessages {
 
   // Infrastructure / config messages
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
+  val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
+  val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
+  val ServerAddDataError = "OBP-00004: Server error: could not add message"
 
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -76,6 +79,8 @@ object ErrorMessages {
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
+  val WrongInputJsonFormat = "OBP-10006: wrong format JSON "
+  val WrongRoleName = "OBP-10007: wrong role name "
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
@@ -106,7 +111,7 @@ object ErrorMessages {
 
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
 
-  val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
+  val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   
@@ -143,6 +148,10 @@ object ErrorMessages {
   
   val CreateBankInsertError = "OBP-30020: Could not create the Bank"
   val CreateBankUpdateError = "OBP-30021: Could not update the Bank"
+  val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
+  val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
+  val CreateConsumerError = "OBP-30024: Could not create customer "
+  val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -173,7 +182,7 @@ object ErrorMessages {
 
   val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
-
+  val AccountIdHasExsited = "OBP-30208: Account_ID already exists at the Bank."
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -189,8 +198,32 @@ object ErrorMessages {
   val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not INITIATED."
   val CounterpartyNotFoundOtherAccountProvider = "OBP-40012: Please set up the otherAccountRoutingScheme and otherBankRoutingScheme fields of the Counterparty to 'OBP'"
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
-  val allowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
+  val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
+  
+  val UnKnownError = "OBP-50000: Unknown Error."
+  
+  //For Swagger, used reflect to  list all the varible names and values.
+  // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
+  //   -->(InvalidUserId, "OBP-30107: Invalid User Id.")
+  val allFields =
+    for (
+      v <- this.getClass.getDeclaredFields
+      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
+      if (APIUtil.notExstingBaseClass(v.getName()))
+    ) yield {
+      v.setAccessible(true)
+      v.getName() -> v.get(this)
+    }
+  
+  //For Swagger, get varible name by value: 
+  // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
+  //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
+  def getFildNameByValue(value: String) = {
+    val strings = for (e <- allFields if (e._2 == (value))) yield e._1
+    strings.head
+  }
+
 }
 
 
@@ -320,8 +353,9 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
+  //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
   def noContentJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(SuccessMessage("Success")), headers, Nil, 204)
+    JsonResponse(JsRaw(""), headers, Nil, 204)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
@@ -621,7 +655,14 @@ object APIUtil extends MdcLoggable {
   val notCore = false
   val notPSD2 = false
   val notOBWG = false
-
+  
+  case class BaseErrorResponseBody(
+    //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
+    //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
+    name: String,
+    detail: String
+  ) 
+  
   // Used to document the API calls
   case class ResourceDoc(
     partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -631,9 +672,9 @@ object APIUtil extends MdcLoggable {
     requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
     summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
     description: String, // Longer description (originally taken from github wiki)
-    exampleRequestBody: JValue, // An example of the body required (maybe empty)
-    successResponseBody: JValue, // A successful response body
-    errorResponseBodies: List[JValue], // Possible error responses
+    exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
+    successResponseBody: scala.Product, // A successful response body
+    errorResponseBodies: List[String], // Possible error responses
     catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )

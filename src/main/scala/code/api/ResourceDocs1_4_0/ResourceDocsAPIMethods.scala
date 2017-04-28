@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -39,7 +40,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   val ImplementationsResourceDocs = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson : JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion : String = "1_4_0"
 
     val exampleDateString : String ="22/08/2013"
@@ -97,7 +98,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       apiVersion,
       "getResourceDocsObp",
       "GET",
-      "/resource-docs/obp",
+      "/resource-docs/API_VERSION/obp",
       "Get Resource Documentation in OBP format.",
       """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
         | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
@@ -144,32 +145,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         }
       }
     }
-
-
-    resourceDocs += ResourceDoc(
-      getResourceDocsSwagger,
-      apiVersion,
-      "getResourceDocsSwagger",
-      "GET",
-      "/resource-docs/swagger",
-      "Get Resource Documentation in Swagger format. Work In Progress!",
-      """Returns documentation about the RESTful resources on this server in Swagger format.
-        | Currently this is incomplete.
-      """,
-      emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApiInfo)
-    )
     
-
-    
-
-
-
-
-
 /*
 Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
@@ -230,8 +206,24 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     filteredResources3
 }
-
-
+  
+    resourceDocs += ResourceDoc(
+      getResourceDocsSwagger,
+      apiVersion,
+      "getResourceDocsSwagger",
+      "GET",
+      "/resource-docs/v.2.2.0/swagger",
+      "Get Resource Documentation in Swagger format. Work In Progress!",
+      """Returns documentation about the RESTful resources on this server in Swagger format.
+        | Currently this is incomplete.
+      """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApiInfo)
+    )
+    
     def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
         user => {

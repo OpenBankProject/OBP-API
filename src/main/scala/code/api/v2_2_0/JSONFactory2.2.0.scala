@@ -34,7 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson}
 import code.branches.Branches.Branch
@@ -119,10 +119,10 @@ case class ViewJSONV220(
                 val can_see_where_tag : Boolean
               )
 
-case class AccountsJSON(
-                         accounts : List[AccountJSON]
+case class AccountsJSONV220(
+                         accounts : List[AccountJSONV220]
                        )
-case class AccountJSON(
+case class AccountJSONV220(
                         id : String,
                         label : String,
                         views_available : List[ViewJSONV220],
@@ -137,7 +137,7 @@ case class FXRateJSON(
                        effective_date: Date
                      )
 
-case class CounterpartyJSON(
+case class CounterpartyJsonV220(
                              name: String,
                              created_by_user_id: String,
                              this_bank_id: String,
@@ -153,16 +153,16 @@ case class CounterpartyJSON(
                              is_beneficiary: Boolean
                            )
 
-case class CounterpartiesJSON(
-                               counterparties: List[CounterpartyJSON]
-                             )
+case class CounterpartiesJsonV220(
+                                  counterparties: List[CounterpartyJsonV220]
+                                 )
 
 
 
 
 // used for Create Bank in V220
 // keep it similar as "case class BankJSON" in V121  
-case class BankJSON(
+case class BankJSONV220(
   id: String,
   full_name: String,
   short_name: String,
@@ -173,13 +173,8 @@ case class BankJSON(
   bank_routing: BankRoutingJSON
 )
 
-case class BankRoutingJSON(
-  scheme: String,
-  address: String
-)
-
 //keep similar to "case class BranchJsonPost" in V210
-case class BranchJSON(
+case class BranchJSONV220(
   id: String,
   bank_id: String,
   name: String,
@@ -191,17 +186,12 @@ case class BranchJSON(
   branch_routing: BranchRoutingJSON
 )
 
-case class BranchRoutingJSON(
-  scheme: String,
-  address: String
-)
-
 // keep similar to case class CreateAccountJSON - v200
-case class CreateAccountJSON(
+case class CreateAccountJSONV220(
   user_id : String,
   label   : String,
   `type` : String,
-  balance : AmountOfMoneyJSON,
+  balance : AmountOfMoneyJsonV121,
   branch_id : String,
   account_routing: AccountRoutingJSON
 )
@@ -324,8 +314,8 @@ object JSONFactory220{
     )
   }
 
-  def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJSON = {
-    CounterpartyJSON(
+  def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJsonV220 = {
+    CounterpartyJsonV220(
       name = counterparty.name,
       created_by_user_id = counterparty.createdByUserId,
       this_bank_id = counterparty.thisBankId,
@@ -342,13 +332,13 @@ object JSONFactory220{
     )
   }
 
-  def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJSON = {
-    val list : List[CounterpartyJSON] = counterparties.map(createCounterpartyJSON)
-    new CounterpartiesJSON(list)
+  def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJsonV220 = {
+    val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
+    new CounterpartiesJsonV220(list)
   }
   
-  def createBankJSON(bank: Bank): BankJSON = {
-    BankJSON(
+  def createBankJSON(bank: Bank): BankJSONV220 = {
+    BankJSONV220(
       id = bank.bankId.value,
       full_name = bank.fullName,
       short_name = bank.shortName,
@@ -364,8 +354,8 @@ object JSONFactory220{
   }
   
   // keep similar to def createBranchJson(branch: Branch) -- v140
-  def createBranchJSON(branch: Branch): BranchJSON = {
-    BranchJSON(
+  def createBranchJSON(branch: Branch): BranchJSONV220 = {
+    BranchJSONV220(
       id= branch.branchId.value,
       bank_id= branch.bankId.value,
       name= branch.name,
@@ -381,12 +371,12 @@ object JSONFactory220{
     )
   }
   
-  def createAccountJSON(userId: String, account: BankAccount): CreateAccountJSON = {
-    CreateAccountJSON(
+  def createAccountJSON(userId: String, account: BankAccount): CreateAccountJSONV220 = {
+    CreateAccountJSONV220(
       user_id = userId,
       label = account.label,
       `type` = account.accountType,
-      balance = AmountOfMoneyJSON(
+      balance = AmountOfMoneyJsonV121(
         account.currency,
         account.balance.toString()
       ),
