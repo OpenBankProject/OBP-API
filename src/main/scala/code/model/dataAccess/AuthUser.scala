@@ -82,7 +82,9 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     private var passwordValue = ""
     private var invalidPw = false
     private var invalidMsg = ""
-    
+
+    // TODO Remove double negative and abreviation.
+    // TODO  “invalidPw” = false -> “strongPassword = true” etc.
     override def setFromAny(f: Any): String = {
       f match {
         case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
