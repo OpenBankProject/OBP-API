@@ -2,10 +2,11 @@ package code.remotedata
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorSystem, Props => ActorProps}
+import akka.actor.{ActorSelection, ActorSystem, Props => ActorProps}
+import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
-import code.actorsystem.ActorUtils
 import code.actorsystem.ObpActorConfig
+import code.api.APIFailure
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
@@ -17,32 +18,62 @@ import net.liftweb.util.Props
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import code.util.Helper.MdcLoggable
+import scala.concurrent.{Await, Future}
 
 
-
-trait RemotedataActorInit extends ActorUtils {
+trait RemotedataActorInit {
 
   // Deafult is 3 seconds, which should be more than enough for slower systems
-  ACTOR_TIMEOUT = Props.getLong("remotedata.timeout").openOr(3)
+  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
 
-  val actorName = CreateActorNameFromClassName(this.getClass.getName)
-  val actor = RemotedataLookupSystem.getRemotedataActor(actorName)
+  val actorName: String = CreateRemotedataActorNameFromClassName(this.getClass.getName)
+  val actor: ActorSelection = RemotedataLookupSystem.getRemotedataActor(actorName)
+  val TIMEOUT: FiniteDuration = ACTOR_TIMEOUT seconds
+  implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 
-  def CreateActorNameFromClassName(c: String): String = {
-    val n = c.replaceFirst("^.*Remotedata", "")
-    Character.toLowerCase(n.charAt(0)) + n.substring(1)
+  def CreateRemotedataActorNameFromClassName(c: String): String = {
+    val n = c.replaceFirst("^.*Remotedata", "").replaceAll("\\$", "")
+    val name = Character.toLowerCase(n.charAt(0)) + n.substring(1)
+    name
   }
+
+  def getRemotedataActorName(): String = {
+    "test" //actorName
+  }
+
+  def extractFuture[T](f: Future[Any]): T = {
+    val r = f.map {
+      case s: Set[T] => s
+      case l: List[T] => l
+      case t: T => t
+      case _ => Empty ~> APIFailure(s"future extraction failed", 501)
+    }
+    Await.result(r, TIMEOUT).asInstanceOf[T]
+  }
+
+  def extractFutureToBox[T](f: Future[Any]): Box[T] = {
+    val r = f.map {
+      case pf: ParamFailure[_] => Empty ~> pf
+      case af: APIFailure => Empty ~> af
+      case f: Failure => f
+      case Empty => Empty
+      case t: T => Full(t)
+      case _ => Empty ~> APIFailure(s"future extraction to box failed", 501)
+    }
+    Await.result(r, TIMEOUT)
+  }
+
 }
 
 
 object RemotedataActors extends MdcLoggable {
 
-  val props_hostname = Helper.getHostname
-
   def startRemotedataActors(actorSystem: ActorSystem) = {
 
+    //val t = RemotedataAccountHolders.cc
+    println("=============================> " + actorSystem)
     val actorsRemotedata = Map(
-      ActorProps[RemotedataAccountHoldersActor]       -> RemotedataAccountHolders.actorName,
+      ActorProps[RemotedataAccountHoldersActor]       -> "accountHolders", //RemotedataAccountHolders.actorName,
       ActorProps[RemotedataCommentsActor]             -> RemotedataComments.actorName,
       ActorProps[RemotedataCounterpartiesActor]       -> RemotedataCounterparties.actorName,
       ActorProps[RemotedataTagsActor]                 -> RemotedataTags.actorName,
@@ -67,12 +98,11 @@ object RemotedataActors extends MdcLoggable {
 
   def startLocalRemotedataWorkers( system: ActorSystem ): Unit = {
     logger.info("Starting local Remotedata actors")
-    //logger.info(ObpActorConfig.localConf)
-    //val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.localConf)))
     startRemotedataActors(system)
   }
 
   def startRemoteWorkerSystem(): Unit = {
+    val props_hostname = Helper.getHostname
     logger.info("Starting remote RemotedataLookupSystem")
     logger.info(ObpActorConfig.remoteConf)
     val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.remoteConf)))

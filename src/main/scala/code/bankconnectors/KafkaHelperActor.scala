@@ -19,7 +19,10 @@ import org.apache.kafka.common.errors.WakeupException
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionException, Future}
 
-class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
+class KafkaHelperActor extends Actor with MdcLoggable {
+
+  implicit val formats = DefaultFormats
+
 
   val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
   val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
@@ -44,7 +47,7 @@ class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
   var producer = new KafkaProducer[String, String](producerProps)
   var consumer = new KafkaConsumer[String, String](consumerProps)
 
-  implicit val formats = DefaultFormats
+
 
   def getResponse(reqId: String): String = {
     var res = """{"error":"KafkaConsumer could not fetch response"}"""
@@ -86,6 +89,7 @@ class KafkaHelperActor extends Actor with ActorHelper with MdcLoggable {
     }
     Await.result(futureResponse, Duration("3 seconds"))
   }
+
 
   def process(request: Map[String,String]): String = {
     val reqId = UUID.randomUUID().toString

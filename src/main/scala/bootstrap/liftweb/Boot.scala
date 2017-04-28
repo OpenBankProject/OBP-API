@@ -198,23 +198,9 @@ class Boot extends MdcLoggable {
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
-    if (runningMode == "Production mode")
-      System.setProperty("log_dir", Helper.getHostname)
-
     logger.debug(s"If you can read this, logging level is debug")
 
-
     val actorSystem = ObpActorSystem.startLocalActorSystem()
-    KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
-
-    if (!Props.getBool("remotedata.enable", false)) {
-      try {
-        logger.info(s"RemotedataActors.startLocalRemotedataWorkers(actorSystem) starting")
-        RemotedataActors.startLocalRemotedataWorkers(actorSystem)
-      } catch {
-        case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers(${actorSystem}) could not start: $ex")
-      }
-    }
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -280,6 +266,21 @@ class Boot extends MdcLoggable {
         Nil
       }
     }
+
+    if (connector.startsWith("kafka")) {
+      logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
+      KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
+    }
+
+    if (!Props.getBool("remotedata.enable", false)) {
+      try {
+        logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
+        RemotedataActors.startLocalRemotedataWorkers(actorSystem)
+      } catch {
+        case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) could not start: $ex")
+      }
+    }
+
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
