@@ -2,25 +2,23 @@ package code.api.v1_2_1
 
 import java.net.URL
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
 import code.metadata.counterparties.Counterparties
 import code.model.{CreateViewJSON, UpdateViewJSON, _}
-import code.sanitycheck.SanityCheck
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
-import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.ErrorMessages._
 
 
 trait APIMethods121 {
@@ -98,7 +96,7 @@ trait APIMethods121 {
         |* Git Commit""",
       emptyObjectJson,
       apiInfoJSON,
-      List(UnKnownError),
+      List(UnKnownError, "no connector set"),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -160,7 +158,7 @@ trait APIMethods121 {
         |* Website""",
       emptyObjectJson,
       bankJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -173,7 +171,7 @@ trait APIMethods121 {
             val bankJSON = JSONFactory.createBankJSON(bank)
             Extraction.decompose(bankJSON)
           }
-          for(bank <- Bank(bankId))
+          for(bank <- Bank(bankId)?~! BankNotFound)
           yield successJsonResponse(bankToJson(bank))
       }
     }
@@ -283,7 +281,7 @@ trait APIMethods121 {
       """,
       emptyObjectJson,
       accountJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -292,7 +290,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
           for{
-            bank <- Bank(bankId)
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val availableAccounts = bank.accounts(user)
             successJsonResponse(bankAccountsListToJson(availableAccounts, user))
@@ -313,7 +311,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       accountJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -323,7 +321,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            bank <- Bank(bankId)
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val availableAccounts = bank.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -343,7 +341,7 @@ trait APIMethods121 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       accountJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
@@ -352,7 +350,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId)
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val publicAccountsJson = bankAccountsListToJson(bank.publicAccounts, Empty)
             successJsonResponse(publicAccountsJson)
@@ -383,7 +381,7 @@ trait APIMethods121 {
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       moderatedAccountJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, BankAccountNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -414,7 +412,7 @@ trait APIMethods121 {
       "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
       updateAccountJSON,
       successMessage,
-      List(InvalidJsonFormat, UserNotLoggedIn, UnKnownError),
+      List(InvalidJsonFormat, UserNotLoggedIn, UnKnownError, BankAccountNotFound, "user does not have access to owner view on account"),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData)
     )
@@ -468,7 +466,7 @@ trait APIMethods121 {
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, BankAccountNotFound, UnKnownError, "user does not have owner access"),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -509,7 +507,13 @@ trait APIMethods121 {
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       createViewJSON,
       viewJSONV121,
-      List(UserNotLoggedIn,InvalidJsonFormat, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -545,7 +549,13 @@ trait APIMethods121 {
         |of a view is not editable (it is only set when a view is created)""",
       updateViewJSON,
       viewJSONV121,
-      List(InvalidJsonFormat,UserNotLoggedIn, UnKnownError),
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -577,7 +587,12 @@ trait APIMethods121 {
       "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
@@ -640,7 +655,12 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have access to owner view on account"
+    ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -675,7 +695,14 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "wrong format JSON",
+        "could not save the privilege",
+        "user does not have access to owner view on account"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -709,7 +736,13 @@ trait APIMethods121 {
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
       viewJSONV121,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "could not save the privilege",
+        "user does not have access to owner view on account"
+        ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -743,7 +776,13 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "could not save the privilege",
+        "user does not have access to owner view on account",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -772,7 +811,12 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have access to owner view on account"
+        ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -867,7 +911,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       otherAccountMetadataJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnKnownError, "the view does not allow metadata access"),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -899,7 +943,12 @@ trait APIMethods121 {
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       aliasJSON,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        UnKnownError,
+        "the view does not allow metadata access",
+        "the view does not allow public alias access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -938,7 +987,15 @@ trait APIMethods121 {
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       aliasJSON,
       successMessage,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        UnKnownError,
+        "the view does not allow metadata access",
+        "the view does not allow adding a public alias",
+        "Alias cannot be added",
+        "public alias added"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -974,7 +1031,15 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       aliasJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        "the view does not allow metadata access",
+        "the view does not allow updating the public alias",
+        "Alias cannot be updated",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1010,7 +1075,13 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      List( UnKnownError),
+      List(
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting the public alias",
+        "Alias cannot be deleted",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1043,7 +1114,13 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       aliasJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow private alias access",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1077,7 +1154,14 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       aliasJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a private alias",
+        "Alias cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1114,7 +1198,14 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       aliasJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating the private alias",
+        "Alias cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1151,7 +1242,13 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting the private alias",
+        "Alias cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1183,7 +1280,15 @@ trait APIMethods121 {
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       moreInfoJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view " + viewId + "does not allow metadata access",
+        "the view " + viewId + "does not allow adding more info",
+        "More Info cannot be added",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1217,7 +1322,14 @@ trait APIMethods121 {
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
       moreInfoJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating more info",
+        "More Info cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1251,7 +1363,13 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting more info",
+        "More Info cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1283,7 +1401,14 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       urlJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1318,7 +1443,14 @@ trait APIMethods121 {
       "A url which represents the counterparty (home page url etc.)",
       urlJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view " + viewId + "does not allow metadata access",
+        "the view " + viewId + "does not allow updating a url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1352,7 +1484,13 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting a url",
+        "URL cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1384,7 +1522,14 @@ trait APIMethods121 {
       "Add a url that points to the logo of the counterparty",
       imageUrlJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding an image url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1418,7 +1563,13 @@ trait APIMethods121 {
       "Update the url that points to the logo of the counterparty",
       imageUrlJSON,
       successMessage,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating an image url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1484,7 +1635,13 @@ trait APIMethods121 {
       "Add open corporates url to other bank account.",
       openCorporateUrlJSON,
       successMessage,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding an open corporate url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1518,7 +1675,14 @@ trait APIMethods121 {
       "Update open corporate url of other bank account.",
       openCorporateUrlJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating an open corporate url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1552,7 +1716,13 @@ trait APIMethods121 {
       "Delete open corporate url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting an open corporate url",
+        "URL cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1584,7 +1754,14 @@ trait APIMethods121 {
       "Add the geolocation of the counterparty's registered address",
       corporateLocationJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow adding a corporate location",
+        "Coordinates not possible",
+        "Corporate Location cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1620,7 +1797,15 @@ trait APIMethods121 {
       "Update the geolocation of the counterparty's registered address",
       corporateLocationJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating a corporate location",
+        "Coordinates not possible",
+        "Corporate Location cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1656,7 +1841,13 @@ trait APIMethods121 {
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "Corporate Location cannot be deleted",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1692,7 +1883,15 @@ trait APIMethods121 {
       "Add geocoordinates of the counterparty's main location",
       physicalLocationJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a physical location",
+        "Coordinates not possible",
+        "Physical Location cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1729,7 +1928,15 @@ trait APIMethods121 {
       "Update geocoordinates of the counterparty's main location",
       physicalLocationJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating a physical location",
+        "Coordinates not possible",
+        "Physical Location cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1766,7 +1973,13 @@ trait APIMethods121 {
       "Delete physical location of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view " + viewId + "does not allow metadata access",
+        "Physical Location cannot be deleted",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1813,7 +2026,7 @@ trait APIMethods121 {
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       transactionsJSON,
-      List(UnKnownError),
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1824,7 +2037,7 @@ trait APIMethods121 {
 
           for {
             params <- APIMethods121.getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- View.fromUrl(viewId, bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
           } yield {
@@ -1881,7 +2094,11 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       transactionNarrativeJSON,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize narrative access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1916,7 +2133,13 @@ trait APIMethods121 {
          |""",
       transactionNarrativeJSON,
       successMessage,
-      List(InvalidJsonFormat, UnKnownError),
+      List(
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize narrative access",
+        "view does not allow adding a narrative",
+         UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1949,7 +2172,11 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       transactionNarrativeJSON,
       successMessage,
-      List(InvalidJsonFormat, UnKnownError),
+      List(InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not allow updating a narrative",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1982,7 +2209,12 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not allow deleting the narrative",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2012,7 +2244,12 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       transactionCommentsJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize comments access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2044,7 +2281,13 @@ trait APIMethods121 {
          |Authentication is required since the comment is linked with the user.""",
       postTransactionCommentJSON,
       transactionCommentJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "view " + viewId + " does not authorize adding comments",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2078,7 +2321,15 @@ trait APIMethods121 {
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(BankAccountNotFound, UnKnownError),
+      List(
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see comments in order to delete them",
+        "Comment not found for this transaction",
+        "Deleting comments not permitted for this view",
+        "Deleting comments not permitted for the current user",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2107,7 +2358,12 @@ trait APIMethods121 {
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       transactionTagJSON,
-      List(UnKnownError),
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize tag access",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2139,7 +2395,12 @@ trait APIMethods121 {
          |Authentication is required as the tag is linked with the user.""",
       postTransactionTagJSON,
       transactionTagJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "view " + viewId + " does not authorize adding tags",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2185,7 +2446,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             deleted <- metadata.deleteTag(tagId, user, bankAccount)
           } yield {
             noContentJsonResponse
@@ -2204,7 +2465,12 @@ Authentication via OAuth is required. The user must either have owner privileges
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       transactionImagesJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize images access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2236,7 +2502,13 @@ Authentication via OAuth is required. The user must either have owner privileges
          |The image is linked with the user.""",
       postTransactionImageJSON,
       transactionImageJSON,
-      List(InvalidJsonFormat, UnKnownError),
+      List(
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize adding images",
+        "Could not parse url string as a valid URL",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction)
     )
@@ -2270,7 +2542,15 @@ Authentication via OAuth is required. The user must either have owner privileges
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(BankAccountNotFound, UnKnownError),
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see images in order to delete them",
+        "Image not found for this transaction",
+        "Deleting images not permitted for this view",
+        "Deleting images not permitted for the current user",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2301,7 +2581,10 @@ Authentication via OAuth is required. The user must either have owner privileges
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       transactionWhereJSON,
-      List(UnKnownError),
+      List(BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize where tag access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2334,7 +2617,14 @@ Authentication via OAuth is required. The user must either have owner privileges
          |The geo tag is linked with the user.""",
       postTransactionWhereJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "view does not authorize metadata access",
+        "the view does not allow adding a where tag",
+        "Coordinates not possible",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2371,7 +2661,14 @@ Authentication via OAuth is required. The user must either have owner privileges
          |The geo tag is linked with the user.""",
       postTransactionWhereJSON,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "view does not authorize metadata access",
+        "the view does not allow updating a where tag",
+        "Coordinates not possible",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2408,7 +2705,17 @@ Authentication via OAuth is required. The user must either have owner privileges
         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see the where tag in order to delete it",
+        "there is no tag to delete",
+        "Deleting tag is not permitted for this view",
+        "Deleting tags not permitted for the current user",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2417,7 +2724,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
         user =>
           for {
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- View.fromUrl(viewId, bankAccount)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             deleted <- metadata.deleteWhereTag(viewId, user, bankAccount)
@@ -2480,7 +2787,16 @@ Authentication via OAuth is required. The user must either have owner privileges
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
       makePaymentJson,
       transactionIdJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(
+        UserNotLoggedIn,
+        "amount not convertible to number",
+        "Sorry, payments are not enabled in this API instance.",
+        "account not found at bank",
+        "user does not have access to owner view",
+        "Cannot send payment to account with different currency",
+        "Can't send a payment with a value of 0 or less.",
+        "Sorry, payments are not enabled in this API instance.",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
