@@ -672,7 +672,7 @@ trait APIMethods210 {
                                   Nil
             allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
             hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), s"$allowedEntitlementsTxt entitlements required")
-            entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             filteredEntitlements <- tryo{entitlements.filter(_.bankId == bankId.value)}
           }
           yield {

@@ -90,7 +90,7 @@ trait User {
   }
 
   def assignedEntitlements : List[Entitlement] = {
-    Entitlement.entitlement.vend.getEntitlements(userId) match {
+    Entitlement.entitlement.vend.getEntitlementsByUserId(userId) match {
       case Full(l) => l.sortWith(_.roleName < _.roleName)
       case _ => List()
     }

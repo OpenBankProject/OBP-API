@@ -459,6 +459,7 @@ object ToSchemify {
     MappedTransactionRequest,
     MappedMetric,
     MapperAccountHolders,
+    MappedEntitlement,
     MappedConnectorMetric
   )
 
@@ -482,7 +483,6 @@ object ToSchemify {
     MappedTransactionType,
     MappedMeeting,
     MappedBankAccountData,
-    MappedEntitlement,
     MappedPhysicalCard,
     PinReset,
     MappedBadLoginAttempt,

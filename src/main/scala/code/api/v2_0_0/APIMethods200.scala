@@ -1867,7 +1867,7 @@ trait APIMethods200 {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-              entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
+              entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
               var json = EntitlementJSONs(Nil)
@@ -1912,7 +1912,7 @@ trait APIMethods200 {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
-              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlement(entitlementId)} ?~ "EntitlementId not found"
+              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ "EntitlementId not found"
               deleted <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
             }
             yield noContentJsonResponse
