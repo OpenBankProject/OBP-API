@@ -6,31 +6,21 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
-import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
-
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.JSONFactory200.bankAccountsListToJson
-
 import code.entitlement.Entitlement
 import code.model.BankId
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import net.liftweb.http.CurrentReq
-
-
-
-
-
-
-
 import code.model.dataAccess.AuthUser
 import net.liftweb.mapper.By
-
-
 import code.api.v2_0_0.JSONFactory200._
 import code.bankconnectors.Connector
 import code.fx.fx
@@ -42,15 +32,13 @@ import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.socialmedia.SocialMediaHandle
 import code.transactionrequests.TransactionRequests
-
 import code.meetings.Meeting
 import code.usercustomerlinks.UserCustomerLink
-
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -61,7 +49,8 @@ import code.util.Helper._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonDSL._
-
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -87,7 +76,7 @@ trait APIMethods200 {
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
-      val viewsAvailable : List[BasicViewJSON] =
+      val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
         })
@@ -99,7 +88,7 @@ trait APIMethods200 {
   private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
-      val viewsAvailable : List[BasicViewJSON] =
+      val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
         })
@@ -122,7 +111,7 @@ trait APIMethods200 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson: JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion: String = "2_0_0"
 
     val exampleDateString: String = "22/08/2013"
@@ -153,8 +142,8 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      basicAccountsJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -181,8 +170,8 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      coreAccountsJSON,
+      List(UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -198,7 +187,7 @@ trait APIMethods200 {
             user =>
 
               for {
-                u <- user ?~ ErrorMessages.UserNotLoggedIn
+                u <- user ?~! ErrorMessages.UserNotLoggedIn
               } yield {
                 val availableAccounts = BankAccount.nonPublicAccounts(u)
                 val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, availableAccounts, Full(u))
@@ -224,8 +213,8 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      basicAccountsJSON,
+      List(UserNotLoggedIn,"Could not get accounts.",UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -239,7 +228,7 @@ trait APIMethods200 {
       case "accounts" :: "public" :: Nil JsonGet json => {
         user =>
           for {
-            publicAccountsJson <- tryo{bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)} ?~ "Could not get accounts."
+            publicAccountsJson <- tryo{bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)} ?~! "Could not get accounts."
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
@@ -264,8 +253,8 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
       """,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      basicAccountsJSON,
+      List(BankNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
@@ -275,7 +264,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
           for{
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
           } yield {
             val availableAccounts = bank.accounts(user)
             successJsonResponse(bankAccountBasicListToJson(availableAccounts, user))
@@ -312,8 +301,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      coreAccountsJSON,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -328,7 +317,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)
 
           } yield {
@@ -339,7 +328,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)
 
           } yield {
@@ -351,7 +340,7 @@ trait APIMethods200 {
         println("in accounts")
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(BankId(defaultBankId))
           } yield {
             corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, bank, u)
@@ -377,8 +366,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      basicAccountsJSON,
+      List(UserNotLoggedIn, BankNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -388,7 +377,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
           } yield {
             val availableAccounts = bank.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -412,8 +401,8 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      basicAccountsJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -442,8 +431,8 @@ trait APIMethods200 {
         |Passport, driving licence etc.
         |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      kycDocumentsJSON,
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -452,7 +441,7 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customerId)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
@@ -474,8 +463,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      kycMediasJSON,
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagCustomer, apiTagKyc))
 
@@ -484,7 +473,7 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customer.number)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
@@ -506,8 +495,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      kycChecksJSON,
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -516,7 +505,7 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customerId)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
@@ -536,8 +525,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      kycStatusesJSON,
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -546,7 +535,7 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
@@ -567,8 +556,8 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      socialMediasJSON,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, CustomerNotFoundByCustomerId, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -577,9 +566,9 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), s"$CanGetSocialMediaHandles entitlement required")
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            bank <- Bank(bankId) ?~! BankNotFound
+            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), UserDoesNotHaveRole + CanGetSocialMediaHandles)
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
             val json = JSONFactory200.createSocialMediasJSON(kycSocialMedias)
@@ -600,9 +589,9 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
-      Extraction.decompose(PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate)),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
+      kycDocumentJSON,
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -617,7 +606,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[PostKycDocumentJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycDocumentCreated <-
               KycDocuments.kycDocumentProvider.vend.addKycDocuments(
@@ -647,9 +636,16 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media.",
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
-      Extraction.decompose(PostKycMediaJSON("1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      PostKycMediaJSON(
+        "1239879", 
+        "image", 
+        "http://www.example.com/id-docs/123/image.png",
+        exampleDate, 
+        "wuwjfuha234678", 
+        "98FRd987auhf87jab"
+      ),
+      kycMediaJSON,
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -662,7 +658,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[PostKycMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycMediaCreated <- KycMedias.kycMediaProvider.vend.addKycMedias(
                 bankId.value,
@@ -673,7 +669,7 @@ trait APIMethods200 {
                 postedData.url,
                 postedData.date,
                 postedData.relates_to_kyc_document_id,
-                postedData.relates_to_kyc_check_id) ?~ "Server error: could not add message"
+                postedData.relates_to_kyc_check_id) ?~! ServerAddDataError
           } yield {
             val json = JSONFactory200.createKycMediaJSON(kycMediaCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -690,9 +686,9 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
-      Extraction.decompose(PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postKycCheckJSON,
+      kycCheckJSON,
+      List(UserNotLoggedIn, InvalidJsonFormat,InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -705,7 +701,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[PostKycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycCheckCreated <- KycChecks.kycCheckProvider.vend.addKycChecks(
                 bankId.value,
@@ -717,7 +713,7 @@ trait APIMethods200 {
                 postedData.staff_user_id,
                 postedData.staff_name,
                 postedData.satisfied,
-                postedData.comments) ?~ "Server error: could not add message"
+                postedData.comments) ?~! ServerAddDataError
           } yield {
             val json = JSONFactory200.createKycCheckJSON(kycCheckCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -734,9 +730,9 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
-      Extraction.decompose(PostKycStatusJSON("8762893876", true, exampleDate)),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postKycStatusJSON,
+      kycStatusJSON,
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnKnownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -749,14 +745,14 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[PostKycStatusJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycStatusCreated <- KycStatuses.kycStatusProvider.vend.addKycStatus(
                 bankId.value,
                 customerId,
                 postedData.customer_number,
                 postedData.ok,
-                postedData.date) ?~ "Server error: could not add message"
+                postedData.date) ?~! ServerAddDataError
           } yield {
             val json = JSONFactory200.createKycStatusJSON(kycStatusCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -773,9 +769,15 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
-      Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      socialMediaJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat, 
+        InvalidBankIdFormat, 
+        UserDoesNotHaveRole,
+        CustomerNotFoundByCustomerId,
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -788,8 +790,8 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), s"$CanAddSocialMediaHandle entitlement required")
+            bank <- Bank(bankId) ?~! BankNotFound
+            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), UserDoesNotHaveRole + CanAddSocialMediaHandle)
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -800,7 +802,7 @@ trait APIMethods200 {
                 postedData.date_activated),
               "Server error: could not add")
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            successJsonResponse(Extraction.decompose(successMessage), 201)
           }
         }
       }
@@ -826,8 +828,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moderatedCoreAccountJSON,
+      List(BankAccountNotFound,UnKnownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -839,7 +841,7 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -877,8 +879,8 @@ trait APIMethods200 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moderatedCoreAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
     
@@ -891,7 +893,7 @@ trait APIMethods200 {
 
           for {
             params <- APIMethods121.getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
@@ -929,8 +931,8 @@ trait APIMethods200 {
         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moderatedAccountJSON,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -939,11 +941,11 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
-            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
             moderatedAccount <- account.moderatedBankAccount(view, user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
@@ -952,10 +954,6 @@ trait APIMethods200 {
           }
       }
     }
-
-
-    /////
-
 
     resourceDocs += ResourceDoc(
       getPermissionsForBankAccount,
@@ -968,8 +966,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      permissionsJSON,
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -980,7 +978,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             permissions <- account permissions u
           } yield {
@@ -1002,8 +1000,8 @@ trait APIMethods200 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      viewsJSONV121,
+      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
@@ -1013,7 +1011,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             permission <- account permission(u, providerId, userId)
           } yield {
@@ -1041,9 +1039,21 @@ trait APIMethods200 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
+      coreAccountJSON,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidUserId,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserNotFoundById,
+        InvalidAccountBalanceAmount,
+        InvalidAccountType,
+        InvalidAccountInitialBalance,
+        InvalidAccountBalanceCurrency,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -1062,20 +1072,20 @@ trait APIMethods200 {
 
           for {
             loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
-            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
-            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
+            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~! ErrorMessages.InvalidJsonFormat
+            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! ErrorMessages.InvalidUserId
             isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
             isValidBankId <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            bank <- Bank(bankId) ?~! s"Bank $bankId not found"
             // User can create account for self or an account for another user if they have CanCreateAccount role
             isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
-            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
-            accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
-            accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
+            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! ErrorMessages.InvalidAccountBalanceAmount
+            accountType <- tryo(jsonBody.`type`) ?~! ErrorMessages.InvalidAccountType
+            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
-            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
-            currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
+            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~! s"Initial balance must be zero"
+            currency <- tryo (jsonBody.balance.currency) ?~! ErrorMessages.InvalidAccountBalanceCurrency
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
@@ -1126,8 +1136,8 @@ trait APIMethods200 {
           |
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionTypesJsonV200,
+      List(BankNotFound, UnKnownError),
       Catalogs(Core, PSD2, notOBWG),
       List(apiTagBank)
     )
@@ -1141,7 +1151,7 @@ trait APIMethods200 {
               Box(Some(1))
             else
               user ?~! "User must be logged in to retrieve Transaction Types data"
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -1152,9 +1162,6 @@ trait APIMethods200 {
         }
       }
     }
-
-    ///
-
 
 
     import net.liftweb.json.JsonAST._
@@ -1205,14 +1212,24 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      Extraction.decompose(TransactionRequestBodyJSON (
-        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
-        AmountOfMoneyJSON121("EUR", "100.53"),
-        "A description for the transaction to be created"
-      )
-      ),
+      transactionRequestBodyJsonV200,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        UserNoPermissionAccessView,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        CounterpartyNotFound,
+        InvalidTransactionRequestType,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnKnownError
+      ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1226,19 +1243,19 @@ trait APIMethods200 {
              * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
              * test: functionality, error messages if user not given or invalid, if any other value is not existing
             */
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+              u <- user ?~! ErrorMessages.UserNotLoggedIn
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV200]} ?~! InvalidJsonFormat
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
-              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
+              fromBank <- Bank(bankId) ?~! BankNotFound
+              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
               availableViews <- Full(fromAccount.permittedViews(user))
-              view <- View.fromUrl(viewId, fromAccount) ?~! {ErrorMessages.ViewNotFound}
-              canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- View.fromUrl(viewId, fromAccount) ?~! ViewNotFound
+              canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
 
-              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -1247,8 +1264,8 @@ trait APIMethods200 {
               validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
               // Use a list instead of a string to avoid partial matches
               validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
-              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
-              transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency must be the same."}
+              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
+              transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! InvalidTransactionRequestCurrency
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
               // Explicitly format as v2.0.0 json
@@ -1256,7 +1273,7 @@ trait APIMethods200 {
               createdJsonResponse(Extraction.decompose(json))
             }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionDisabled))
           }
       }
     }
@@ -1269,9 +1286,22 @@ trait APIMethods200 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
-      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      ChallengeAnswerJSON("89123812", "123345"),
+      transactionRequestWithChargeJson,
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
+          InvalidBankIdFormat,
+        BankNotFound,
+        UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        InvalidTransactionRequestId,
+        TransactionRequestTypeHasChanged,
+        InvalidTransactionRequesChallengeId,
+        TransactionRequestStatusNotInitiated,
+        TransactionDisabled,
+        UnKnownError
+      ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1281,17 +1311,17 @@ trait APIMethods200 {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u: User <- user ?~ ErrorMessages.UserNotLoggedIn
+              u: User <- user ?~! ErrorMessages.UserNotLoggedIn
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              fromBank <- Bank(bankId) ?~! BankNotFound
+              fromAccount <- BankAccount(bankId, accountId) ?~! BankNotFound
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
 
 
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
-              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //check the transReqId validation.
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
@@ -1318,7 +1348,7 @@ trait APIMethods200 {
               successJsonResponse(successJson, 202)
             }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionDisabled))
           }
       }
     }
@@ -1355,8 +1385,8 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionRequestWithChargesJson,
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1365,10 +1395,10 @@ trait APIMethods200 {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              u <- user ?~! UserNotLoggedIn
+              fromBank <- Bank(bankId) ?~! BankNotFound
+              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
               yield {
@@ -1377,7 +1407,7 @@ trait APIMethods200 {
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionDisabled))
           }
       }
     }
@@ -1402,9 +1432,9 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      createUserJson,
+      userJSONV200,
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagOnboarding, apiTagUser))
 
@@ -1412,7 +1442,7 @@ trait APIMethods200 {
       case "users" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo {json.extract[CreateUserJson]} ?~! ErrorMessages.InvalidJsonFormat
             isValidStrongPassword <- tryo(assert(isValidStrongPassword(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
             if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
@@ -1469,9 +1499,18 @@ trait APIMethods200 {
         |
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
-      Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      CreateMeetingJson("tokbox", "onboarding"),
+      meetingJson,
+      List(
+        UserNotLoggedIn,
+        MeetingApiKeyNotConfigured,
+        MeetingApiSecretNotConfigured,
+        InvalidBankIdFormat,
+        BankNotFound,
+        InvalidJsonFormat,
+        MeetingsNotSupported,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1482,12 +1521,12 @@ trait APIMethods200 {
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
               // TODO use these keys to get session and tokens from tokbox
-              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
-              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-              bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              postedData <- tryo {json.extract[CreateMeetingJSON]} ?~! ErrorMessages.InvalidJsonFormat
+              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
+              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
+              u <- user ?~! UserNotLoggedIn
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+              bank <- Bank(bankId) ?~! BankNotFound
+              postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
               now = Calendar.getInstance().getTime()
               sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
               customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
@@ -1499,7 +1538,7 @@ trait APIMethods200 {
               successJsonResponse(Extraction.decompose(json), 201)
             }
           } else {
-            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
+            Full(errorJsonResponse(MeetingsNotSupported))
           }
       }
     }
@@ -1521,8 +1560,14 @@ trait APIMethods200 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      meetingsJson,
+      List(
+        UserNotLoggedIn,
+        MeetingApiKeyNotConfigured,
+        MeetingApiSecretNotConfigured,
+        BankNotFound,
+        MeetingsNotSupported,
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1532,12 +1577,12 @@ trait APIMethods200 {
         user =>
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              u <- user ?~! ErrorMessages.UserNotLoggedIn
+              fromBank <- Bank(bankId) ?~! BankNotFound
               providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              u <- user ?~! ErrorMessages.UserNotLoggedIn
+              bank <- Bank(bankId) ?~! BankNotFound
               // now = Calendar.getInstance().getTime()
               meetings <- Meeting.meetingProvider.vend.getMeetings(bank.bankId, u)
             }
@@ -1547,7 +1592,7 @@ trait APIMethods200 {
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
-            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
+            Full(errorJsonResponse(MeetingsNotSupported))
           }
       }
     }
@@ -1571,8 +1616,16 @@ trait APIMethods200 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      meetingJson,
+      List(
+        UserNotLoggedIn, 
+        BankNotFound, 
+        MeetingApiKeyNotConfigured,
+        MeetingApiSecretNotConfigured, 
+        MeetingNotFound, 
+        MeetingsNotSupported,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1582,11 +1635,11 @@ trait APIMethods200 {
         user =>
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              u <- user ?~! UserNotLoggedIn
+              fromBank <- Bank(bankId) ?~! BankNotFound
               providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              bank <- Bank(bankId) ?~! BankNotFound
               meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
             }
               yield {
@@ -1599,9 +1652,6 @@ trait APIMethods200 {
           }
       }
     }
-
-    //
-
 
 
     resourceDocs += ResourceDoc(
@@ -1618,11 +1668,20 @@ trait APIMethods200 {
         |Dates need to be in the format 2013-01-21T23:08:00Z
         |${authenticationRequiredMessage(true)}
         |""",
-      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
-        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      createCustomerJson,
+      customerJsonV140,
+      List(
+        InvalidBankIdFormat,
+        UserNotLoggedIn,
+        BankNotFound,
+        CustomerNumberAlreadyExists,
+        UserDoesNotHaveRole,
+        UserNotFoundById,
+        CreateConsumerError,
+        CustomerAlreadyExistsForUser,
+        CreateUserCustomerLinksError,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -1638,17 +1697,17 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            u <- user ?~! UserNotLoggedIn// TODO. CHECK user has role to create a customer / create a customer for another user id.
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            bank <- Bank(bankId) ?~! BankNotFound
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = CanCreateCustomer ::
                                    CanCreateUserCustomerLink ::
                                    Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
-            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserDoesNotHaveRole + requiredEntitlementsTxt)
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
-            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
+            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               postedData.customer_number,
@@ -1665,9 +1724,9 @@ trait APIMethods200 {
               postedData.kyc_status,
               postedData.last_ok_date,
               None,
-              None) ?~! "Could not create customer"
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
+              None) ?~! CreateConsumerError
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! CreateUserCustomerLinksError
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(customer)
             val successJson = Extraction.decompose(json)
@@ -1690,8 +1749,8 @@ trait APIMethods200 {
         |Login is required.
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      userJSONV200,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1700,7 +1759,7 @@ trait APIMethods200 {
       case "users" :: "current" :: Nil JsonGet _ => {
         user =>
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              u <- user ?~! ErrorMessages.UserNotLoggedIn
             }
               yield {
                 // Format the data as V2.0.0 json
@@ -1725,8 +1784,8 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1735,8 +1794,8 @@ trait APIMethods200 {
       case "users" :: userEmail :: Nil JsonGet _ => {
         user =>
             for {
-              l <- user ?~ ErrorMessages.UserNotLoggedIn
-              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              l <- user ?~! ErrorMessages.UserNotLoggedIn
+              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
               users <- tryo{AuthUser.getResourceUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
@@ -1761,9 +1820,19 @@ trait APIMethods200 {
         |For now the authenticated user can create at most one linked customer at any one bank.
         |${authenticationRequiredMessage(true)}
         |""",
-      Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      createUserCustomerLinkJson,
+      userCustomerLinkJson,
+      List(
+        UserNotLoggedIn,
+        InvalidBankIdFormat, 
+        BankNotFound, 
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId, 
+        UserDoesNotHaveRole,
+        CustomerAlreadyExistsForUser, 
+        CreateUserCustomerLinksError,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagCustomer))
 
@@ -1776,16 +1845,16 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            postedData <- tryo{json.extract[CreateUserCustomerLinkJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~ "Field user_id is not defined in the posted json!"
+            bank <- Bank(bankId) ?~! BankNotFound
+            postedData <- tryo{json.extract[CreateUserCustomerLinkJson]} ?~! ErrorMessages.InvalidJsonFormat
+            user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~! "Field user_id is not defined in the posted json!"
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
-            customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), s"$CanCreateUserCustomerLink entitlement required")
+            customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), UserDoesNotHaveRole +CanCreateUserCustomerLink)
             isEqual <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! "Could not create user_customer_links"
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)
@@ -1809,9 +1878,18 @@ trait APIMethods200 {
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
-      Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementJSON,
+      List(
+        UserNotLoggedIn,
+        UserNotFoundById, 
+        WrongInputJsonFormat,
+        WrongRoleName, 
+        EntitlementIsBankRole, 
+        EntitlementIsSystemRole, 
+        "Entitlement already exists for the user.",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser))
 
@@ -1820,17 +1898,17 @@ trait APIMethods200 {
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
             user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
-            role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
+            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! WrongInputJsonFormat
+            role <- tryo{valueOf(postedData.role_name)} ?~! WrongRoleName
             isBankOrSystemRoleOk <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
-              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) ErrorMessages.EntitlementIsBankRole else ErrorMessages.EntitlementIsSystemRole}
+              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
             allowedEntitlements = CanCreateEntitlementAtOneBank ::
                                   CanCreateEntitlementAtAnyBank ::
                                   Nil
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~ {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
-            bank <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false) ?~! {ErrorMessages.BankNotFound}
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
+            bank <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false) ?~! BankNotFound
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
             hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
@@ -1855,8 +1933,8 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      entitlementJSONs,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1866,7 +1944,10 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
+              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+              entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+              u <- user ?~! ErrorMessages.UserNotLoggedIn
+              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank )
               entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
@@ -1901,7 +1982,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(UserNotLoggedIn, "User is not super admin!", "EntitlementId not found", UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1934,8 +2015,8 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      entitlementJSONs,
+      List(UserNotLoggedIn, "Logged user is not super admin!", UnKnownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1944,8 +2025,8 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~! "Logged user is not super admin!"
             entitlements <- Entitlement.entitlement.vend.getEntitlements
           }
           yield {
@@ -2029,8 +2110,8 @@ trait APIMethods200 {
           |
         """,
         emptyObjectJson,
-        emptyObjectJson,
-        emptyObjectJson :: Nil,
+        emptyObjectJson, //TODO what is output here?
+        List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnKnownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2039,9 +2120,9 @@ trait APIMethods200 {
       case "search" :: "warehouse" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2117,7 +2198,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson,
-        emptyObjectJson :: Nil,
+        List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2126,9 +2207,9 @@ trait APIMethods200 {
       case "search" :: "metrics" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
+            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
@@ -2147,8 +2228,8 @@ trait APIMethods200 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      customersJsonV140,
+      List(UserNotLoggedIn, CustomerDoNotExistsForUser, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -2157,8 +2238,8 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            //bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+            //bank <- Bank(bankId) ?~! BankNotFound
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! CustomerDoNotExistsForUser
           } yield {
             val json = JSONFactory1_4_0.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
@@ -2166,18 +2247,7 @@ trait APIMethods200 {
         }
       }
     }
-
-
-
-
-
-
-
-
-
   }
-
-
 }
 
 object APIMethods200 {

@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 
 import code.api.DefaultUsers
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.api.v2_0_0.{CreateCustomerJson, V200ServerSetup}
 import code.customer.Customer
 import code.model.BankId
@@ -81,7 +81,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       Then("We should get a 200")
       responsePost2Entitlement.code should equal(200)
       And("We should get the right information back")
-      val infoPost = responsePost2Entitlement.body.extract[CustomerJson]
+      val infoPost = responsePost2Entitlement.body.extract[CustomerJsonV140]
 
       When("We make the request")
       val requestGet = (v1_4Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
@@ -91,7 +91,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
 
       And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJson]
+      val infoGet = responseGet.body.extract[CustomerJsonV140]
 
       And("POST feedback and GET feedback must be the same")
       infoGet should equal(infoPost)

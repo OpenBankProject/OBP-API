@@ -3,9 +3,8 @@ package code.api.ResourceDocs1_4_0
 import java.util.{Date, UUID}
 
 import code.api.Constant._
-import code.api.util.APIUtil
-import code.api.util.APIUtil.ResourceDoc
-import code.api.v2_2_0.BankJSON
+import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
 import net.liftweb
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -14,6 +13,7 @@ import org.pegdown.PegDownProcessor
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
+import code.api.util.ErrorMessages._
 
 object SwaggerJSONFactory {
   //Info Object
@@ -55,10 +55,21 @@ object SwaggerJSONFactory {
   )
   //Response Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#responsesObject
+  abstract class ResponseBaseObjectJson(
+    optionalFields: String*
+  ) {
+    def description: Option[String]
+  }
+  
   case class ResponseObjectJson(
     description: Option[String],
     schema: Option[ResponseObjectSchemaJson]
-  )
+  ) extends  ResponseBaseObjectJson
+  
+  case class ResponseNoContentObjectJson(
+    description: Option[String]
+  ) extends  ResponseBaseObjectJson
+  
   // Operation Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operation-object
   case class OperationObjectJson(
@@ -68,7 +79,7 @@ object SwaggerJSONFactory {
     description: String,
     operationId: String,
     parameters: List[OperationParameter],
-    responses: Map[String, ResponseObjectJson]
+    responses: Map[String, ResponseBaseObjectJson]
   )
   //Parameter Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#parameterObject
@@ -95,29 +106,6 @@ object SwaggerJSONFactory {
     schema: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
   )extends OperationParameter
   
-  case class ErrorPropertiesMessageJson(
-    `type`: String
-  )
-  case class ErrorPropertiesCodeJson(
-    `type`: String,
-    format: String
-  )
-  case class ErrorPropertiesJson(
-    code: ErrorPropertiesCodeJson,
-    message: ErrorPropertiesMessageJson
-  )
-  case class ErrorDefinitionJson(
-    `type`: String,
-    required: List[String],
-    properties: ErrorPropertiesJson
-  )
-  
-  //in Swagger Definitions part, there are many sub-definitions, here just set the Error field.
-  //other fields are set in "def loadDefinitions(resourceDocList: List[ResourceDoc])" method
-  // Definitions Object
-  // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  case class DefinitionsJson(Error: ErrorDefinitionJson)
-  
   case class SwaggerResourceDoc(
     swagger: String,
     info: InfoJson,
@@ -126,8 +114,7 @@ object SwaggerJSONFactory {
     schemes: List[String],
     securityDefinitions: SecurityDefinitionsJson,
     security: List[SecurityJson],
-    paths: Map[String, Map[String, OperationObjectJson]],
-    definitions: DefinitionsJson
+    paths: Map[String, Map[String, OperationObjectJson]]
   )
   
   /**
@@ -159,7 +146,6 @@ object SwaggerJSONFactory {
     *   securityDefinitions: SecurityDefinitionsJson,
     *   security: List[SecurityJson],
     *   paths: Map[String, Map[String, OperationObjectJson]],
-    *   definitions: DefinitionsJson
     * )
     *
     * @param resourceDocList     list of ResourceDoc
@@ -178,61 +164,12 @@ object SwaggerJSONFactory {
     //      "schema": {
     //         "$ref": "#/definitions/BankJSON"
     //TODO, try to make it work with reflection using rd.successResponseBody.extract[BanksJSON], but successResponseBody is JValue, that's tricky
-    def setReferenceObject(rd: ResourceDoc) = {
-      rd.apiFunction match {
-        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountJSON")) //1	V200/accounts
-//        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //1 V121 TODO 	/accounts
-          
-        case "corePrivateAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/CoreAccountJSON")) //2	TODO List[CoreAccountJSON] /my/accounts
-          
-        case "allAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountJSON")) //3	V200 TODO List[BasicAccountJSON] /banks/BANK_ID/accounts
-//        case "allAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //3	V121 TODO List[BasicAccountJSON] /banks/BANK_ID/accounts
-          
-          
-        case "privateAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/BasicAccountsJSON")) //4	V200(used),V121 /banks/BANK_ID/accounts/private 
-//        case "privateAccountsAtOneBank" => Some(ResponseObjectSchemaJson("#/definitions/AccountsJSON")) //4	V121 /banks/BANK_ID/accounts/private 
-          
-        case "getCoreAccountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedCoreAccountJSON")) //5	V200 /my/banks/BANK_ID/accounts/ACCOUNT_ID/account
-        case "accountById" => Some(ResponseObjectSchemaJson("#/definitions/ModeratedAccountJSON")) //6 v200 ,v121 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
-        case "getCurrentUser" => Some(ResponseObjectSchemaJson("#/definitions/UserJSON")) //7	v200/users/current
-        case "getBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))//8	v121/banks
-        case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON")) //9	v121 /banks/BANK_ID
-        case "getCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson")) //10	V210 V140 /banks/BANK_ID/customer 
-        case "getTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionsJSON")) //11 V121	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
-        case "getTransactionByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/TransactionJSON")) //12	V121/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction
-        case "getCoreTransactionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/CoreTransactionsJSON"))//13	V200/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions
-        case "getTransactionRequestTypes" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestTypeJSONs"))//14	v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types
-        case "createTransactionRequest" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSON210"))//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
-        case "answerTransactionRequestChallenge" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSON"))//16	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge
-        case "getTransactionRequests" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestWithChargeJSONs210"))//17	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests
-        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//v220 18	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
-        case "updateAccountLabel" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//19	/banks/BANK_ID/accounts/ACCOUNT_ID
-        case "getViewsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//20	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
-        case "createViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//21	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
-        case "updateViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSONV220"))//22	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-        case "deleteViewForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//23	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-        case "addPermissionForUserForBankAccountForMultipleViews" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//24	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
-        case "addPermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson("#/definitions/ViewJSON"))//25	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
-        case "removePermissionForUserForBankAccountForOneView" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//26	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID
-        case "removePermissionForUserForBankAccountForAllViews" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//27	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
-        case "getCounterpartiesForAccount" => Some(ResponseObjectSchemaJson("#/definitions/CounterpartiesJSON"))//28	V220, V210 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties
-        case "getOtherAccountsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountsJSON"))//29	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts
-        case "getOtherAccountByIdForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//30	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID
-        case "getTransactionNarrative" => Some(ResponseObjectSchemaJson("#/definitions/TransactionNarrativeJSON"))//31 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative
-        case "getCommentsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionCommentsJSON"))//32 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments
-        case "deleteCommentForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//33 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID
-        case "getTagsForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionTagsJSON"))//34	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags
-        case "deleteTagForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//35 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID
-        case "getImagesForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionImagesJSON"))//36 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images
-        case "deleteImageForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/SuccessMessage"))//37 TODO Wrong output for delete /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID
-        case "getWhereTagForViewOnTransaction" => Some(ResponseObjectSchemaJson("#/definitions/TransactionWhereJSON"))//38 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where
-        case "getOtherAccountForTransaction" => Some(ResponseObjectSchemaJson("#/definitions/OtherAccountJSON"))//39	/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account
-        case "getCurrentFxRate" => Some(ResponseObjectSchemaJson("#/definitions/FXRateJSON"))//40	/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE
-        case "getPermissionsForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/PermissionsJSON"))//41	V200 v121/banks/BANK_ID/accounts/ACCOUNT_ID/permissions
-        case "getPermissionForUserForBankAccount" => Some(ResponseObjectSchemaJson("#/definitions/ViewsJSON"))//42	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID
-        case "createCustomer" => Some(ResponseObjectSchemaJson("#/definitions/CustomerJson"))//43	v210 v200 /banks/BANK_ID/customers
-        case _ => None
+    def setReferenceObject(rd: ResourceDoc): Option[ResponseObjectSchemaJson] = {
+      val caseClassName = rd.successResponseBody match {
+        case s:scala.Product => s.getClass.getSimpleName
+        case _ => "NoSupportYet"
       }
+      Some(ResponseObjectSchemaJson(s"#/definitions/${caseClassName}"))
     }
 
     implicit val formats = DefaultFormats
@@ -294,6 +231,7 @@ object SwaggerJSONFactory {
         .replaceAll("/KYC_DOCUMENT_ID", "/{KYC_DOCUMENT_ID}")
         .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
         .replaceAll("/AMT_ID", "/{AMT_ID}")
+        .replaceAll("/API_VERSION", "/{API_VERSION}")
       
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
@@ -344,6 +282,8 @@ object SwaggerJSONFactory {
         pathParameters = OperationParameterPathJson(name="KYC_MEDIA_ID", description="The kyc media id") :: pathParameters
       if(path.contains("/{AMT_ID}"))
         pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
+      if(path.contains("/{API_VERSION}"))
+        pathParameters = OperationParameterPathJson(name="API_VERSION", description="v2.2.0") :: pathParameters
   
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
@@ -357,29 +297,50 @@ object SwaggerJSONFactory {
                 case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
                 case _ => s"${rd.apiVersion.toString }-${rd.apiFunction.toString }"
               },
+            //TODO, this is for Post Body 
             parameters =
-              rd.apiFunction match {
-                case "createTransactionRequest" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/TransactionRequestBodyJSON")) :: pathParameters//15	v210, v200,v140/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests
-                case "answerTransactionRequestChallenge" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/ChallengeAnswerJSON")) :: pathParameters//16	v210, v200,v140 /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge
-                case "updateAccountLabel" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/UpdateAccountJSON")) :: pathParameters//19	/banks/BANK_ID/accounts/ACCOUNT_ID
-                case "createViewForBankAccount" =>OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/CreateViewJSON")) :: pathParameters//21	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views
-                case "updateViewForBankAccount" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/UpdateViewJSON")) :: pathParameters//22	TODO V220 mixed V121 /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-                case "addPermissionForUserForBankAccountForMultipleViews" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/ViewIdsJson")) :: pathParameters//24	/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views
-                case "createCustomer" => OperationParameterBodyJson(schema=ResponseObjectSchemaJson("#/definitions/PostCustomerJson")) :: pathParameters//43	v210 v200 /banks/BANK_ID/customers
-                case _ => pathParameters
+              if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
+                pathParameters
+               } else{
+                val caseClassName = rd.exampleRequestBody match {
+                  case s:scala.Product => s.getClass.getSimpleName
+                  case _ => "NoSupportYet"
+                }
+                OperationParameterBodyJson(schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
               },
-            responses = Map("200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)), 
-                            "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
+            responses =
+              rd.requestVerb.toLowerCase match {
+                case "get" => 
+                  Map(
+                    "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                  )
+                case "post" =>  
+                  Map(
+                    "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                  )
+                case "put" =>
+                  Map(
+                    "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                  )
+                case "delete" =>
+                  Map(
+                    "204" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                  )
+                case _ =>
+                  Map(
+                    "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                  )
+              }
+          )
+        )
       ).toMap
       (path, operationObjects.toSeq.sortBy(m => m._1).toMap)
     }(collection.breakOut)
-
-    val errorRequired = List("code", "message")
-    val errorPropertiesCode = ErrorPropertiesCodeJson("integer", "int32")
-    val errorPropertiesMessage = ErrorPropertiesMessageJson("string")
-    val errorProperties = ErrorPropertiesJson(errorPropertiesCode, errorPropertiesMessage)
-    val errorDefinition = ErrorDefinitionJson("object", errorRequired, errorProperties)
-    val definitions = DefinitionsJson(errorDefinition)
 
     SwaggerResourceDoc(
       swagger = "2.0",
@@ -389,11 +350,9 @@ object SwaggerJSONFactory {
       schemes = schemas,
       securityDefinitions = SecurityDefinitionsJson(DirectLoginJson()), //default value
       security = SecurityJson()::Nil, //default value
-      paths = paths,
-      definitions = definitions
+      paths = paths
     )
   }
-
   
   /**
     * @param entity - Any, maybe a case class, maybe a list ,maybe a string
@@ -415,7 +374,7 @@ object SwaggerJSONFactory {
     *             "banks": {"type": "array", "items":{"$ref": "#/definitions/BanksJSON"}}
     *         }
     */
-  def translateEntity(className:String, entity: Any): String = {
+  def translateEntity(entity: Any): String = {
   
     //Collect all mandatory fields and make an appropriate string
     // eg return :  "required": ["id","name","bank","banks"],  
@@ -494,11 +453,13 @@ object SwaggerJSONFactory {
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         //TODO this should be improved, matching the JValue,now just support the default value
-        case APIUtil.defaultJValue                 => "\""  + key + """": {"type":"string","example":""}"""
+        case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string","example":""}"""
         //the case classes.  
-        case List(f)                        => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case Some(f)                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case f                              => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case List(f)                       => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case List(Some(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case Some(List(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case _ => "unknown"
       }
     }
@@ -507,7 +468,7 @@ object SwaggerJSONFactory {
     // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
     val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
     //val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
-    val definition = "\"" + className + "\":{" +requiredFieldsPart+ """"properties": {""" + fields + """}}"""
+    val definition = "\"" + entity.getClass.getSimpleName + "\":{" +requiredFieldsPart+ """"properties": {""" + fields + """}}"""
     definition
   }
        
@@ -529,23 +490,56 @@ object SwaggerJSONFactory {
     *           }
     *         } ...
     */
+  // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
   
     implicit val formats = DefaultFormats
   
-    val allSwaggerDefinitionCaseClasses = SwaggerJSONsV220.allFieldsAndValues
+    val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
+    
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
-    val listOfParticularDefinition =
-      for (e <- allSwaggerDefinitionCaseClasses)
+    val listOfExampleRequestBodyDefinition =
+      for (e <- resourceDocList if e.exampleRequestBody != null)
         yield {
-          translateEntity(e._1, e._2)
+          translateEntity(e.exampleRequestBody)
         }
+    val listOfSuccessRequestBodyDefinition =
+      for (e <- resourceDocList if e.successResponseBody != null)
+        yield {
+          translateEntity(e.successResponseBody)
+        }
+    val listNestingMissDefinition =
+      for (e <- allSwaggerDefinitionCaseClasses.toList if e!= null)
+        yield {
+          translateEntity(e)
+        }
+  
+    //TODO, the errors are just String, not the case classes. need to be fixed 
+    val errorMessageList = ErrorMessages.allFields.toList
+    val listErrorDefinition =
+      for (e <- errorMessageList if e != null)
+        yield {
+          s""""Error${e._1 }": {
+               "properties": {
+                 "message": {
+                    "type": "string",
+                    "example": "${e._2}"
+                 }
+               }
+             }"""
+        }
+    
     //Add a comma between elements of a list and make a string 
-    val particularDefinitionsPart = listOfParticularDefinition mkString (",")
+    val particularDefinitionsPart = (
+      listErrorDefinition 
+        :::listOfExampleRequestBodyDefinition 
+        :::listNestingMissDefinition
+        :::listOfSuccessRequestBodyDefinition
+      ) mkString (",")
+  
     //Make a final string
     val definitions = "{\"definitions\":{" + particularDefinitionsPart + "}}"
     //Make a jsonAST from a string
     parse(definitions)
   }
- 
 }

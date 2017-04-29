@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.{DefaultUsers, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankAccount, TransactionRequestId}
@@ -61,11 +61,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", "")
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
+        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", "")
 
         //call createTransactionRequest
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -186,7 +186,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val beforeToBalance = toAccount.balance
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
         //1. TODO: get possible challenge types from account
 
@@ -194,8 +194,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //amount over 100 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
-        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", TransactionRequests.CHALLENGE_SANDBOX_TAN)
+        val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
+        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionRequests.CHALLENGE_SANDBOX_TAN)
 
         //call createTransactionRequest API method
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

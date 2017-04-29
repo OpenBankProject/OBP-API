@@ -31,25 +31,18 @@ Berlin 13359, Germany
  */
 package code.api.v2_0_0
 
-import java.net.URL
 import java.util.Date
-
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJSON, ViewJSON}
-import code.api.v2_2_0.{AccountJSON, AccountsJSON}
+import code.api.v1_2_1.{AccountRoutingJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json
 import net.liftweb.json.Extraction
-
-// import code.api.util.APIUtil.ApiLink
-
-import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.api.v1_2_1.{AmountOfMoneyJsonV121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121, ViewJSONV121 => ViewJSON121}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
@@ -61,76 +54,77 @@ import net.liftweb.json.JsonAST.JValue
 
 
 // New in 2.0.0
-
-class LinkJSON(
-  val href: URL,
-  val rel: String,
-  val method: String
+case class LinkJson(
+  href: String,
+  rel: String,
+  method: String
 )
 
-class LinksJSON(
-  val _links: List[LinkJSON]
+case class LinksJson(
+  _links: List[LinkJson]
 )
 
-class ResultAndLinksJSON(
-  val result : JValue,
-  val links: LinksJSON
+case class ResultAndLinksJson(
+  result: JValue,
+  links: LinksJson
 )
 
-case class CreateUserJSON(
-                     email: String,
-                     username: String,
-                     password: String,
-                     first_name: String,
-                     last_name: String
-                   )
-
-case class CreateUserJSONs(
-                            users : List[CreateUserJSON]
-                          )
-
-case class CreateMeetingJSON(
-                              provider_id: String,
-                              purpose_id: String
+case class CreateUserJson(
+  email: String,
+  username: String,
+  password: String,
+  first_name: String,
+  last_name: String
 )
 
-case class MeetingJSON(
-                        meeting_id : String,
-                        provider_id: String,
-                        purpose_id: String,
-                        bank_id : String,
-                        present : MeetingPresentJSON,
-                        keys : MeetingKeysJSON,
-                        when : Date
-                      )
+case class CreateUsersJson(
+  users: List[CreateUserJson]
+)
 
-case class MeetingJSONs(
-                        meetings : List[MeetingJSON]
-                      )
+case class CreateMeetingJson(
+  provider_id: String,
+  purpose_id: String
+)
+
+case class MeetingJson(
+  meeting_id: String,
+  provider_id: String,
+  purpose_id: String,
+  bank_id: String,
+  present: MeetingPresentJson,
+  keys: MeetingKeysJson,
+  when: Date
+)
+
+case class MeetingsJson(
+  meetings: List[MeetingJson]
+)
 
 
-case class MeetingKeysJSON(
-                            session_id: String,
-                            staff_token: String,
-                            customer_token: String
-                         )
+case class MeetingKeysJson(
+  session_id: String,
+  staff_token: String,
+  customer_token: String
+)
 
-case class MeetingPresentJSON(
-                               staff_user_id: String,
-                               customer_user_id: String
+case class MeetingPresentJson(
+  staff_user_id: String,
+  customer_user_id: String
 
-  )
+)
 
-case class UserCustomerLinkJSON(user_customer_link_id: String,
-                                customer_id: String,
-                                user_id: String,
-                                date_inserted: Date,
-                                is_active: Boolean)
-case class UserCustomerLinkJSONs(l: List[UserCustomerLinkJSON])
+case class UserCustomerLinkJson(
+  user_customer_link_id: String,
+  customer_id: String,
+  user_id: String,
+  date_inserted: Date,
+  is_active: Boolean
+)
+case class UserCustomerLinksJson(l: List[UserCustomerLinkJson])
 
-case class CreateUserCustomerLinkJSON(user_id: String, customer_id: String)
+case class CreateUserCustomerLinkJson(user_id: String, customer_id: String)
 
-case class BasicViewJSON(
+case class BasicViewJson(
   val id: String,
   val short_name: String,
   val is_public: Boolean
@@ -145,7 +139,7 @@ case class BasicAccountJSON(
                              id : String,
                              label : String,
                              bank_id : String,
-                             views_available : List[BasicViewJSON]
+                             views_available : List[BasicViewJson]
 )
 
 
@@ -154,7 +148,7 @@ case class CreateAccountJSON(
                              user_id : String,
                              label   : String,
                               `type` : String,
-                             balance : AmountOfMoneyJSON
+                             balance : AmountOfMoneyJsonV121
                            )
 
 // No view in core
@@ -164,6 +158,8 @@ case class CoreAccountJSON(
                              bank_id : String,
                              _links: JValue
                            )
+
+case class CoreAccountsJSON( accounts: List[CoreAccountJSON])
 
 case class PostKycDocumentJSON(
                                 customer_number: String,
@@ -289,18 +285,18 @@ case class CreateCustomerJson(
   * @param charge The fee to the customer for each one of these
   */
 
-case class TransactionTypeJSON (
-                                 id: TransactionTypeId,
-                                 bank_id : String,
-                                 short_code : String,
-                                 summary: String,
-                                 description: String,
-                                 charge: AmountOfMoneyJSON
- )
+case class TransactionTypeJsonV200(
+  id: TransactionTypeId,
+  bank_id: String,
+  short_code: String,
+  summary: String,
+  description: String,
+  charge: AmountOfMoneyJsonV121
+)
 
-
-
-case class TransactionTypesJSON(transaction_types: List[TransactionTypeJSON])
+case class TransactionTypesJsonV200(
+  transaction_types: List[TransactionTypeJsonV200]
+)
 
 
 
@@ -308,58 +304,48 @@ case class TransactionTypesJSON(transaction_types: List[TransactionTypeJSON])
 v2.0.0 Json Representation of TransactionRequest
  */
 
+case class TransactionRequestChargeJsonV200(
+  val summary: String,
+  val value: AmountOfMoneyJsonV121
+)
 
-case class TransactionRequestChargeJSON(
-                                     val summary: String,
-                                     val value : AmountOfMoneyJSON
-                                   )
-
-
-case class TransactionRequestJSON(
-                                        id: String,
-                                        `type`: String,
-                                        from: TransactionRequestAccountJSON,
-                                        body: TransactionRequestBodyJSON,
-                                        transaction_ids: String,
-                                        status: String,
-                                        start_date: Date,
-                                        end_date: Date,
-                                        challenge: ChallengeJSON
-                                      )
+case class TransactionRequestJsonV200(
+  id: String,
+  `type`: String,
+  from: TransactionRequestAccountJsonV140,
+  body: TransactionRequestBodyJsonV200,
+  transaction_ids: String,
+  status: String,
+  start_date: Date,
+  end_date: Date,
+  challenge: ChallengeJsonV140
+)
 
 
-case class TransactionRequestWithChargeJSON(
-                                   id: String,
-                                   `type`: String,
-                                   from: TransactionRequestAccountJSON,
-                                   details: JValue,
-                                   transaction_ids: String,
-                                   status: String,
-                                   start_date: Date,
-                                   end_date: Date,
-                                   challenge: ChallengeJSON,
-                                   charge : TransactionRequestChargeJSON
-                                 )
+case class TransactionRequestWithChargeJson(
+  id: String,
+  `type`: String,
+  from: TransactionRequestAccountJsonV140,
+  details: JValue,
+  transaction_ids: String,
+  status: String,
+  start_date: Date,
+  end_date: Date,
+  challenge: ChallengeJsonV140,
+  charge: TransactionRequestChargeJsonV200
+)
 
 
+case class TransactionRequestWithChargesJson(
+  transaction_requests_with_charges: List[TransactionRequestWithChargeJson]
+)
 
 
-
-case class TransactionRequestWithChargeJSONs(
-                                    transaction_requests_with_charges : List[TransactionRequestWithChargeJSON]
-                                 )
-
-
-
-
-
-
-
-case class TransactionRequestBodyJSON (
-                                        to: TransactionRequestAccountJSON,
-                                        value : AmountOfMoneyJSON,
-                                        description : String
-                                      )
+case class TransactionRequestBodyJsonV200(
+  to: TransactionRequestAccountJsonV140,
+  value: AmountOfMoneyJsonV121,
+  description: String
+)
 
 case class CreateEntitlementJSON(bank_id: String, role_name: String)
 case class EntitlementJSON(entitlement_id: String, role_name: String, bank_id: String)
@@ -385,7 +371,7 @@ object JSONFactory200{
   def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
       val views = account permittedViews user
-      val viewsAvailable : List[BasicViewJSON] =
+      val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           createBasicViewJSON(v)
         })
@@ -403,7 +389,7 @@ object JSONFactory200{
   // Modified in 2.0.0
 
   //transaction requests
-  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJSON) : TransactionRequestBody = {
+  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJsonV200) : TransactionRequestBody = {
     val toAcc = TransactionRequestAccount (
       bank_id = body.to.bank_id,
       account_id = body.to.account_id
@@ -420,7 +406,7 @@ object JSONFactory200{
     )
   }
 
-  def getTransactionRequestFromJson(json : TransactionRequestJSON) : TransactionRequest = {
+  def getTransactionRequestFromJson(json : TransactionRequestJsonV200) : TransactionRequest = {
     val fromAcc = TransactionRequestAccount (
       json.from.bank_id,
       json.from.account_id
@@ -471,7 +457,7 @@ object JSONFactory200{
   // New in 2.0.0
 
 
-  def createBasicViewJSON(view : View) : BasicViewJSON = {
+  def createBasicViewJSON(view : View) : BasicViewJson = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -480,7 +466,7 @@ object JSONFactory200{
       else
         ""
 
-    new BasicViewJSON(
+    new BasicViewJson(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       is_public = view.isPublic
@@ -488,7 +474,7 @@ object JSONFactory200{
   }
 
 
-  def createBasicAccountJSON(account : BankAccount, basicViewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
+  def createBasicAccountJSON(account : BankAccount, basicViewsAvailable : List[BasicViewJson] ) : BasicAccountJSON = {
     new BasicAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
@@ -515,7 +501,7 @@ object JSONFactory200{
                                    number : String,
                                    owners : List[UserJSON121],
                                    `type` : String,
-                                   balance : AmountOfMoneyJSON,
+                                   balance : AmountOfMoneyJsonV121,
                                    IBAN : String,
                                    swift_bic: String,
                                    bank_id : String,
@@ -562,14 +548,13 @@ object JSONFactory200{
                                      description : String,
                                      posted : Date,
                                      completed : Date,
-                                     new_balance : AmountOfMoneyJSON,
-                                     value : AmountOfMoneyJSON
+                                     new_balance : AmountOfMoneyJsonV121,
+                                     value : AmountOfMoneyJsonV121
                                    )
 
 
 
-  //
-  case class UserJSON(
+  case class UserJSONV200(
                        user_id: String,
                        email : String,
                        provider_id: String,
@@ -578,17 +563,17 @@ object JSONFactory200{
                        entitlements : EntitlementJSONs
                      )
 
-  case class UserJSONs(
-                      users: List[UserJSON]
+  case class UsersJSONV200(
+                      users: List[UserJSONV200]
                       )
 
 
-  def createUserJSONfromAuthUser(user : AuthUser) : UserJSON = {
+  def createUserJSONfromAuthUser(user : AuthUser) : UserJSONV200 = {
     val (userId, entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
       case Full(u) => (u.userId, u.assignedEntitlements)
       case _       => ("", List())
     }
-    new UserJSON(user_id = userId,
+    new UserJSONV200(user_id = userId,
       email = user.email,
       username = stringOrNull(user.username),
       provider_id = stringOrNull(user.provider),
@@ -599,8 +584,8 @@ object JSONFactory200{
 
 
 
-  def createUserJSON(user : User) : UserJSON = {
-    new UserJSON(
+  def createUserJSON(user : User) : UserJSONV200 = {
+    new UserJSONV200(
       user_id = user.userId,
       email = user.emailAddress,
       username = stringOrNull(user.name),
@@ -610,20 +595,20 @@ object JSONFactory200{
     )
   }
 
-  def createUserJSON(user : Box[User]) : UserJSON = {
+  def createUserJSON(user : Box[User]) : UserJSONV200 = {
     user match {
       case Full(u) => createUserJSON(u)
       case _ => null
     }
   }
 
-  def createUserJSONs(users : List[User]) : UserJSONs = {
-    UserJSONs(users.map(createUserJSON))
+  def createUserJSONs(users : List[User]) : UsersJSONV200 = {
+    UsersJSONV200(users.map(createUserJSON))
   }
 
 
 
-  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJSON = {
+  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJSONV200 = {
     user match {
       case Full(u) => createUserJSONfromAuthUser(u)
       case _ => null
@@ -800,18 +785,18 @@ object JSONFactory200{
     * @return a v2.0.0 representation of a TransactionType
     */
 
-def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTypeJSON = {
-    new TransactionTypeJSON(
+def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTypeJsonV200 = {
+    new TransactionTypeJsonV200(
       id = transactionType.id,
       bank_id = transactionType.bankId.toString,
       short_code = transactionType.shortCode,
       summary = transactionType.summary,
       description = transactionType.description,
-      charge = new AmountOfMoneyJSON(currency = transactionType.charge.currency, amount = transactionType.charge.amount)
+      charge = new AmountOfMoneyJsonV121(currency = transactionType.charge.currency, amount = transactionType.charge.amount)
     )
   }
-  def createTransactionTypeJSON(transactionTypes : List[TransactionType]) : TransactionTypesJSON = {
-    TransactionTypesJSON(transactionTypes.map(createTransactionTypeJSON))
+  def createTransactionTypeJSON(transactionTypes : List[TransactionType]) : TransactionTypesJsonV200 = {
+    TransactionTypesJsonV200(transactionTypes.map(createTransactionTypeJSON))
   }
 
 
@@ -823,11 +808,11 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
     * @return a v2.0.0 representation of a TransactionRequest
     */
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON = {
-    new TransactionRequestWithChargeJSON(
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJson = {
+    new TransactionRequestWithChargeJson(
       id = tr.id.value,
       `type` = tr.`type`,
-      from = TransactionRequestAccountJSON (
+      from = TransactionRequestAccountJsonV140 (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
       details = tr.details,
@@ -837,40 +822,40 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       end_date = tr.end_date,
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenge = {
-        try {ChallengeJSON (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
+        try {ChallengeJsonV140 (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
       },
-      charge = TransactionRequestChargeJSON (summary = tr.charge.summary,
-                                              value = AmountOfMoneyJSON(currency = tr.charge.value.currency,
+      charge = TransactionRequestChargeJsonV200 (summary = tr.charge.summary,
+                                              value = AmountOfMoneyJsonV121(currency = tr.charge.value.currency,
                                                                         amount = tr.charge.value.amount)
       )
     )
   }
-  def createTransactionRequestJSONs(trs : List[TransactionRequest]) : TransactionRequestWithChargeJSONs = {
-    TransactionRequestWithChargeJSONs(trs.map(createTransactionRequestWithChargeJSON))
+  def createTransactionRequestJSONs(trs : List[TransactionRequest]) : TransactionRequestWithChargesJson = {
+    TransactionRequestWithChargesJson(trs.map(createTransactionRequestWithChargeJSON))
   }
 
-  def createMeetingJSON(meeting : Meeting) : MeetingJSON = {
-    MeetingJSON(meeting_id = meeting.meetingId,
+  def createMeetingJSON(meeting : Meeting) : MeetingJson = {
+    MeetingJson(meeting_id = meeting.meetingId,
                 provider_id = meeting.providerId,
                 purpose_id = meeting.purposeId,
                 bank_id = meeting.bankId,
-                present = MeetingPresentJSON(staff_user_id = meeting.present.staffUserId,
+                present = MeetingPresentJson(staff_user_id = meeting.present.staffUserId,
                                               customer_user_id = meeting.present.customerUserId),
-                keys = MeetingKeysJSON(session_id = meeting.keys.sessionId,
+                keys = MeetingKeysJson(session_id = meeting.keys.sessionId,
                                         staff_token = meeting.keys.staffToken,
                                         customer_token = meeting.keys.customerToken),
                 when = meeting.when)
 
   }
 
-  def createMeetingJSONs(meetings : List[Meeting]) : MeetingJSONs = {
-    MeetingJSONs(meetings.map(createMeetingJSON))
+  def createMeetingJSONs(meetings : List[Meeting]) : MeetingsJson = {
+    MeetingsJson(meetings.map(createMeetingJSON))
   }
 
   def createUserCustomerLinkJSON(ucl: code.usercustomerlinks.UserCustomerLink) = {
-    UserCustomerLinkJSON(user_customer_link_id = ucl.userCustomerLinkId,
+    UserCustomerLinkJson(user_customer_link_id = ucl.userCustomerLinkId,
       customer_id = ucl.customerId,
       user_id = ucl.userId,
       date_inserted = ucl.dateInserted,
@@ -878,8 +863,8 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
     )
   }
 
-  def createUserCustomerLinkJSONs(ucls: List[code.usercustomerlinks.UserCustomerLink]): UserCustomerLinkJSONs = {
-    UserCustomerLinkJSONs(ucls.map(createUserCustomerLinkJSON))
+  def createUserCustomerLinkJSONs(ucls: List[code.usercustomerlinks.UserCustomerLink]): UserCustomerLinksJson = {
+    UserCustomerLinksJson(ucls.map(createUserCustomerLinkJSON))
   }
 
   def createEntitlementJSON(e: Entitlement): EntitlementJSON = {
@@ -888,7 +873,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       bank_id = e.bankId)
   }
 
-  def createEntitlementJSONs(l: List[Entitlement]) = {
+  def createEntitlementJSONs(l: List[Entitlement]): EntitlementJSONs = {
     EntitlementJSONs(l.map(createEntitlementJSON))
   }
 

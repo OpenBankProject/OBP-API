@@ -3,32 +3,28 @@ package code.api.v2_2_0
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.isValidCurrencyISOCode
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
-import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJSON}
-import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_1_0.{BranchJsonPost, JSONFactory210}
+import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages.{BankAccountNotFound, _}
+import code.api.v2_1_0.BranchJsonPost
 import code.bankconnectors._
-import code.metrics.{APIMetric, APIMetrics, ConnMetric, ConnMetrics}
+import code.metrics.{ConnMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.remotedata.RemotedataConfig
-import net.liftweb.http.{Req, S}
+import code.util.Helper._
+import net.liftweb.common.{Box, Full}
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-// Makes JValue assignment to Nil work
-import code.api.util.APIUtil._
-import code.util.Helper._
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonDSL._
 
 
 trait APIMethods220 {
@@ -36,7 +32,7 @@ trait APIMethods220 {
   self: RestHelper =>
 
   // helper methods begin here
-  private def getConfigInfoJSON() = {
+  private def getConfigInfoJSON(): JValue = {
     val apiConfiguration: JValue = {
 
       val f1 = CachedFunctionJSON("getBank", Props.get("connector.cache.ttl.seconds.getBank", "0").toInt)
@@ -71,7 +67,7 @@ trait APIMethods220 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson: JValue = Nil
+    val emptyObjectJson  = null
     val apiVersion: String = "2_2_0"
 
     val exampleDateString: String = "22/08/2013"
@@ -113,8 +109,12 @@ trait APIMethods220 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      viewsJSONV220,
+      List(
+        UserNotLoggedIn, 
+        BankAccountNotFound, 
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -123,8 +123,8 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~ UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
@@ -157,9 +157,14 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      Extraction.decompose(CreateViewJSON("_name-of-view-to-create", "Description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags", "can_add_counterparty"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      createViewJSON,
+      viewJSONV220,
+      List(
+        UserNotLoggedIn, 
+        InvalidJsonFormat, 
+        BankAccountNotFound, 
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -168,9 +173,9 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
-            account <- BankAccount(bankId, accountId)
+            json <- tryo{json.extract[CreateViewJSON]} ?~!InvalidJsonFormat
+            u <- user ?~!UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
@@ -193,20 +198,26 @@ trait APIMethods220 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      updateViewJSON,
+      viewJSONV220,
+      List(
+        InvalidJsonFormat, 
+        UserNotLoggedIn, 
+        BankAccountNotFound,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagAccount, apiTagView)
+    )
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
-            u <- user ?~ "user not found"
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
+            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
+            u <- user ?~!UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
@@ -224,8 +235,8 @@ trait APIMethods220 {
       "Get Current FxRate",
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      fXRateJSON,
+      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -233,9 +244,9 @@ trait APIMethods220 {
       case "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
             isValidCurrencyISOCodeFrom <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             isValidCurrencyISOCodeTo <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
+            u <- user ?~! UserNotLoggedIn
             fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(fromCurrencyCode, toCurrencyCode).get) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
@@ -243,8 +254,6 @@ trait APIMethods220 {
           }
       }
     }    
-
-    //
 
     resourceDocs += ResourceDoc(
       getCounterpartiesForAccount,
@@ -258,8 +267,15 @@ trait APIMethods220 {
           |${authenticationRequiredMessage(true)}
           |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      counterpartiesJsonV220,
+      List(
+        UserNotLoggedIn, 
+        BankAccountNotFound, 
+        ViewNotFound, 
+        ViewNoPermission,
+        UserNoPermissionAccessView, 
+        UnKnownError
+      ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -268,23 +284,18 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
-            view <- View.fromUrl(viewId, account)?~! {ErrorMessages.ViewNotFound}
-            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
-            availableViews <- Full(account.permittedViews(user))
-            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId) ?~ {"Connector.connector.vend.getCounterparties faild, can not get data from Database or Kafka .." }
+            u <- user ?~! UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- View.fromUrl(viewId, account)?~! ViewNotFound
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId) 
           } yield {
             val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
             successJsonResponse(Extraction.decompose(counterpartiesJson))
           }
       }
     }
-
-
-
-
-
 
     resourceDocs += ResourceDoc(
       getMessageDocs,
@@ -298,8 +309,8 @@ trait APIMethods220 {
         | Note: To enable Kafka connector and this message format, you must set conenctor=kafka_vMar2017 in your Props
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      messageDocsJson,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -329,23 +340,14 @@ trait APIMethods220 {
       s"""Create a new bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      Extraction.decompose(
-        BankJSON(
-          id = "gh.29.uk.x",
-          full_name = "uk",
-          short_name = "uk",
-          logo_url = "https://static.openbankproject.com/images/sandbox/bank_x.png",
-          website_url = "https://www.example.com",
-          swift_bic = "IIIGGB22",
-          national_identifier = "UK97ZZZ1234567890",
-          bank_routing = BankRoutingJSON(
-            scheme = "IIIGGB22",
-            address = "UK97ZZZ1234567890"
-          )
-        )
+      bankJSONV220,
+      bankJSONV220,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        InsufficientAuthorisationToCreateBank,
+        UnKnownError
       ),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -354,9 +356,9 @@ trait APIMethods220 {
       case "banks" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
             canCreateBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
-            bank <- tryo{ json.extract[BankJSON] } ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
               bank.full_name,
@@ -385,24 +387,14 @@ trait APIMethods220 {
       s"""Create branch for the bank (Authenticated access).
          |${authenticationRequiredMessage(true) }
          |""",
-      Extraction.decompose(
-        BranchJSON(
-          id = "123",
-          bank_id = "gh.29.uk",
-          name = "OBP",
-          address = AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
-          location = LocationJson(1.2, 2.1),
-          meta = MetaJson(LicenseJson("copyright2016", "copyright2016")),
-          lobby = LobbyJson("Ma-Pe 10:00-16:30"),
-          drive_up = DriveUpJson("Ma-Pe 09:00-14:00"),
-          branch_routing = BranchRoutingJSON(
-            scheme = "IIIGGB22",
-            address = "UK97ZZZ1234567890"
-          )
-        )
+      branchJSONV220,
+      branchJSONV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InsufficientAuthorisationToCreateBranch,
+        UnKnownError
       ),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
@@ -411,10 +403,10 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            branch <- tryo {json.extract[BranchJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
                 branch.id,
@@ -452,24 +444,24 @@ trait APIMethods220 {
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
         |Note: The Amount must be zero.""".stripMargin,
-      Extraction.decompose(
-        CreateAccountJSON( 
-          user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
-          label = "Label",
-          `type` = "CURRENT",
-          balance = AmountOfMoneyJSON(
-            "EUR",
-            "0"
-          ),
-          branch_id = "1234",
-          account_routing = AccountRoutingJSON(
-            scheme = "OBP",
-            address = "UK123456"
-          )
-        )
+      createAccountJSONV220,
+      createAccountJSONV220,
+      List(
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNotLoggedIn,
+        InvalidUserId,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserNotFoundById,
+        UserDoesNotHaveRole,
+        InvalidAccountBalanceAmount,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidAccountBalanceCurrency,
+        AccountIdHasExsited,
+        UnKnownError
       ),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
@@ -479,26 +471,24 @@ trait APIMethods220 {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         user => {
-        
           for {
-            loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
-            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
-            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
-            isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
-            isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            jsonBody <- tryo (json.extract[CreateAccountJSONV220]) ?~! InvalidJsonFormat
+            bank <- Bank(bankId) ?~! BankNotFound
+            loggedInUser <- user ?~! UserNotLoggedIn
+            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! InvalidUserId
+            isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
+            isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! InvalidBankIdFormat
+            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! UserNotFoundById
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , 
-                                      s"User must either create account for self or have role $CanCreateAccount")
-            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
-            accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
-            accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
-            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
-            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
-            currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
-            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
-                                                s"Account with id $accountId already exists at bank $bankId")
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) ,
+              s"${UserDoesNotHaveRole} CanCreateAccount or create account for self")
+            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! InvalidAccountBalanceAmount
+            accountType <- tryo(jsonBody.`type`) ?~! InvalidAccountType
+            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel
+            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
+            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
+            currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
+            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdHasExsited)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
               bankId,
               accountId,
@@ -535,15 +525,19 @@ trait APIMethods220 {
         |* Elastic search ports
         |* Cached function """,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      configurationJSON,
+      List(
+        UserNotLoggedIn,
+        UserDoesNotHaveRole,
+        UnKnownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
     lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "config" :: Nil JsonGet _ => user => for {
         u <- user ?~! ErrorMessages.UserNotLoggedIn
-        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$CanGetConfig entitlement required")
+        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserDoesNotHaveRole $CanGetConfig")
       } yield {
         successJsonResponse(getConfigInfoJSON(), 200)
       }
@@ -588,8 +582,11 @@ trait APIMethods220 {
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      connectorMetricsJson,
+      List(
+        InvalidDateFormat,
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -612,10 +609,10 @@ trait APIMethods220 {
 
             //(defaults to one week before current date
             startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-              s"${ErrorMessages.InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
             // defaults to current date
             endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
-              s"${ErrorMessages.InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
             // default 1000, return 1000 items
             limit <- tryo(
               S.param("limit") match {
@@ -623,10 +620,10 @@ trait APIMethods220 {
                 case Full(l)                      => l.toInt
                 case _                            => 1000
               }
-            ) ?~!  s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
+              s"${InvalidNumber } offset:${S.param("offset").get }"
 
             metrics <- Full(ConnMetrics.metrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
 
@@ -675,8 +672,6 @@ trait APIMethods220 {
         }
       }
     }
-
-  
   }
 }
 

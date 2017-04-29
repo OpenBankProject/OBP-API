@@ -7,7 +7,7 @@ import code.customer.Customer
 import code.model.BankId
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
@@ -79,7 +79,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responsePost2.code should equal(201)
       And("We should get the right information back")
-      val infoPost = responsePost2.body.extract[CustomerJson]
+      val infoPost = responsePost2.body.extract[CustomerJsonV140]
 
       When("We make the request")
       val requestGet = (v2_0Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
@@ -89,7 +89,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
 
       And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJson]
+      val infoGet = responseGet.body.extract[CustomerJsonV140]
 
       And("POST feedback and GET feedback must be the same")
       infoGet should equal(infoPost)

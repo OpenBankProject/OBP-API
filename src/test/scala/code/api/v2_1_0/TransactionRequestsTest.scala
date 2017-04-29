@@ -5,9 +5,9 @@ import java.util.UUID
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
-import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.TransactionRequestBodyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
+import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.api.{APIResponse, ChargePolicy, DefaultUsers, ServerSetupWithTestData}
 import code.bankconnectors.Connector
 import code.fx.fx
@@ -76,11 +76,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       var expectedToNewBalance = beforeToBalance + expectedAmtTo
 
       var transactionRequestId = TransactionRequestId("__trans1")
-      var toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+      var toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
-      var bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+      var bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
       val discription = "Just test it!"
-      var transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, discription)
+      var transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, discription)
 
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
@@ -424,7 +424,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "10"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -462,7 +462,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -510,7 +510,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -582,7 +582,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "10"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -620,7 +620,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -668,7 +668,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -740,7 +740,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "10"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -778,7 +778,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -826,7 +826,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -898,7 +898,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "10"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -936,7 +936,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
@@ -984,7 +984,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")

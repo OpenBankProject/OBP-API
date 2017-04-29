@@ -2,35 +2,24 @@ package code.api.v1_2_1
 
 import java.net.URL
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
 import code.metadata.counterparties.Counterparties
 import code.model.{CreateViewJSON, UpdateViewJSON, _}
-import code.sanitycheck.SanityCheck
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
-import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-// Makes JValue assignment to Nil work
-import net.liftweb.json.JsonDSL._
 
-
-
-
-
-
-case class MakePaymentJson(
-  bank_id : String,
-  account_id : String,
-  amount : String)
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -41,7 +30,7 @@ trait APIMethods121 {
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val views = account permittedViews user
-      val viewsAvailable : List[ViewJSON] =
+      val viewsAvailable : List[ViewJSONV121] =
         views.map( v => {
           JSONFactory.createViewJSON(v)
         })
@@ -61,7 +50,7 @@ trait APIMethods121 {
 
   private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] ={
     for {
-      account <- BankAccount(bankId, accountId)
+      account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
       view <- View.fromUrl(viewId, account)
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
@@ -89,7 +78,7 @@ trait APIMethods121 {
   val Implementations1_2_1 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson : JValue = Nil
+    val emptyObjectJson = null
     val apiVersion : String = "1_2_1"
     val apiVersionStatus : String = "STABLE"
 
@@ -106,8 +95,8 @@ trait APIMethods121 {
         |* Hosted by information
         |* Git Commit""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      apiInfoJSON,
+      List(UnKnownError, "no connector set"),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
@@ -132,8 +121,8 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BanksJSON(List(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk"))))),
-      emptyObjectJson :: Nil,
+      banksJSON,
+      List(UnKnownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -168,8 +157,8 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      decompose(BankJSON("gh.29.uk", "EFG", "Eurobank", "None", "www.eurobank.rs",BankRoutingJSON("obp","gh.29.uk"))),
-      emptyObjectJson :: Nil,
+      bankJSON,
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -182,7 +171,7 @@ trait APIMethods121 {
             val bankJSON = JSONFactory.createBankJSON(bank)
             Extraction.decompose(bankJSON)
           }
-          for(bank <- Bank(bankId))
+          for(bank <- Bank(bankId)?~! BankNotFound)
           yield successJsonResponse(bankToJson(bank))
       }
     }
@@ -207,8 +196,8 @@ trait APIMethods121 {
          |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
          |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -232,8 +221,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -242,7 +231,7 @@ trait APIMethods121 {
       case "accounts" :: "private" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~  UserNotLoggedIn
           } yield {
             val availableAccounts = BankAccount.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -260,8 +249,8 @@ trait APIMethods121 {
       """Returns the list of private (non-public) accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -291,8 +280,8 @@ trait APIMethods121 {
         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
       """,
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
@@ -301,7 +290,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
           for{
-            bank <- Bank(bankId)
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val availableAccounts = bank.accounts(user)
             successJsonResponse(bankAccountsListToJson(availableAccounts, user))
@@ -321,8 +310,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -331,8 +320,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            bank <- Bank(bankId)
+            u <- user ?~  UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val availableAccounts = bank.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -351,8 +340,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      accountJSON,
+      List(UserNotLoggedIn, UnKnownError, BankNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
@@ -361,7 +350,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId)
+            bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val publicAccountsJson = bankAccountsListToJson(bank.publicAccounts, Empty)
             successJsonResponse(publicAccountsJson)
@@ -391,8 +380,8 @@ trait APIMethods121 {
          |
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moderatedAccountJSON,
+      List(UserNotLoggedIn, UnKnownError, BankAccountNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -401,7 +390,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account)
             moderatedAccount <- account.moderatedBankAccount(view, user)
@@ -421,11 +410,12 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Update Account Label.",
       "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
-      Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      updateAccountJSON,
+      successMessage,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnKnownError, BankAccountNotFound, "user does not have access to owner view on account"),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagMetaData))
+      List(apiTagAccount, apiTagMetaData)
+    )
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
@@ -433,12 +423,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            json <- tryo { json.extract[UpdateAccountJSON] } ?~ "wrong JSON format"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            json <- tryo { json.extract[UpdateAccountJSON] } ?~ InvalidJsonFormat
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
           } yield {
             account.updateLabel(u, json.label)
-            successJsonResponse(Extraction.decompose(SuccessMessage("ok")), 200)
+            successJsonResponse(Extraction.decompose(successMessage), 200)
           }
       }
     }
@@ -475,8 +465,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      viewsJSONV121,
+      List(UserNotLoggedIn, BankAccountNotFound, UnKnownError, "user does not have owner access"),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
@@ -485,8 +475,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
@@ -515,20 +505,27 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      createViewJSON,
+      viewJSONV121,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagAccount, apiTagView)
+    )
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            json <- tryo{json.extract[CreateViewJSON]} ?~ InvalidJsonFormat
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
@@ -550,20 +547,28 @@ trait APIMethods121 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      updateViewJSON,
+      viewJSONV121,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
-
-    lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView)
+    )
+  
+    lazy val updateViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
+      ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
-            u <- user ?~ "user not found"
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
+            updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            u <- user ?~  UserNotLoggedIn
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
@@ -571,7 +576,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       deleteViewForBankAccount,
       apiVersion,
@@ -582,22 +587,29 @@ trait APIMethods121 {
       "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have owner access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
-
-    lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView)
+    )
+  
+    lazy val deleteViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //deletes a view on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
+      ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
-            view <- account removeView (u, viewId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- account removeView(u, viewId)
           } yield noContentJsonResponse
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       getPermissionsForBankAccount,
       apiVersion,
@@ -609,19 +621,19 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      permissionsJSON,
+      List(UserNotLoggedIn, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
-
-    lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+  
+    lazy val getPermissionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permissions <- account permissions u
           } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
@@ -629,7 +641,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       getPermissionForUserForBankAccount,
       apiVersion,
@@ -638,22 +650,29 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
       """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
-         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-         |
-         |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      viewsJSONV121,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have access to owner view on account"
+    ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView, apiTagEntitlement))
-
-    lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      List(apiTagAccount, apiTagView, apiTagEntitlement)
+    )
+  
+  
+    lazy val getPermissionForUserForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permission <- account permission(u, providerId, userId)
           } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
@@ -661,7 +680,7 @@ trait APIMethods121 {
           }
       }
     }
-
+  
     resourceDocs += ResourceDoc(
       addPermissionForUserForBankAccountForMultipleViews,
       apiVersion,
@@ -670,13 +689,20 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Grant User access to a list of views.",
       """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
-         |
-         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-         |
-         |OAuth authentication is required and the user needs to have access to the owner view.""",
-      Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+        |
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      viewIdsJson,
+      viewsJSONV121,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "wrong format JSON",
+        "could not save the privilege",
+        "user does not have access to owner view on account"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -685,8 +711,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
             addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), providerId, userId)
           } yield {
@@ -709,8 +735,14 @@ trait APIMethods121 {
           |
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      viewJSONV121,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "could not save the privilege",
+        "user does not have access to owner view on account"
+        ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -719,8 +751,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
             addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
           } yield {
@@ -744,7 +776,13 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "could not save the privilege",
+        "user does not have access to owner view on account",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -753,8 +791,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
@@ -773,7 +811,12 @@ trait APIMethods121 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError,
+        "user does not have access to owner view on account"
+        ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
@@ -782,8 +825,8 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
         user =>
           for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
+            u <- user ?~  UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokeAllPermissions(u, providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
@@ -801,8 +844,11 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      otherAccountsJSON,
+      List(
+        BankAccountNotFound,
+        UnKnownError
+      ),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
@@ -811,7 +857,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
           } yield {
@@ -832,8 +878,8 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      otherAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
@@ -842,7 +888,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           } yield {
@@ -864,8 +910,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      otherAccountMetadataJSON,
+      List(UserNotLoggedIn, UnKnownError, "the view does not allow metadata access"),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -874,7 +920,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -896,8 +942,13 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      List(
+        BankAccountNotFound,
+        UnKnownError,
+        "the view does not allow metadata access",
+        "the view does not allow public alias access"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -906,7 +957,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -934,9 +985,17 @@ trait APIMethods121 {
          |the public alias was deleted.
          |
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
-      Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      successMessage,
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        UnKnownError,
+        "the view does not allow metadata access",
+        "the view does not allow adding a public alias",
+        "Alias cannot be added",
+        "public alias added"
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -945,12 +1004,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
             if(added)
           } yield {
@@ -970,9 +1029,17 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      successMessage,
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        "the view does not allow metadata access",
+        "the view does not allow updating the public alias",
+        "Alias cannot be updated",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -981,12 +1048,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
             if(added)
           } yield {
@@ -1008,7 +1075,13 @@ trait APIMethods121 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting the public alias",
+        "Alias cannot be deleted",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1017,7 +1090,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1040,8 +1113,14 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow private alias access",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1050,7 +1129,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1073,9 +1152,16 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a private alias",
+        "Alias cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1084,12 +1170,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
             if(added)
           } yield {
@@ -1110,9 +1196,16 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      aliasJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating the private alias",
+        "Alias cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1121,12 +1214,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {"wrong JSON format"}
+            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
             if(updated)
           } yield {
@@ -1149,7 +1242,13 @@ trait APIMethods121 {
         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting the private alias",
+        "Alias cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1158,7 +1257,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1179,9 +1278,17 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add Counterparty More Info",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
-      Extraction.decompose(MoreInfoJSON("More info")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moreInfoJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view " + viewId + "does not allow metadata access",
+        "the view " + viewId + "does not allow adding more info",
+        "More Info cannot be added",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1190,12 +1297,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
-            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
+            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
             if(added)
           } yield {
@@ -1213,9 +1320,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update Counterparty More Info",
       "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
-      Extraction.decompose(MoreInfoJSON("More info")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      moreInfoJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating more info",
+        "More Info cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1224,12 +1338,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
-            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {"wrong JSON format"}
+            moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
             if(updated)
           } yield {
@@ -1249,7 +1363,13 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting more info",
+        "More Info cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1258,7 +1378,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1279,9 +1399,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Add url to other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      Extraction.decompose(UrlJSON("www.example.com")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      urlJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1291,12 +1418,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
-            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
+            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1314,9 +1441,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Update url of other bank account.",
       "A url which represents the counterparty (home page url etc.)",
-      Extraction.decompose(UrlJSON("www.example.com")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      urlJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view " + viewId + "does not allow metadata access",
+        "the view " + viewId + "does not allow updating a url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1325,12 +1459,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
-            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {"wrong JSON format"}
+            urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
             if(added)
           } yield {
@@ -1350,7 +1484,13 @@ trait APIMethods121 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting a url",
+        "URL cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1359,7 +1499,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1380,9 +1520,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Add image url to other bank account.",
       "Add a url that points to the logo of the counterparty",
-      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      imageUrlJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding an image url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1391,12 +1538,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
+            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1414,9 +1561,15 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update Counterparty Image Url",
       "Update the url that points to the logo of the counterparty",
-      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      imageUrlJSON,
+      successMessage,
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating an image url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1425,12 +1578,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {"wrong JSON format"}
+            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
             if(updated)
           } yield {
@@ -1450,7 +1603,7 @@ trait APIMethods121 {
       "Delete image url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
@@ -1459,7 +1612,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1480,9 +1633,15 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty",
       "Add open corporates url to other bank account.",
-      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      openCorporateUrlJSON,
+      successMessage,
+      List(
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding an open corporate url",
+        "URL cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1491,12 +1650,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
-            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
             if(added)
           } yield {
@@ -1514,9 +1673,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update Open Corporates Url of Counterparty",
       "Update open corporate url of other bank account.",
-      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      openCorporateUrlJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating an open corporate url",
+        "URL cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1525,12 +1691,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
-            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {"wrong JSON format"}
+            openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
             if(updated)
           } yield {
@@ -1550,7 +1716,13 @@ trait APIMethods121 {
       "Delete open corporate url of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting an open corporate url",
+        "URL cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1559,7 +1731,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1580,9 +1752,16 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Add Corporate Location to Counterparty",
       "Add the geolocation of the counterparty's registered address",
-      Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      corporateLocationJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow adding a corporate location",
+        "Coordinates not possible",
+        "Corporate Location cannot be deleted",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1592,12 +1771,12 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
-            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
+            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
             added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
             if(added)
@@ -1616,9 +1795,17 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Update Counterparty Corporate Location",
       "Update the geolocation of the counterparty's registered address",
-      Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      corporateLocationJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating a corporate location",
+        "Coordinates not possible",
+        "Corporate Location cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1628,12 +1815,12 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
-            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
+            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
             updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
             if(updated)
@@ -1654,7 +1841,13 @@ trait APIMethods121 {
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "Corporate Location cannot be deleted",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1664,7 +1857,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1688,9 +1881,17 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Add physical location to other bank account.",
       "Add geocoordinates of the counterparty's main location",
-      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      physicalLocationJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow adding a physical location",
+        "Coordinates not possible",
+        "Physical Location cannot be added",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1700,12 +1901,12 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
-            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
+            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
@@ -1725,9 +1926,17 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Update Counterparty Physical Location",
       "Update geocoordinates of the counterparty's main location",
-      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      physicalLocationJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "the view does not allow metadata access",
+        "the view does not allow updating a physical location",
+        "Coordinates not possible",
+        "Physical Location cannot be updated",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1737,12 +1946,12 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
-            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
+            physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
@@ -1764,7 +1973,13 @@ trait APIMethods121 {
       "Delete physical location of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "the view " + viewId + "does not allow metadata access",
+        "Physical Location cannot be deleted",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
@@ -1774,7 +1989,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
@@ -1810,8 +2025,8 @@ trait APIMethods121 {
          |
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionsJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1822,7 +2037,7 @@ trait APIMethods121 {
 
           for {
             params <- APIMethods121.getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- View.fromUrl(viewId, bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
           } yield {
@@ -1847,8 +2062,8 @@ trait APIMethods121 {
          |
          |""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
@@ -1857,7 +2072,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
           } yield {
@@ -1878,8 +2093,12 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionNarrativeJSON,
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize narrative access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1912,9 +2131,15 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.
          |""",
-      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionNarrativeJSON,
+      successMessage,
+      List(
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize narrative access",
+        "view does not allow adding a narrative",
+         UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1924,7 +2149,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
+            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
           } yield {
@@ -1945,9 +2170,13 @@ trait APIMethods121 {
       """Updates the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
-      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionNarrativeJSON,
+      successMessage,
+      List(InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not allow updating a narrative",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -1957,7 +2186,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
+            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
           } yield {
@@ -1980,7 +2209,12 @@ trait APIMethods121 {
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not allow deleting the narrative",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2009,8 +2243,13 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionCommentsJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize comments access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2040,9 +2279,15 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required since the comment is linked with the user.""",
-      Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postTransactionCommentJSON,
+      transactionCommentJSON,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "view " + viewId + " does not authorize adding comments",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2052,7 +2297,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user
-            commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
+            commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
             postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
@@ -2076,7 +2321,15 @@ trait APIMethods121 {
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see comments in order to delete them",
+        "Comment not found for this transaction",
+        "Deleting comments not permitted for this view",
+        "Deleting comments not permitted for the current user",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2085,7 +2338,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             delete <- metadata.deleteComment(commentId, user, account)
           } yield {
@@ -2102,11 +2355,15 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get tags.",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionTagJSON,
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize tag access",
+        UnKnownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2136,9 +2393,14 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      Extraction.decompose(PostTransactionTagJSON("holiday")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postTransactionTagJSON,
+      transactionTagJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view " + viewId + " does not authorize metadata access",
+        "view " + viewId + " does not authorize adding tags",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2173,7 +2435,7 @@ Authentication via OAuth is required if the view is not public.""",
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2184,7 +2446,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             deleted <- metadata.deleteTag(tagId, user, bankAccount)
           } yield {
             noContentJsonResponse
@@ -2200,11 +2462,15 @@ Authentication via OAuth is required. The user must either have owner privileges
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get images.",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionImagesJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize images access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2231,14 +2497,21 @@ Authentication via OAuth is required if the view is not public.""",
       "Add an image.",
       s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(true) }
          |
          |The image is linked with the user.""",
-      Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postTransactionImageJSON,
+      transactionImageJSON,
+      List(
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize adding images",
+        "Could not parse url string as a valid URL",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagMetaData, apiTagTransaction)
+    )
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
@@ -2246,7 +2519,7 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           for {
             u <- user
-            imageJson <- tryo{json.extract[PostTransactionImageJSON]}
+            imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
             url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
@@ -2269,7 +2542,15 @@ Authentication via OAuth is required if the view is not public.""",
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see images in order to delete them",
+        "Image not found for this transaction",
+        "Deleting images not permitted for this view",
+        "Deleting images not permitted for the current user",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2279,7 +2560,7 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             deleted <- Box(metadata.deleteImage(imageId, user, bankAccount))
           } yield {
             noContentJsonResponse
@@ -2299,8 +2580,11 @@ Authentication via OAuth is required if the view is not public.""",
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      transactionWhereJSON,
+      List(BankAccountNotFound,
+        "view does not authorize metadata access",
+        "view does not authorize where tag access",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2331,9 +2615,16 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postTransactionWhereJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "view does not authorize metadata access",
+        "the view does not allow adding a where tag",
+        "Coordinates not possible",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2346,7 +2637,7 @@ Authentication via OAuth is required if the view is not public.""",
             view <- View.fromUrl(viewId, accountId, bankId)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
+            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
@@ -2368,9 +2659,16 @@ Authentication via OAuth is required if the view is not public.""",
          |${authenticationRequiredMessage(true)}
          |
          |The geo tag is linked with the user.""",
-      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      postTransactionWhereJSON,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        "view does not authorize metadata access",
+        "the view does not allow updating a where tag",
+        "Coordinates not possible",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2383,7 +2681,7 @@ Authentication via OAuth is required if the view is not public.""",
             view <- View.fromUrl(viewId, accountId, bankId)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
+            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
@@ -2407,7 +2705,17 @@ Authentication via OAuth is required if the view is not public.""",
         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        "view does not authorize metadata access",
+        "User must be logged in",
+        "You must be able to see the where tag in order to delete it",
+        "there is no tag to delete",
+        "Deleting tag is not permitted for this view",
+        "Deleting tags not permitted for the current user",
+        "Delete not completed",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
@@ -2416,7 +2724,7 @@ Authentication via OAuth is required if the view is not public.""",
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
         user =>
           for {
-            bankAccount <- BankAccount(bankId, accountId)
+            bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- View.fromUrl(viewId, bankAccount)
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
             deleted <- metadata.deleteWhereTag(viewId, user, bankAccount)
@@ -2438,11 +2746,10 @@ Authentication via OAuth is required if the view is not public.""",
       "Get Other Account of Transaction",
       """Get other account of a transaction.
          |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      otherAccountJSON,
+      List(BankAccountNotFound, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
@@ -2451,7 +2758,7 @@ Authentication via OAuth is required if the view is not public.""",
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId)
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
             transaction <- account.moderatedTransaction(transactionId, view, user)
             moderatedOtherBankAccount <- transaction.otherBankAccount
@@ -2463,7 +2770,7 @@ Authentication via OAuth is required if the view is not public.""",
       }
     }
 
-    case class TransactionIdJson(transaction_id : String)
+    
 
     resourceDocs += ResourceDoc(
       makePayment,
@@ -2478,9 +2785,18 @@ Authentication via OAuth is required if the view is not public.""",
          |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
          |
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
-      Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
+      makePaymentJson,
+      transactionIdJson,
+      List(
+        UserNotLoggedIn,
+        "amount not convertible to number",
+        "Sorry, payments are not enabled in this API instance.",
+        "account not found at bank",
+        "user does not have access to owner view",
+        "Cannot send payment to account with different currency",
+        "Can't send a payment with a value of 0 or less.",
+        "Sorry, payments are not enabled in this API instance.",
+        UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
@@ -2489,8 +2805,8 @@ Authentication via OAuth is required if the view is not public.""",
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {"wrong json format"}
+              u <- user ?~ UserNotLoggedIn
+              makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               toAccountUID = BankAccountUID(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
               createdPaymentId <- Connector.connector.vend.makePayment(u, BankAccountUID(bankId, accountId), toAccountUID, rawAmt, "")

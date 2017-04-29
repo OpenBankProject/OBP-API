@@ -170,7 +170,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
@@ -178,7 +178,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   def randomViewPermalinkButNotOwner(bankId: String, account: AccountJSON) : String = {
     val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true).filterNot(_.id == "owner")
+    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filterNot(_.id == "owner")
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }
@@ -237,7 +237,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
     //get the view ids of the available views on the bank accounts
-    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSON].views.filterNot(_.is_public).map(_.id)
+    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV121].views.filterNot(_.is_public).map(_.id)
     //choose randomly some view ids to grant
     val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
     viewsIdsToGrant
@@ -504,7 +504,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeDeleteRequest(request)
   }
 
-  def getCorporateLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : LocationJSON = {
+  def getCorporateLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : LocationJSONV121 = {
     getMetadataOfOneCounterparty(bankId,accountId, viewId,otherBankAccountId, consumerAndToken).body.extract[OtherAccountMetadataJSON].corporate_location
   }
 
@@ -525,7 +525,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeDeleteRequest(request)
   }
 
-  def getPhysicalLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : LocationJSON = {
+  def getPhysicalLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : LocationJSONV121 = {
     getMetadataOfOneCounterparty(bankId,accountId, viewId,otherBankAccountId, consumerAndToken).body.extract[OtherAccountMetadataJSON].physical_location
   }
 
@@ -1041,12 +1041,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     }
   }
 
-  def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+  def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSONV121 => Boolean): Unit = {
     val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
     exists should equal(true)
   }
 
-  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSONV121 => Boolean): Unit = {
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
   }
@@ -1059,7 +1059,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     accJson.accounts.foreach(acc => acc.bank_id should equal(theBankId))
   }
 
-  def assertAtLeastOneAccountHasAllViewsWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+  def assertAtLeastOneAccountHasAllViewsWithCondition(accJson: AccountsJSON, cond: ViewJSONV121 => Boolean): Unit = {
     val exists = accJson.accounts.exists(acc => {
       acc.views_available.forall(cond)
     })
@@ -1364,7 +1364,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val reply = getAccountViews(bankId, bankAccount.id, user1)
       Then("we should get a 200 ok code")
       reply.code should equal (200)
-      reply.body.extract[ViewsJSON]
+      reply.body.extract[ViewsJSONV121]
     }
 
     scenario("We will not get the list of the available views on a bank account due to missing token", API1_2, GetViews) {
@@ -1396,15 +1396,15 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user1)
       Then("we should get a 201 code")
       reply.code should equal (201)
-      reply.body.extract[ViewJSON]
+      reply.body.extract[ViewJSONV121]
       And("we should get a new view")
-      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       viewsBefore.size should equal (viewsAfter.size -1)
     }
 
@@ -1464,7 +1464,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       val viewWithEmptyName = CreateViewJSON(
         name = "",
         description = randomString(3),
@@ -1489,7 +1489,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     val updatedAliasToUse = "public"
     val allowedActions = List("can_see_images", "can_delete_comment")
 
-    def viewUpdateJson(originalView : ViewJSON) = {
+    def viewUpdateJson(originalView : ViewJSONV121) = {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
       new UpdateViewJSON(
         description = updatedViewDescription,
@@ -1517,7 +1517,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
-      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
       createdView.can_see_images should equal(true)
       createdView.can_delete_comment should equal(true)
       createdView.can_delete_physical_location should equal(true)
@@ -1530,7 +1530,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
       Then("We should get back the updated view")
       reply.code should equal (200)
-      val updatedView = reply.body.extract[ViewJSON]
+      val updatedView = reply.body.extract[ViewJSONV121]
       updatedView.can_see_images should equal(true)
       updatedView.can_delete_comment should equal(true)
       updatedView.can_delete_physical_location should equal(false)
@@ -1548,7 +1548,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val nonExistantViewId = "asdfasdfasdfasdfasdf"
       val getReply = getAccountViews(bankId, bankAccount.id, user1)
       getReply.code should equal (200)
-      val views : ViewsJSON = getReply.body.extract[ViewsJSON]
+      val views : ViewsJSONV121 = getReply.body.extract[ViewsJSONV121]
       views.views.foreach(v => v.id should not equal(nonExistantViewId))
 
       When("we try to update that view")
@@ -1564,7 +1564,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
-      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
 
       When("we don't use an access token")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), None)
@@ -1582,7 +1582,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
-      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
 
       When("we try to update a view without having sufficient privileges to do so")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user3)
@@ -1599,14 +1599,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = postView(bankId, bankAccount.id, randomView(true, ""), user1).body.extract[ViewJSON]
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val view = postView(bankId, bankAccount.id, randomView(true, ""), user1).body.extract[ViewJSONV121]
+      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       When("the request is sent")
       val reply = deleteView(bankId, bankAccount.id, view.id, user1)
       Then("we should get a 204 code")
       reply.code should equal (204)
       And("the views should be updated")
-      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       viewsBefore.size should equal (viewsAfter.size +1)
     }
 
@@ -1615,7 +1615,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       def getOwnerView() = {
-        val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+        val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
         views.find(v => v.id == "owner")
       }
 
@@ -1742,7 +1742,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val reply = getUserAccountPermission(bankId, bankAccount.id, userID, user1)
       Then("we should get a 200 ok code")
       reply.code should equal (200)
-      val viewsInfo = reply.body.extract[ViewsJSON]
+      val viewsInfo = reply.body.extract[ViewsJSONV121]
       And("some fields should not be empty")
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
     }
@@ -1780,15 +1780,15 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 201 ok code")
       reply.code should equal (201)
-      val viewInfo = reply.body.extract[ViewJSON]
+      val viewInfo = reply.body.extract[ViewJSONV121]
       And("some fields should not be empty")
       viewInfo.id.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore + 1)
     }
 
@@ -1809,14 +1809,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
 
@@ -1825,14 +1825,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -1844,17 +1844,17 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 201 ok code")
       reply.code should equal (201)
-      val viewsInfo = reply.body.extract[ViewsJSON]
+      val viewsInfo = reply.body.extract[ViewsJSONV121]
       And("some fields should not be empty")
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
       And("the granted views should be the same")
       viewsIdsToGrant.toSet should equal(viewsInfo.views.map(_.id).toSet)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views
       viewsAfter.length should equal(viewsBefore + viewsIdsToGrant.length)
       //we revoke access to the granted views for the next tests
       revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
@@ -1894,14 +1894,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
 
@@ -1911,14 +1911,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -1932,12 +1932,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)
     }
 
@@ -1950,12 +1950,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val userId2 = authuser2.idGivenByProvider
       grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
       grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)
     }
 
@@ -2017,12 +2017,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId =authuser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 404 code")
       reply.code should equal (404)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
 
@@ -2031,12 +2031,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = authuser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -2053,7 +2053,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(0)
     }
 
@@ -2075,12 +2075,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
 

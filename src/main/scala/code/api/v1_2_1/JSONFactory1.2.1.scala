@@ -76,10 +76,11 @@ case class BankRoutingJSON(
   address: String
 )
 
-case class ViewsJSON(
-  views : List[ViewJSON]
+case class ViewsJSONV121(
+  views : List[ViewJSONV121]
 )
-case class ViewJSON(
+
+case class ViewJSONV121(
   val id: String,
   val short_name: String,
   val description: String,
@@ -152,9 +153,10 @@ case class AccountsJSON(
 case class AccountJSON(
   id : String,
   label : String,
-  views_available : List[ViewJSON],
+  views_available : List[ViewJSONV121],
   bank_id : String
 )
+case class TransactionIdJson(transaction_id : String)
 
 case class UpdateAccountJSON(
   id : String,
@@ -171,16 +173,16 @@ case class ModeratedAccountJSON(
   id : String,
   label : String,
   number : String,
-  owners : List[UserJSON],
+  owners : List[UserJSONV121],
   `type` : String,
-  balance : AmountOfMoneyJSON,
+  balance : AmountOfMoneyJsonV121,
   IBAN : String,
   swift_bic: String,
-  views_available : List[ViewJSON],
+  views_available : List[ViewJSONV121],
   bank_id : String,
   account_routing :AccountRoutingJSON
 )
-case class UserJSON(
+case class UserJSONV121(
   id : String,
   provider : String,
   display_name : String
@@ -189,10 +191,10 @@ case class PermissionsJSON(
   permissions : List[PermissionJSON]
 )
 case class PermissionJSON(
-  user : UserJSON,
-  views : List[ViewJSON]
+  user : UserJSONV121,
+  views : List[ViewJSONV121]
 )
-case class AmountOfMoneyJSON(
+case class AmountOfMoneyJsonV121(
   currency : String,
   amount : String
 )
@@ -229,29 +231,29 @@ case class OtherAccountMetadataJSON(
   URL : String,
   image_URL : String,
   open_corporates_URL : String,
-  corporate_location : LocationJSON,
-  physical_location : LocationJSON
+  corporate_location : LocationJSONV121,
+  physical_location : LocationJSONV121
 )
-case class LocationJSON(
+case class LocationJSONV121(
   latitude : Double,
   longitude : Double,
   date : Date,
-  user : UserJSON
+  user : UserJSONV121
 )
 case class TransactionDetailsJSON(
   `type` : String,
   description : String,
   posted : Date,
   completed : Date,
-  new_balance : AmountOfMoneyJSON,
-  value : AmountOfMoneyJSON
+  new_balance : AmountOfMoneyJsonV121,
+  value : AmountOfMoneyJsonV121
 )
 case class TransactionMetadataJSON(
   narrative : String,
   comments : List[TransactionCommentJSON],
   tags :  List[TransactionTagJSON],
   images :  List[TransactionImageJSON],
-  where : LocationJSON
+  where : LocationJSONV121
 )
 case class TransactionsJSON(
   transactions: List[TransactionJSON]
@@ -271,7 +273,7 @@ case class TransactionImageJSON(
   label : String,
   URL : String,
   date : Date,
-  user : UserJSON
+  user : UserJSONV121
 )
 case class PostTransactionImageJSON(
   label : String,
@@ -287,7 +289,7 @@ case class TransactionTagJSON(
   id : String,
   value : String,
   date : Date,
-  user : UserJSON
+  user : UserJSONV121
 )
 case class TransactionTagsJSON(
   tags: List[TransactionTagJSON]
@@ -296,13 +298,13 @@ case class TransactionCommentJSON(
   id : String,
   value : String,
   date: Date,
-  user : UserJSON
+  user : UserJSONV121
 )
 case class TransactionCommentsJSON(
   comments: List[TransactionCommentJSON]
 )
 case class TransactionWhereJSON(
-  where: LocationJSON
+  where: LocationJSONV121
 )
 case class PostTransactionWhereJSON(
   where: LocationPlainJSON
@@ -340,6 +342,12 @@ case class ViewIdsJson(
   views : List[String]
 )
 
+case class MakePaymentJson(
+  bank_id : String,
+  account_id : String,
+  amount : String
+)
+
 object JSONFactory{
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
@@ -364,12 +372,12 @@ object JSONFactory{
     )
   }
 
-  def createViewsJSON(views : List[View]) : ViewsJSON = {
-    val list : List[ViewJSON] = views.map(createViewJSON)
-    new ViewsJSON(list)
+  def createViewsJSON(views : List[View]) : ViewsJSONV121 = {
+    val list : List[ViewJSONV121] = views.map(createViewJSON)
+    new ViewsJSONV121(list)
   }
 
-  def createViewJSON(view : View) : ViewJSON = {
+  def createViewJSON(view : View) : ViewJSONV121 = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -378,7 +386,7 @@ object JSONFactory{
       else
         ""
 
-    new ViewJSON(
+    new ViewJSONV121(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       description = stringOrNull(view.description),
@@ -447,7 +455,7 @@ object JSONFactory{
     )
   }
 
-  def createAccountJSON(account : BankAccount, viewsAvailable : List[ViewJSON] ) : AccountJSON = {
+  def createAccountJSON(account : BankAccount, viewsAvailable : List[ViewJSONV121] ) : AccountJSON = {
     new AccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
@@ -456,7 +464,7 @@ object JSONFactory{
     )
   }
 
-  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON]) : ModeratedAccountJSON =  {
+  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSONV121]) : ModeratedAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON(
       account.accountId.value,
@@ -527,7 +535,7 @@ object JSONFactory{
     )
   }
 
-  def createLocationJSON(loc : Option[GeoTag]) : LocationJSON = {
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJSONV121 = {
     loc match {
       case Some(location) => {
         val user = createUserJSON(location.postedBy)
@@ -535,7 +543,7 @@ object JSONFactory{
         if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
           null
         else
-          new LocationJSON(
+          new LocationJSONV121(
             latitude = location.latitude,
             longitude = location.longitude,
             date = location.datePosted,
@@ -645,24 +653,24 @@ object JSONFactory{
     OtherAccountsJSON(otherAccountsJSON)
   }
 
-  def createUserJSON(user : User) : UserJSON = {
-    new UserJSON(
+  def createUserJSON(user : User) : UserJSONV121 = {
+    new UserJSONV121(
           user.idGivenByProvider,
           stringOrNull(user.provider),
           stringOrNull(user.emailAddress) //TODO: shouldn't this be the display name?
         )
   }
 
-  def createUserJSON(user : Box[User]) : UserJSON = {
+  def createUserJSON(user : Box[User]) : UserJSONV121 = {
     user match {
       case Full(u) => createUserJSON(u)
       case _ => null
     }
   }
 
-  def createOwnersJSON(owners : Set[User], bankName : String) : List[UserJSON] = {
+  def createOwnersJSON(owners : Set[User], bankName : String) : List[UserJSONV121] = {
     owners.map(o => {
-        new UserJSON(
+        new UserJSONV121(
           o.idGivenByProvider,
           stringOrNull(o.provider),
           stringOrNull(o.name)
@@ -671,22 +679,22 @@ object JSONFactory{
     ).toList
   }
 
-  def createAmountOfMoneyJSON(currency : String, amount  : String) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : String, amount  : String) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOrNull(currency),
       stringOrNull(amount)
     )
   }
 
-  def createAmountOfMoneyJSON(currency : Option[String], amount  : Option[String]) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : Option[String], amount  : Option[String]) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOptionOrNull(currency),
       stringOptionOrNull(amount)
     )
   }
 
-  def createAmountOfMoneyJSON(currency : Option[String], amount  : String) : AmountOfMoneyJSON = {
-    new AmountOfMoneyJSON(
+  def createAmountOfMoneyJSON(currency : Option[String], amount  : String) : AmountOfMoneyJsonV121 = {
+    new AmountOfMoneyJsonV121(
       stringOptionOrNull(currency),
       stringOrNull(amount)
     )

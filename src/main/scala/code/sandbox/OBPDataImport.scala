@@ -680,7 +680,7 @@ case class SandboxDataImport(
   atms: List[SandboxAtmImport],
   products: List[SandboxProductImport],
   crm_events: List[SandboxCrmEventImport]
-  )
+)
 
 
 case class SandboxCrmEventImport (
