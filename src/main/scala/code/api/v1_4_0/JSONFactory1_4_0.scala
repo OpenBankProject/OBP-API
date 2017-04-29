@@ -73,7 +73,7 @@ object JSONFactory1_4_0 {
   
   
   
-  case class BranchRoutingJSON(
+  case class BranchRoutingJsonV141(
     scheme: String,
     address: String
   )
@@ -85,7 +85,7 @@ object JSONFactory1_4_0 {
                         lobby : LobbyJson,
                         drive_up: DriveUpJson,
                         meta : MetaJson,
-                        branch_routing: BranchRoutingJSON)
+                        branch_routing: BranchRoutingJsonV141)
 
   case class BranchesJson (branches : List[BranchJson])
 
@@ -183,7 +183,7 @@ object JSONFactory1_4_0 {
                 createLobbyJson(branch.lobby.hours),
                 createDriveUpJson(branch.driveUp.hours),
                 createMetaJson(branch.meta),
-                BranchRoutingJSON(
+                BranchRoutingJsonV141(
                   scheme = branch.branchRoutingScheme,
                   address = branch.branchRoutingAddress
                 )

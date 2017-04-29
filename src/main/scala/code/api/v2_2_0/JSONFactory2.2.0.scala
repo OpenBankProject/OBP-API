@@ -34,7 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJSON}
+import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson}
 import code.branches.Branches.Branch
@@ -170,7 +170,7 @@ case class BankJSONV220(
   website_url: String,
   swift_bic: String,
   national_identifier: String,
-  bank_routing: BankRoutingJSON
+  bank_routing: BankRoutingJsonV121
 )
 
 //keep similar to "case class BranchJsonPost" in V210
@@ -183,7 +183,7 @@ case class BranchJSONV220(
   meta: MetaJson,
   lobby: LobbyJson,
   drive_up: DriveUpJson,
-  branch_routing: BranchRoutingJSON
+  branch_routing: BranchRoutingJsonV141
 )
 
 // keep similar to case class CreateAccountJSON - v200
@@ -346,7 +346,7 @@ object JSONFactory220{
       website_url = bank.websiteUrl,
       swift_bic = bank.swiftBic,
       national_identifier = bank.nationalIdentifier,
-      bank_routing = BankRoutingJSON(
+      bank_routing = BankRoutingJsonV121(
         scheme = bank.bankRoutingScheme,
         address = bank.bankRoutingAddress
       )
@@ -364,7 +364,7 @@ object JSONFactory220{
       meta= createMetaJson(branch.meta),
       lobby= createLobbyJson(branch.lobby.hours),
       drive_up= createDriveUpJson(branch.driveUp.hours),
-      branch_routing = BranchRoutingJSON(
+      branch_routing = BranchRoutingJsonV141(
         scheme = branch.branchRoutingScheme,
         address = branch.branchRoutingAddress
       )

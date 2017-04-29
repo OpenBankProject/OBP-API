@@ -68,10 +68,10 @@ case class BankJSON(
   full_name : String,
   logo : String,
   website : String,
-  bank_routing: BankRoutingJSON
+  bank_routing: BankRoutingJsonV121
 )
 
-case class BankRoutingJSON(
+case class BankRoutingJsonV121(
   scheme: String,
   address: String
 )
@@ -368,7 +368,7 @@ object JSONFactory{
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoUrl),
       stringOrNull(bank.websiteUrl),
-      BankRoutingJSON(bank.bankRoutingScheme,bank.bankRoutingAddress)
+      BankRoutingJsonV121(bank.bankRoutingScheme,bank.bankRoutingAddress)
     )
   }
 

@@ -299,7 +299,7 @@ object SwaggerDefinitionsJSON {
     accounts = List(accountJSON)
   )
   
-  val bankRoutingJSON = BankRoutingJSON(
+  val bankRoutingJSON = BankRoutingJsonV121(
     scheme = "Bank_ID",
     address = "gh.29.uk"
   )
@@ -675,7 +675,7 @@ object SwaggerDefinitionsJSON {
     from_person = "String"
   )
   
-  val branchRoutingJSON = BranchRoutingJSON(
+  val branchRoutingJSON = BranchRoutingJsonV141(
     scheme = "String",
     address = "String"
   )
@@ -1453,7 +1453,7 @@ object SwaggerDefinitionsJSON {
     website_url = "https://www.example.com",
     swift_bic = "IIIGGB22",
     national_identifier = "UK97ZZZ1234567890",
-    bank_routing = BankRoutingJSON(
+    bank_routing = BankRoutingJsonV121(
       scheme = "IIIGGB22",
       address = "UK97ZZZ1234567890"
     )
