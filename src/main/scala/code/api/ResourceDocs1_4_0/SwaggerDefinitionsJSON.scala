@@ -202,8 +202,8 @@ object SwaggerDefinitionsJSON {
   )
   
   val accountRoutingJSON = AccountRoutingJSON(
-    scheme = "swftcode",
-    address = "UKTF3049auf"
+    scheme = "IBAN",
+    address = "DE89 3704 0044 0532 0130 00"
   )
   
   val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
@@ -334,8 +334,8 @@ object SwaggerDefinitionsJSON {
     owners = List(userJSONV121),
     `type` = "OBP",
     balance = amountOfMoneyJsonV121,
-    IBAN = "GR1301720530005053000582373",
-    swift_bic = "UKTF3049auf",
+    IBAN = "DE89 3704 0044 0532 0130 00",
+    swift_bic = "OKOYFIHH",
     views_available = List(viewJSONV121),
     bank_id = "gh.29.uk",
     account_routing = accountRoutingJSON
@@ -1437,7 +1437,7 @@ object SwaggerDefinitionsJSON {
     other_branch_routing_scheme = "OBP",
     other_branch_routing_address = "Berlin",
     other_account_routing_scheme = "IBAN",
-    other_account_routing_address = "829b116f-027c-4508-a537-6b15ed6fbaaa",
+    other_account_routing_address = "DE89 3704 0044 0532 0130 00",
     is_beneficiary = true
   )
   
@@ -1454,8 +1454,8 @@ object SwaggerDefinitionsJSON {
     swift_bic = "IIIGGB22",
     national_identifier = "UK97ZZZ1234567890",
     bank_routing = BankRoutingJsonV121(
-      scheme = "IIIGGB22",
-      address = "UK97ZZZ1234567890"
+      scheme = "BIC",
+      address = "OKOYFIHH"
     )
   )
   
