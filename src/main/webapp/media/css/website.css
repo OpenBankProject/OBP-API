@@ -242,13 +242,12 @@ display: block;
 }
 
 #main-about-box {
-    opacity: 0.7;
 	display: inline-block;
-	background-color:#53C4EF;
+	background-color: rgba(83, 196, 239, 0.7);
 	margin-top: 240px ;
-    margin-left: 450px ;
-    width: 600px;
-    /*height: 390px;*/
+	margin-left: 450px ;
+	width: 600px;
+	/*height: 390px;*/
 	font-size: small;
 }
 

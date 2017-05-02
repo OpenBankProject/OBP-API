@@ -1,7 +1,10 @@
 #authorizeSection,
 #registerAppSection,
 #create-sandbox-account,
-#header-decoration,
-#main-about-box {
+#header-decoration {
 	background-color: #646ca1;
+}
+
+#main-about-box {
+	background-color: rgba(100, 108, 161, 0.7);
 }

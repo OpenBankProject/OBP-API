@@ -54,7 +54,6 @@ body, div, h1, h2, h3, h4, p, span {
 
 
 #nav,
-#main-about-box,
 #main-showcases,
 #main-support,
 #main-links,
@@ -64,6 +63,9 @@ body, div, h1, h2, h3, h4, p, span {
 	background-color: #ff6a10;
 }
 
+#main-about-box {
+	background-color: rgba(255, 106, 16, 0.7);
+}
 
 #main-links a {
 	border-color: white;

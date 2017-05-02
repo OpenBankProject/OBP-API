@@ -54,8 +54,7 @@ h2 {
 }
  
 #main-about-box {
-  opacity: 1;
-  background-color: #00965E;
+  background-color: rgba(0, 150, 94, 1);
 }
 
 #main-about-text h2 {

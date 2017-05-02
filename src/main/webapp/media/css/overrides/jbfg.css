@@ -39,7 +39,6 @@
 }
 
 #nav,
-#main-about-box,
 #main-showcases,
 #main-support,
 #main-links,
@@ -47,6 +46,11 @@
 #registerAppSection,
 #create-sandbox-account {
 	background-color: #1932a9;
+}
+
+
+#main-about-box {
+	background-color: rgba(25, 50, 169, 0.7);
 }
 
 #registerAppSection table {
