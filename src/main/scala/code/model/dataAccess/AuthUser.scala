@@ -785,7 +785,8 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
+       //TODO need more error handle here, I need the exception to debug, so set it here.
+       v <- Full(Connector.connector.vend.updateUserAccountViews(u))
       } yield v
     }
   }

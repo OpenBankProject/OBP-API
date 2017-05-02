@@ -41,6 +41,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   type AccountType = MappedBankAccount
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
 
+  //This is the implicit parameter for saveConnectorMetric function.  
+  //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric 
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
   // Gets current challenge level for transaction request
