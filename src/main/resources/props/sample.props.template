@@ -24,6 +24,7 @@ connector=mapped
 #connector.cache.ttl.seconds.getTransactions=10
 #connector.cache.ttl.seconds.getCounterpartyFromTransaction=10
 #connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
+#connector.cache.ttl.seconds.APIMethods121.getTransactions=10
 
 ## OBP-JVM transport type. currently supported: kafka, mock
 #obpjvm.transport=kafka
