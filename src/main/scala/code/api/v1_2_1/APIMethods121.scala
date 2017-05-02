@@ -46,7 +46,7 @@ trait APIMethods121 {
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   
-  val apiMethods121GetTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
+  val apiMethods121GetTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.APIMethods121.getTransactions", "600").toInt * 1000 // Miliseconds
   
   
   // helper methods begin here
