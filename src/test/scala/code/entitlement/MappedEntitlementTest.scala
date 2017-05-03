@@ -13,12 +13,7 @@ class MappedEntitlementTest extends ServerSetup {
   val bankId2 = "obp-bank-test2"
   val role1 = CanCreateAccount
 
-  def createEntitlement(bankId: String, userId: String, roleName: String) = MappedEntitlement.create
-    .mBankId(bankId)
-    .mUserId(userId)
-    .mRoleName(roleName)
-    .saveMe()
-
+  def createEntitlement(bankId: String, userId: String, roleName: String) = Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
 
   private def delete() {
     MappedEntitlement.bulkDelete_!!()
@@ -57,17 +52,17 @@ class MappedEntitlementTest extends ServerSetup {
     ).isDefined should equal(true)
 
     When("We try to get it by bank, user and role")
-    val foundOpt = MappedEntitlementsProvider.getEntitlement(bankId1, userId1, role1.toString)
+    val foundOpt = Entitlement.entitlement.vend.getEntitlement(bankId1, userId1, role1.toString)
 
     Then("We do")
     foundOpt.isDefined should equal(true)
 
     And("It is the right thing")
-    val foundThing = foundOpt.get
+    val foundThing = foundOpt
     foundThing should equal(entitlement1)
 
     And("Primary id should be UUID")
-    foundThing.entitlementId.filter(_ != '-').size should equal(32)
+    foundThing.map(_.entitlementId).mkString.replace("-", "").size should equal(32)
   }
 
 
@@ -76,18 +71,18 @@ class MappedEntitlementTest extends ServerSetup {
     val entitlement2 = createEntitlement(bankId2, userId2, role1.toString)
 
     When("We try to get it all")
-    val found = MappedEntitlementsProvider.getEntitlements.openOr(List())
+    val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
 
     Then("We don't")
     found.size should equal(2)
 
     And("We try to get it by user1, bank1 and role1")
     val foundThing1 = found.filter(_.userId == userId1).filter(_.bankId == bankId1).filter(_.roleName == role1.toString)
-    foundThing1 should equal(List(entitlement1))
+    foundThing1 should equal(entitlement1.toList)
 
     And("We try to get it by user2, bank2 and role2")
     val foundThing2 = found.filter(_.userId == userId2).filter(_.bankId == bankId2).filter(_.roleName == role1.toString)
-    foundThing2 should equal(List(entitlement2))
+    foundThing2 should equal(entitlement2.toList)
 
     And("We try to delete all rows")
     found.foreach {

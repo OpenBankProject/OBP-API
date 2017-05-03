@@ -89,12 +89,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
     // Return a Box so we can handle errors later.
-    val addEntitlement = MappedEntitlement.create
-      .mBankId(bankId)
-      .mUserId(userId)
-      .mRoleName(roleName)
-      .saveMe()
-    Some(addEntitlement)
+    Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
   }
 
   override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
