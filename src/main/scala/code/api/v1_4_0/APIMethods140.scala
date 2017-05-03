@@ -57,7 +57,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   val Implementations1_4_0 = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson  = null
+    val emptyObjectJson = EmptyClassJson()
     val apiVersion : String = "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
@@ -166,7 +166,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               "Server error: could not add message")
           } yield {
             successJsonResponse(Extraction.decompose(successMessage), 201)
-          }
+          } 
         }
       }
     }

@@ -73,7 +73,7 @@ trait APIMethods210 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson  = null
+    val emptyObjectJson = EmptyClassJson()
     val apiVersion: String = "2_1_0"
 
     val exampleDateString: String = "22/08/2013"

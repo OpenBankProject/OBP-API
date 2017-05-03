@@ -663,6 +663,11 @@ object APIUtil extends MdcLoggable {
     detail: String
   ) 
   
+  //check #511, https://github.com/OpenBankProject/OBP-API/issues/511
+  // get rid of JValue, but in API-EXPLORER or other places, it need the Empty JValue "{}" 
+  // So create the EmptyClassJson to set the empty JValue "{}"
+  case class EmptyClassJson()
+  
   // Used to document the API calls
   case class ResourceDoc(
     partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
