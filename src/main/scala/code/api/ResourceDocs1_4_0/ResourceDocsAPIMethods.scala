@@ -22,6 +22,7 @@ import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
 import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
 import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
 import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
+import code.api.util.ErrorMessages._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -31,6 +32,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
+import code.api.util.ErrorMessages._
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -40,7 +42,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   val ImplementationsResourceDocs = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson  = null
+    val emptyObjectJson = EmptyClassJson()
     val apiVersion : String = "1_4_0"
 
     val exampleDateString : String ="22/08/2013"
@@ -114,7 +116,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      UnKnownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -219,7 +221,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil,
+      UnKnownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -284,7 +286,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
           |_etc_...""",
         emptyObjectJson,
         emptyObjectJson,
-        emptyObjectJson :: Nil,
+        UnKnownError :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }

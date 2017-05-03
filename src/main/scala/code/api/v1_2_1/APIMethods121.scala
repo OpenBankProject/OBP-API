@@ -91,7 +91,7 @@ trait APIMethods121 {
   val Implementations1_2_1 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson = null
+    val emptyObjectJson = EmptyClassJson()
     val apiVersion : String = "1_2_1"
     val apiVersionStatus : String = "STABLE"
 
