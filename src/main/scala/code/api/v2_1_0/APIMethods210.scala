@@ -794,7 +794,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers)
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers)
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong)
           } yield {
@@ -831,7 +831,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers )
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
@@ -869,7 +869,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
-            hasEntitlement <- putData.enabled match {
+            _ <- putData.enabled match {
               case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserDoesNotHaveRole + CanEnableConsumers )
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserDoesNotHaveRole + CanDisableConsumers )
             }
