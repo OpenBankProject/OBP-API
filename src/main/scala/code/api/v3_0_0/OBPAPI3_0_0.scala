@@ -79,7 +79,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.addTagForViewOnTransaction ::
                           Implementations1_2_1.addTransactionNarrative ::
                           Implementations1_2_1.addWhereTagForViewOnTransaction ::
-                          // Now in 2.0.0 "allAccountsAllBanks"::
+                          // Now in 3.0.0 "allAccountsAllBanks"::
                           Implementations1_2_1.bankById ::
                           // Implementations1_2_1.createViewForBankAccount ::
                           Implementations1_2_1.deleteCommentForViewOnTransaction ::
@@ -180,8 +180,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.0.0 - BEGIN ###
   // Updated in 2.0.0 (less info about the views)
   //First step - make a list of allowed endpoints
-  val endpointsOf2_0_0 = Implementations2_0_0.allAccountsAllBanks ::
-                          Implementations2_0_0.accountById ::
+  val endpointsOf2_0_0 = //Now in V3.0.0 Implementations2_0_0.allAccountsAllBanks ::
+                         //Now in V3.0.0 Implementations2_0_0.accountById ::
                           Implementations2_0_0.addEntitlement ::
                           Implementations2_0_0.addKycCheck ::
                           Implementations2_0_0.addKycDocument ::
@@ -198,9 +198,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.elasticSearchMetrics ::
                           Implementations2_0_0.elasticSearchWarehouse ::
                           Implementations2_0_0.getAllEntitlements ::
-                          Implementations2_0_0.getCoreAccountById ::
-                          //now in V300
-                          //Implementations2_0_0.getCoreTransactionsForBankAccount ::
+                          //now in V300 Implementations2_0_0.getCoreAccountById ::
+                          //now in V300 Implementations2_0_0.getCoreTransactionsForBankAccount ::
                           Implementations2_0_0.getCurrentUser ::
                           Implementations2_0_0.getEntitlements ::
                           Implementations2_0_0.getKycChecks ::
@@ -297,6 +296,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //First step - make a list of allowed endpoints
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
+                          Implementations3_0_0.accountById ::
+                          Implementations3_0_0.getCoreAccountById ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
