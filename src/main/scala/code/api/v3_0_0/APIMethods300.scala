@@ -76,7 +76,7 @@ trait APIMethods300 {
             view <- View.fromUrl(ViewId("owner"), bankAccount) ?~! ViewNotFound
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
           } yield {
-            val json = JSONFactory200.createCoreTransactionsJSON(transactions)
+            val json = createCoreTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))
           }
       }

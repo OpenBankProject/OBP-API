@@ -476,6 +476,18 @@ object APIUtil extends MdcLoggable {
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
+  
+  def stringOrNull(text : String) =
+    if(text == null || text.isEmpty)
+      null
+    else
+      text
+  
+  def stringOptionOrNull(text : Option[String]) =
+    text match {
+      case Some(t) => stringOrNull(t)
+      case _ => null
+    }
 
   //started -- Filtering and Paging revelent methods////////////////////////////
   object DateParser {

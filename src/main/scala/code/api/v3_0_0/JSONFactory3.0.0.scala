@@ -31,9 +31,16 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0
 
-import code.api.v1_2_1._
+import java.util.Date
+
+import code.api.v1_2_1.{ThisAccountJSON, _}
 import code.model._
 import code.api.v1_2_1.JSONFactory._
+import code.api.v2_0_0.JSONFactory200
+import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
+import code.model.dataAccess.AuthUser
+import code.users.Users
+import code.api.util.APIUtil._
 
 
 //stated -- Transaction relevant case classes /////
@@ -69,22 +76,31 @@ case class TransactionsJsonV300(
   transactions: List[TransactionJsonV300]
 )
 
+case class CoreCounterpartyJsonV300(
+  id: String,
+  bank_routing: BankRoutingJsonV121,
+  account_routing: AccountRoutingJsonV121,
+  kind: String
+)
+
+case class CoreTransactionJsonV300(
+  id: String,
+  account: ThisAccountJsonV300,
+  counterparty: CoreCounterpartyJsonV300,
+  details: CoreTransactionDetailsJSON
+)
+
+case class CoreCounterpartiesJsonV300(
+  counterparties: List[CoreCounterpartyJsonV300]
+)
+
+case class CoreTransactionsJsonV300(
+  transactions: List[CoreTransactionJsonV300]
+)
+
 //ended -- Transaction relevant case classes /////
 
 object JSONFactory300{
-  
-  def stringOrNull(text : String) =
-    if(text == null || text.isEmpty)
-      null
-    else
-      text
-  
-  def stringOptionOrNull(text : Option[String]) =
-    text match {
-      case Some(t) => stringOrNull(t)
-      case _ => null
-    }
-  
   //stated -- Transaction relevant methods /////
   def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
     TransactionsJsonV300(transactions.map(createTransactionJSON))
@@ -153,6 +169,30 @@ object JSONFactory300{
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
+  
+  // following are create core transactions, without the meta data parts
+  def createCoreTransactionsJSON(transactions: List[ModeratedTransaction]) : CoreTransactionsJsonV300 = {
+    CoreTransactionsJsonV300(transactions.map(createCoreTransactionJSON))
+  }
+
+  def createCoreTransactionJSON(transaction : ModeratedTransaction) : CoreTransactionJsonV300 = {
+    CoreTransactionJsonV300(
+      id = transaction.id.value,
+      account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
+      counterparty = transaction.otherBankAccount.map(createCoreCounterparty).getOrElse(null),
+      details = JSONFactory200.createCoreTransactionDetailsJSON(transaction)
+    )
+  }
+  
+  def createCoreCounterparty(bankAccount : ModeratedOtherBankAccount) : CoreCounterpartyJsonV300 = {
+    CoreCounterpartyJsonV300(
+      id = bankAccount.id,
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      kind = stringOptionOrNull(bankAccount.kind)
+    )
+  }
+  
   //ended -- Transaction relevant methods /////
   
 }

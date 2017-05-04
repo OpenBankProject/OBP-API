@@ -34,6 +34,7 @@ package code.api.v1_2_1
 import java.util.Date
 import net.liftweb.common.{Box, Full}
 import code.model._
+import code.api.util.APIUtil._
 
 case class APIInfoJSON(
   version : String,
@@ -349,18 +350,6 @@ case class MakePaymentJson(
 )
 
 object JSONFactory{
-  def stringOrNull(text : String) =
-    if(text == null || text.isEmpty)
-      null
-    else
-      text
-
-  def stringOptionOrNull(text : Option[String]) =
-    text match {
-      case Some(t) => stringOrNull(t)
-      case _ => null
-    }
-
   def createBankJSON(bank : Bank) : BankJSON = {
     new BankJSON(
       stringOrNull(bank.bankId.value),
