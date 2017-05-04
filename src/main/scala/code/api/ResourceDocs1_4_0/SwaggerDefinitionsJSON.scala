@@ -201,7 +201,7 @@ object SwaggerDefinitionsJSON {
     open_corporates_URL = "String"
   )
   
-  val accountRoutingJSON = AccountRoutingJSON(
+  val accountRoutingJSON = AccountRoutingJsonV121(
     scheme = "IBAN",
     address = "DE89 3704 0044 0532 0130 00"
   )
@@ -1480,7 +1480,7 @@ object SwaggerDefinitionsJSON {
       "0"
     ),
     branch_id = "1234",
-    account_routing = AccountRoutingJSON(
+    account_routing = AccountRoutingJsonV121(
       scheme = "OBP",
       address = "UK123456"
     )

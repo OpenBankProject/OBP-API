@@ -164,7 +164,7 @@ case class UpdateAccountJSON(
   bank_id : String
 )
 
-case class AccountRoutingJSON(
+case class AccountRoutingJsonV121(
   scheme: String,
   address: String
 )
@@ -180,7 +180,7 @@ case class ModeratedAccountJSON(
   swift_bic: String,
   views_available : List[ViewJSONV121],
   bank_id : String,
-  account_routing :AccountRoutingJSON
+  account_routing :AccountRoutingJsonV121
 )
 case class UserJSONV121(
   id : String,
@@ -477,7 +477,7 @@ object JSONFactory{
       stringOptionOrNull(account.swift_bic),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJSON(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
 

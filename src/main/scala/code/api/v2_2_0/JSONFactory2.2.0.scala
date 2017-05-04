@@ -34,7 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
-import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJsonV121}
+import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson}
 import code.branches.Branches.Branch
@@ -193,7 +193,7 @@ case class CreateAccountJSONV220(
   `type` : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJSON
+  account_routing: AccountRoutingJsonV121
 )
 
 case class CachedFunctionJSON(function_name: String, ttl_in_seconds: Int)
@@ -381,7 +381,7 @@ object JSONFactory220{
         account.balance.toString()
       ),
       branch_id = account.branchId,
-      account_routing = AccountRoutingJSON(
+      account_routing = AccountRoutingJsonV121(
         scheme = account.accountRoutingScheme,
         address = account.accountRoutingAddress
       )

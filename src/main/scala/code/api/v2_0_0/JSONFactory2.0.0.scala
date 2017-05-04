@@ -33,7 +33,7 @@ package code.api.v2_0_0
 
 import java.util.Date
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJSON}
+import code.api.v1_2_1.{AccountRoutingJsonV121}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
@@ -505,7 +505,7 @@ object JSONFactory200{
                                    IBAN : String,
                                    swift_bic: String,
                                    bank_id : String,
-                                   account_routing:AccountRoutingJSON
+                                   account_routing:AccountRoutingJsonV121
                                  )
 
   case class CoreTransactionsJSON(
@@ -691,7 +691,7 @@ object JSONFactory200{
       JSONFactory121.stringOptionOrNull(account.iban),
       JSONFactory121.stringOptionOrNull(account.swift_bic),
       stringOrNull(account.bankId.value),
-      AccountRoutingJSON(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
 
