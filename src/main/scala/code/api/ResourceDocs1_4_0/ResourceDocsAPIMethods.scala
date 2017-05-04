@@ -4,6 +4,8 @@ import code.api.util.APIUtil
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
+import code.api.v3_0_0.{APIMethods300, OBPAPI3_0_0}
+import code.api.v3_0_0.OBPAPI3_0_0._
 import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
 import net.liftweb.common.{Box, Empty, Full}
 import code.util.Helper.MdcLoggable
@@ -58,6 +60,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case "3.0.0" => Implementations3_0_0.resourceDocs ++ Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.2.0" => Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.1.0" => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
@@ -69,6 +72,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case "3.0.0" => OBPAPI3_0_0.routes
         case "2.2.0" => OBPAPI2_2_0.routes
         case "2.1.0" => OBPAPI2_1_0.routes
         case "2.0.0" => OBPAPI2_0_0.routes
