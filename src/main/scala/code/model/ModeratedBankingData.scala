@@ -194,6 +194,8 @@ class ModeratedBankAccount(
   val number: Moderated[String],
   val bankName: Moderated[String],
   val bankId : BankId,
+  val bankRoutingScheme : Moderated[String],
+  val bankRoutingAddress :Moderated[String],
   val accountRoutingScheme : Moderated[String],
   val accountRoutingAddress :Moderated[String]
 ){
@@ -262,7 +264,11 @@ class ModeratedOtherBankAccount(
   val bankName : Moderated[String],
   val number : Moderated[String],
   val metadata : Moderated[ModeratedOtherBankAccountMetadata],
-  val kind : Moderated[String]
+  val kind : Moderated[String],
+  val bankRoutingScheme : Moderated[String],
+  val bankRoutingAddress :Moderated[String],
+  val accountRoutingScheme : Moderated[String],
+  val accountRoutingAddress :Moderated[String]
 ){
 
   def isAlias : Boolean = label.aliasType match{

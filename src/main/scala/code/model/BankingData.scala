@@ -270,7 +270,9 @@ trait BankAccount extends MdcLoggable {
   def currency : String
   def name : String // Is this used?
   def label : String
+  @deprecated("Used the account scheme and address instead")
   def swift_bic : Option[String]   //TODO: deduplication, bank field should not be in account fields
+  @deprecated("Used the account scheme and address instead")
   def iban : Option[String]
   def number : String
   def bankId : BankId
@@ -289,6 +291,12 @@ trait BankAccount extends MdcLoggable {
   final def nationalIdentifier : String =
     Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
 
+  //From V300, used scheme, address 
+  final def bankRoutingScheme : String =
+    Connector.connector.vend.getBank(bankId).map(_.bankRoutingScheme).getOrElse("")
+  final def bankRoutingAddress : String =
+    Connector.connector.vend.getBank(bankId).map(_.bankRoutingAddress).getOrElse("")
+  
   /*
   * Delete this account (if connector allows it, e.g. local mirror of account data)
   * */
