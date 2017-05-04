@@ -1,15 +1,17 @@
 package code.api.v2_2_0
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.{Date, Locale, UUID}
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, ConsumerJSON, ConsumerPostJSON, JSONFactory210}
+import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
+import code.consumer.Consumers
 import code.metrics.{ConnMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
@@ -20,7 +22,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Helpers.{randomString, tryo}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -672,6 +674,77 @@ trait APIMethods220 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      createConsumer,
+      apiVersion,
+      "createConsumer",
+      "POST",
+      "/management/consumers",
+      "Post a Consumer",
+      s"""Create a Consumer (Authenticated access).
+         |
+        |""",
+      ConsumerPostJSON(UUID.randomUUID().toString,
+        UUID.randomUUID().toString,
+        "Test",
+        "Test",
+        "Description",
+        "some@email.com",
+        "redirecturl",
+        "createdby",
+        true,
+        new Date()
+      ),
+      ConsumerPostJSON(UUID.randomUUID().toString,
+        UUID.randomUUID().toString,
+        "Some app name",
+        "App type",
+        "Description",
+        "some.email@example.com",
+        "Some redirect url",
+        "Created by UUID",
+        true,
+        new Date()
+      ),
+      List(
+        UserNotLoggedIn,
+        UserDoesNotHaveRole,
+        UnKnownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      Nil)
+
+
+    lazy val createConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserDoesNotHaveRole + CanCreateConsumer )
+            postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- booleanToBox(Consumers.consumers.vend.getConsumerByConsumerKey(postedJson.key).isEmpty == true, ErrorMessages.ConsumerKeyAlreadyExists)
+            consumer <- Consumers.consumers.vend.createConsumer(Some(postedJson.key),
+                                                                Some(postedJson.secret),
+                                                                Some(postedJson.enabled),
+                                                                Some(postedJson.app_name),
+                                                                None,
+                                                                Some(postedJson.description),
+                                                                Some(postedJson.developer_email),
+                                                                Some(postedJson.redirect_url),
+                                                                Some(u.userId)
+                                                               )
+          } yield {
+            // Format the data as json
+            val json = JSONFactory210.createConsumerJSON(consumer)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
   }
 }
 

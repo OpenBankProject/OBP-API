@@ -194,6 +194,18 @@ case class ConsumerJSON(consumer_id: Long,
                         created: Date
                        )
 
+case class ConsumerPostJSON(key: String,
+                            secret: String,
+                            app_name: String,
+                            app_type: String,
+                            description: String,
+                            developer_email: String,
+                            redirect_url: String,
+                            created_by_user_id: String,
+                            enabled: Boolean,
+                            created: Date
+                           )
+
 case class ConsumersJson(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
