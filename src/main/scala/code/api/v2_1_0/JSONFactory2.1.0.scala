@@ -194,9 +194,7 @@ case class ConsumerJSON(consumer_id: Long,
                         created: Date
                        )
 
-case class ConsumerPostJSON(key: String,
-                            secret: String,
-                            app_name: String,
+case class ConsumerPostJSON(app_name: String,
                             app_type: String,
                             description: String,
                             developer_email: String,

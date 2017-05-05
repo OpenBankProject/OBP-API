@@ -686,8 +686,7 @@ trait APIMethods220 {
       s"""Create a Consumer (Authenticated access).
          |
         |""",
-      ConsumerPostJSON(UUID.randomUUID().toString,
-        UUID.randomUUID().toString,
+      ConsumerPostJSON(
         "Test",
         "Test",
         "Description",
@@ -697,8 +696,7 @@ trait APIMethods220 {
         true,
         new Date()
       ),
-      ConsumerPostJSON(UUID.randomUUID().toString,
-        UUID.randomUUID().toString,
+      ConsumerPostJSON(
         "Some app name",
         "App type",
         "Description",
@@ -724,9 +722,8 @@ trait APIMethods220 {
             u <- user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserDoesNotHaveRole + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- booleanToBox(Consumers.consumers.vend.getConsumerByConsumerKey(postedJson.key).isEmpty == true, ErrorMessages.ConsumerKeyAlreadyExists)
-            consumer <- Consumers.consumers.vend.createConsumer(Some(postedJson.key),
-                                                                Some(postedJson.secret),
+            consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
+                                                                Some(UUID.randomUUID().toString),
                                                                 Some(postedJson.enabled),
                                                                 Some(postedJson.app_name),
                                                                 None,
