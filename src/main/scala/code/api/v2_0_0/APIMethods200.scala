@@ -1899,18 +1899,18 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
+            _ <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! WrongInputJsonFormat
-            role <- tryo{valueOf(postedData.role_name)} ?~! WrongRoleName
-            isBankOrSystemRoleOk <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
+            _ <- tryo{valueOf(postedData.role_name)} ?~! WrongRoleName
+            _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
               {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
             allowedEntitlements = CanCreateEntitlementAtOneBank ::
                                   CanCreateEntitlementAtAnyBank ::
                                   Nil
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
-            bank <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false) ?~! BankNotFound
+            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
+            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false) ?~! BankNotFound
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
-            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
+            _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
@@ -1944,10 +1944,10 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
-              entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+              _ <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
               u <- user ?~! ErrorMessages.UserNotLoggedIn
-              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank )
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank )
               entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
@@ -1992,9 +1992,9 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+              _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
               entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ "EntitlementId not found"
-              deleted <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+              _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
             }
             yield noContentJsonResponse
       }
@@ -2026,7 +2026,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~! "Logged user is not super admin!"
+            _ <- booleanToBox(isSuperAdmin(u.userId)) ?~! "Logged user is not super admin!"
             entitlements <- Entitlement.entitlement.vend.getEntitlements
           }
           yield {
@@ -2122,7 +2122,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2209,7 +2209,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }

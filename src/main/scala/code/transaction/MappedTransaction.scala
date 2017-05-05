@@ -40,7 +40,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object chargePolicy extends DefaultStringField(this)
 
   object counterpartyAccountNumber extends MappedAccountNumber(this)
-  object counterpartyAccountHolder extends MappedString(this, 100)
+  object counterpartyAccountHolder extends MappedString(this, 255)
   //still unclear exactly how what this is defined to mean
   object counterpartyNationalId extends MappedString(this, 40)
   //this should eventually be calculated using counterpartyNationalId
