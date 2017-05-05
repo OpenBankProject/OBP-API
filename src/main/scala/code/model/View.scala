@@ -105,12 +105,12 @@ case class UpdateViewJSON(
   * @define description A description of the view
   * @define isPublic Set to True if the view should be open to the public (no authorisation required!) Set to False to require authorisation
   * @define users A list of users that can use this view
-  * @define usePublicAliasIfOneExists If true and the counterparty in a transaciton has a public alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
-  * @define usePrivateAliasIfOneExists If true and the counterparty in a transaciton has a private alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
+  * @define usePublicAliasIfOneExists If true and the counterparty in a transaction has a public alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
+  * @define usePrivateAliasIfOneExists If true and the counterparty in a transaction has a private alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
   * @define hideOtherAccountMetadataIfAlias If true, the view will hide counterparty metadata if the counterparty has an alias. This is to preserve anonymity if required.
   *
   * @define canSeeTransactionThisBankAccount If true, the view will show information about the Transaction account (this account)
-  * @define canSeeTransactionOtherBankAccount If true, the view will show information about the Transaciton counterparty
+  * @define canSeeTransactionOtherBankAccount If true, the view will show information about the Transaction counterparty
   * @define canSeeTransactionMetadata If true, the view will show any Transaction metadata
   * @define canSeeTransactionDescription If true, the view will show the Transaction description
   * @define canSeeTransactionAmount If true, the view will show the Transaction amount (value, not currency)
@@ -173,13 +173,13 @@ case class UpdateViewJSON(
   * @define canDeletePhysicalLocation If true, the can add show the Counterparty PhysicalLocation
   *
   * @define canEditOwnerComment If true, the view can edit the Transaction Owner Comment
-  * @define canAddComment If true, the view can add a Transaciton Comment
-  * @define canDeleteComment If true, the view can delete a Transaciton Comment
-  * @define canAddTag If true, the view can add a Transaciton Tag
-  * @define canDeleteTag If true, the view can delete a Transaciton Tag
-  * @define canAddImage If true, the view can add a Transaciton Image
-  * @define canDeleteImage If true, the view can delete a Transaciton Image
-  * @define canAddWhereTag If true, the view can add a Transaciton Where Tag
+  * @define canAddComment If true, the view can add a Transaction Comment
+  * @define canDeleteComment If true, the view can delete a Transaction Comment
+  * @define canAddTag If true, the view can add a Transaction Tag
+  * @define canDeleteTag If true, the view can delete a Transaction Tag
+  * @define canAddImage If true, the view can add a Transaction Image
+  * @define canDeleteImage If true, the view can delete a Transaction Image
+  * @define canAddWhereTag If true, the view can add a Transaction Where Tag
   * @define canSeeWhereTag If true, the view can show the Transaction Where Tag
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 

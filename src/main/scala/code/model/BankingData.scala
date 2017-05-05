@@ -82,9 +82,9 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
-//Note: change csae class -> trait, for kafka extends it
+//Note: change case class -> trait, for kafka extends it
 trait TransactionRequestStatus{
-  def transactionRequestid : String
+  def transactionRequestId : String
   def bulkTransactionsStatus: List[TransactionStatus]
 }
 
@@ -166,9 +166,11 @@ trait Bank {
 
 
   //SWIFT BIC banking code (globally unique)
+  @deprecated("used bankRoutingScheme and bankRoutingAddress instead")
   def swiftBic: String
 
   //it's not entirely clear what this is/represents (BLZ in Germany?)
+  @deprecated("used bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
@@ -621,8 +623,8 @@ as see from the perspective of the original party.
 // Note: See also CounterpartyTrait
 class Counterparty(
 
-                    // The following four fields are older version, pleae first consider the V210
-                    @(deprecated) val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    @deprecated("older version, please first consider the V210, account scheme and address") 
+                    val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
                     val alreadyFoundMetadata : Option[CounterpartyMetadata],
                     val label : String, // Reference given to the counterparty by the original party.
                     val kind : String, // Type of bank account.
