@@ -152,6 +152,7 @@ object ErrorMessages {
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create customer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
+  val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

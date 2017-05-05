@@ -36,12 +36,14 @@ import java.util.Date
 
 import code.api.v1_2_1.{AccountRoutingJSON, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_1_0.{MetricJson, MetricsJson}
+import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
 import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.{APIMetric, ConnMetric}
 import code.model._
+import code.users.Users
+import net.liftweb.common.Full
 //import net.liftweb.common.Box
 //import net.liftweb.json.Extraction
 //import net.liftweb.json.JsonAST.JValue
@@ -212,6 +214,20 @@ case class ConnectorMetricJson(
                                duration: Long
                              )
 case class ConnectorMetricsJson(metrics: List[ConnectorMetricJson])
+
+case class ConsumerJson(consumer_id: Long,
+                        key: String,
+                        secret: String,
+                        app_name: String,
+                        app_type: String,
+                        description: String,
+                        developer_email: String,
+                        redirect_url: String,
+                        created_by_user_id: String,
+                        created_by_user: ResourceUserJSON,
+                        enabled: Boolean,
+                        created: Date
+                       )
 
 object JSONFactory220{
 
@@ -399,6 +415,34 @@ object JSONFactory220{
   }
   def createConnectorMetricsJson(metrics : List[ConnMetric]) : ConnectorMetricsJson = {
     ConnectorMetricsJson(metrics.map(createConnectorMetricJson))
+  }
+
+  def createConsumerJSON(c: Consumer): ConsumerJson = {
+
+    val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJson(consumer_id=c.id,
+      key=c.key,
+      secret=c.secret,
+      app_name=c.name,
+      app_type=c.appType.toString(),
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
+      created_by_user =resourceUserJSON,
+      enabled=c.isActive,
+      created=c.createdAt
+    )
   }
   
 }
