@@ -709,6 +709,7 @@ trait APIMethods220 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
+        InvalidJsonFormat,
         UnKnownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -721,7 +722,7 @@ trait APIMethods220 {
           for {
             u <- user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserDoesNotHaveRole + CanCreateConsumer )
-            postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
                                                                 Some(UUID.randomUUID().toString),
                                                                 Some(postedJson.enabled),
