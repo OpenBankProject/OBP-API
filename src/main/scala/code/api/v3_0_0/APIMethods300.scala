@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
@@ -28,6 +29,155 @@ trait APIMethods300 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
+  
+    resourceDocs += ResourceDoc(
+      getViewsForBankAccount,
+      apiVersion,
+      "getViewsForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Get Views for Account.",
+      """#Views
+        |
+        |
+        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+        |
+        |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+        |
+        |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+        |
+        |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+        |
+        |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+        |
+        |**Metadata:**
+        |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+        |
+        |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+        |
+        |# All
+        |*Optional*
+        |
+        |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      emptyObjectJson,
+      viewsJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagView))
+  
+    lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get the available views on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+          } yield {
+            val viewsJSON = createViewsJSON(views)
+            successJsonResponse(Extraction.decompose(viewsJSON))
+          }
+      }
+    }
+  
+  
+    resourceDocs += ResourceDoc(
+      createViewForBankAccount,
+      apiVersion,
+      "createViewForBankAccount",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Create View.",
+      """#Create a view on bank account
+        |
+        | OAuth authentication is required and the user needs to have access to the owner view.
+        | The 'alias' field in the JSON can take one of three values:
+        |
+        | * _public_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the public alias if there is one specified for the other account.
+        |
+        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+        |
+        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+        |
+        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        |
+        | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
+        | """,
+      SwaggerDefinitionsJSON.createViewJSON,
+      viewJsonV300,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
+        UnKnownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagView))
+  
+    lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //creates a view on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            json <- tryo{json.extract[CreateViewJSON]} ?~!InvalidJsonFormat
+            u <- user ?~!UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- account createView (u, json)
+          } yield {
+            val viewJSON = JSONFactory300.createViewJSON(view)
+            createdJsonResponse(Extraction.decompose(viewJSON))
+          }
+      }
+    }
+  
+  
+    resourceDocs += ResourceDoc(
+      updateViewForBankAccount,
+      apiVersion,
+      "updateViewForBankAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Update View.",
+      """Update an existing view on a bank account
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.
+        |
+        |The json sent is the same as during view creation (above), with one difference: the 'name' field
+        |of a view is not editable (it is only set when a view is created)""",
+      updateViewJSON,
+      viewJsonV300,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnKnownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagView)
+    )
+  
+    lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //updates a view on a bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
+        user =>
+          for {
+            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
+            u <- user ?~!UserNotLoggedIn
+            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
+            updatedView <- account.updateView(u, viewId, updateJson)
+          } yield {
+            val viewJSON = JSONFactory300.createViewJSON(updatedView)
+            successJsonResponse(Extraction.decompose(viewJSON))
+          }
+      }
+    }
   
     resourceDocs += ResourceDoc(
       accountById,

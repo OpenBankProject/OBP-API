@@ -46,6 +46,87 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 
 
+case class ViewsJsonV300(
+  views : List[ViewJsonV300]
+)
+case class ViewJsonV300(
+  val id: String,
+  val short_name: String,
+  val description: String,
+  val is_public: Boolean,
+  val alias: String,
+  val hide_metadata_if_alias_used: Boolean,
+  val can_add_comment : Boolean,
+  val can_add_corporate_location : Boolean,
+  val can_add_image : Boolean,
+  val can_add_image_url: Boolean,
+  val can_add_more_info: Boolean,
+  val can_add_open_corporates_url : Boolean,
+  val can_add_physical_location : Boolean,
+  val can_add_private_alias : Boolean,
+  val can_add_public_alias : Boolean,
+  val can_add_tag : Boolean,
+  val can_add_url: Boolean,
+  val can_add_where_tag : Boolean,
+  val can_delete_comment: Boolean,
+  val can_add_counterparty : Boolean,
+  val can_delete_corporate_location : Boolean,
+  val can_delete_image : Boolean,
+  val can_delete_physical_location : Boolean,
+  val can_delete_tag : Boolean,
+  val can_delete_where_tag : Boolean,
+  val can_edit_owner_comment: Boolean,
+  val can_see_bank_account_balance: Boolean,
+  val can_see_bank_account_bank_name: Boolean,
+  val can_see_bank_account_currency: Boolean,
+  val can_see_bank_account_iban: Boolean,
+  val can_see_bank_account_label: Boolean,
+  val can_see_bank_account_national_identifier: Boolean,
+  val can_see_bank_account_number: Boolean,
+  val can_see_bank_account_owners: Boolean,
+  val can_see_bank_account_swift_bic: Boolean,
+  val can_see_bank_account_type: Boolean,
+  val can_see_comments: Boolean,
+  val can_see_corporate_location: Boolean,
+  val can_see_image_url: Boolean,
+  val can_see_images: Boolean,
+  val can_see_more_info: Boolean,
+  val can_see_open_corporates_url: Boolean,
+  val can_see_other_account_bank_name: Boolean,
+  val can_see_other_account_iban: Boolean,
+  val can_see_other_account_kind: Boolean,
+  val can_see_other_account_metadata: Boolean,
+  val can_see_other_account_national_identifier: Boolean,
+  val can_see_other_account_number: Boolean,
+  val can_see_other_account_swift_bic: Boolean,
+  val can_see_owner_comment: Boolean,
+  val can_see_physical_location: Boolean,
+  val can_see_private_alias: Boolean,
+  val can_see_public_alias: Boolean,
+  val can_see_tags: Boolean,
+  val can_see_transaction_amount: Boolean,
+  val can_see_transaction_balance: Boolean,
+  val can_see_transaction_currency: Boolean,
+  val can_see_transaction_description: Boolean,
+  val can_see_transaction_finish_date: Boolean,
+  val can_see_transaction_metadata: Boolean,
+  val can_see_transaction_other_bank_account: Boolean,
+  val can_see_transaction_start_date: Boolean,
+  val can_see_transaction_this_bank_account: Boolean,
+  val can_see_transaction_type: Boolean,
+  val can_see_url: Boolean,
+  val can_see_where_tag: Boolean,
+  //V300 new 
+  val can_see_bank_routing_scheme: Boolean,
+  val can_see_bank_routing_address: Boolean,
+  val can_see_bank_account_routing_scheme: Boolean,
+  val can_see_bank_account_routing_address: Boolean,
+  val can_see_other_bank_routing_scheme: Boolean,
+  val can_see_other_bank_routing_address: Boolean,
+  val can_see_other_account_routing_scheme: Boolean,
+  val can_see_other_account_routing_address: Boolean
+)
+
 //stated -- Transaction relevant case classes /////
 case class ThisAccountJsonV300(
   id: String,
@@ -112,7 +193,7 @@ case class ModeratedAccountJsonV300(
   owners: List[UserJSONV121],
   `type`: String,
   balance: AmountOfMoneyJsonV121,
-  views_available: List[ViewJSONV121],
+  views_available: List[ViewJsonV300],
   account_routing: AccountRoutingJsonV121
 )
 
@@ -225,7 +306,11 @@ object JSONFactory300{
   
   //ended -- Transaction relevant methods /////
   
-  def createViewJSON(view : View) : ViewJSONV121 = {
+  def createViewsJSON(views : List[View]) : ViewsJsonV300 = {
+    ViewsJsonV300(views.map(createViewJSON))
+  }
+  
+  def createViewJSON(view : View) : ViewJsonV300 = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -234,7 +319,7 @@ object JSONFactory300{
       else
         ""
     
-    new ViewJSONV121(
+    ViewJsonV300(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       description = stringOrNull(view.description),
@@ -254,6 +339,7 @@ object JSONFactory300{
       can_add_url = view.canAddURL,
       can_add_where_tag = view.canAddWhereTag,
       can_delete_comment = view.canDeleteComment,
+      can_add_counterparty = view.canAddCounterparty,
       can_delete_corporate_location = view.canDeleteCorporateLocation,
       can_delete_image = view.canDeleteImage,
       can_delete_physical_location = view.canDeletePhysicalLocation,
@@ -299,13 +385,21 @@ object JSONFactory300{
       can_see_transaction_this_bank_account = view.canSeeTransactionThisBankAccount,
       can_see_transaction_type = view.canSeeTransactionType,
       can_see_url = view.canSeeUrl,
-      can_see_where_tag = view.canSeeWhereTag
+      can_see_where_tag = view.canSeeWhereTag,
+      //V300 new 
+      can_see_bank_routing_scheme         = view.canSeeBankRoutingScheme,
+      can_see_bank_routing_address        = view.canSeeBankRoutingAddress,
+      can_see_bank_account_routing_scheme  = view.canSeeBankAccountRoutingScheme,
+      can_see_bank_account_routing_address = view.canSeeBankAccountRoutingAddress,
+      can_see_other_bank_routing_scheme    = view.canSeeOtherBankRoutingScheme,
+      can_see_other_bank_routing_address   = view.canSeeOtherBankRoutingAddress,
+      can_see_other_account_routing_scheme = view.canSeeOtherAccountRoutingScheme,
+      can_see_other_account_routing_address= view.canSeeOtherAccountRoutingAddress
     )
   }
   
-
   
-  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSONV121]) : ModeratedAccountJsonV300 =  {
+  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
     ModeratedAccountJsonV300(
       account.accountId.value,
@@ -320,7 +414,7 @@ object JSONFactory300{
     )
   }
   
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSONV121]) : ModeratedCoreAccountJSON =  {
+  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJSON (
       account.accountId.value,

@@ -271,9 +271,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
   // ### VERSION 2.1.0 - BEGIN ###
   //First step - make a list of allowed endpoints
-  val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
-                          Implementations2_2_0.createViewForBankAccount ::
-                          Implementations2_2_0.updateViewForBankAccount ::
+  val endpointsOf2_2_0 = //V300 Implementations2_2_0.getViewsForBankAccount ::
+                          //V300 Implementations2_2_0.createViewForBankAccount ::
+                          //V300 Implementations2_2_0.updateViewForBankAccount ::
                           Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getMessageDocs ::
@@ -298,6 +298,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getTransactionsForBankAccount ::
                           Implementations3_0_0.accountById ::
                           Implementations3_0_0.getCoreAccountById ::
+                          Implementations3_0_0.getViewsForBankAccount ::
+                          Implementations3_0_0.createViewForBankAccount ::
+                          Implementations3_0_0.updateViewForBankAccount ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
