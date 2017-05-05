@@ -63,6 +63,7 @@ import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
 import net.liftweb.common.{Empty, Full, ParamFailure}
+import code.api.util.APIUtil._
 
 /*
 This tests:
@@ -327,7 +328,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundTransaction.amount.toString should equal(transaction.details.value)
 
     def toDate(dateString : String) : Date = {
-      APIMethods121.DateParser.parse(dateString).get
+      DateParser.parse(dateString).get
     }
 
     foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)

@@ -242,6 +242,7 @@ class Boot extends MdcLoggable {
     if (!disabledVersions.contains("v2_0_0")) LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
     if (!disabledVersions.contains("v2_1_0")) LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
     if (!disabledVersions.contains("v2_2_0")) LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
+    if (!disabledVersions.contains("v3_0_0")) LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)

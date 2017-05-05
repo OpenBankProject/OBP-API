@@ -1401,7 +1401,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
                               ) extends TransactionStatus
 
   case class ObpJvmTransactionRequestStatus (obpJvmInboundTransactionRequestStatus: ObpJvmInboundTransactionRequestStatus) extends TransactionRequestStatus {
-    override def transactionRequestid: String = obpJvmInboundTransactionRequestStatus.transactionRequestId
+    override def transactionRequestId: String = obpJvmInboundTransactionRequestStatus.transactionRequestId
     override def bulkTransactionsStatus: List[TransactionStatus] = obpJvmInboundTransactionRequestStatus.bulkTransactionsStatus
   }
   override def getProducts(bankId: BankId): Box[List[Product]] = Empty

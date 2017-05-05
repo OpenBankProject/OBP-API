@@ -892,7 +892,7 @@ trait APIMethods200 {
         user =>
 
           for {
-            params <- APIMethods121.getTransactionParams(json)
+            params <- getTransactionParams(json)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), bankAccount)

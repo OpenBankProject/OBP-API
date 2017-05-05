@@ -29,6 +29,7 @@ import com.google.common.cache.CacheBuilder
 import net.liftweb.json.Extraction._
 import scalacache.{memoization}
 import scalacache.memoization.memoizeSync
+import code.api.util.APIUtil._
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -2054,7 +2055,7 @@ trait APIMethods121 {
       viewId : ViewId
     ): Box[JsonResponse] = memoizeSync(apiMethods121GetTransactionsTTL millisecond){
       for {
-        params <- APIMethods121.getTransactionParams(json)
+        params <- getTransactionParams(json)
         bankAccount <- BankAccount(bankId, accountId)
         view <- View.fromUrl(viewId, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
@@ -2854,135 +2855,4 @@ Authentication via OAuth is required. The user must either have owner privileges
 }
 
 object APIMethods121 {
-  import java.util.Date
-
-  object DateParser {
-
-    /**
-    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
-    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
-    */
-    def parse(date: String): Box[Date] = {
-      import java.text.SimpleDateFormat
-
-      val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-      val fallBackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-
-      val parsedDate = tryo{
-        defaultFormat.parse(date)
-      }
-
-      lazy val fallBackParsedDate = tryo{
-        fallBackFormat.parse(date)
-      }
-
-      if(parsedDate.isDefined){
-        Full(parsedDate.get)
-      }
-      else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.get)
-      }
-      else{
-        Failure(s"Failed to parse date string. Please use this format ${defaultFormat.toPattern} or that one ${fallBackFormat.toPattern}")
-      }
-    }
-  }
-
-  private def getSortDirection(req: Req): Box[OBPOrder] = {
-    req.header("obp_sort_direction") match {
-      case Full(v) => {
-        if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
-          Full(OBPOrder(Some(v.toLowerCase)))
-        }
-        else{
-          Failure("obp_sort_direction parameter can only take two values: DESC or ASC")
-        }
-      }
-      case _ => Full(OBPOrder(None))
-    }
-  }
-
-  private def getFromDate(req: Req): Box[OBPFromDate] = {
-    val date: Box[Date] = req.header("obp_from_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
-      case _ => {
-        Full(new Date(0))
-      }
-    }
-
-    date.map(OBPFromDate(_))
-  }
-
-  private def getToDate(req: Req): Box[OBPToDate] = {
-    val date: Box[Date] = req.header("obp_to_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
-      case _ => Full(new Date())
-    }
-
-    date.map(OBPToDate(_))
-  }
-
-  private def getOffset(req: Req): Box[OBPOffset] = {
-    val msg = "wrong value for obp_offset parameter. Please send a positive integer (=>0)"
-    getPaginationParam(req, "obp_offset", 0, 0, msg)
-    .map(OBPOffset(_))
-  }
-
-  private def getLimit(req: Req): Box[OBPLimit] = {
-    val msg = "wrong value for obp_limit parameter. Please send a positive integer (=>1)"
-    getPaginationParam(req, "obp_limit", 50, 1, msg)
-    .map(OBPLimit(_))
-  }
-
-  private def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
-    req.header(paramName) match {
-      case Full(v) => {
-        tryo{
-          v.toInt
-        } match {
-          case Full(value) => {
-            if(value >= minimumValue){
-              Full(value)
-            }
-            else{
-              Failure(errorMsg)
-            }
-          }
-          case _ => Failure(errorMsg)
-        }
-      }
-      case _ => Full(defaultValue)
-    }
-  }
-
-  def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
-    for{
-      sortDirection <- getSortDirection(req)
-      fromDate <- getFromDate(req)
-      toDate <- getToDate(req)
-      limit <- getLimit(req)
-      offset <- getOffset(req)
-    }yield{
-
-      /**
-       * sortBy is currently disabled as it would open up a security hole:
-       *
-       * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
-       * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
-       * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
-       * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
-       *
-       * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
-       *
-       */
-      //val sortBy = json.header("obp_sort_by")
-      val sortBy = None
-      val ordering = OBPOrdering(sortBy, sortDirection)
-      limit :: offset :: ordering :: fromDate :: toDate :: Nil
-    }
-  }
 }

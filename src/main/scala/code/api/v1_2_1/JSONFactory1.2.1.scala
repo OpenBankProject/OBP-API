@@ -34,6 +34,7 @@ package code.api.v1_2_1
 import java.util.Date
 import net.liftweb.common.{Box, Full}
 import code.model._
+import code.api.util.APIUtil._
 
 case class APIInfoJSON(
   version : String,
@@ -164,7 +165,7 @@ case class UpdateAccountJSON(
   bank_id : String
 )
 
-case class AccountRoutingJSON(
+case class AccountRoutingJsonV121(
   scheme: String,
   address: String
 )
@@ -180,7 +181,7 @@ case class ModeratedAccountJSON(
   swift_bic: String,
   views_available : List[ViewJSONV121],
   bank_id : String,
-  account_routing :AccountRoutingJSON
+  account_routing :AccountRoutingJsonV121
 )
 case class UserJSONV121(
   id : String,
@@ -349,18 +350,6 @@ case class MakePaymentJson(
 )
 
 object JSONFactory{
-  def stringOrNull(text : String) =
-    if(text == null || text.isEmpty)
-      null
-    else
-      text
-
-  def stringOptionOrNull(text : Option[String]) =
-    text match {
-      case Some(t) => stringOrNull(t)
-      case _ => null
-    }
-
   def createBankJSON(bank : Bank) : BankJSON = {
     new BankJSON(
       stringOrNull(bank.bankId.value),
@@ -477,7 +466,7 @@ object JSONFactory{
       stringOptionOrNull(account.swift_bic),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJSON(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
 

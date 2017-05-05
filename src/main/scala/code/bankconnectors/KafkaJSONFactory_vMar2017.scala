@@ -407,7 +407,7 @@ case class InboundTransactionRequestStatus(
 
 case class TransactionRequestStatus2(kafkaInboundTransactionRequestStatus: InboundTransactionRequestStatus) extends TransactionRequestStatus {
 
-  override def transactionRequestid: String = kafkaInboundTransactionRequestStatus.transactionRequestId
+  override def transactionRequestId: String = kafkaInboundTransactionRequestStatus.transactionRequestId
   override def bulkTransactionsStatus: List[TransactionStatus] = kafkaInboundTransactionRequestStatus.bulkTransactionsStatus
 }
 
