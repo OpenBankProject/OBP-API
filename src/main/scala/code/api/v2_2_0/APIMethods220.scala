@@ -735,7 +735,7 @@ trait APIMethods220 {
                                                                )
           } yield {
             // Format the data as json
-            val json = JSONFactory210.createConsumerJSON(consumer)
+            val json = JSONFactory220.createConsumerJSON(consumer)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
