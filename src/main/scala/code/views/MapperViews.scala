@@ -510,6 +510,14 @@ object MapperViews extends Views with MdcLoggable {
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
       canDeleteWhereTag_(true).
+      canSeeBankRoutingScheme_(true). //added following in V300
+      canSeeBankRoutingAddress_(true).
+      canSeeBankAccountRoutingScheme_(true).
+      canSeeBankAccountRoutingAddress_(true).
+      canSeeOtherBankRoutingScheme_(true).
+      canSeeOtherBankRoutingAddress_(true).
+      canSeeOtherAccountRoutingScheme_(true).
+      canSeeOtherAccountRoutingAddress_(true).
       saveMe)
   }
 
@@ -747,7 +755,14 @@ object MapperViews extends Views with MdcLoggable {
       canDeleteImage_(true).
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
-      canDeleteWhereTag_(true)
+      canSeeBankRoutingScheme_(true). //added following in V300
+      canSeeBankRoutingAddress_(true).
+      canSeeBankAccountRoutingScheme_(true).
+      canSeeBankAccountRoutingAddress_(true).
+      canSeeOtherBankRoutingScheme_(true).
+      canSeeOtherBankRoutingAddress_(true).
+      canSeeOtherAccountRoutingScheme_(true).
+      canSeeOtherAccountRoutingAddress_(true)
   }
 
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
@@ -830,7 +845,15 @@ object MapperViews extends Views with MdcLoggable {
       canDeleteImage_(true).
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
-      canDeleteWhereTag_(true)
+      canDeleteWhereTag_(true).
+      canSeeBankRoutingScheme_(true). //added following in V300
+      canSeeBankRoutingAddress_(true).
+      canSeeBankAccountRoutingScheme_(true).
+      canSeeBankAccountRoutingAddress_(true).
+      canSeeOtherBankRoutingScheme_(true).
+      canSeeOtherBankRoutingAddress_(true).
+      canSeeOtherAccountRoutingScheme_(true).
+      canSeeOtherAccountRoutingAddress_(true)
   }
 
   def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
@@ -914,7 +937,15 @@ Auditors
       canDeleteImage_(true).
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
-      canDeleteWhereTag_(true)
+      canDeleteWhereTag_(true).
+      canSeeBankRoutingScheme_(true). //added following in V300
+      canSeeBankRoutingAddress_(true).
+      canSeeBankAccountRoutingScheme_(true).
+      canSeeBankAccountRoutingAddress_(true).
+      canSeeOtherBankRoutingScheme_(true).
+      canSeeOtherBankRoutingAddress_(true).
+      canSeeOtherAccountRoutingScheme_(true).
+      canSeeOtherAccountRoutingAddress_(true)
   }
 
   def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
