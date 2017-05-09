@@ -178,10 +178,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
-  object key extends MappedString(this, 250){
-    override def dbIndexed_? = true
-  }
-
+  object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object isActive extends MappedBoolean(this){
     override def defaultValue = Props.getBool("consumers_enabled_by_default", false)
@@ -221,6 +218,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  * working for long.
  */
 object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
+
+  override def dbIndexes = UniqueIndex(key) :: super.dbIndexes
+
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
 

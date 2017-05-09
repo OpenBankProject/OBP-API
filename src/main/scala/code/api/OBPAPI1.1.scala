@@ -454,7 +454,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
   })
   serve("obp" / "v1.1" prefix {
     case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
-      import code.api.v1_2_1.APIMethods121.getTransactionParams
+      import code.api.util.APIUtil.getTransactionParams
 
       //log the API call
       logAPICall

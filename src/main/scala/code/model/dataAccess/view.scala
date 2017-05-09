@@ -114,6 +114,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeBankAccountNumber_(actions.exists(_ == "can_see_bank_account_number"))
     canSeeBankAccountBankName_(actions.exists(_ == "can_see_bank_account_bank_name"))
     canSeeBankAccountBankPermalink_(actions.exists(_ == "can_see_bank_account_bank_permalink"))
+    canSeeBankRoutingScheme_(actions.exists(_ == "can_see_bank_routing_scheme"))
+    canSeeBankRoutingAddress_(actions.exists(_ == "can_see_bank_routing_address"))
+    canSeeBankAccountRoutingScheme_(actions.exists(_ == "can_see_bank_account_routing_scheme"))
+    canSeeBankAccountRoutingAddress_(actions.exists(_ == "can_see_bank_account_routing_address"))
     canSeeOtherAccountNationalIdentifier_(actions.exists(_ == "can_see_other_account_national_identifier"))
     canSeeOtherAccountSWIFT_BIC_(actions.exists(_ == "can_see_other_account_swift_bic"))
     canSeeOtherAccountIBAN_(actions.exists(_ == "can_see_other_account_iban"))
@@ -121,6 +125,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeOtherAccountNumber_(actions.exists(_ == "can_see_other_account_number"))
     canSeeOtherAccountMetadata_(actions.exists(_ == "can_see_other_account_metadata"))
     canSeeOtherAccountKind_(actions.exists(_ == "can_see_other_account_kind"))
+    canSeeOtherBankRoutingScheme_(actions.exists(_ == "can_see_other_bank_routing_scheme"))
+    canSeeOtherBankRoutingAddress_(actions.exists(_ == "can_see_other_bank_routing_address"))
+    canSeeOtherAccountRoutingScheme_(actions.exists(_ == "can_see_other_account_routing_scheme"))
+    canSeeOtherAccountRoutingAddress_(actions.exists(_ == "can_see_other_account_routing_address"))
     canSeeMoreInfo_(actions.exists(_ == "can_see_more_info"))
     canSeeUrl_(actions.exists(_ == "can_see_url"))
     canSeeImageUrl_(actions.exists(_ == "can_see_image_url"))
@@ -242,6 +250,18 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeBankAccountBankPermalink_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeBankRoutingScheme_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeBankRoutingAddress_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeBankAccountRoutingScheme_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeBankAccountRoutingAddress_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeOtherAccountNationalIdentifier_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -261,6 +281,18 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeOtherAccountKind_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeOtherBankRoutingScheme_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeOtherBankRoutingAddress_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeOtherAccountRoutingScheme_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeOtherAccountRoutingAddress_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeMoreInfo_ extends MappedBoolean(this){
@@ -401,6 +433,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeBankAccountNumber : Boolean = canSeeBankAccountNumber_.get
   def canSeeBankAccountBankName : Boolean = canSeeBankAccountBankName_.get
   def canSeeBankAccountBankPermalink : Boolean = canSeeBankAccountBankPermalink_.get
+  def canSeeBankRoutingScheme : Boolean = canSeeBankRoutingScheme_.get
+  def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
+  def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
+  def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get
@@ -410,6 +446,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeOtherAccountNumber : Boolean = canSeeOtherAccountNumber_.get
   def canSeeOtherAccountMetadata : Boolean = canSeeOtherAccountMetadata_.get
   def canSeeOtherAccountKind : Boolean = canSeeOtherAccountKind_.get
+  def canSeeOtherBankRoutingScheme : Boolean = canSeeOtherBankRoutingScheme_.get
+  def canSeeOtherBankRoutingAddress : Boolean = canSeeOtherBankRoutingAddress_.get
+  def canSeeOtherAccountRoutingScheme : Boolean = canSeeOtherAccountRoutingScheme_.get
+  def canSeeOtherAccountRoutingAddress : Boolean = canSeeOtherAccountRoutingAddress_.get
 
   //other bank account meta data
   def canSeeMoreInfo: Boolean = canSeeMoreInfo_.get

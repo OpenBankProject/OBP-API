@@ -128,11 +128,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }("getBank")
 
   private def getMappedBank(bankId: BankId): Box[MappedBank] =
-    MappedBank.find(By(MappedBank.permalink, bankId.value))
+    MappedBank
+      .find(By(MappedBank.permalink, bankId.value))
+      .map(
+        bank => 
+          bank.bankRoutingScheme ==null && bank.bankRoutingAddress == null match {
+            case true  => bank.mBankRoutingScheme("OBP_BANK_ID").mBankRoutingAddress(bank.bankId.value) 
+            case _ => bank
+          }
+      )
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = saveConnectorMetric {
-      MappedBank.findAll()
+      MappedBank
+        .findAll()
+        .map(
+          bank =>
+            bank.bankRoutingScheme ==null && bank.bankRoutingAddress == null match {
+              case true  => bank.mBankRoutingScheme("OBP_BANK_ID").mBankRoutingAddress(bank.bankId.value)
+              case _ => bank
+            }
+        )
   }("getBanks")
 
 
@@ -202,9 +218,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
-    MappedBankAccount.find(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value))
+    MappedBankAccount
+      .find(By(MappedBankAccount.bank, bankId.value), 
+        By(MappedBankAccount.theAccountId, accountId.value))
+      .map(
+        account => 
+          account.accountRoutingScheme ==null && account.accountRoutingAddress == null match {
+            case true  => account.mAccountRoutingScheme("OBP_ACCOUNT_ID").mAccountRoutingAddress(account.accountId.value) 
+            case _ => account
+        }
+    )
   }
 
   override def getEmptyBankAccount(): Box[AccountType] = {
@@ -920,9 +943,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
-    MappedBranch.find(
-      By(MappedBranch.mBankId, bankId.value),
-      By(MappedBranch.mBranchId, branchId.value)
+    MappedBranch
+      .find(
+        By(MappedBranch.mBankId, bankId.value), 
+        By(MappedBranch.mBranchId, branchId.value))
+      .map(
+        branch => 
+          branch.branchRoutingScheme == null && branch.branchRoutingAddress == null match {
+            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value) 
+            case _ => branch
+        }
     )
   }
 

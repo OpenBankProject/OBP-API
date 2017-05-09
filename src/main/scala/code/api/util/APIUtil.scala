@@ -34,12 +34,12 @@ package code.api.util
 
 import java.io.InputStream
 import java.text.SimpleDateFormat
-import java.util.UUID
-
+import java.util.{Date, UUID}
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api.v1_2.{ErrorMessage, SuccessMessage}
+import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
@@ -56,16 +56,15 @@ import net.liftweb.json.{Extraction, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
-
 import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import code.util.Helper.SILENCE_IS_GOLDEN
 import code.util.Helper.MdcLoggable
-
 import scala.concurrent.Future
 
 object ErrorMessages {
+import code.api.util.APIUtil._
 
   // Infrastructure / config messages
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
@@ -121,6 +120,11 @@ object ErrorMessages {
   val RemoteDataSecretMatchError = "OBP-20021: Remote data secret cannot be matched!"
   val RemoteDataSecretObtainError = "OBP-20022: Remote data secret cannot be obtained!"
   
+  val FilterSortDirectionError = "OBP-20023: obp_sort_direction parameter can only take two values: DESC or ASC!"
+  val FilterOffersetError = "OBP-20024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!"
+  val FilterLimitError = "OBP-20025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!"
+  val FilterDateFormatError = s"OBP-20026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!"
+  
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
@@ -152,6 +156,7 @@ object ErrorMessages {
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create customer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
+  val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -238,7 +243,11 @@ object APIUtil extends MdcLoggable {
   val exampleDateString: String = "22/08/2013"
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse(exampleDateString)
-
+  val emptyObjectJson = EmptyClassJson()
+  val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  import code.api.util.ErrorMessages._
+  
   def httpMethod : String =
     S.request match {
       case Full(r) => r.request.method
@@ -468,7 +477,141 @@ object APIUtil extends MdcLoggable {
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
+  
+  def stringOrNull(text : String) =
+    if(text == null || text.isEmpty)
+      null
+    else
+      text
+  
+  def stringOptionOrNull(text : Option[String]) =
+    text match {
+      case Some(t) => stringOrNull(t)
+      case _ => null
+    }
 
+  //started -- Filtering and Paging revelent methods////////////////////////////
+  object DateParser {
+    /**
+      * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
+      * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
+      */
+    def parse(date: String): Box[Date] = {
+      val parsedDate = tryo{
+        defaultFilterFormat.parse(date)
+      }
+      
+      lazy val fallBackParsedDate = tryo{
+        fallBackFilterFormat.parse(date)
+      }
+      
+      if(parsedDate.isDefined){
+        Full(parsedDate.get)
+      }
+      else if(fallBackParsedDate.isDefined){
+        Full(fallBackParsedDate.get)
+      }
+      else{
+        Failure(FilterDateFormatError)
+      }
+    }
+  }
+  
+   def getSortDirection(req: Req): Box[OBPOrder] = {
+    req.header("obp_sort_direction") match {
+      case Full(v) => {
+        if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
+          Full(OBPOrder(Some(v.toLowerCase)))
+        }
+        else{
+          Failure(FilterSortDirectionError)
+        }
+      }
+      case _ => Full(OBPOrder(None))
+    }
+  }
+  
+   def getFromDate(req: Req): Box[OBPFromDate] = {
+    val date: Box[Date] = req.header("obp_from_date") match {
+      case Full(d) => {
+        DateParser.parse(d)
+      }
+      case _ => {
+        Full(new Date(0))
+      }
+    }
+    
+    date.map(OBPFromDate(_))
+  }
+  
+   def getToDate(req: Req): Box[OBPToDate] = {
+    val date: Box[Date] = req.header("obp_to_date") match {
+      case Full(d) => {
+        DateParser.parse(d)
+      }
+      case _ => Full(new Date())
+    }
+    
+    date.map(OBPToDate(_))
+  }
+  
+   def getOffset(req: Req): Box[OBPOffset] = {
+    getPaginationParam(req, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
+  }
+  
+   def getLimit(req: Req): Box[OBPLimit] = {
+    getPaginationParam(req, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
+  }
+  
+   def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
+    req.header(paramName) match {
+      case Full(v) => {
+        tryo{
+          v.toInt
+        } match {
+          case Full(value) => {
+            if(value >= minimumValue){
+              Full(value)
+            }
+            else{
+              Failure(errorMsg)
+            }
+          }
+          case _ => Failure(errorMsg)
+        }
+      }
+      case _ => Full(defaultValue)
+    }
+  }
+  
+  def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
+    for{
+      sortDirection <- getSortDirection(req)
+      fromDate <- getFromDate(req)
+      toDate <- getToDate(req)
+      limit <- getLimit(req)
+      offset <- getOffset(req)
+    }yield{
+      /**
+        * sortBy is currently disabled as it would open up a security hole:
+        *
+        * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
+        * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
+        * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
+        * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
+        *
+        * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
+        *
+        */
+      //val sortBy = json.header("obp_sort_by")
+      val sortBy = None
+      val ordering = OBPOrdering(sortBy, sortDirection)
+      limit :: offset :: ordering :: fromDate :: toDate :: Nil
+    }
+  }
+  //ended -- Filtering and Paging revelent methods  ////////////////////////////
+
+  
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
     import javax.crypto

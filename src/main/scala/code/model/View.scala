@@ -105,12 +105,12 @@ case class UpdateViewJSON(
   * @define description A description of the view
   * @define isPublic Set to True if the view should be open to the public (no authorisation required!) Set to False to require authorisation
   * @define users A list of users that can use this view
-  * @define usePublicAliasIfOneExists If true and the counterparty in a transaciton has a public alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
-  * @define usePrivateAliasIfOneExists If true and the counterparty in a transaciton has a private alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
+  * @define usePublicAliasIfOneExists If true and the counterparty in a transaction has a public alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
+  * @define usePrivateAliasIfOneExists If true and the counterparty in a transaction has a private alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
   * @define hideOtherAccountMetadataIfAlias If true, the view will hide counterparty metadata if the counterparty has an alias. This is to preserve anonymity if required.
   *
   * @define canSeeTransactionThisBankAccount If true, the view will show information about the Transaction account (this account)
-  * @define canSeeTransactionOtherBankAccount If true, the view will show information about the Transaciton counterparty
+  * @define canSeeTransactionOtherBankAccount If true, the view will show information about the Transaction counterparty
   * @define canSeeTransactionMetadata If true, the view will show any Transaction metadata
   * @define canSeeTransactionDescription If true, the view will show the Transaction description
   * @define canSeeTransactionAmount If true, the view will show the Transaction amount (value, not currency)
@@ -135,6 +135,10 @@ case class UpdateViewJSON(
   * @define canSeeBankAccountIban If true, the view will show the IBAN
   * @define canSeeBankAccountNumber If true, the view will show the account number
   * @define canSeeBankAccountBankName If true, the view will show the bank name
+  * @define canSeeBankRoutingScheme If true, the view will show the BankRoutingScheme 
+  * @define canSeeBankRoutingAddress If true, the view will show the BankRoutingAddress 
+  * @define canSeeBankAccountRoutingScheme If true, the view will show the BankAccountRoutingScheme 
+  * @define canSeeBankAccountRoutingAddress If true, the view will show the BankAccountRoutingAddress 
 
   * @define canSeeOtherAccountNationalIdentifier If true, the view will show the Counterparty bank national identifier
   * @define canSeeOtherAccountSWIFT_BIC If true, the view will show the Counterparty SWIFT BIC
@@ -143,6 +147,10 @@ case class UpdateViewJSON(
   * @define canSeeOtherAccountNumber If true, the view will show the Counterparty Account Number
   * @define canSeeOtherAccountMetadata If true, the view will show the Counterparty Metadata
   * @define canSeeOtherAccountKind If true, the view will show the Counterparty Account Type. This is unlikely to be a full financial product name.
+  * @define canSeeOtherBankRoutingScheme If true, the view will show the OtherBankRoutingScheme       
+  * @define canSeeOtherBankRoutingAddress If true, the view will show the OtherBankRoutingScheme       
+  * @define canSeeOtherAccountRoutingScheme If true, the view will show the OtherBankRoutingScheme     
+  * @define canSeeOtherAccountRoutingAddress If true, the view will show the OtherBankRoutingScheme     
 
   * @define canSeeMoreInfo If true, the view will show the Counterparty More Info text
   * @define canSeeUrl If true, the view will show the Counterparty Url
@@ -165,13 +173,13 @@ case class UpdateViewJSON(
   * @define canDeletePhysicalLocation If true, the can add show the Counterparty PhysicalLocation
   *
   * @define canEditOwnerComment If true, the view can edit the Transaction Owner Comment
-  * @define canAddComment If true, the view can add a Transaciton Comment
-  * @define canDeleteComment If true, the view can delete a Transaciton Comment
-  * @define canAddTag If true, the view can add a Transaciton Tag
-  * @define canDeleteTag If true, the view can delete a Transaciton Tag
-  * @define canAddImage If true, the view can add a Transaciton Image
-  * @define canDeleteImage If true, the view can delete a Transaciton Image
-  * @define canAddWhereTag If true, the view can add a Transaciton Where Tag
+  * @define canAddComment If true, the view can add a Transaction Comment
+  * @define canDeleteComment If true, the view can delete a Transaction Comment
+  * @define canAddTag If true, the view can add a Transaction Tag
+  * @define canDeleteTag If true, the view can delete a Transaction Tag
+  * @define canAddImage If true, the view can add a Transaction Image
+  * @define canDeleteImage If true, the view can delete a Transaction Image
+  * @define canAddWhereTag If true, the view can add a Transaction Where Tag
   * @define canSeeWhereTag If true, the view can show the Transaction Where Tag
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
@@ -236,6 +244,10 @@ trait View {
   def canSeeBankAccountIban : Boolean
   def canSeeBankAccountNumber : Boolean
   def canSeeBankAccountBankName : Boolean
+  def canSeeBankRoutingScheme : Boolean
+  def canSeeBankRoutingAddress : Boolean
+  def canSeeBankAccountRoutingScheme : Boolean
+  def canSeeBankAccountRoutingAddress : Boolean
 
   //other bank account (counterparty) fields
   def canSeeOtherAccountNationalIdentifier : Boolean
@@ -245,6 +257,10 @@ trait View {
   def canSeeOtherAccountNumber : Boolean
   def canSeeOtherAccountMetadata : Boolean
   def canSeeOtherAccountKind : Boolean
+  def canSeeOtherBankRoutingScheme : Boolean
+  def canSeeOtherBankRoutingAddress : Boolean
+  def canSeeOtherAccountRoutingScheme : Boolean
+  def canSeeOtherAccountRoutingAddress : Boolean
 
   //other bank account meta data - read
   def canSeeMoreInfo: Boolean
@@ -471,8 +487,11 @@ trait View {
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
       val bankId = bankAccount.bankId
-      val accountRoutingScheme = Some(bankAccount.accountRoutingScheme) // TODO moderate this with canSeeBankAccountRoutingScheme
-      val accountRoutingAddress = Some(bankAccount.accountRoutingAddress) // TODO moderate this with canSeeBankAccountRoutingAddress
+      //From V300, use scheme and address stuff...
+      val bankRoutingScheme = if(canSeeBankRoutingScheme) Some(bankAccount.bankRoutingScheme) else None 
+      val bankRoutingAddress = if(canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None 
+      val accountRoutingScheme = if(canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None 
+      val accountRoutingAddress = if(canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None 
 
       Some(
         new ModeratedBankAccount(
@@ -488,6 +507,8 @@ trait View {
           number = number,
           bankName = bankName,
           bankId = bankId,
+          bankRoutingScheme = bankRoutingScheme,
+          bankRoutingAddress = bankRoutingAddress,
           accountRoutingScheme = accountRoutingScheme,
           accountRoutingAddress = accountRoutingAddress
         )
@@ -545,6 +566,10 @@ trait View {
       val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
       val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
+      val otherBankRoutingScheme = if(canSeeOtherBankRoutingScheme) Some(otherBankAccount.otherBankRoutingScheme) else None
+      val otherBankRoutingAddress = if(canSeeOtherBankRoutingAddress) otherBankAccount.otherBankRoutingAddress else None
+      val otherAccountRoutingScheme = if(canSeeOtherAccountRoutingScheme) Some(otherBankAccount.otherAccountRoutingScheme) else None
+      val otherAccountRoutingAddress = if(canSeeOtherAccountRoutingAddress) otherBankAccount.otherAccountRoutingAddress else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){
           //other bank account metadata
@@ -603,7 +628,11 @@ trait View {
           bankName = otherAccountBankName,
           number = otherAccountNumber,
           metadata = otherAccountMetadata,
-          kind = otherAccountKind
+          kind = otherAccountKind,
+          bankRoutingAddress = otherBankRoutingScheme,
+          bankRoutingScheme = otherBankRoutingAddress,
+          accountRoutingScheme = otherAccountRoutingScheme,
+          accountRoutingAddress = otherAccountRoutingAddress
         )
       )
     }

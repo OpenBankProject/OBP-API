@@ -201,7 +201,7 @@ object SwaggerDefinitionsJSON {
     open_corporates_URL = "String"
   )
   
-  val accountRoutingJSON = AccountRoutingJSON(
+  val accountRoutingJSON = AccountRoutingJsonV121(
     scheme = "IBAN",
     address = "DE89 3704 0044 0532 0130 00"
   )
@@ -1480,7 +1480,7 @@ object SwaggerDefinitionsJSON {
       "0"
     ),
     branch_id = "1234",
-    account_routing = AccountRoutingJSON(
+    account_routing = AccountRoutingJsonV121(
       scheme = "OBP",
       address = "UK123456"
     )
@@ -1527,6 +1527,93 @@ object SwaggerDefinitionsJSON {
   
   val connectorMetricsJson = ConnectorMetricsJson(
     metrics = List(connectorMetricJson)
+  )
+  
+  //V300
+  ///////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
+  import code.api.v3_0_0._
+
+  val viewJsonV300 =  ViewJsonV300(
+    id = "1234",
+    short_name = "short_name",
+    description = "description",
+    is_public = true,
+    alias = "No",
+    hide_metadata_if_alias_used = true,
+    can_add_comment = true,
+    can_add_corporate_location = true,
+    can_add_image = true,
+    can_add_image_url = true,
+    can_add_more_info = true,
+    can_add_open_corporates_url = true,
+    can_add_physical_location = true,
+    can_add_private_alias = true,
+    can_add_public_alias = true,
+    can_add_tag = true,
+    can_add_url = true,
+    can_add_where_tag = true,
+    can_delete_comment = true,
+    can_add_counterparty = true,
+    can_delete_corporate_location = true,
+    can_delete_image = true,
+    can_delete_physical_location = true,
+    can_delete_tag = true,
+    can_delete_where_tag = true,
+    can_edit_owner_comment = true,
+    can_see_bank_account_balance = true,
+    can_see_bank_account_bank_name = true,
+    can_see_bank_account_currency = true,
+    can_see_bank_account_iban = true,
+    can_see_bank_account_label = true,
+    can_see_bank_account_national_identifier = true,
+    can_see_bank_account_number = true,
+    can_see_bank_account_owners = true,
+    can_see_bank_account_swift_bic = true,
+    can_see_bank_account_type = true,
+    can_see_comments = true,
+    can_see_corporate_location = true,
+    can_see_image_url = true,
+    can_see_images = true,
+    can_see_more_info = true,
+    can_see_open_corporates_url = true,
+    can_see_other_account_bank_name = true,
+    can_see_other_account_iban = true,
+    can_see_other_account_kind = true,
+    can_see_other_account_metadata = true,
+    can_see_other_account_national_identifier = true,
+    can_see_other_account_number = true,
+    can_see_other_account_swift_bic = true,
+    can_see_owner_comment = true,
+    can_see_physical_location = true,
+    can_see_private_alias = true,
+    can_see_public_alias = true,
+    can_see_tags = true,
+    can_see_transaction_amount = true,
+    can_see_transaction_balance = true,
+    can_see_transaction_currency = true,
+    can_see_transaction_description = true,
+    can_see_transaction_finish_date = true,
+    can_see_transaction_metadata = true,
+    can_see_transaction_other_bank_account = true,
+    can_see_transaction_start_date = true,
+    can_see_transaction_this_bank_account = true,
+    can_see_transaction_type = true,
+    can_see_url = true,
+    can_see_where_tag = true,
+    //V300 new 
+    can_see_bank_routing_scheme = true,
+    can_see_bank_routing_address = true,
+    can_see_bank_account_routing_scheme = true,
+    can_see_bank_account_routing_address = true,
+    can_see_other_bank_routing_scheme = true,
+    can_see_other_bank_routing_address = true,
+    can_see_other_account_routing_scheme = true,
+    can_see_other_account_routing_address = true 
+  )
+  
+  val viewsJsonV300 =  ViewsJsonV300(
+    views = List(viewJsonV300)
   )
   
   //The commont error or success format.

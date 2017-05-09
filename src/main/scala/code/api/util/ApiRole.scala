@@ -72,6 +72,9 @@ object ApiRole {
   case object CanUpdateConsumerRedirectUrl extends ApiRole{
     val requiresBankId = false
   }
+  case object CanCreateConsumer extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateTransactionType extends ApiRole{
     val requiresBankId = true
   }
@@ -120,6 +123,7 @@ object ApiRole {
     case "CanDisableConsumers" => CanDisableConsumers
     case "CanEnableConsumers" => CanEnableConsumers
     case "CanUpdateConsumerRedirectUrl" => CanUpdateConsumerRedirectUrl
+    case "CanCreateConsumer" => CanCreateConsumer
     case "CanCreateTransactionType" => CanCreateTransactionType
     case "CanCreateCardsForBank" => CanCreateCardsForBank
     case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
@@ -153,6 +157,7 @@ object ApiRole {
                       "CanDisableConsumers" ::
                       "CanEnableConsumers" ::
                       "CanUpdateConsumerRedirectUrl" ::
+                      "CanCreateConsumer" ::
                       "CanCreateTransactionType"::
                       "CanCreateCardsForBank" ::
                       "CanCreateUserCustomerLink" ::

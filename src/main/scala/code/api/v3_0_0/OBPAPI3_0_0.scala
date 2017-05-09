@@ -29,7 +29,7 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.v2_2_0
+package code.api.v3_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.ResourceDoc
@@ -37,6 +37,7 @@ import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
+import code.api.v2_2_0.APIMethods220
 import code.model.User
 import net.liftweb.common.Box
 import code.util.Helper.MdcLoggable
@@ -45,15 +46,15 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
-object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with MdcLoggable {
-
+object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with MdcLoggable {
   
-  val version = "2.2.0"
+  
+  val version = "3.0.0"
   val versionStatus = "BLEEDING-EDGE"
 
-  // Get disbled API versions from props
+  // Get disabled API versions from props
   val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
-  // Get disbled API endpoints from props
+  // Get disabled API endpoints from props
   val disabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
@@ -78,7 +79,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.addTagForViewOnTransaction ::
                           Implementations1_2_1.addTransactionNarrative ::
                           Implementations1_2_1.addWhereTagForViewOnTransaction ::
-                          // Now in 2.0.0 "allAccountsAllBanks"::
+                          // Now in 3.0.0 "allAccountsAllBanks"::
                           Implementations1_2_1.bankById ::
                           // Implementations1_2_1.createViewForBankAccount ::
                           Implementations1_2_1.deleteCommentForViewOnTransaction ::
@@ -108,7 +109,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.getTagsForViewOnTransaction ::
                           Implementations1_2_1.getTransactionByIdForBankAccount ::
                           Implementations1_2_1.getTransactionNarrative ::
-                          Implementations1_2_1.getTransactionsForBankAccount ::
+                          //now in V300      
+                          //Implementations1_2_1.getTransactionsForBankAccount ::
                           //Implementations1_2_1.getViewsForBankAccount ::
                           Implementations1_2_1.getWhereTagForViewOnTransaction ::
                           Implementations1_2_1.removePermissionForUserForBankAccountForAllViews ::
@@ -178,8 +180,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.0.0 - BEGIN ###
   // Updated in 2.0.0 (less info about the views)
   //First step - make a list of allowed endpoints
-  val endpointsOf2_0_0 = Implementations2_0_0.allAccountsAllBanks ::
-                          Implementations2_0_0.accountById ::
+  val endpointsOf2_0_0 = //Now in V3.0.0 Implementations2_0_0.allAccountsAllBanks ::
+                         //Now in V3.0.0 Implementations2_0_0.accountById ::
                           Implementations2_0_0.addEntitlement ::
                           Implementations2_0_0.addKycCheck ::
                           Implementations2_0_0.addKycDocument ::
@@ -196,8 +198,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.elasticSearchMetrics ::
                           Implementations2_0_0.elasticSearchWarehouse ::
                           Implementations2_0_0.getAllEntitlements ::
-                          Implementations2_0_0.getCoreAccountById ::
-                          Implementations2_0_0.getCoreTransactionsForBankAccount ::
+                          //now in V300 Implementations2_0_0.getCoreAccountById ::
+                          //now in V300 Implementations2_0_0.getCoreTransactionsForBankAccount ::
                           Implementations2_0_0.getCurrentUser ::
                           Implementations2_0_0.getEntitlements ::
                           Implementations2_0_0.getKycChecks ::
@@ -230,7 +232,6 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.1.0 - BEGIN ###
   // New in 2.1.0
   //First step - make a list of allowed endpoints
-  // TODO make these use the values of partial functions rather than strings
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
                           Implementations2_1_0.createTransactionRequest ::
@@ -266,15 +267,13 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 2.1.0 - END ###
-
-
+  
+  
   // ### VERSION 2.1.0 - BEGIN ###
-  // New in 2.2.0
   //First step - make a list of allowed endpoints
-  // TODO make these use the values of partial functions rather than strings
-  val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
-                          Implementations2_2_0.createViewForBankAccount ::
-                          Implementations2_2_0.updateViewForBankAccount ::
+  val endpointsOf2_2_0 = //V300 Implementations2_2_0.getViewsForBankAccount ::
+                          //V300 Implementations2_2_0.createViewForBankAccount ::
+                          //V300 Implementations2_2_0.updateViewForBankAccount ::
                           Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getMessageDocs ::
@@ -283,24 +282,38 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createBranch ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
-                          Implementations2_2_0.createConsumer ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations2_2_0.resourceDocs
-        if (!disabledVersions.contains("v" + item.apiVersion)
-          && !disabledEndpoints.contains(item.apiFunction)
-          && endpointsOf2_2_0.exists(_ == item.partialFunction)
-          )
-  ) {
+  for ( item <- Implementations2_2_0.resourceDocs if (!disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) && endpointsOf2_2_0.exists(_ == item.partialFunction))) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 2.2.0 - END ###
+  
+  // New in 3.0.0
+  //First step - make a list of allowed endpoints
+  val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
+                          Implementations3_0_0.getTransactionsForBankAccount ::
+                          Implementations3_0_0.accountById ::
+                          Implementations3_0_0.getCoreAccountById ::
+                          Implementations3_0_0.getViewsForBankAccount ::
+                          Implementations3_0_0.createViewForBankAccount ::
+                          Implementations3_0_0.updateViewForBankAccount ::
+                          Nil
+  //Second step - iterate through all endpoints defined in resource doc
+  //       then - omit endpoints of disabled version in props file
+  //       and  - omit partially disabled endpoint in props file
+  //       and  - add only ones which intersect with the list defined in the first step
+  for ( item <- Implementations3_0_0.resourceDocs if (!disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) && endpointsOf3_0_0.exists(_ == item.partialFunction))) {
+    routes = routes:::List(item.partialFunction)
+  }
+  // ### VERSION 3.0.0 - END ###
 
   def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
-    val all = Implementations2_2_0.resourceDocs ++
+    val all = Implementations3_0_0.resourceDocs ++
+              Implementations2_2_0.resourceDocs ++
               Implementations2_1_0.resourceDocs ++
               Implementations2_0_0.resourceDocs ++
               Implementations1_4_0.resourceDocs ++
