@@ -1,13 +1,13 @@
 package code.remotedata
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.entitlement.{Entitlement, EntitlementProvider, RemotedataEntitlementsCaseClasses}
 import net.liftweb.common.Box
-
 import scala.collection.immutable.List
 
 
-object RemotedataEntitlements extends ActorInit with EntitlementProvider {
+object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
 
   val cc = RemotedataEntitlementsCaseClasses
 

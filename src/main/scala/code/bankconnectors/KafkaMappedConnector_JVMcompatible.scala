@@ -33,7 +33,6 @@ import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.bankconnectors.KafkaMappedConnector_JVMcompatible
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -74,11 +73,8 @@ import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilte
 import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
 
+object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
-object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
-
-  lazy val producer = new KafkaProducer()
-  lazy val consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
   
   implicit override val nameOfConnector = KafkaMappedConnector_JVMcompatible.getClass.getSimpleName
@@ -1537,15 +1533,5 @@ object KafkaMappedConnector_JVMcompatible extends Connector with MdcLoggable {
                                 charge_amount: String,
                                 charge_summary: String
                                )
-
-  def process(request: Map[String,String]): json.JValue = {
-    val reqId = UUID.randomUUID().toString
-    if (producer.send(reqId, request, "1")) {
-      // Request sent, now we wait for response with the same reqId
-      val res = consumer.getResponse(reqId)
-      return res
-    }
-    return json.parse("""{"error":"could not send message to kafka"}""")
-  }
 
 }

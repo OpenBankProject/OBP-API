@@ -1,12 +1,11 @@
 package code.remotedata
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.sanitycheck.{RemotedataSanityCheckCaseClasses, SanityChecksImpl}
 import code.util.Helper.MdcLoggable
 
-
-class RemotedataSanityCheckActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataSanityCheckActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = SanityChecksImpl
   val cc = RemotedataSanityCheckCaseClasses

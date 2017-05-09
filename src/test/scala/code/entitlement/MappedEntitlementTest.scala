@@ -16,7 +16,12 @@ class MappedEntitlementTest extends ServerSetup {
   def createEntitlement(bankId: String, userId: String, roleName: String) = Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
 
   private def delete() {
-    MappedEntitlement.bulkDelete_!!()
+    val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
+    found.foreach {
+      d => {
+        Entitlement.entitlement.vend.deleteEntitlement(Full(d))
+      }
+    }
   }
 
   override def beforeAll() = {
@@ -32,10 +37,10 @@ class MappedEntitlementTest extends ServerSetup {
   feature("Getting Entitlement data") {
     scenario("We try to get Entitlement") {
       Given("There is no entitlements at all but we try to get it")
-      MappedEntitlement.findAll().size should equal(0)
+      Entitlement.entitlement.vend.getEntitlements().openOr(List()).size should equal(0)
 
       When("We try to get it all")
-      val found = MappedEntitlementsProvider.getEntitlements.openOr(List())
+      val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
 
       Then("We don't")
       found.size should equal(0)
@@ -45,11 +50,7 @@ class MappedEntitlementTest extends ServerSetup {
   scenario("A Entitlement exists for user and we try to get it") {
     Given("Create an entitlement")
     val entitlement1 = createEntitlement(bankId1, userId1, role1.toString)
-    MappedEntitlement.find(
-      By(MappedEntitlement.mBankId, bankId1),
-      By(MappedEntitlement.mUserId, userId1),
-      By(MappedEntitlement.mRoleName, role1.toString)
-    ).isDefined should equal(true)
+    Entitlement.entitlement.vend.getEntitlement(bankId1, userId1, role1.toString).isDefined should equal(true)
 
     When("We try to get it by bank, user and role")
     val foundOpt = Entitlement.entitlement.vend.getEntitlement(bankId1, userId1, role1.toString)
@@ -87,7 +88,7 @@ class MappedEntitlementTest extends ServerSetup {
     And("We try to delete all rows")
     found.foreach {
       d => {
-        MappedEntitlementsProvider.deleteEntitlement(Full(d)) should equal(Full(true))
+        Entitlement.entitlement.vend.deleteEntitlement(Full(d)) should equal(Full(true))
       }
     }
   }

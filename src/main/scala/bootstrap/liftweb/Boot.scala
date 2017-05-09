@@ -36,12 +36,14 @@ import java.util.Locale
 import javax.mail.internet.MimeMessage
 
 import code.accountholder.MapperAccountHolders
+import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.{APIUtil, ErrorMessages}
 import code.atms.MappedAtm
+import code.bankconnectors.KafkaHelperActors
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
@@ -196,21 +198,9 @@ class Boot extends MdcLoggable {
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
-    if (runningMode == "Production mode")
-      System.setProperty("log_dir", Helper.getHostname)
-
     logger.debug(s"If you can read this, logging level is debug")
 
-
-
-    if (!Props.getBool("remotedata.enable", false)) {
-      try {
-        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
-        RemotedataActors.startLocalWorkerSystem()
-      } catch {
-        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
-      }
-    }
+    val actorSystem = ObpActorSystem.startLocalActorSystem()
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -276,6 +266,21 @@ class Boot extends MdcLoggable {
         Nil
       }
     }
+
+    if (connector.startsWith("kafka")) {
+      logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
+      KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
+    }
+
+    if (!Props.getBool("remotedata.enable", false)) {
+      try {
+        logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
+        RemotedataActors.startActors(actorSystem)
+      } catch {
+        case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) could not start: $ex")
+      }
+    }
+
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file

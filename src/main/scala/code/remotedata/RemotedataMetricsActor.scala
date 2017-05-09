@@ -3,13 +3,13 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 
 
-class RemotedataMetricsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedMetrics
   val cc = RemotedataMetricsCaseClasses
