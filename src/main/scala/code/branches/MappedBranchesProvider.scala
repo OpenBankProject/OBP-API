@@ -18,7 +18,15 @@ object MappedBranchesProvider extends BranchesProvider {
     MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
   override protected def getBranchesFromProvider(bankId: BankId): Option[List[Branch]] = {
-    Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))
+    Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
+      .map(
+        branch =>
+          branch.branchRoutingScheme == null && branch.branchRoutingAddress ==null match {
+            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
+            case _ => branch
+          }
+      )
+    )
   }
 }
 
