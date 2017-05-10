@@ -596,8 +596,8 @@ trait APIMethods220 {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
         user => {
           for {
-            // u <- user ?~! ErrorMessages.UserNotLoggedIn
-            // _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
