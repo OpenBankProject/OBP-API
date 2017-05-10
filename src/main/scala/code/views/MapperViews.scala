@@ -12,6 +12,8 @@ import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
+import net.liftweb.util.Props
+import code.api.util.ErrorMessages._
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
@@ -19,6 +21,8 @@ import code.util.Helper.MdcLoggable
 object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
+  
+  val ALLOW_PUBLIC_VIEWS: Boolean = Props.getBool("allow_public_views").openOr(false)
 
   def permissions(account : BankAccountUID) : List[Permission] = {
 
@@ -43,10 +47,16 @@ object MapperViews extends Views with MdcLoggable {
     // by bankPermalink and accountPermalink
     //TODO: do it in a single query with a join
     val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    val views = privileges.flatMap(_.view.obj).filter(v => {
-      v.accountId == account.accountId &&
-        v.bankId == account.bankId
-    })
+    val views = privileges.flatMap(_.view.obj).filter(v =>
+      if (ALLOW_PUBLIC_VIEWS) {
+        v.accountId == account.accountId &&
+          v.bankId == account.bankId
+      } else {
+        v.accountId == account.accountId && 
+          v.bankId == account.bankId &&
+          !v.isPublic
+      }
+    )
     Full(Permission(user, views))
   }
 
@@ -56,6 +66,7 @@ object MapperViews extends Views with MdcLoggable {
 
     viewImpl match {
       case Full(vImpl) => {
+        if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
           //logger.info(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
           val saved = ViewPrivileges.create.
@@ -89,6 +100,7 @@ object MapperViews extends Views with MdcLoggable {
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
       viewImpls.foreach(v => {
+        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, v.id)) == 0) {
           ViewPrivileges.create.
             user(user.resourceUserId.value).
@@ -173,17 +185,30 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
-    ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
+    val view = ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
+    
+    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    
+    view
   }
 
   def view(viewUID : ViewUID) : Box[View] = {
-    ViewImpl.find(viewUID)
+    val view=ViewImpl.find(viewUID)
+    
+    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    
+    view
   }
 
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
   def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
+  
+    if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
+      return Failure(AllowPublicViewsNotSpecified)
+    }
+  
     if(view.name.contentEquals("")) {
       return Failure("You cannot create a View with an empty Name")
     }
@@ -238,11 +263,24 @@ object MapperViews extends Views with MdcLoggable {
 
   def views(bankAccountId : BankAccountUID) : List[View] = {
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+    //TODO to check the ALLOW_PUBLIC_VIEWS, need throw exception
+    //res.foreach(view => if(view.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified))
+    
   }
-
+  
+  /**
+    * This method is belong to Views trait, check the permitted views of input account for input user.
+    * Select all the views by user and bankAccountUID.
+    * 
+    * @param user the user need to be checked for the views
+    * @param bankAccountId the bankAccountUID, the account will be checked the views.
+    * @return
+    */
   def permittedViews(user: User, bankAccountId: BankAccountUID): List[View] = {
     //TODO: do this more efficiently?
+    //select all views by user.
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
+    //select the nonpublic views by BankAccountUid
     val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
       p.view.obj match {
         case Full(v) => if(
@@ -254,13 +292,15 @@ object MapperViews extends Views with MdcLoggable {
         case _ => None
       }
     })
+    // merge the nonPublic and Pulic views 
+    // TODO why not just findAll(By(user), By(BankId), By(AccountId)) directly ? So complicated now.
     userNonPublicViewsForAccount ++ publicViews(bankAccountId)
   }
 
   def publicViews(bankAccountId : BankAccountUID) : List[View] = {
     //TODO: do this more efficiently?
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*).filter(v => {
-      v.isPublic == true
+      v.isPublic == true && ALLOW_PUBLIC_VIEWS
     })
   }
 
@@ -270,9 +310,10 @@ object MapperViews extends Views with MdcLoggable {
     // An account is considered public if it contains a public view
 
     val bankAndAccountIds : List[(BankId, AccountId)] =
-      ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
-        (v.bankId, v.accountId)
-      ).distinct //we remove duplicates here
+      if (ALLOW_PUBLIC_VIEWS)
+       ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>(v.bankId, v.accountId)).distinct //we remove duplicates here
+      else
+        Nil
 
     val accountsList = bankAndAccountIds.map {
       case (bankId, accountId) => {
@@ -286,9 +327,10 @@ object MapperViews extends Views with MdcLoggable {
     //TODO: do this more efficiently
 
     val accountIds : List[AccountId] =
-      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {
-        v.accountId
-      }).distinct //we remove duplicates here
+      if (ALLOW_PUBLIC_VIEWS)
+        ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {v.accountId}).distinct //we remove duplicates here
+      else
+        Nil
 
     val accountsList = accountIds.map(accountId => {
       BankAccountUID(bank.bankId, accountId)
@@ -305,9 +347,11 @@ object MapperViews extends Views with MdcLoggable {
       case Full(theuser) => {
         //TODO: this could be quite a bit more efficient...
 
-        val publicViewBankAndAccountIds= ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
-          (v.bankId, v.accountId)
-        }).distinct
+        val publicViewBankAndAccountIds=
+          if (ALLOW_PUBLIC_VIEWS)
+            ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {(v.bankId, v.accountId)}).distinct
+          else
+            Nil
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.resourceUserId.value))
         val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
@@ -339,10 +383,11 @@ object MapperViews extends Views with MdcLoggable {
       case Full(theuser) => {
         //TODO: this could be quite a bit more efficient...
 
-        val publicViewBankAndAccountIds = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
-          By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {
-          (v.bankId, v.accountId)
-        }).distinct
+        val publicViewBankAndAccountIds =
+          if (ALLOW_PUBLIC_VIEWS)
+            ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {(v.bankId, v.accountId)}).distinct
+          else 
+            Nil
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.resourceUserId.value))
         val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
@@ -551,6 +596,9 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
+    //TODO to check the ALLOW_PUBLIC_VIEWS, need throw exception
+    //res.foreach(view => if(view.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified))
+    
     res.nonEmpty
   }
 
@@ -559,6 +607,9 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    if(!ALLOW_PUBLIC_VIEWS) {
+      return Failure(AllowPublicViewsNotSpecified)
+    }
     createAndSaveDefaultPublicView(bankId, accountId, "Public View")
   }
 
@@ -576,6 +627,7 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
+    if(res.isDefined && res.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
     res
   }
 
@@ -766,6 +818,9 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    if(!ALLOW_PUBLIC_VIEWS) {
+      return Failure(AllowPublicViewsNotSpecified)
+    }
     val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe
     Full(res)
   }
