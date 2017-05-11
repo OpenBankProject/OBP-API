@@ -545,7 +545,7 @@ object SwaggerDefinitionsJSON {
     on_hot_list = true,
     technology = "String",
     networks = List("String"),
-    allows = List("String"),
+    allows = List("credit"),
     account_id = "String",
     replacement = replacementJSON,
     pin_reset = List(pinResetJSON),
