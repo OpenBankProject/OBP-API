@@ -2,14 +2,12 @@ package code.remotedata
 
 import code.accountholder.{AccountHolders, RemotedataAccountHoldersCaseClasses}
 import code.model.{AccountId, BankId, User}
-import net.liftweb.common.{Full, _}
+import net.liftweb.common.Box
 import akka.pattern.ask
-import akka.util.Timeout
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import code.actorsystem.ObpActorInit
 
 
-object RemotedataAccountHolders extends ActorInit with AccountHolders {
+object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
 
   val cc = RemotedataAccountHoldersCaseClasses
 

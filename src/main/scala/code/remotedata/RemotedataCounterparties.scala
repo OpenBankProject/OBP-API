@@ -1,21 +1,15 @@
 package code.remotedata
 
 import java.util.Date
-
-import akka.actor.ActorKilledException
 import akka.pattern.ask
-import akka.util.Timeout
-import code.api.APIFailure
+import code.actorsystem.ObpActorInit
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemotedataCounterpartiesCaseClasses}
 import code.model._
-import net.liftweb.common.{Full, _}
-
+import net.liftweb.common.Box
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 
-object RemotedataCounterparties extends ActorInit with Counterparties {
+object RemotedataCounterparties extends ObpActorInit with Counterparties {
 
   val cc = RemotedataCounterpartiesCaseClasses
 

@@ -2,10 +2,9 @@ package code.remotedata
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorSystem, ExtendedActorSystem, Props => ActorProps}
-import akka.util.Timeout
+import akka.actor.{ActorSystem, Props => ActorProps}
 import bootstrap.liftweb.ToSchemify
-import code.api.APIFailure
+import code.actorsystem.{ObpActorConfig}
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
@@ -16,69 +15,8 @@ import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 import code.util.Helper.MdcLoggable
 
-trait ActorInit {
-
-  // Deafult is 3 seconds, which should be more than enough for slower systems
-  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
-
-
-  val actorName = CreateActorNameFromClassName(this.getClass.getName)
-  val actor = RemotedataActorSystem.getActor(actorName)
-  val TIMEOUT = (ACTOR_TIMEOUT seconds)
-  implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
-
-  def CreateActorNameFromClassName(c: String): String = {
-    val n = c.replaceFirst("^.*Remotedata", "")
-    Character.toLowerCase(n.charAt(0)) + n.substring(1)
-  }
-
-  def extractFuture[T](f: Future[Any]): T = {
-    val r = f.map {
-      case s: Set[T] => s
-      case l: List[T] => l
-      case t: T => t
-      case _ => Empty ~> APIFailure(s"future extraction failed", 501)
-    }
-    Await.result(r, TIMEOUT).asInstanceOf[T]
-  }
-
-    def extractFutureToBox[T](f: Future[Any]): Box[T] = {
-    val r = f.map {
-      case pf: ParamFailure[_] => Empty ~> pf
-      case af: APIFailure => Empty ~> af
-      case f: Failure => f
-      case Empty => Empty
-      case t: T => Full(t)
-      case _ => Empty ~> APIFailure(s"future extraction to box failed", 501)
-    }
-    Await.result(r, TIMEOUT)
-  }
-
-}
-
-trait ActorHelper {
-
-  def extractResult[T](in: T) = {
-    in match {
-        case pf: ParamFailure[_] => 
-          pf.param match {
-            case af: APIFailure => af
-            case f: Failure => f
-            case _ => pf
-          }
-        case af: APIFailure => af
-        case f: Failure => f
-        case l: List[T] => l
-        case s: Set[T] => s
-        case Full(r) => r
-        case t: T => t
-        case _ => APIFailure(s"result extraction failed", 501)
-      }
-  }
-}
 
 object RemotedataActors extends MdcLoggable {
 
@@ -111,17 +49,11 @@ object RemotedataActors extends MdcLoggable {
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
   }
 
-  def startLocalWorkerSystem(): Unit = {
-    logger.info("Starting local RemotedataActorSystem")
-    logger.info(RemotedataConfig.localConf)
-    val system = ActorSystem.create(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
-    startActors(system)
-  }
-
   def startRemoteWorkerSystem(): Unit = {
     logger.info("Starting remote RemotedataActorSystem")
-    logger.info(RemotedataConfig.remoteConf)
-    val system = ActorSystem(s"RemotedataActorSystem_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
+    logger.info(ObpActorConfig.remoteConf)
+    val hostname = Helper.getRemotedataHostname
+    val system = ActorSystem(s"RemotedataActorSystem_${hostname}", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.remoteConf)))
     startActors(system)
     logger.info("Started")
   }

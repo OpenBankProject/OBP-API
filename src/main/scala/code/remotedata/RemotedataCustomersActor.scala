@@ -3,14 +3,12 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.customer.{AmountOfMoney, _}
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.util.ControlHelpers._
 
-
-class RemotedataCustomersActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedCustomerProvider
   val cc = RemotedataCustomerProviderCaseClasses

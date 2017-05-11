@@ -3,14 +3,13 @@ package code.remotedata
 import java.util.Date
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.customer.{AmountOfMoney, CreditRating, Customer, CustomerFaceImage, CustomerProvider, RemotedataCustomerProviderCaseClasses}
 import code.model._
-import net.liftweb.common.{Full, _}
+import net.liftweb.common.Box
 
 
-
-
-object RemotedataCustomers extends ActorInit with CustomerProvider {
+object RemotedataCustomers extends ObpActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
 

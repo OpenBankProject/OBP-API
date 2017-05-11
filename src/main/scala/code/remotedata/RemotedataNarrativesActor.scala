@@ -1,16 +1,12 @@
 package code.remotedata
 
-import java.util.Date
-
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.metadata.narrative.{MappedNarratives, RemoteNarrativesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.util.ControlHelpers.tryo
 
-
-class RemotedataNarrativesActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataNarrativesActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedNarratives
   val cc = RemoteNarrativesCaseClasses
