@@ -74,21 +74,21 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
     res
   }
 
-  def processRequest(jsonRequest: JValue, reqId: String): String = {
+  def processRequest(jsonRequest: JValue, reqId: String): JValue = {
     import scala.concurrent.ExecutionContext.Implicits.global
     val futureResponse = Future { getResponse(reqId) }
     try {
       val record = new ProducerRecord(requestTopic, reqId, json.compactRender(jsonRequest))
       producer.send(record).get
     } catch {
-      case ie: InterruptedException => return s"""{"error":"sending message to kafka interrupted: ${ie}"}"""
-      case ex: ExecutionException => return s"""{"error":"could not send message to kafka: ${ex}"}"""
-      case t:Throwable => return s"""{"error":"unexpected error sending message to kafka: ${t}"}"""
+      case ie: InterruptedException => return json.parse(s"""{"error":"sending message to kafka interrupted: ${ie}"}""")
+      case ex: ExecutionException => return json.parse(s"""{"error":"could not send message to kafka: ${ex}"}""")
+      case t:Throwable => return json.parse(s"""{"error":"unexpected error sending message to kafka: ${t}"}""")
     }
-    Await.result(futureResponse, Duration("3 seconds"))
+    json.parse(Await.result(futureResponse, Duration("3 seconds"))) \\ "data"
   }
 
-  def kafkaProcess(request: Map[String,String]): String = {
+  def kafkaProcess(request: Map[String,String]): JValue = {
     val reqId = UUID.randomUUID().toString
     val jsonRequest = Extraction.decompose(request)
     processRequest(jsonRequest, reqId)
