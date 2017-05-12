@@ -3,12 +3,12 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, RemotedataUserCustomerLinkProviderCaseClass}
 import code.util.Helper.MdcLoggable
 
 
-class RemotedataUserCustomerLinksActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedUserCustomerLinkProvider
   val cc = RemotedataUserCustomerLinkProviderCaseClass

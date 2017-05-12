@@ -1,13 +1,11 @@
 package code.remotedata
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.metadata.narrative.{Narrative, RemoteNarrativesCaseClasses}
 import code.model._
-import scala.concurrent.Await
 
-
-
-object RemotedataNarratives extends ActorInit with Narrative {
+object RemotedataNarratives extends ObpActorInit with Narrative {
 
   val cc = RemoteNarrativesCaseClasses
 

@@ -1,19 +1,14 @@
 package code.remotedata
 
-
-import akka.actor.ActorKilledException
 import akka.pattern.ask
-import akka.util.Timeout
-import code.api.APIFailure
+import code.actorsystem.ObpActorInit
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, _}
 import code.views.{RemotedataViewsCaseClasses, Views}
-import net.liftweb.common.{Full, _}
-
+import net.liftweb.common.{Box, Full}
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
-object RemotedataViews extends ActorInit with Views {
+
+object RemotedataViews extends ObpActorInit with Views {
 
   val cc = RemotedataViewsCaseClasses
 

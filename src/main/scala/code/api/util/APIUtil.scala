@@ -71,6 +71,7 @@ import code.api.util.APIUtil._
   val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
   val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
   val ServerAddDataError = "OBP-00004: Server error: could not add message"
+  val AllowPublicViewsNotSpecified = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
 
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."

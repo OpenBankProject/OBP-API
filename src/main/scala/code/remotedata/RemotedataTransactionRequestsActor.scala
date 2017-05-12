@@ -1,7 +1,7 @@
 package code.remotedata
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -10,7 +10,7 @@ import code.transactionrequests.{MappedTransactionRequestProvider, RemotedataTra
 import code.util.Helper.MdcLoggable
 
 
-class RemotedataTransactionRequestsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedTransactionRequestProvider
   val cc = RemotedataTransactionRequestsCaseClasses

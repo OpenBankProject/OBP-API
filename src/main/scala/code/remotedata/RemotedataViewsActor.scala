@@ -1,15 +1,13 @@
 package code.remotedata
 
 import akka.actor.Actor
+import code.actorsystem.ObpActorHelper
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 
-import scala.concurrent.duration._
-
-
-class RemotedataViewsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MapperViews
   val cc = RemotedataViewsCaseClasses

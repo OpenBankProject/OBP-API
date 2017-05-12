@@ -1,11 +1,12 @@
 package code.remotedata
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.sanitycheck.{RemotedataSanityCheckCaseClasses, SanityChecks}
 import net.liftweb.common.Box
 
 
-object RemotedataSanityCheck extends ActorInit with SanityChecks {
+object RemotedataSanityCheck extends ObpActorInit with SanityChecks {
 
   val cc = RemotedataSanityCheckCaseClasses
 
