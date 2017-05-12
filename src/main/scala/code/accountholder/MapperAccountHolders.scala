@@ -9,6 +9,9 @@ import net.liftweb.mapper._
 import net.liftweb.common.Box
 
 
+/**
+  * the link userId <--> bankId + accountId 
+  */
 class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with IdPK {
 
   def getSingleton = MapperAccountHolders

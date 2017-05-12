@@ -338,4 +338,7 @@ autocomplete_at_login_form_enabled=false
 # If using Kafka but want to get counterparties from OBP, set this to true
 #get_counterparties_from_OBP_DB=true
 
+# control the create and access to public views. 
+# allow_public_views=false
+
 

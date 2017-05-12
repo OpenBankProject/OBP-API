@@ -915,7 +915,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), UserDoesNotHaveRole +CanCreateCardsForBank)
+            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserDoesNotHaveRole +CanCreateCardsForBank)
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)

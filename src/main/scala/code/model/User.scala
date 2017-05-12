@@ -59,7 +59,14 @@ trait User {
   def emailAddress : String
   //TODO: rename to displayName?
   def name : String
-
+  
+  /**
+    * This method is belong to User trait, checked the user permitted views for the input account.
+    * 
+    * @param bankAccount the bankAccount, checked all the views for this input account
+    *                    
+    * @return the account's permitted views for the user 
+    */
   def permittedViews(bankAccount: BankAccount) : List[View] =
     Views.views.vend.permittedViews(this, BankAccountUID(bankAccount.bankId, bankAccount.accountId))
 
@@ -76,7 +83,12 @@ trait User {
   def views: List[View]
   def permittedView(v: View, b: BankAccount): Boolean =
     views.contains(v)
-
+  
+  /**
+    * This method is belong to the User trait, check if the user have access to the "owner" view for input account
+    * @param bankAccount The input bankAccount, check if it contains "owner" view. 
+    * @return  True: if the bankAccount contains the "owner". False, if no "owner"
+    */
   def ownerAccess(bankAccount: BankAccount): Boolean =
     permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
 
