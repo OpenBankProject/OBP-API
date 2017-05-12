@@ -2,6 +2,7 @@ package code.actorsystem
 
 import code.api.APIFailure
 import net.liftweb.common._
+import net.liftweb.json.JsonAST.JValue
 
 trait ObpActorHelper {
 
@@ -18,6 +19,7 @@ trait ObpActorHelper {
         case l: List[T] => l
         case s: Set[T] => s
         case Full(r) => r
+        case j: JValue => j
         case t: T => t
         case _ => APIFailure(s"result extraction failed", 501)
       }
