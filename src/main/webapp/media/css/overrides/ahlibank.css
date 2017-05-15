@@ -1,8 +1,25 @@
 #logo-left {
 	margin: 10px 0;
 	text-align: center;
+	float: none;
+	display: block;
 }
 
 #logo-left img {
 	max-height: 100px;
+}
+
+
+#nav,
+#main-showcases,
+#main-support,
+#main-links,
+#authorizeSection,
+#registerAppSection,
+#create-sandbox-account {
+	background-color: #b6dcdc;
+}
+
+#main-about-box {
+	background-color: rgba(182, 220, 220, 0.7);
 }
