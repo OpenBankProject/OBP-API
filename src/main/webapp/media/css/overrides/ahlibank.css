@@ -1,0 +1,8 @@
+#logo-left {
+	margin: 10px 0;
+	text-align: center;
+}
+
+#logo-left img {
+	max-height: 100px;
+}
