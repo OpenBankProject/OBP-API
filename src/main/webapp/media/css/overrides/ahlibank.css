@@ -1,14 +1,18 @@
 #logo-left {
-	margin: 10px 0;
+	margin: 0;
 	text-align: center;
 	float: none;
 	display: block;
 }
 
 #logo-left img {
-	max-height: 100px;
+	max-height: none;
+	width: 1050px;
 }
 
+#header {
+	padding: 0;
+}
 
 #nav,
 #main-showcases,
