@@ -28,3 +28,10 @@
 #main-about-box {
 	background-color: rgba(182, 220, 220, 0.7);
 }
+
+#nav ul li:nth-child(1):before {
+	content: "";
+	height: 0px;
+	width: 0px;
+	margin-right: 0px;
+}
