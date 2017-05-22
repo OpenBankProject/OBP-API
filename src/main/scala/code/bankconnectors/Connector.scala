@@ -227,14 +227,8 @@ trait Connector {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     for {
-      tlist <-  getTransactions(thisBankId, thisAccountId).map { t =>
-        t.filter { e =>
-          if (e.otherAccount.thisAccountId.value == metadata.getAccountNumber)
-            true
-          else
-            false
-        }
-      }
+    //TODO, performance issue, when many metadata and many transactions, this will course a big problem .
+      tlist <-  getTransactions(thisBankId, thisAccountId).map(_.filter(_.otherAccount.thisAccountId.value == metadata.getAccountNumber))
     } yield {
       tlist match {
         case list: List[Transaction] if list.nonEmpty =>
