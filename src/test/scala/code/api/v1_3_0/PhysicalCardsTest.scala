@@ -100,9 +100,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     //these methods are required
     override def getPhysicalCards(user : User) : List[PhysicalCard] = {
-      if(user == authuser1) {
+      if(user == resourceUser1) {
         user1AllCards
-      } else if (user == authuser2) {
+      } else if (user == resourceUser2) {
         user2AllCards
       } else {
         List()
@@ -110,9 +110,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     }
 
     override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = {
-      if(user == authuser1) {
+      if(user == resourceUser1) {
         user1CardsForOneBank
-      } else if (user == authuser2) {
+      } else if (user == resourceUser2) {
         user2CardsForOneBank
       } else {
         List()

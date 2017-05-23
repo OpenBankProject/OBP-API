@@ -38,12 +38,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
-        addEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
+        addEntitlement(bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -187,8 +187,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -325,8 +325,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -374,12 +374,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId2 = testBank2.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
-        addEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        addEntitlement(bankId2.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, resourceUser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -442,8 +442,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -646,8 +646,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -826,8 +826,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))

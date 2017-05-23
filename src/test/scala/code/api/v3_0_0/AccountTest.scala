@@ -1,36 +1,14 @@
 package code.api.v3_0_0
 
-import java.text.SimpleDateFormat
-
 import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-import code.model.BankId
-import code.model.dataAccess.MappedBankAccount
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
+
+
 class AccountTest extends V300ServerSetup with DefaultUsers {
-
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
-
-  val mockBankId = BankId("testBank1")
-  val newAccountId1 = "NEW_ACCOUNT_ID_01"
-  val newAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
-
-
-  override def beforeAll() {
-    super.beforeAll()
-  }
-
-  override def afterAll() {
-    super.afterAll()
-    MappedBankAccount.bulkDelete_!!()
-  }
-
-
   feature("Assuring that Get all accounts at all banks works as expected - v3.0.0") {
 
     scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
@@ -38,7 +16,7 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJsonV300(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -86,7 +64,7 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJsonV300(authuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -135,7 +113,7 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val newAccountIdWithSpaces = "account%20with%20spaces"
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJsonV300(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 

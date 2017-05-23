@@ -20,7 +20,6 @@ import org.scalatest.BeforeAndAfter
   */
 class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
-  val mockBankId = "testBank1"
   lazy val transactionTypeJSON = TransactionTypeJsonV200(
     TransactionTypeId("1"), //mockTransactionTypeId,
     "1", //mockBankId.value,
@@ -42,7 +41,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to put data without Authentication - Create Transaction Type...") {
       When("We make the request")
-      val requestPut = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
       Then("We should get a 400")
       responsePut.code should equal(400)
@@ -56,7 +55,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       setCanCreateTransactionType
 
       When("We make the request")
-      val requestPut = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
 
       And("We should get a 200")
@@ -71,7 +70,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       setCanCreateTransactionType
 
       Then("We make the request")
-      val requestPut1 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut1 = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut1 = makePutRequest(requestPut1, write(transactionTypeJSON))
 
       And("We should get a 200")
@@ -86,7 +85,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
         "Many data here", //description,
         AmountOfMoneyJsonV121("EUR", "0"))
 
-      val requestPut = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON2))
 
       And("We should get a 200")
@@ -98,7 +97,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       setCanCreateTransactionType
 
       Then("insert some data and We make the request")
-      val requestPut1 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut1 = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut1 = makePutRequest(requestPut1, write(transactionTypeJSON))
 
       And("We should get a 200")
@@ -113,7 +112,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
         "1", //description,
         AmountOfMoneyJsonV121("EUR", "0"))
 
-      val requestPut2 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut2 = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut2 = makePutRequest(requestPut2, write(transactionTypeJSON1))
 
       And("We should get a 400")
@@ -132,7 +131,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
         "1", //description,
         AmountOfMoneyJsonV121("EUReeeeeeee", "0"))
 
-      val requestPut3 = (v2_1Request / "banks" / mockBankId / "transaction-types").PUT <@ (user1)
+      val requestPut3 = (v2_1Request / "banks" / mockBankId.value / "transaction-types").PUT <@ (user1)
       val responsePut3 = makePutRequest(requestPut3, write(transactionTypeJSON2))
 
       And("We should get a 400")
@@ -146,9 +145,9 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     * set CanCreateTransactionType Entitlements to user1
     */
   def setCanCreateTransactionType: Unit = {
-    addEntitlement(mockBankId, authuser1.userId, CanCreateTransactionType.toString)
+    addEntitlement(mockBankId.value, resourceUser1.userId, CanCreateTransactionType.toString)
     Then("We add entitlement to user1")
-    val hasEntitlement = code.api.util.APIUtil.hasEntitlement(mockBankId, authuser1.userId, CanCreateTransactionType)
+    val hasEntitlement = code.api.util.APIUtil.hasEntitlement(mockBankId.value, resourceUser1.userId, CanCreateTransactionType)
     hasEntitlement should equal(true)
   }
 }

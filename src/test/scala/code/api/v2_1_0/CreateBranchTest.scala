@@ -37,8 +37,8 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val branchId = BranchId("1234")
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, authuser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser1.userId, CanCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -62,8 +62,8 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val branchId = BranchId("1234")
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, authuser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser1.userId, CanCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -105,11 +105,11 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val accountId = AccountId("__acc1")
       val branchId = BranchId("1234")
       val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(authuser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, authuser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser1.userId, CanCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
       hasEntitlement should equal(true)
 
 
@@ -135,12 +135,12 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val accountId = AccountId("__acc1")
       val branchId = BranchId("1234")
       val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(authuser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, authuser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser1.userId, CanCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")

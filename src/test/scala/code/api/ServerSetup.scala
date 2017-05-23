@@ -32,9 +32,11 @@ Berlin 13359, Germany
 
 package code.api
 
+import java.text.SimpleDateFormat
+
 import code.TestServer
+import code.model.BankId
 import dispatch._
-import net.liftweb.common._
 import net.liftweb.json.{DefaultFormats, ShortTypeHints}
 import org.scalatest._
 import code.util.Helper.MdcLoggable
@@ -44,21 +46,38 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with ShouldMatchers with MdcLoggable {
 
-  var server = TestServer
   implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
-  val h = Http
+  
+  val server = TestServer
   def baseRequest = host(server.host, server.port)
-
+  
+  val exampleDateString: String = "22/08/2013"
+  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+  val exampleDate = simpleDateFormat.parse(exampleDateString)
+  
+  val newAccountId1 = "NEW_ACCOUNT_ID_01"
+  val newAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
+  
+  val mockBankId = BankId("testBank1")
+  val mockBankId1 = BankId("testBank1")
+  val mockBankId2 = BankId("testBank2")
+  
+  val mockCustomerNumber1 = "93934903201"
+  val mockCustomerNumber2 = "93934903202"
+  
+  val testBankId1 = BankId("MappedCustomerProviderTest-bank1")
+  val testBankId2 = BankId("MappedCustomerProviderTest-bank2")
+  
+  val mockCustomerNumber = "93934903208565488"
+  val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
+  
 }
 
 trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup {
 
   override def beforeEach() = {
     super.beforeEach()
-
-    implicit val dateFormats = net.liftweb.json.DefaultFormats
     //create fake data for the tests
-
     //fake banks
     val banks = createBanks()
     //fake bank accounts

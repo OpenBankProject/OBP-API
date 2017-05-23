@@ -1,7 +1,7 @@
 package code.customer
 
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
@@ -18,13 +18,6 @@ import net.liftweb.json.Serialization._
 
 class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
 
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
-
-  val testBankId1 = BankId("MappedCustomerProviderTest-bank1")
-  val testBankId2 = BankId("MappedCustomerProviderTest-bank2")
-  val number = "343"
 
   def createCustomer(bankId: BankId, resourceUser: ResourceUser, nmb: String, user: Some[(Consumer, Token)]) = {
     val customerPostJSON1 = CreateCustomerJson(
@@ -70,17 +63,17 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
     scenario("No customer info exists for user and we try to get it") {
       Given("No MappedCustomer exists for a user")
       When("We try to get it")
-      val found = Customer.customerProvider.vend.getCustomerByUserId(testBankId1, authuser2.userId)
+      val found = Customer.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser2.userId)
 
       Then("We don't")
       found.isDefined should equal(false)
     }
 
     scenario("Customer exists and we try to get it") {
-      val customerId = createCustomer(testBankId1, authuser1, number, user1)
+      val customerId = createCustomer(testBankId1, resourceUser1, UUID.randomUUID().toString, user1)
       Given("MappedCustomer exists for a user")
       When("We try to get it")
-      val foundOpt = Customer.customerProvider.vend.getCustomerByUserId(testBankId1, authuser1.userId)
+      val foundOpt = Customer.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser1.userId)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
@@ -107,7 +100,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       val customerNumber = "123213213213213"
 
       Given("Customer info exists for a different bank")
-      val customer2 = createCustomer(testBankId2, authuser1, customerNumber, user1)
+      val customer2 = createCustomer(testBankId2, resourceUser1, customerNumber, user1)
       When("We try to get the user for the same bank")
       val user = Customer.customerProvider.vend.getUser(BankId(testBankId2.value), customerNumber)
 
@@ -128,7 +121,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       val available = Customer.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
       Then("We should get positive answer")
       available should equal(true)
-      createCustomer(testBankId2, authuser1, customerNumber, user1)
+      createCustomer(testBankId2, resourceUser1, customerNumber, user1)
       When("We check is the customer number available after creation")
       val notAvailable = Customer.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
       Then("We should get negative answer")

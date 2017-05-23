@@ -49,8 +49,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         toAccount = getToAccount
       }
 
-      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
-      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
+      createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
+      createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
       def getFromAccount: BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -338,7 +338,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val helper = defaultSetup()
 
         Then("We grant the CanCreateAnyTransactionRequest role to user3")
-        addEntitlement(helper.bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
+        addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We used the login user3, it does not have the owner view ,but has the  CreateTransactionRequest role ")
         var request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
@@ -359,7 +359,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val helper = defaultSetup()
 
         Then("We grant the CanCreateAnyTransactionRequest role to user3")
-        addEntitlement(helper.bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
+        addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We call createTransactionRequest with invalid transactionRequestType - V210")
         val invalidTransactionRequestType = "invalidTransactionRequestType"

@@ -6,6 +6,6 @@ trait User1AllPrivileges extends ServerSetupWithTestData {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    super.grantAccessToAllExistingViews(authuser1)
+    super.grantAccessToAllExistingViews(resourceUser1)
   }
 }

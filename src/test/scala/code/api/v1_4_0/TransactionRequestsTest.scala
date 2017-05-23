@@ -35,8 +35,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -166,8 +166,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
