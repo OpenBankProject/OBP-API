@@ -85,6 +85,13 @@ case class OBPOffset(value: Int) extends OBPQueryParam
 case class OBPFromDate(value: Date) extends OBPQueryParam
 case class OBPToDate(value: Date) extends OBPQueryParam
 case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
+case class OBPConsumerId(value: String) extends OBPQueryParam
+case class OBPUserId(value: String) extends OBPQueryParam
+case class OBPUrl(value: String) extends OBPQueryParam
+case class OBPAppName(value: String) extends OBPQueryParam
+case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
+case class OBPImplementedInVersion(value: String) extends OBPQueryParam
+case class OBPVerb(value: String) extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
 case class InboundUser(
