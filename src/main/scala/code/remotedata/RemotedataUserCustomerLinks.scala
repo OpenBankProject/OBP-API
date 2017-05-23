@@ -2,11 +2,12 @@ package code.remotedata
 
 import java.util.Date
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.usercustomerlinks.{RemotedataUserCustomerLinkProviderCaseClass, UserCustomerLink, UserCustomerLinkProvider}
 import net.liftweb.common._
 
 
-object RemotedataUserCustomerLinks extends ActorInit with UserCustomerLinkProvider {
+object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkProvider {
 
   val cc = RemotedataUserCustomerLinkProviderCaseClass
 

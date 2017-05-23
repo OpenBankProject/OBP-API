@@ -3,14 +3,14 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.token.RemotedataTokensCaseClasses
 import code.model.TokenType.TokenType
 import code.model._
 import code.util.Helper.MdcLoggable
 
 
-class RemotedataTokensActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedTokenProvider
   val cc = RemotedataTokensCaseClasses

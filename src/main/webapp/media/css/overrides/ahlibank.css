@@ -1,0 +1,43 @@
+#logo-left {
+	margin: 0;
+	text-align: center;
+	float: none;
+	display: block;
+}
+
+#logo-left img {
+	max-height: none;
+	width: 1050px;
+}
+
+#header {
+	padding: 0;
+}
+
+#nav,
+#main-showcases,
+#main-support,
+#main-links,
+#authorizeSection,
+#registerAppSection,
+#header-decoration,
+#create-sandbox-account {
+	background-color: #b6dcdc;
+}
+
+#main-about-box {
+	background-color: rgba(182, 220, 220, 0.7);
+}
+
+#nav ul li:nth-child(1):before {
+	content: "";
+	height: 0px;
+	width: 0px;
+	margin-right: 0px;
+}
+
+
+
+#account-created-successfully {
+	color: green;
+}

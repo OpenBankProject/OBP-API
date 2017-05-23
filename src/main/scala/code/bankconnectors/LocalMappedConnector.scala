@@ -34,12 +34,25 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
 import code.api.util.APIUtil.saveConnectorMetric
+
+import scalacache.ScalaCache
+import scalacache.guava.GuavaCache
+import scalacache._
+import concurrent.duration._
+import language.postfixOps
+import memoization._
+import com.google.common.cache.CacheBuilder
 import code.util.Helper.MdcLoggable
+
 
 object LocalMappedConnector extends Connector with MdcLoggable {
 
   type AccountType = MappedBankAccount
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
+  
+  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
+  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
+  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
   //This is the implicit parameter for saveConnectorMetric function.  
   //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric 
@@ -178,13 +191,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-
-    val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
-
-    updateAccountTransactions(bankId, accountId)
-
-    for (account <- getBankAccount(bankId, accountId))
-      yield mappedTransactions.flatMap(_.toTransaction(account))
+  
+    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams : Seq[QueryParam[MappedTransaction]]): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond){
+  
+      val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+  
+      updateAccountTransactions(bankId, accountId)
+  
+      for (account <- getBankAccount(bankId, accountId))
+        yield mappedTransactions.flatMap(_.toTransaction(account))
+    }
+  
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
   }
 
   /**
@@ -254,6 +272,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   // Get all counterparties related to an account
   override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+  //TODO, performance issue, when many metadata and many transactions, this will course a big problem .
   Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
   // Get one counterparty related to a bank account

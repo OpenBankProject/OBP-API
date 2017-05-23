@@ -3,14 +3,13 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.metadata.transactionimages.{MapperTransactionImages, RemotedataTransactionImagesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.util.ControlHelpers.tryo
 
 
-class RemotedataTransactionImagesActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataTransactionImagesActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MapperTransactionImages
   val cc = RemotedataTransactionImagesCaseClasses
