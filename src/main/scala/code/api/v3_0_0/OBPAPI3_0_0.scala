@@ -213,7 +213,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getSocialMediaHandles ::
                           Implementations2_0_0.getTransactionTypes ::
                           Implementations2_0_0.getUser ::
-                          Implementations2_0_0.corePrivateAccountsAllBanks ::
+                          //now in V300 Implementations2_0_0.corePrivateAccountsAllBanks ::
                           Implementations2_0_0.privateAccountsAtOneBank ::
                           Implementations2_0_0.publicAccountsAllBanks ::
                           Implementations2_0_0.publicAccountsAtOneBank ::
@@ -301,6 +301,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getViewsForBankAccount ::
                           Implementations3_0_0.createViewForBankAccount ::
                           Implementations3_0_0.updateViewForBankAccount ::
+                          Implementations3_0_0.corePrivateAccountsAllBanks ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

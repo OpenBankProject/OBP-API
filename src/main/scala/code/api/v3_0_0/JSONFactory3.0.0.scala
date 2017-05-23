@@ -31,20 +31,14 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0
 
-import java.util.Date
-
-import code.api.v1_2_1.{JSONFactory, ThisAccountJSON, ViewJSONV121, _}
-import code.model._
+import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
+import code.api.v1_2_1._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-import code.model.dataAccess.AuthUser
-import code.users.Users
-import code.api.util.APIUtil._
-import net.liftweb.common.Box
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
+import code.model._
 
+//started - view relevant case classes
 
 case class ViewsJsonV300(
   views : List[ViewJsonV300]
@@ -127,6 +121,13 @@ case class ViewJsonV300(
   val can_see_other_account_routing_address: Boolean
 )
 
+case class BasicViewJson(
+  val id: String,
+  val short_name: String,
+  val is_public: Boolean
+)
+
+//ended -- View relevant case classes ////
 //stated -- Transaction relevant case classes /////
 case class ThisAccountJsonV300(
   id: String,
@@ -196,6 +197,21 @@ case class ModeratedAccountJsonV300(
   views_available: List[ViewJsonV300],
   account_routing: AccountRoutingJsonV121
 )
+case class CoreAccountJsonV300(
+  id : String,
+  label : String,
+  bank_id : String,
+  account_routing: AccountRoutingJsonV121
+)
+case class CoreAccountsJsonV300( accounts: List[CoreAccountJsonV300])
+
+case class CreateAccountJsonV300(
+  user_id : String,
+  label   : String,
+  `type` : String,
+   balance : AmountOfMoneyJsonV121
+)
+
 
 case class ModeratedCoreAccountJSON(
   id: String,
@@ -216,7 +232,7 @@ object JSONFactory300{
   def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
     TransactionsJsonV300(transactions.map(createTransactionJSON))
   }
-  
+
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV300 = {
     TransactionJsonV300(
       id = transaction.id.value,
@@ -226,7 +242,7 @@ object JSONFactory300{
       metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
     )
   }
-  
+
   def createTransactionMetadataJSON(metadata : ModeratedTransactionMetadata) : TransactionMetadataJSON = {
     TransactionMetadataJSON(
       narrative = stringOptionOrNull(metadata.ownerComment),
@@ -236,7 +252,7 @@ object JSONFactory300{
       where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
     )
   }
-  
+
   def createTransactionDetailsJSON(transaction : ModeratedTransaction) : TransactionDetailsJSON = {
     TransactionDetailsJSON(
       `type` = stringOptionOrNull(transaction.transactionType),
@@ -247,7 +263,7 @@ object JSONFactory300{
       value= createAmountOfMoneyJSON(transaction.currency, transaction.amount.map(_.toString))
     )
   }
-  
+
   def createThisAccountJSON(bankAccount : ModeratedBankAccount) : ThisAccountJsonV300 = {
     ThisAccountJsonV300(
       id = bankAccount.accountId.value,
@@ -257,7 +273,7 @@ object JSONFactory300{
       holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
     )
   }
-  
+
   def createOtherAccountMetaDataJSON(metadata : ModeratedOtherBankAccountMetadata) : OtherAccountMetadataJSON = {
     OtherAccountMetadataJSON(
       public_alias = stringOptionOrNull(metadata.publicAlias),
@@ -270,7 +286,7 @@ object JSONFactory300{
       physical_location = metadata.physicalLocation.map(createLocationJSON).getOrElse(null)
     )
   }
-  
+
   def createOtherBankAccount(bankAccount : ModeratedOtherBankAccount) : OtherAccountJsonV300 = {
     OtherAccountJsonV300(
       id = bankAccount.id,
@@ -280,7 +296,7 @@ object JSONFactory300{
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
-  
+
   // following are create core transactions, without the meta data parts
   def createCoreTransactionsJSON(transactions: List[ModeratedTransaction]) : CoreTransactionsJsonV300 = {
     CoreTransactionsJsonV300(transactions.map(createCoreTransactionJSON))
@@ -294,7 +310,7 @@ object JSONFactory300{
       details = JSONFactory200.createCoreTransactionDetailsJSON(transaction)
     )
   }
-  
+
   def createCoreCounterparty(bankAccount : ModeratedOtherBankAccount) : CoreCounterpartyJsonV300 = {
     CoreCounterpartyJsonV300(
       id = bankAccount.id,
@@ -303,13 +319,13 @@ object JSONFactory300{
       kind = stringOptionOrNull(bankAccount.kind)
     )
   }
-  
+
   //ended -- Transaction relevant methods /////
-  
+
   def createViewsJSON(views : List[View]) : ViewsJsonV300 = {
     ViewsJsonV300(views.map(createViewJSON))
   }
-  
+
   def createViewJSON(view : View) : ViewJsonV300 = {
     val alias =
       if(view.usePublicAliasIfOneExists)
@@ -318,7 +334,7 @@ object JSONFactory300{
         "private"
       else
         ""
-    
+
     ViewJsonV300(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
@@ -386,7 +402,7 @@ object JSONFactory300{
       can_see_transaction_type = view.canSeeTransactionType,
       can_see_url = view.canSeeUrl,
       can_see_where_tag = view.canSeeWhereTag,
-      //V300 new 
+      //V300 new
       can_see_bank_routing_scheme         = view.canSeeBankRoutingScheme,
       can_see_bank_routing_address        = view.canSeeBankRoutingAddress,
       can_see_bank_account_routing_scheme  = view.canSeeBankAccountRoutingScheme,
@@ -397,8 +413,33 @@ object JSONFactory300{
       can_see_other_account_routing_address= view.canSeeOtherAccountRoutingAddress
     )
   }
-  
-  
+  def createBasicViewJSON(view : View) : BasicViewJson = {
+    val alias =
+      if(view.usePublicAliasIfOneExists)
+        "public"
+      else if(view.usePrivateAliasIfOneExists)
+        "private"
+      else
+        ""
+
+      BasicViewJson(
+      id = view.viewId.value,
+      short_name = stringOrNull(view.name),
+      is_public = view.isPublic
+    )
+  }
+
+  def createCoreAccountJSON(account : BankAccount): CoreAccountJsonV300 =
+    CoreAccountJsonV300(
+      account.accountId.value,
+      stringOrNull(account.label),
+      account.bankId.value,
+      AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
+    )
+
+
+
+
   def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
     ModeratedAccountJsonV300(
