@@ -1,21 +1,15 @@
 package code.remotedata
 
 import java.util.Date
-
-import akka.actor.ActorKilledException
 import akka.pattern.ask
-import akka.util.Timeout
-import code.api.APIFailure
+import code.actorsystem.ObpActorInit
 import code.metadata.tags.{RemotedataTagsCaseClasses, Tags}
 import code.model._
-import net.liftweb.common.{Full, _}
-
+import net.liftweb.common.Box
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 
-object RemotedataTags extends ActorInit with Tags {
+object RemotedataTags extends ObpActorInit with Tags {
 
   val cc = RemotedataTagsCaseClasses
 

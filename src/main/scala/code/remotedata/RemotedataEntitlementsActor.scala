@@ -1,12 +1,12 @@
 package code.remotedata
 
 import akka.actor.Actor
+import code.actorsystem.ObpActorHelper
 import code.entitlement.{Entitlement, MappedEntitlementsProvider, RemotedataEntitlementsCaseClasses}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
 
-
-class RemotedataEntitlementsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedEntitlementsProvider
   val cc = RemotedataEntitlementsCaseClasses

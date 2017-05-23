@@ -1,21 +1,13 @@
 package code.remotedata
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.Actor
-import akka.event.Logging
-import akka.util.Timeout
 import code.accountholder.{MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
+import code.actorsystem.ObpActorHelper
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.common._
-import net.liftweb.util.ControlHelpers.tryo
-
-import scala.concurrent.duration._
 
 
-class RemotedataAccountHoldersActor extends Actor with ActorHelper with MdcLoggable {
-
+class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MapperAccountHolders
   val cc = RemotedataAccountHoldersCaseClasses

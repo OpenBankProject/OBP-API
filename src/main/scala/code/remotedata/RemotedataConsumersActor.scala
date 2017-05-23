@@ -1,13 +1,12 @@
 package code.remotedata
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.consumer.RemotedataConsumersCaseClasses
 import code.model.{MappedConsumersProvider, _}
 import code.util.Helper.MdcLoggable
 
-
-class RemotedataConsumersActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedConsumersProvider
   val cc = RemotedataConsumersCaseClasses

@@ -208,6 +208,13 @@ object Helper{
     }
   }
 
+  def getRemotedataHostname(): String = {
+    Props.get("remotedata.hostname", "") match {
+      case s: String if s.nonEmpty => s.replaceAll("\\/", "").replaceAll("\\.", "-")
+      case _ => "unknown"
+    }
+  }
+
   def findAvailablePort(): Int = {
     val PORT_RANGE_MIN = 2552
     val PORT_RANGE_MAX = 2661
@@ -235,6 +242,7 @@ object Helper{
       candidatePort = findRandomPort()
     }
     while (!isPortAvailable(candidatePort))
+    println("==================================> RANDOM PORT = " + candidatePort)
     candidatePort
   }
 
