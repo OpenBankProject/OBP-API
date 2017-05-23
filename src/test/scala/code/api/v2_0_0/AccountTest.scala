@@ -16,11 +16,11 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
     scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
       Given("The bank")
-      val testBank = mockBankId
+      val testBank = mockBankId1
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
-      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
+      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
       And("We should get a 200")
@@ -53,7 +53,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val isPublicAll =
         for {
           obj@JObject(o) <- responseGetAll.body
-          if (o contains JField("id", JString(newAccountId1)))
+          if (o contains JField("id", JString(mockAccountId1)))
           JBool(isPublic) <- obj \\ "is_public"
         } yield {
           isPublic
@@ -64,11 +64,11 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
     scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
       Given("The bank")
-      val testBank = mockBankId
+      val testBank = mockBankId1
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
-      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
+      val accountPutJSON = CreateAccountJSON(resourceUser1.userId,"CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
       And("We should get a 200")
@@ -101,7 +101,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val isPublicAll =
         for {
           obj@JObject(o) <- responseGetAll.body
-          if (o contains JField("id", JString(newAccountId1)))
+          if (o contains JField("id", JString(mockAccountId1)))
           JBool(isPublic) <- obj \\ "is_public"
         } yield {
           isPublic
@@ -112,11 +112,11 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
     scenario("We create an account, but with wrong format of account_id ") {
       Given("The bank")
-      val testBank = mockBankId
+      val testBank = mockBankId1
       val newAccountIdWithSpaces = "account%20with%20spaces"
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 

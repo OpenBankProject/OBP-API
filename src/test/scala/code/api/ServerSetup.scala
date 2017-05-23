@@ -55,18 +55,14 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse(exampleDateString)
   
-  val newAccountId1 = "NEW_ACCOUNT_ID_01"
-  val newAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
+  val mockAccountId1 = "NEW_ACCOUNT_ID_01"
+  val mockAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
   
-  val mockBankId = BankId("testBank1")
   val mockBankId1 = BankId("testBank1")
   val mockBankId2 = BankId("testBank2")
   
   val mockCustomerNumber1 = "93934903201"
   val mockCustomerNumber2 = "93934903202"
-  
-  val testBankId1 = BankId("MappedCustomerProviderTest-bank1")
-  val testBankId2 = BankId("MappedCustomerProviderTest-bank2")
   
   val mockCustomerNumber = "93934903208565488"
   val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"

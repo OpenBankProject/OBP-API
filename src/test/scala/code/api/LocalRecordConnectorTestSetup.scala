@@ -11,7 +11,10 @@ import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Random._
 
-trait LocalConnectorTestSetup extends TestConnectorSetupWithStandardPermissions {
+/**
+  * This trait is for Liftweb record, link to MangoDB....
+  */
+trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermissions {
 
   override protected def createBank(id : String) : Bank = {
     HostedBank.createRecord.

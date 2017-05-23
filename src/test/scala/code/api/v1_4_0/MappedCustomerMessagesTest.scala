@@ -27,7 +27,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       MappedCustomerMessage.count() should equal(0)
 
       When("We get the messages")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET <@ user1
+      val request = (v1_4Request / "banks" / mockBankId1.value / "customer" / "messages").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -40,7 +40,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
     scenario("Adding a message") {
       //first add a customer to send message to
-      var request = (v1_4Request / "banks" / mockBankId.value / "customer").POST <@ user1
+      var request = (v1_4Request / "banks" / mockBankId1.value / "customer").POST <@ user1
       val customerJson = CreateCustomerJson(
                                             user_id = resourceUser1.userId,
                                             customer_number = mockCustomerNumber,
@@ -58,11 +58,11 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
                                             last_ok_date = exampleDate)
 
       When("We add all required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
-      Entitlement.entitlement.vend.addEntitlement(mockBankId.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       var response = makePostRequest(request, write(customerJson))
 
-      val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId)
+      val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId1)
       val customerId = customer match {
         case Full(c) => c.customerId
         case Empty => "Empty"
@@ -70,14 +70,14 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       }
 
       When("We add a message")
-      request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
+      request = (v1_4Request / "banks" / mockBankId1.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       response = makePostRequest(request, write(messageJson))
       Then("We should get a 201")
       response.code should equal(201)
 
       And("We should get that message when we do a get messages request ")
-      val getMessagesRequest = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET  <@ user1
+      val getMessagesRequest = (v1_4Request / "banks" / mockBankId1.value / "customer" / "messages").GET  <@ user1
       val getMessagesResponse = makeGetRequest(getMessagesRequest)
       val json = getMessagesResponse.body.extract[CustomerMessagesJson]
       json.messages.size should equal(1)
