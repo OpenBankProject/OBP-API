@@ -1,9 +1,9 @@
 package code.api.v3_0_0
 
-import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
+import code.setup.DefaultUsers
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 

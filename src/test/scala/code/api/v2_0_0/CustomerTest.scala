@@ -2,13 +2,13 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 
-import code.api.DefaultUsers
 import code.customer.Customer
 import code.model.BankId
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.entitlement.Entitlement
+import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write

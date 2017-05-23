@@ -29,12 +29,11 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
  */
-package code.api
+package code.setup
 
-
-import code.token.Tokens
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
+import code.token.Tokens
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full

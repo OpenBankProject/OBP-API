@@ -36,8 +36,8 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
 import code.api.v2_2_0.{AccountsJSONV220, ViewJSONV220, ViewsJSONV220}
-import code.api.{APIResponse, DefaultUsers, User1AllPrivileges}
 import code.model.{CreateViewJSON, UpdateViewJSON}
+import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.scalatest._

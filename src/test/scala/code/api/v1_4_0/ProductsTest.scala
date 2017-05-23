@@ -1,7 +1,5 @@
 package code.api.v1_4_0
 
-import code.api.DefaultUsers
-import code.api.ServerSetup
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import code.common.{License, Meta}
@@ -9,6 +7,7 @@ import code.model.BankId
 import code.products.Products.ProductCode
 import code.products.Products.Product
 import code.products.{Products, ProductsProvider}
+import code.setup.{DefaultUsers, ServerSetup}
 import dispatch._
 
 class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {

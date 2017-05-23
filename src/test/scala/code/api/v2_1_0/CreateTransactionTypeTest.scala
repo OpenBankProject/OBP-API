@@ -1,6 +1,5 @@
 package code.api.v2_1_0
 
-import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanCreateTransactionType, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
 import code.api.util.{ApiRole, ErrorMessages}
@@ -9,6 +8,7 @@ import code.api.v2_0_0.{CreateAccountJSON, TransactionTypeJsonV200}
 import code.entitlement.Entitlement
 import code.model.dataAccess.MappedBankAccount
 import code.model.{AmountOfMoney, BankId, TransactionTypeId}
+import code.setup.DefaultUsers
 import code.transaction_types.MappedTransactionType
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization._

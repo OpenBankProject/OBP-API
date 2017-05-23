@@ -41,7 +41,8 @@ TESOBE (http://www.tesobe.com/)
 * */
 
 import code.api.ObpJson.{BarebonesAccountsJson, _}
-import code.api.{SendServerRequests, _}
+import code.api._
+import code.setup.SendServerRequests
 import net.liftweb.common.Full
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._

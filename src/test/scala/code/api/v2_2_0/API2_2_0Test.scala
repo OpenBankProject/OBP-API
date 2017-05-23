@@ -36,8 +36,8 @@ import _root_.net.liftweb.json.JsonAST.JObject
 import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
-import code.api.{APIResponse, DefaultUsers, User1AllPrivileges}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
+import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.scalatest._

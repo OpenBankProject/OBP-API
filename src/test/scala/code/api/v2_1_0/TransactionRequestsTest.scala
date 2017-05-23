@@ -8,16 +8,17 @@ import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
-import code.api.{APIResponse, ChargePolicy, DefaultUsers, ServerSetupWithTestData}
+import code.api.ChargePolicy
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, AccountRoutingAddress, BankAccount, TransactionRequestId}
+import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 
-class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
+class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   object TransactionRequest extends Tag("transactionRequests")
 

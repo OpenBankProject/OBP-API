@@ -2,7 +2,6 @@ package code.api.v1_4_0
 
 import java.text.SimpleDateFormat
 
-import code.api.DefaultUsers
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.api.v2_0_0.{CreateCustomerJson, V200ServerSetup}
@@ -12,6 +11,7 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization._
 import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
+import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 
 class CustomerTest extends V200ServerSetup with DefaultUsers {

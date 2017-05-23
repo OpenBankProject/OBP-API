@@ -2,12 +2,12 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 
-import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import code.model.BankId
 import code.model.dataAccess.MappedBankAccount
+import code.setup.DefaultUsers
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.JsonAST._
 

@@ -30,16 +30,16 @@ Berlin 13359, Germany
 
  */
 
-package code.api
+package code.setup
 
 import java.text.SimpleDateFormat
 
 import code.TestServer
 import code.model.BankId
+import code.util.Helper.MdcLoggable
 import dispatch._
 import net.liftweb.json.{DefaultFormats, ShortTypeHints}
 import org.scalatest._
-import code.util.Helper.MdcLoggable
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen

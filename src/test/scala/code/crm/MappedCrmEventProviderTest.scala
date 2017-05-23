@@ -2,13 +2,21 @@ package code.crm
 
 import java.util.Date
 
-import code.api.DefaultUsers
-import code.api.ServerSetup
-import code.model.BankId
+import code.setup.{DefaultUsers, ServerSetup}
 import net.liftweb.mapper.By
 
 class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
-
+  
+  override def beforeAll() = {
+    super.beforeAll()
+    MappedCrmEvent.bulkDelete_!!()
+  }
+  
+  override def afterEach() = {
+    super.afterEach()
+    MappedCrmEvent.bulkDelete_!!()
+  }
+  
   def createCrmEvent1() = MappedCrmEvent.create
     .mCrmEventId("ASDFIUHUIUYFD444")
     .mBankId(mockBankId1.value)

@@ -1,12 +1,12 @@
 package code.api.v2_1_0
 
-import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateBranch}
+import code.api.util.ApiRole.CanCreateBranch
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches.BranchId
 import code.model.{AccountId, ViewId}
-import net.liftweb.json.JsonAST.{JString}
+import code.setup.DefaultUsers
+import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 
 class CreateBranchTest extends V210ServerSetup with DefaultUsers {

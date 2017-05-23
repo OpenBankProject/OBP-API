@@ -2,7 +2,6 @@ package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
 
-import code.api.DefaultUsers
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.customer.Customer
@@ -11,6 +10,7 @@ import code.model.BankId
 import net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 

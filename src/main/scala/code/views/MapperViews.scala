@@ -577,8 +577,22 @@ object MapperViews extends Views with MdcLoggable {
       })
     true
   }
-
-  def grantAccessToView(user : User, view : View) = {
+  
+  /**
+    * "Grant view access"  means to create the link between User <---> View.
+    *  All these links are handled in ViewPrivileges table. 
+    *  If ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0,
+    *  this means there is no link between v <--> user. 
+    *  So Just create one . 
+    * 
+    * @param user the user will to be granted access to.
+    * @param view the view will be granted access. 
+    *             
+    * @return create the link between user<--> view, return true. 
+    *         otherwise(If there existed view/ if there is no view ), it return false.
+    *         
+    */
+  def grantAccessToView(user : User, view : View): Boolean = {
     val v = ViewImpl.find(view.uid).orNull
     if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0 )
     ViewPrivileges.create.

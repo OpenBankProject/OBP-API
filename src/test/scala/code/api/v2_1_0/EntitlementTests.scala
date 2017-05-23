@@ -1,14 +1,13 @@
 package code.api.v2_1_0
 
-
 import code.api.util.APIUtil.OAuth._
-import code.api.DefaultUsers
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
 import code.api.util.ErrorMessages.UserDoesNotHaveRole
 import code.entitlement.Entitlement
 import code.model.BankId
 import net.liftweb.json.JsonAST._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.setup.DefaultUsers
 
 
 

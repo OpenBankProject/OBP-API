@@ -1,4 +1,4 @@
-package code.api
+package code.setup
 
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}

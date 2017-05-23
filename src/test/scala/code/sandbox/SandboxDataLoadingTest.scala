@@ -37,7 +37,6 @@ import java.util.Date
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.accountholder.AccountHolders
-import code.api.{APIResponse, SendServerRequests}
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, countOfAtms}
@@ -64,6 +63,7 @@ import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
 import net.liftweb.common.{Empty, Full, ParamFailure}
 import code.api.util.APIUtil._
+import code.setup.{APIResponse, SendServerRequests}
 
 /*
 This tests:

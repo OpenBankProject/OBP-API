@@ -1,15 +1,19 @@
-package code.api
+package code.setup
 
-import code.token.Tokens
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
 import code.model.TokenType._
-import code.model.dataAccess.ResourceUser
 import code.model.{User, Consumer => OBPConsumer, Token => OBPToken}
+import code.token.Tokens
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
 
+/**
+  * This trait prepare the login users, it simulate the Direct Login,
+  * Create the consumer -> create resource users --> create the tokens for this user --> provide the Login user 
+  * The login users are tuples (consumer, token), contains the consumer and token, used for direct login.
+  */
 trait DefaultUsers {
   
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)

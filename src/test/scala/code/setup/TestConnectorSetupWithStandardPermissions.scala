@@ -1,9 +1,9 @@
-package code.api
+package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.model.dataAccess._
 import code.model._
+import code.model.dataAccess._
 import code.views.Views
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._

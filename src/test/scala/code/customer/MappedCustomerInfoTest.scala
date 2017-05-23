@@ -3,7 +3,6 @@ package code.customer
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
-import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
@@ -12,6 +11,7 @@ import code.api.v2_0_0.CreateCustomerJson
 import code.entitlement.Entitlement
 import code.model.BankId
 import code.model.dataAccess.{MappedBank, ResourceUser}
+import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization._

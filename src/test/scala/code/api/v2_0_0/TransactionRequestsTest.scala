@@ -1,7 +1,7 @@
 package code.api.v2_0_0
 
 import code.api.util.ErrorMessages
-import code.api.{ErrorMessage, DefaultUsers, ServerSetupWithTestData}
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -13,8 +13,9 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import code.api.util.ApiRole._
+import code.setup.{DefaultUsers, ServerSetupWithTestData}
 
-class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V200ServerSetup {
+class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
   object TransactionRequest extends Tag("transactionRequests")
 

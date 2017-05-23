@@ -1,12 +1,12 @@
 package code.api.v2_0_0
 
-import code.api.DefaultUsers
 import code.api.util.ApiRole.CanGetEntitlementsForAnyUserAtAnyBank
 import code.api.util.{ApiRole, ErrorMessages}
 import code.entitlement.Entitlement
 import net.liftweb.json.JsonAST._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.UserDoesNotHaveRole
+import code.setup.DefaultUsers
 
 
 /**

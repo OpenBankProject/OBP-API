@@ -4,7 +4,7 @@ import code.api.util.ErrorMessages
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
+import code.setup.{APIResponse, ServerSetup}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._

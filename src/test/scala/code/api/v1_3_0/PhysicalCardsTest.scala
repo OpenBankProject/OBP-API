@@ -4,7 +4,6 @@ import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -16,6 +15,7 @@ import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import code.products.Products.{Product, ProductCode}
+import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.util.Helper.MdcLoggable
 

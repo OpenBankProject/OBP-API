@@ -1,9 +1,9 @@
-package code.api
+package code.setup
 
 import java.util.{Calendar, Date}
 
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import net.liftweb.util.Helpers._
 
