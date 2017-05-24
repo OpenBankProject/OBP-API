@@ -159,7 +159,7 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      createViewJSON,
+      createViewJson,
       viewJSONV220,
       List(
         UserNotLoggedIn, 
@@ -175,7 +175,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            json <- tryo{json.extract[CreateViewJSON]} ?~!InvalidJsonFormat
+            json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
             u <- user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)

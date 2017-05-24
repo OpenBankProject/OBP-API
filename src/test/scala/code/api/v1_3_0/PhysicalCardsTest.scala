@@ -21,8 +21,6 @@ import code.util.Helper.MdcLoggable
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
-
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
 
   lazy val bank = createBank("a-bank")

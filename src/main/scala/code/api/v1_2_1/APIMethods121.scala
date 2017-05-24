@@ -8,7 +8,7 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
 import code.metadata.counterparties.Counterparties
-import code.model.{CreateViewJSON, UpdateViewJSON, _}
+import code.model.{CreateViewJson, UpdateViewJSON, _}
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -519,7 +519,7 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      createViewJSON,
+      createViewJson,
       viewJSONV121,
       List(
         UserNotLoggedIn,
@@ -538,7 +538,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~  UserNotLoggedIn
-            json <- tryo{json.extract[CreateViewJSON]} ?~ InvalidJsonFormat
+            json <- tryo{json.extract[CreateViewJson]} ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {

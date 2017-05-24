@@ -31,79 +31,20 @@ Berlin 13359, Germany
   */
 package code.api.v3_0_0
 
-import _root_.net.liftweb.json.JsonAST.JObject
 import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
-import code.api.v2_2_0.{AccountsJSONV220, ViewJSONV220, ViewsJSONV220}
-import code.model.{CreateViewJSON, UpdateViewJSON}
+import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
+import code.model.{CreateViewJson, UpdateViewJSON}
 import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
-import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
-import org.scalatest._
-
 import scala.util.Random._
-
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 
 class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultUsers {
-
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
-
-  val viewFileds = List(
-    "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
-    "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
-    "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
-    "can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments",
-    "can_see_narrative","can_see_tags","can_see_images","can_see_bank_account_owners",
-    "can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency",
-    "can_see_bank_account_label","can_see_bank_account_national_identifier",
-    "can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number",
-    "can_see_bank_account_bank_name","can_see_other_account_national_identifier",
-    "can_see_other_account_swift_bic","can_see_other_account_iban",
-    "can_see_other_account_bank_name","can_see_other_account_number",
-    "can_see_other_account_metadata","can_see_other_account_kind","can_see_more_info",
-    "can_see_url","can_see_image_url","can_see_open_corporates_url","can_see_corporate_location",
-    "can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info",
-    "can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location",
-    "can_add_physical_location","can_add_public_alias","can_add_private_alias",
-    "can_delete_corporate_location","can_delete_physical_location","can_edit_narrative",
-    "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
-    "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag", "can_create_counterparty",
-    //V300 New
-    "can_see_bank_routing_scheme",
-    "can_see_bank_routing_address",
-    "can_see_bank_account_routing_scheme",
-    "can_see_bank_account_routing_address",
-    "can_see_other_bank_routing_scheme",
-    "can_see_other_bank_routing_address",
-    "can_see_other_account_routing_scheme",
-    "can_see_other_account_routing_addres"
-    )
-
-  /************************* test tags ************************/
-
-  /**
-   * Example: To run tests with tag "getPermissions":
-   * 	mvn test -D tagsToInclude
-   *
-   *  This is made possible by the scalatest maven plugin
-   */
-
-  object API3_0 extends Tag("api3.0.0")
-  object APIInfo extends Tag("apiInfo")
-  object GetHostedBanks extends Tag("hostedBanks")
-  object GetHostedBank extends Tag("getHostedBank")
-  object GetViews extends Tag("getViews")
-  object PostView extends Tag("postView")
-  object PutView extends Tag("putView")
-
-
-
-  /********************* API test methods ********************/
-  val emptyJSON : JObject = ("error" -> "empty List")
-  val errorAPIResponse = new APIResponse(400,emptyJSON)
-
-
+  
+  val view = createViewJson
+  
   def randomBankId : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
     val randomPosition = nextInt(banksJson.banks.size)
@@ -116,26 +57,6 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
-
-  def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
-    //get the view ids of the available views on the bank accounts
-    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV220].views.map(_.id)
-    //choose randomly some view ids to grant
-    val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
-    viewsIdsToGrant
-  }
-
-  def randomView(isPublic: Boolean, alias: String) : CreateViewJSON = {
-    CreateViewJSON(
-      name = randomString(3),
-      description = randomString(3),
-      is_public = isPublic,
-      which_alias_to_use=alias,
-      hide_metadata_if_alias_used=false,
-      allowed_actions = viewFileds
-    )
-  }
-
 
   def getAPIInfo : APIResponse = {
     val request = v3_0Request
@@ -162,7 +83,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
     makeGetRequest(request)
   }
 
-  def postView(bankId: String, accountId: String, view: CreateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }
@@ -172,11 +93,9 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
     makePutRequest(request, write(view))
   }
 
-
-
 /************************ the tests ************************/
   feature("base line URL works"){
-    scenario("we get the api information", API3_0, APIInfo) {
+    scenario("we get the api information") {
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getAPIInfo
@@ -188,7 +107,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
   }
 
   feature("Information about the hosted banks"){
-    scenario("we get the hosted banks information", API3_0, GetHostedBanks) {
+    scenario("we get the hosted banks information") {
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBanksInfo
@@ -202,7 +121,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
   }
 
   feature("Information about one hosted bank"){
-    scenario("we get the hosted bank information", API3_0, GetHostedBank) {
+    scenario("we get the hosted bank information") {
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBankInfo(randomBankId)
@@ -212,7 +131,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       bankInfo.id.nonEmpty should equal (true)
     }
 
-    scenario("we don't get the hosted bank information", API3_0, GetHostedBank) {
+    scenario("we don't get the hosted bank information") {
       Given("We will not use an access token and request a random bankId")
       When("the request is sent")
       val reply = getBankInfo(randomString(5))
@@ -224,7 +143,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
   }
 
   feature("List of the views of specific bank account - v3.0.0"){
-    scenario("We will get the list of the available views on a bank account", API3_0, GetViews) {
+    scenario("We will get the list of the available views on a bank account") {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
@@ -235,7 +154,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ViewsJsonV300]
     }
 
-    scenario("We will not get the list of the available views on a bank account due to missing token", API3_0, GetViews) {
+    scenario("We will not get the list of the available views on a bank account due to missing token") {
       Given("We will not use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
@@ -247,7 +166,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API3_0, GetViews) {
+    scenario("We will not get the list of the available views on a bank account due to insufficient privileges") {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
@@ -260,12 +179,12 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
     }
   }
   feature("Create a view on a bank account - v3.0.0"){
-    scenario("we will create a view on a bank account", API3_0, PostView) {
+    scenario("we will create a view on a bank account") {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
       val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJsonV300].views
-      val view = randomView(true, "")
+      
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user1)
       Then("we should get a 201 code")
@@ -276,11 +195,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       viewsBefore.size should equal (viewsAfter.size -1)
     }
 
-    scenario("We will not create a view on a bank account due to missing token", API3_0, PostView) {
+    scenario("We will not create a view on a bank account due to missing token") {
       Given("We will not use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, None)
       Then("we should get a 400 code")
@@ -289,11 +207,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view on a bank account due to insufficient privileges", API3_0, PostView) {
+    scenario("We will not create a view on a bank account due to insufficient privileges") {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user3)
       Then("we should get a 400 code")
@@ -302,10 +219,9 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view because the bank account does not exist", API3_0, PostView) {
+    scenario("We will not create a view because the bank account does not exist") {
       Given("We will use an access token")
       val bankId = randomBankId
-      val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, randomString(3), view, user1)
       Then("we should get a 400 code")
@@ -314,11 +230,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view because the view already exists", API3_0, PostView) {
+    scenario("We will not create a view because the view already exists") {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       postView(bankId, bankAccount.id, view, user1)
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user1)
@@ -356,11 +271,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       )
     }
 
-    scenario("we will update a view on a bank account", API3_0, PutView) {
+    scenario("we will update a view on a bank account") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
       val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
@@ -386,7 +300,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       updatedView.hide_metadata_if_alias_used should equal(true)
     }
 
-    scenario("we will not update a view that doesn't exist", API3_0, PutView) {
+    scenario("we will not update a view that doesn't exist") {
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
 
@@ -403,11 +317,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.code should equal(404)
     }
 
-    scenario("We will not update a view on a bank account due to missing token", API3_0, PutView) {
+    scenario("We will not update a view on a bank account due to missing token") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
       val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
@@ -421,11 +334,10 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we will not update a view on a bank account due to insufficient privileges", API3_0, PutView) {
+    scenario("we will not update a view on a bank account due to insufficient privileges") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
       val creationReply = postView(bankId, bankAccount.id, view, user1)
       creationReply.code should equal (201)
       val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]

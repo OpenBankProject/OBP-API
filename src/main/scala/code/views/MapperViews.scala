@@ -5,7 +5,7 @@ import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
-import code.model.{CreateViewJSON, Permission, UpdateViewJSON, User, _}
+import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
@@ -203,7 +203,7 @@ object MapperViews extends Views with MdcLoggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View] = {
   
     if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
       return Failure(AllowPublicViewsNotSpecified)

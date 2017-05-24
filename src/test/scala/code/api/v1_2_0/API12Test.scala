@@ -53,8 +53,6 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
 
   def v1_2Request = baseRequest / "obp" / "v1.2"
 
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
-
   val viewFileds = List(
     "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
     "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
@@ -157,9 +155,6 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
   object GetTransactionAccount extends Tag("getTransactionAccount")
 
   /********************* API test methods ********************/
-  val emptyJSON : JObject =
-    ("error" -> "empty List")
-  val errorAPIResponse = new APIResponse(400,emptyJSON)
 
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
@@ -232,8 +227,8 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) : CreateViewJSON = {
-    CreateViewJSON(
+  def randomView(isPublic: Boolean, alias: String) : CreateViewJson = {
+    CreateViewJson(
       name = randomString(3),
       description = randomString(3),
       is_public = isPublic,
@@ -287,7 +282,7 @@ class API1_2Test extends User1AllPrivileges with DefaultUsers {
     makeGetRequest(request)
   }
 
-  def postView(bankId: String, accountId: String, view: CreateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }

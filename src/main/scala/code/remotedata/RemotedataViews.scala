@@ -2,7 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.model.{CreateViewJSON, Permission, UpdateViewJSON, _}
+import code.model.{CreateViewJson, Permission, UpdateViewJSON, _}
 import code.views.{RemotedataViewsCaseClasses, Views}
 import net.liftweb.common.{Box, Full}
 import scala.collection.immutable.List
@@ -33,7 +33,7 @@ object RemotedataViews extends ObpActorInit with Views {
   def view(viewId : ViewId, account: BankAccountUID) : Box[View] =
     extractFutureToBox(actor ? cc.view(viewId, account))
 
-  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] =
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View] =
     extractFutureToBox(actor ? cc.createView(bankAccountId, view))
 
   def updateView(bankAccountId : BankAccountUID, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] =

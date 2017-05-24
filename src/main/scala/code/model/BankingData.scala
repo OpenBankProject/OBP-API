@@ -479,7 +479,7 @@ trait BankAccount extends MdcLoggable {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
-  final def createView(userDoingTheCreate : User,v: CreateViewJSON): Box[View] = {
+  final def createView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {

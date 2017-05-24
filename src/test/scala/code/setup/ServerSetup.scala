@@ -38,8 +38,11 @@ import code.TestServer
 import code.model.BankId
 import code.util.Helper.MdcLoggable
 import dispatch._
+import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.{DefaultFormats, ShortTypeHints}
 import org.scalatest._
+import _root_.net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonDSL._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
@@ -47,6 +50,8 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with ShouldMatchers with MdcLoggable {
 
   implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
+  implicit val dateFormats = net.liftweb.json.DefaultFormats
+  
   
   val server = TestServer
   def baseRequest = host(server.host, server.port)
@@ -66,6 +71,9 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   
   val mockCustomerNumber = "93934903208565488"
   val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
+  
+  val emptyJSON : JObject = ("error" -> "empty List")
+  val errorAPIResponse = new APIResponse(400,emptyJSON)
   
 }
 

@@ -51,8 +51,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
-
   val viewFields = List(
     "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
     "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
@@ -161,10 +159,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   object Payments extends Tag("payments")
 
   /********************* API test methods ********************/
-  val emptyJSON : JObject =
-    ("error" -> "empty List")
-  val errorAPIResponse = new APIResponse(400,emptyJSON)
-
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
@@ -241,8 +235,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) : CreateViewJSON = {
-    CreateViewJSON(
+  def randomView(isPublic: Boolean, alias: String) : CreateViewJson = {
+    CreateViewJson(
       name = randomString(3),
       description = randomString(3),
       is_public = isPublic,
@@ -313,7 +307,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
-  def postView(bankId: String, accountId: String, view: CreateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }
@@ -1463,7 +1457,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
-      val viewWithEmptyName = CreateViewJSON(
+      val viewWithEmptyName = CreateViewJson(
         name = "",
         description = randomString(3),
         is_public = true,

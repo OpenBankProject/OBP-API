@@ -40,9 +40,10 @@ TESOBE (http://www.tesobe.com/)
 * into your props file.
 * */
 
-import code.api.ObpJson.{BarebonesAccountsJson, _}
+import code.util.ObpJson.{BarebonesAccountsJson, _}
 import code.api._
 import code.setup.SendServerRequests
+import code.util.{Header, OAuthClient, ObpGet, ObpPost}
 import net.liftweb.common.Full
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
