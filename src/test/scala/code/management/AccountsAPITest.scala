@@ -36,17 +36,17 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
 
       //get an account
       val reply = getPrivateAccountsForAllBanks(consumerAndToken = user1)
-      reply.code should equal(OK)
+      reply.code must equal(OK)
 
       //get one of those
       val account = reply.body.extract[AccountsJSON].accounts.head
 
       //delete the account
       val response = deleteBankAccount(bankId = account.bank_id, accountId = account.id, consumerAndToken = user1)
-      response.code should equal(OK_NO_CONTENT)
+      response.code must equal(OK_NO_CONTENT)
 
       //check that it's gone
-      Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) should equal(Empty)
+      Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) must equal(Empty)
     }
 
     scenario("User tries to delete a private account of another user", Management, DeleteBankAccount) {
@@ -54,17 +54,17 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
 
       //get an account
       val reply = getPrivateAccountsForAllBanks(consumerAndToken = user2)
-      reply.code should equal(OK)
+      reply.code must equal(OK)
 
       //get one of those
       val account = reply.body.extract[AccountsJSON].accounts.head
 
       When("Deleting the account with another user that does not have owner permissions")
       val response = deleteBankAccount(bankId = account.bank_id, accountId = account.id, consumerAndToken = user1)
-      response.code should equal(SERVER_ERROR)
+      response.code must equal(SERVER_ERROR)
 
-      Then("The account should still be there")
-      Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) should not equal(Empty)
+      Then("The account must still be there")
+      Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) must not equal(Empty)
     }
   }
 }

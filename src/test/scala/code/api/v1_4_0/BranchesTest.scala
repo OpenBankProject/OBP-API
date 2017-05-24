@@ -100,7 +100,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] = {
       branchId match {
          case BankWithLicense => Some(fakeBranch1)
-         case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
+         case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API must guard
         case _ => None
       }
     }
@@ -108,19 +108,19 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
   }
 
   def verifySameData(branch: Branch, branchJson : BranchJson) = {
-    branch.name should equal (branchJson.name)
-    branch.branchId should equal(BranchId(branchJson.id))
-    branch.address.line1 should equal(branchJson.address.line_1)
-    branch.address.line2 should equal(branchJson.address.line_2)
-    branch.address.line3 should equal(branchJson.address.line_3)
-    branch.address.city should equal(branchJson.address.city)
-    branch.address.state should equal(branchJson.address.state)
-    branch.address.countryCode should equal(branchJson.address.country)
-    branch.address.postCode should equal(branchJson.address.postcode)
-    branch.location.latitude should equal(branchJson.location.latitude)
-    branch.location.longitude should equal(branchJson.location.longitude)
-    branch.lobby.hours should equal(branchJson.lobby.hours)
-    branch.driveUp.hours should equal(branchJson.drive_up.hours)
+    branch.name must equal (branchJson.name)
+    branch.branchId must equal(BranchId(branchJson.id))
+    branch.address.line1 must equal(branchJson.address.line_1)
+    branch.address.line2 must equal(branchJson.address.line_2)
+    branch.address.line3 must equal(branchJson.address.line_3)
+    branch.address.city must equal(branchJson.address.city)
+    branch.address.state must equal(branchJson.address.state)
+    branch.address.countryCode must equal(branchJson.address.country)
+    branch.address.postCode must equal(branchJson.address.postcode)
+    branch.location.latitude must equal(branchJson.location.latitude)
+    branch.location.longitude must equal(branchJson.location.longitude)
+    branch.lobby.hours must equal(branchJson.lobby.hours)
+    branch.driveUp.hours must equal(branchJson.drive_up.hours)
   }
 
   /*
@@ -146,8 +146,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
     }
 
     scenario("We try to get bank branches for a bank with a data license for branch information") {
@@ -155,21 +155,21 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
 
-      And("We should get the right json format containing a list of Branches")
+      And("We must get the right json format containing a list of Branches")
       val wholeResponseBody = response.body
       val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
-      responseBodyOpt.isDefined should equal(true)
+      responseBodyOpt.isDefined must equal(true)
 
       val responseBody = responseBodyOpt.get
 
-      And("We should get the right branches")
+      And("We must get the right branches")
       val branches = responseBody.branches
 
       // Order of branches in the list is arbitrary
-      branches.size should equal(2)
+      branches.size must equal(2)
       val first = branches(0)
       if(first.id == fakeBranch1.branchId.value) {
         verifySameData(fakeBranch1, first)

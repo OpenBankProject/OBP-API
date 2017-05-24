@@ -86,17 +86,17 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   }
 
   override def lobby: Lobby = new Lobby {
-    override def hours: String = mLobbyHours
+    override def hours: String = mLobbyHours.get
   }
 
   override def driveUp: DriveUp = new DriveUp {
-    override def hours: String = mDriveUpHours
+    override def hours: String = mDriveUpHours.get
   }
 
 
   override def location: Location = new Location {
-    override def latitude: Double = mlocationLatitude
-    override def longitude: Double = mlocationLongitude
+    override def latitude: Double = mlocationLatitude.get
+    override def longitude: Double = mlocationLongitude.get
   }
 
 }

@@ -91,8 +91,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         if(saveAuthorizationToken(oAuthParameters,token, secret))
         //remove the request token so the application could not exchange it
         //again to get an other access token
-         Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
-            case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id) match {
+         Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token")) match {
+            case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id.get) match {
               case true  =>
               case false => logger.warn("Request token: " + requestToken + " is not deleted. The application could exchange it again to get an other access token!")
             }
@@ -149,7 +149,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       S.request match {
           case Full(a) =>  a.header("Authorization") match {
-            case Full(parameters) => toMap(parameters)
+            case Full(pars) => toMap(pars)
             case _ => Map(("",""))
           }
           case _ => Map(("",""))
@@ -158,7 +158,13 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     //return true if the authorization header has a duplicated parameter
     def duplicatedParameters = {
       var output=false
-      val authorizationParameters = S.request.get.header("Authorization").get.split(",")
+      val authorizationParameters: Array[String] = S.request match {
+        case Full(r) => r.header("Authorization") match {
+          case Full(a) => a.split(",")
+          case _ => Array.empty
+        }
+        case _ => Array.empty
+      }
 
       //count the iterations of a parameter in the authorization header
       def countPram(parameterName : String, parametersArray :Array[String] )={
@@ -220,11 +226,11 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       * The nonce value MUST be unique across all requests with the
       * same timestamp, client credentials, and token combinations.
       */
-      val token = parameters.get("oauth_token") getOrElse ""
-      Nonces.nonces.vend.countNonces(consumerKey = parameters.get("oauth_consumer_key").get,
+      val token = parameters("oauth_token")
+      Nonces.nonces.vend.countNonces(consumerKey = parameters("oauth_consumer_key"),
         tokenKey = token,
-        timestamp = new Date(parameters.get("oauth_timestamp").get.toLong),
-        value = parameters.get("oauth_nonce").get
+        timestamp = new Date(parameters("oauth_timestamp").toLong),
+        value = parameters("oauth_nonce")
       ) !=0
     }
 
@@ -264,15 +270,17 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       var baseString = httpMethod+"&"+URLEncoder.encode(HostName + S.uri ,"UTF-8")+"&"
       // Add OAuth and URL parameters to the base string
       // Parameters are provided as List[(String, String)]
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
+      baseString+= generateOAuthParametersString(OAuthparameters.toList ::: urlParameters())
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).get
-      var secret= consumer.secret.toString
+      var secret: String = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters("oauth_consumer_key")) match {
+        case Full(s) => s.secret.get
+        case _ => ""
+      }
 
       OAuthparameters.get("oauth_token") match {
-        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
+        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(Full(tokenKey)) match {
             case Full(token) => secret+= "&" +token.secret.toString()
             case _ => secret+= "&"
           }
@@ -280,7 +288,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       }
       //logger.info("base string: " + baseString)
       //signing process // TODO default to HmacSHA256?
-      val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
+      val signingAlgorithm : String = if(OAuthparameters("oauth_signature_method").toLowerCase == "hmac-sha256")
         "HmacSHA256"
       else
         "HmacSHA1"
@@ -289,7 +297,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       //logger.info("signing key: " + secret)
       //logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
 
-      var m = Mac.getInstance(signingAlgorithm);
+      var m = Mac.getInstance(signingAlgorithm)
       m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
       val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
 
@@ -297,14 +305,14 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       //logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
       //logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
 
-      calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
+      calculatedSignature== URLDecoder.decode(OAuthparameters("oauth_signature"),"UTF-8")
     }
 
     //check if the token exists and is still valid
-    def validToken(tokenKey : String, verifier : String) ={
+    def validToken(tokenKey : String, verifier : String) = {
       Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Request) match {
         case Full(token) =>
-          token.isValid && token.verifier == verifier
+          token.isValid && token.verifier.get == verifier
         case _ => false
       }
     }
@@ -347,11 +355,11 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
     var parameters = getAllParameters
     //TODO store the consumer key in appConsumerKey variable, may be fixed latter.
-    currentAppConsumerKey=getAllParameters.get("oauth_consumer_key").getOrElse("")
+    currentAppConsumerKey=getAllParameters("oauth_consumer_key")
 
     //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
-    if( missingParams.size != 0 )
+    if( missingParams.nonEmpty )
     {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
       httpCode = 400
@@ -369,20 +377,20 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 400
     }
     //supported signature method
-    else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+    else if (!supportedSignatureMethod(parameters("oauth_signature_method")))
     {
       message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
       httpCode = 400
     }
     //check if the application is registered and active
-    else if(! APIUtil.registeredApplication(parameters.get("oauth_consumer_key").get))
+    else if(! APIUtil.registeredApplication(parameters("oauth_consumer_key")))
     {
-      logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
+      logger.error("application: " + parameters("oauth_consumer_key") + " not found")
       message = ErrorMessages.InvalidConsumerCredentials
       httpCode = 401
     }
     //valid timestamp
-    else if(! wrongTimestamp(parameters.get("oauth_timestamp")).isEmpty)
+    else if( wrongTimestamp(parameters.get("oauth_timestamp")).isDefined)
     {
       message = wrongTimestamp(parameters.get("oauth_timestamp")).get
       httpCode = 400
@@ -394,18 +402,18 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 401
     }
     //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct
-    else if(requestType=="authorizationToken" && !validToken(parameters.get("oauth_token").get, parameters.get("oauth_verifier").get))
+    else if(requestType=="authorizationToken" && !validToken(parameters("oauth_token"), parameters("oauth_verifier")))
     {
-      message = "Invalid or expired request token: " + parameters.get("oauth_token").get
+      message = "Invalid or expired request token: " + parameters("oauth_token")
       httpCode = 401
     }
     //In the case protected resource access request, check if the token is still valid
     else if (
         requestType=="protectedResource" &&
-      ! validToken2(parameters.get("oauth_token").get)
+      ! validToken2(parameters("oauth_token"))
     )
     {
-      message = "Invalid or expired access token: " + parameters.get("oauth_token").get
+      message = "Invalid or expired access token: " + parameters("oauth_token")
       httpCode = 401
     }
     //checking if the signature is correct
@@ -437,22 +445,22 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
     val nonceSaved = Nonces.nonces.vend.createNonce(
       id = None,
-      consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
+      consumerKey = Some(oAuthParameters("oauth_consumer_key")),
       tokenKey = None,
-      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
-      value = Some(oAuthParameters.get("oauth_nonce").get)
+      timestamp = Some(new Date(oAuthParameters("oauth_timestamp").toLong)),
+      value = Some(oAuthParameters("oauth_nonce"))
     ) match {
       case Full(_) => true
       case _ => false
     }
 
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters("oauth_consumer_key")) match {
       case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
     val callbackURL =
-      if(! oAuthParameters.get("oauth_callback").get.isEmpty)
-        URLDecoder.decode(oAuthParameters.get("oauth_callback").get,"UTF-8")
+      if( oAuthParameters("oauth_callback").nonEmpty)
+        URLDecoder.decode(oAuthParameters("oauth_callback"),"UTF-8")
       else
         "oob"
     val currentTime = Platform.currentTime
@@ -481,20 +489,20 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
     val nonceSaved = Nonces.nonces.vend.createNonce(
       id = None,
-      consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
-      tokenKey = Some(oAuthParameters.get("oauth_token").get),
-      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
-      value = Some(oAuthParameters.get("oauth_nonce").get)
+      consumerKey = Some(oAuthParameters("oauth_consumer_key")),
+      tokenKey = Some(oAuthParameters("oauth_token")),
+      timestamp = Some(new Date(oAuthParameters("oauth_timestamp").toLong)),
+      value = Some(oAuthParameters("oauth_nonce"))
     ) match {
       case Full(_) => true
       case _ => false
     }
 
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters.get("oauth_consumer_key").get) match {
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(oAuthParameters("oauth_consumer_key")) match {
       case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    val userId = Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
+    val userId = Tokens.tokens.vend.getTokenByKey(Full(oAuthParameters("oauth_token"))) match {
       case Full(requestToken) => Some(requestToken.userForeignKey.get)
       case _ => None
     }
@@ -528,7 +536,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     import code.model.Token
     val consumer: Option[Consumer] = for {
       tokenId: String <- oAuthParameters.get("oauth_token")
-      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
+      token: Token <- Tokens.tokens.vend.getTokenByKey(Full(tokenId))
       consumer: Consumer <- token.consumer
     } yield {
       consumer
@@ -552,7 +560,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     if(httpCode==200)
     {
       //logger.info("OAuth header correct ")
-      Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
+      Tokens.tokens.vend.getTokenByKey(tokenID) match {
         case Full(token) => {
           //logger.info("access token: "+ token + " found")
           val user = token.user

@@ -11,7 +11,7 @@ import code.model.dataAccess._
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests
 import code.views.Views
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
@@ -22,7 +22,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   //TODO: replace all these helpers with connector agnostic methods like createRandomBank
   // that call Connector.createBank etc.
   // (same in LocalConnectorTestSetup)
-  // Tests should simply use the currently selected connector
+  // Tests must simply use the currently selected connector
   override protected def createBank(id : String) : Bank = {
         MappedBank.create
           .fullBankName(randomString(5))
@@ -47,7 +47,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       otherBranchRoutingScheme ="OBP",
       otherBranchRoutingAddress ="Berlin",
       isBeneficiary = isBeneficiary
-    ).get
+    ) match {
+      case Full(r) => r
+    }
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded
@@ -84,7 +86,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).get.accountCurrency(currency).saveMe()
+     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)) match {
+       case Full(c) => c.accountCurrency(currency).saveMe()
+     }
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
@@ -123,7 +127,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def wipeTestData() = {
-    //returns true if the model should not be wiped after each test
+    //returns true if the model must not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
       m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }

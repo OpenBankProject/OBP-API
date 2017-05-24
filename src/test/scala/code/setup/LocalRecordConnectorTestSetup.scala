@@ -5,6 +5,7 @@ import java.util.Date
 import code.model._
 import code.model.dataAccess._
 import com.mongodb.QueryBuilder
+import net.liftweb.common.Full
 import net.liftweb.util.Helpers._
 
 import scala.math.BigDecimal
@@ -22,12 +23,14 @@ trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       alias(randomString(5)).
       permalink(id).
       national_identifier(randomString(5)).
-      save
+      save(true)
   }
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val q = QueryBuilder.start(HostedBank.permalink.name).is(bankId.value).get()
-    val hostedBank = HostedBank.find(q).get
+    val hostedBank = HostedBank.find(q) match {
+      case Full(hb) => hb
+    }
 
     Account.createRecord.
       accountBalance(900000000).
@@ -39,7 +42,7 @@ trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       bankID(hostedBank.id.get).
       accountLabel(randomString(4)).
       accountCurrency(currency).
-      save
+      save(true)
   }
 
   override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
@@ -92,12 +95,12 @@ trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       details(details)
 
     val env = OBPEnvelope.createRecord.
-      obp_transaction(transaction).save
+      obp_transaction(transaction).save(true)
 
     //slightly ugly
-    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).accountLastUpdate(now).save
+    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).accountLastUpdate(now).save(true)
 
-    env.save
+    env.save(true)
   }
 
 }

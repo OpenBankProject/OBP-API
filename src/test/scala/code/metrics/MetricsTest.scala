@@ -41,7 +41,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   }
 
   def shouldBeEqual(date1 : Date, date2 : Date): Unit = {
-    date1.compareTo(date2) should equal(0)
+    date1.compareTo(date2) must equal(0)
   }
 
   feature("API Metrics") {
@@ -51,14 +51,14 @@ class MetricsTest extends ServerSetup with WipeMetrics {
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
-      byUrl.keys.size should equal(1)
+      byUrl.keys.size must equal(1)
       val metricsForUrl = byUrl(testUrl1)
 
-      metricsForUrl.size should equal(1)
+      metricsForUrl.size must equal(1)
 
       val metric = metricsForUrl(0)
       shouldBeEqual(metric.getDate, day1)
-      metric.getUrl() should equal(testUrl1)
+      metric.getUrl() must equal(testUrl1)
     }
 
     scenario("Group all metrics by url") {
@@ -68,18 +68,18 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUrl2, day2, -1L)
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
-      byUrl.keySet should equal(Set(testUrl1, testUrl2))
+      byUrl.keySet must equal(Set(testUrl1, testUrl2))
 
       val url1Metrics = byUrl(testUrl1)
-      url1Metrics.size should equal(3)
-      url1Metrics.count(_.getUrl() == testUrl1) should equal(3)
-      url1Metrics.count(m => dateEqual(m.getDate(), day1)) should equal(2)
-      url1Metrics.count(m => dateEqual(m.getDate(), day2)) should equal(1)
+      url1Metrics.size must equal(3)
+      url1Metrics.count(_.getUrl() == testUrl1) must equal(3)
+      url1Metrics.count(m => dateEqual(m.getDate(), day1)) must equal(2)
+      url1Metrics.count(m => dateEqual(m.getDate(), day2)) must equal(1)
 
       val url2Metrics = byUrl(testUrl2)
-      url2Metrics.size should equal(1)
-      url2Metrics.count(_.getUrl() == testUrl2) should equal(1)
-      url2Metrics.count(m => dateEqual(m.getDate(), day2)) should equal(1)
+      url2Metrics.size must equal(1)
+      url2Metrics.count(_.getUrl() == testUrl2) must equal(1)
+      url2Metrics.count(m => dateEqual(m.getDate(), day2)) must equal(1)
     }
 
     scenario("Group all metrics by day") {
@@ -89,18 +89,18 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUrl2, day2, -1L)
 
       val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
-      byDay.keySet should equal(Set(startOfDay1, startOfDay2))
+      byDay.keySet must equal(Set(startOfDay1, startOfDay2))
 
       val day1Metrics = byDay(startOfDay1)
-      day1Metrics.size should equal(2)
-      day1Metrics.count(m => dateEqual(m.getDate(), day1)) should equal(2)
-      day1Metrics.count(_.getUrl() == testUrl1) should equal(2)
+      day1Metrics.size must equal(2)
+      day1Metrics.count(m => dateEqual(m.getDate(), day1)) must equal(2)
+      day1Metrics.count(_.getUrl() == testUrl1) must equal(2)
 
       val day2Metrics = byDay(startOfDay2)
-      day2Metrics.size should equal(2)
-      day2Metrics.count(m => dateEqual(m.getDate(), day2)) should equal(2)
-      day2Metrics.count(_.getUrl() == testUrl1) should equal(1)
-      day2Metrics.count(_.getUrl() == testUrl2) should equal(1)
+      day2Metrics.size must equal(2)
+      day2Metrics.count(m => dateEqual(m.getDate(), day2)) must equal(2)
+      day2Metrics.count(_.getUrl() == testUrl1) must equal(1)
+      day2Metrics.count(_.getUrl() == testUrl2) must equal(1)
     }
 
   }

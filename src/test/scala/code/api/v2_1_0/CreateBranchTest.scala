@@ -39,20 +39,20 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
       val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
-      hasEntitlement should equal(true)
+      hasEntitlement must equal(true)
 
       When("We make the request Update Branch for an account")
       var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       var responsePut = makePutRequest(requestPut, write(customerPutJSON))
 
-      Then("We should get a 201 and check all the fields")
-      responsePut.code should equal(201)
+      Then("We must get a 201 and check all the fields")
+      responsePut.code must equal(201)
 
       var nameResponse = (responsePut.body \ "name" ) match {
         case JString(i) => i
         case _ => ""
       }
-      nameResponse should equal("OBP")
+      nameResponse must equal("OBP")
     }
 
     scenario("Update the same data, the data will be updated") {
@@ -64,7 +64,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
       val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
-      hasEntitlement should equal(true)
+      hasEntitlement must equal(true)
 
       When("We make the request Update Branch for an account")
       var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
@@ -76,14 +76,14 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePut = makePutRequest(requestPut, write(customerPutJSON2))
 
-      Then("We should get a 201 and check all the fields")
-      responsePut.code should equal(201)
+      Then("We must get a 201 and check all the fields")
+      responsePut.code must equal(201)
 
       var nameResponse = (responsePut.body \ "name" ) match {
         case JString(i) => i
         case _ => ""
       }
-      nameResponse should equal("OBP1")
+      nameResponse must equal("OBP1")
     }
   }
 
@@ -110,21 +110,21 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
       val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
-      hasEntitlement should equal(true)
+      hasEntitlement must equal(true)
 
 
       When("We make the request Update Branch for an account")
       val requestPut = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
       val responsePost = makePostRequest(requestPut, write(customerPostJSON))
 
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
+      Then("We must get a 201 and check all the fields")
+      responsePost.code must equal(201)
 
       var nameResponse = (responsePost.body \ "name" ) match {
         case JString(i) => i
         case _ => ""
       }
-      nameResponse should equal("OBP")
+      nameResponse must equal("OBP")
 
     }
 
@@ -141,28 +141,28 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
       val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
-      hasEntitlement should equal(true)
+      hasEntitlement must equal(true)
 
       When("We make the request Update Branch for an account")
       var requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
       var responsePost = makePostRequest(requestPost, write(customerPostJSON))
 
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
+      Then("We must get a 201 and check all the fields")
+      responsePost.code must equal(201)
 
       val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
       Then("We make the request Update Branch again, with the same data")
       requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePost = makePutRequest(requestPost, write(customerPostJSON2))
 
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
+      Then("We must get a 201 and check all the fields")
+      responsePost.code must equal(201)
 
       var nameResponse = (responsePost.body \ "name" ) match {
         case JString(i) => i
         case _ => ""
       }
-      nameResponse should equal("OBP1")
+      nameResponse must equal("OBP1")
     }
   }
 

@@ -10,7 +10,7 @@ import code.common.{Address, License, Location, Meta}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import org.joda.time.Hours
 
@@ -68,7 +68,9 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def scheduledDate: Date = mScheduledDate.get
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
-  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).get
+  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get) match {
+    case Full(r) => r
+  }
   override def customerName : String = mCustomerName.get
   override def customerNumber : String = mCustomerNumber.get
 }

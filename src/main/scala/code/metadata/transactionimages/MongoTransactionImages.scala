@@ -62,7 +62,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   object date extends DateField(this)
   object url extends StringField(this, 500)
 
-  def id_ = id.is.toString
+  def id_ = id.get.toString
   def datePosted = date.get
   def postedBy = User.findByResourceUserId(userId.get)
   def viewId = ViewId(forView.get)

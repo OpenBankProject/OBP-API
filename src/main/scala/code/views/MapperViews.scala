@@ -187,16 +187,20 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
     val view = ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
     
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
-    
+    if(view.isDefined)
+      view match {
+        case Full(v) if v.isPublic && !ALLOW_PUBLIC_VIEWS => return Failure(AllowPublicViewsNotSpecified)
+      }
     view
   }
 
   def view(viewUID : ViewUID) : Box[View] = {
-    val view=ViewImpl.find(viewUID)
+    val view = ViewImpl.find(viewUID)
     
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
-    
+    if(view.isDefined)
+      view match {
+        case Full(v) if v.isPublic && !ALLOW_PUBLIC_VIEWS => return Failure(AllowPublicViewsNotSpecified)
+      }
     view
   }
 
@@ -617,7 +621,10 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
-    if(res.isDefined && res.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    if(res.isDefined)
+      res match {
+        case Full(r) if r.isPublic && !ALLOW_PUBLIC_VIEWS => return Failure(AllowPublicViewsNotSpecified)
+      }
     res
   }
 
@@ -628,7 +635,7 @@ object MapperViews extends Views with MdcLoggable {
     )
     var privilegesDeleted = true
     views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
+      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_.get))
     } )
       privilegesDeleted
   }

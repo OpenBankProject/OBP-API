@@ -63,7 +63,7 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
     override protected def getProductFromProvider(bank: BankId, code: ProductCode): Option[Product] = {
       bank match {
          case BankWithLicense => Some(fakeProduct1)
-         case BankWithoutLicense=> Some(fakeProduct3) // In case the connector returns, the API should guard
+         case BankWithoutLicense=> Some(fakeProduct3) // In case the connector returns, the API must guard
         case _ => None
       }
     }
@@ -71,16 +71,16 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
   }
 
   def verifySameData(product: Product, productJson : ProductJson) = {
-    product.name should equal (productJson.name)
+    product.name must equal (productJson.name)
     // Note: We don't currently return the BankId because its part of the URL, so we don't test for that.
-    product.code.value should equal (productJson.code)
-    product.category should equal (productJson.category)
-    product.family should equal (productJson.family)
-    product.meta.license.id should equal (productJson.meta.license.id)
-    product.meta.license.name should equal (productJson.meta.license.name)
-    product.moreInfoUrl should equal (productJson.more_info_url)
-    product.name should equal (productJson.name)
-    product.superFamily should equal (productJson.super_family)
+    product.code.value must equal (productJson.code)
+    product.category must equal (productJson.category)
+    product.family must equal (productJson.family)
+    product.meta.license.id must equal (productJson.meta.license.id)
+    product.meta.license.name must equal (productJson.meta.license.name)
+    product.moreInfoUrl must equal (productJson.more_info_url)
+    product.name must equal (productJson.name)
+    product.superFamily must equal (productJson.super_family)
   }
 
   /*
@@ -105,8 +105,8 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
 
     }
 
@@ -115,21 +115,21 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
 
-      And("We should get the right json format containing a list of products")
+      And("We must get the right json format containing a list of products")
       val wholeResponseBody = response.body
       val responseBodyOpt = wholeResponseBody.extractOpt[ProductsJson]
-      responseBodyOpt.isDefined should equal(true)
+      responseBodyOpt.isDefined must equal(true)
 
       val responseBody = responseBodyOpt.get
 
-      And("We should get the right products")
+      And("We must get the right products")
       val products = responseBody.products
 
       // Order of Products in the list is arbitrary
-      products.size should equal(2)
+      products.size must equal(2)
       val first = products(0)
       if (first.code == fakeProduct1.code.value) {
         verifySameData(fakeProduct1, first)

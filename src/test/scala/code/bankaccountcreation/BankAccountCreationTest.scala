@@ -3,6 +3,7 @@ package code.bankaccountcreation
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankId}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
+import net.liftweb.common.Full
 import org.scalatest.Tag
 
 class BankAccountCreationTest extends ServerSetup with DefaultUsers with DefaultConnectorTestSetup {
@@ -27,26 +28,26 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     val accountType = "some-type"
     val currency = "EUR"
 
-//    scenario("Creating a duplicate bank should fail") {
+//    scenario("Creating a duplicate bank must fail") {
 //
 //      val bankNationalIdentifier = "bank-identifier"
 //      val bankName = "A Bank"
 //      Given("A bank that does not exist")
-//      Connector.connector.vend.getBanks.size should equal(0)
+//      Connector.connector.vend.getBanks.size must equal(0)
 //
 //      val id = "some-bank"
 //
 //      val newBank1 = createBank(id)
 //
-//      Then("A bank should now exist, with the correct parameters")
+//      Then("A bank must now exist, with the correct parameters")
 //
 //      val allBanks = Connector.connector.vend.getBanks
-//      allBanks.size should equal(1)
+//      allBanks.size must equal(1)
 //
 //      val newBank = allBanks(0)
-//      newBank.bankId.value should equal(id)
+//      newBank.bankId.value must equal(id)
 //
-//      // TODO Test for duplicate bank should fail. See comments in createBank
+//      // TODO Test for duplicate bank must fail. See comments in createBank
 //
 //    }
 
@@ -57,7 +58,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       val bankNationalIdentifier = "bank-identifier"
       val bankName = "A Bank"
       Given("A bank that does not exist")
-      Connector.connector.vend.getBanks.size should equal(0)
+      Connector.connector.vend.getBanks.size must equal(0)
 
       When("We create an account at that bank")
       val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(
@@ -66,20 +67,22 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
         "","", "" //added field in V220
       ) 
 
-      Then("A bank should now exist, with the correct parameters")
+      Then("A bank must now exist, with the correct parameters")
       val allBanks = Connector.connector.vend.getBanks
-      allBanks.size should equal(1)
+      allBanks.size must equal(1)
       val newBank = allBanks(0)
-      newBank.fullName should equal(bankName)
-      newBank.nationalIdentifier should equal(bankNationalIdentifier)
+      newBank.fullName must equal(bankName)
+      newBank.nationalIdentifier must equal(bankNationalIdentifier)
 
-      And("An account should now exist, with the correct parameters")
+      And("An account must now exist, with the correct parameters")
       val foundAccountBox = Connector.connector.vend.getBankAccount(newBank.bankId, returnedAccount.accountId)
-      foundAccountBox.isDefined should equal(true)
-      val foundAccount = foundAccountBox.get
+      foundAccountBox.isDefined must equal(true)
+      val foundAccount = foundAccountBox match {
+        case Full(f) => f
+      }
 
-      foundAccount.number should equal(accountNumber)
-      foundAccount.accountHolder should equal(accountHolderName)
+      foundAccount.number must equal(accountNumber)
+      foundAccount.owners must contain(accountHolderName)
     }
 
     scenario("Creating an account for a bank that already exists") {
@@ -87,8 +90,8 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
       Given("A bank that does exist")
       val allBanksBefore = Connector.connector.vend.getBanks
-      allBanksBefore.size should equal(1)
-      allBanksBefore(0).bankId should equal(existingBank.bankId)
+      allBanksBefore.size must equal(1)
+      allBanksBefore(0).bankId must equal(existingBank.bankId)
 
 
       When("We create an account at that bank")
@@ -101,19 +104,21 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
         "","", "" //added field in V220
       )
 
-      Then("No new bank should be created")
+      Then("No new bank must be created")
       val allBanksAfter = Connector.connector.vend.getBanks
-      allBanksAfter.size should equal(1)
-      allBanksAfter(0).fullName should equal(existingBank.fullName)
-      allBanksAfter(0).nationalIdentifier should equal(existingBank.nationalIdentifier)
+      allBanksAfter.size must equal(1)
+      allBanksAfter(0).fullName must equal(existingBank.fullName)
+      allBanksAfter(0).nationalIdentifier must equal(existingBank.nationalIdentifier)
 
-      And("An account should now exist, with the correct parameters")
+      And("An account must now exist, with the correct parameters")
       val foundAccountBox = Connector.connector.vend.getBankAccount(existingBank.bankId, returnedAccount.accountId)
-      foundAccountBox.isDefined should equal(true)
-      val foundAccount = foundAccountBox.get
+      foundAccountBox.isDefined must equal(true)
+      val foundAccount = foundAccountBox match {
+        case Full(fa) => fa
+      }
 
-      foundAccount.number should equal(accountNumber)
-      foundAccount.accountHolder should equal(accountHolderName)
+      foundAccount.number must equal(accountNumber)
+      foundAccount.owners must contain(accountHolderName)
     }
 
   }
@@ -131,7 +136,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
     scenario("Creating a bank account when the associated bank does not exist") {
       Given("A bank that doesn't exist")
-      Connector.connector.vend.getBank(bankId).isDefined should equal(false)
+      Connector.connector.vend.getBank(bankId).isDefined must equal(false)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(
@@ -142,54 +147,58 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       ) 
 
       Then("No account is created")
-      Connector.connector.vend.getBankAccount(bankId, accountId).isDefined should equal(false)
+      Connector.connector.vend.getBankAccount(bankId, accountId).isDefined must equal(false)
 
     }
 
     scenario("Creating a bank account with an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
-      Connector.connector.vend.getBank(bankId).isDefined should equal(true)
+      Connector.connector.vend.getBank(bankId).isDefined must equal(true)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName,
                                                         "","","" ) //added field in V220
 
-      Then("An account with the proper parameters should be created")
+      Then("An account with the proper parameters must be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
-      createdAccBox.isDefined should be(true)
-      val createdAcc = createdAccBox.get
+      createdAccBox.isDefined must be(true)
+      val createdAcc = createdAccBox match {
+        case Full(ca) => ca
+      }
 
-      createdAcc.bankId should equal(bankId)
-      createdAcc.accountId should equal(accountId)
-      createdAcc.balance should equal(initialBalance)
-      createdAcc.currency should equal(currency)
-      createdAcc.number should equal(defaultAccountNumber)
-      createdAcc.accountHolder should equal(accountHolderName)
+      createdAcc.bankId must equal(bankId)
+      createdAcc.accountId must equal(accountId)
+      createdAcc.balance must equal(initialBalance)
+      createdAcc.currency must equal(currency)
+      createdAcc.number must equal(defaultAccountNumber)
+      createdAcc.accountHolder must equal(accountHolderName)
     }
 
     scenario("Creating a bank account without an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
-      Connector.connector.vend.getBank(bankId).isDefined should equal(true)
+      Connector.connector.vend.getBank(bankId).isDefined must equal(true)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName,
                                                         "","", "")//added field in V220
 
-      Then("An account with the proper parameters should be created")
+      Then("An account with the proper parameters must be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
-      createdAccBox.isDefined should be(true)
-      val createdAcc = createdAccBox.get
+      createdAccBox.isDefined must be(true)
+      val createdAcc = createdAccBox match {
+        case Full(ca) => ca
+      }
 
-      createdAcc.bankId should equal(bankId)
-      createdAcc.accountId should equal(accountId)
-      createdAcc.balance should equal(initialBalance)
-      createdAcc.currency should equal(currency)
-      createdAcc.accountHolder should equal(accountHolderName)
+      createdAcc.bankId must equal(bankId)
+      createdAcc.accountId must equal(accountId)
+      createdAcc.balance must equal(initialBalance)
+      createdAcc.currency must equal(currency)
+      createdAcc.accountHolder must equal(accountHolderName)
 
-      //Account number should be autogenerated
-      createdAcc.number.nonEmpty should equal(true)
+      //Account number must be autogenerated
+      createdAcc.number.nonEmpty must equal(true)
 
     }
 

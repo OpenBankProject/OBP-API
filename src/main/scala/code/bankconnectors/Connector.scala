@@ -560,13 +560,16 @@ trait Connector {
                                                                             BigDecimal(transactionRequestCommonBody.value.amount),
                                                                             transactionRequestCommonBody.description,
                                                                             transactionRequestType,
-                                                                            chargePolicy)
-        //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
-        transactionRequest = transactionRequest.copy(challenge = null)
-        //save transaction_id into database
-        saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
-        //update transaction_id filed for varibale 'transactionRequest' 
-        transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.get.value)
+                                                                            chargePolicy) match {
+          case Full(t) =>
+            //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
+            transactionRequest = transactionRequest.copy(challenge = null)
+            //save transaction_id into database
+            saveTransactionRequestTransaction(transactionRequest.id, t)
+            //update transaction_id filed for varibale 'transactionRequest'
+            transactionRequest = transactionRequest.copy(transaction_ids = t.value)
+          case _ =>
+        }
         
       case TransactionRequests.STATUS_PENDING =>
         transactionRequest = transactionRequest

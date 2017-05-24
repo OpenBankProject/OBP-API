@@ -91,20 +91,20 @@ class MappedBranchesProviderTest extends ServerSetup {
       val expectedBranches =  List(fixture.branch1, fixture.branch2)
 
       Given("the bank in question has branches")
-      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
+      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined must equal(true)
 
       When("we try to get the branches for that bank")
       val branchesOpt: Option[List[Branch]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX))
 
-      Then("We should get a branches list")
-      branchesOpt.isDefined should equal (true)
+      Then("We must get a branches list")
+      branchesOpt.isDefined must equal (true)
       val branches = branchesOpt.get
 
-      And("it should contain two branches")
-      branches.size should equal(2)
+      And("it must contain two branches")
+      branches.size must equal(2)
 
-      And("they should be the licensed ones")
-      branches should equal (expectedBranches)
+      And("they must be the licensed ones")
+      branches must equal (expectedBranches)
     }
 
     scenario("We try to get branches for a bank that doesn't have any") {
@@ -113,16 +113,16 @@ class MappedBranchesProviderTest extends ServerSetup {
 
       Given("we don't have any branches")
 
-      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdY)).isDefined should equal(false)
+      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdY)).isDefined must equal(false)
 
       When("we try to get the branches for that bank")
       val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdY))
 
-      Then("we should get back an empty list")
-      branchDataOpt.isDefined should equal(true)
+      Then("we must get back an empty list")
+      branchDataOpt.isDefined must equal(true)
       val branches = branchDataOpt.get
 
-      branches.size should equal(0)
+      branches.size must equal(0)
 
     }
 

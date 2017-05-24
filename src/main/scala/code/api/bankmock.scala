@@ -121,7 +121,7 @@ object BankMockAPI extends RestHelper with MdcLoggable {
                   tkn.consumerId.foreign match {
                     case Full(app) => {
                       val applicationInfo = ApplicationInformation(
-                        name  = app.name,
+                        name  = app.name.get,
                         callbackURL = tkn.callbackURL.get
                       )
                       JsonResponse(applicationInfo, Nil, Nil, 200)

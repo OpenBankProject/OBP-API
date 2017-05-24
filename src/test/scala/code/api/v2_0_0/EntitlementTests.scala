@@ -28,11 +28,11 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We must get a 400")
+      responseGet.code must equal(400)
       val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      And("We must get a message: " + ErrorMessages.UserNotLoggedIn)
+      error must contain (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -40,11 +40,11 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We must get a 400")
+      responseGet.code must equal(400)
       val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
-      And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      error should contain (UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+      And("We must get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
+      error must contain (UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements") {
@@ -53,8 +53,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       And("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 200")
-      responseGet.code should equal(200)
+      Then("We must get a 200")
+      responseGet.code must equal(200)
     }
   }
 

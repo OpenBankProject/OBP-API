@@ -5,10 +5,12 @@ import code.accountholder.AccountHolders
 import code.model._
 import code.model.dataAccess._
 import code.views.Views
+import net.liftweb.common.Full
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
+import net.liftweb.util.DefaultConnectionIdentifier
 
 /**
  * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
@@ -29,24 +31,30 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.createOwnerView(bankId, accountId, randomString(3)).get
+    Views.views.vend.createOwnerView(bankId, accountId, randomString(3)) match {
+      case Full(ow) => ow
+    }
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createPublicView(bankId, accountId, randomString(3)).get
+    Views.views.vend.createPublicView(bankId, accountId, randomString(3)) match {
+      case Full(pw) => pw
+    }
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createRandomView(bankId, accountId).get
+    Views.views.vend.createRandomView(bankId, accountId)  match {
+      case Full(rw) => rw
+    }
   }
 
 
   protected def wipeTestData(): Unit = {
 
     //drop the mongo Database after each test
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    MongoDB.getDb(DefaultConnectionIdentifier).foreach(_.dropDatabase())
 
-    //returns true if the model should not be wiped after each test
+    //returns true if the model must not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
       m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }

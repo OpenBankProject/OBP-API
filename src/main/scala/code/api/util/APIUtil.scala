@@ -329,10 +329,15 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.get.view
+      val implementedInVersion = S.request match {
+        case Full(r) => r.view
+        case _ => ""
+      }
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.get.requestType.method
-
+      val verb = S.request match {
+        case Full(r) => r.requestType.method
+        case _ => ""
+      }
       //execute saveMetric in future, as we do not need to know result of operation
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {

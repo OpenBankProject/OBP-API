@@ -12,7 +12,9 @@ trait CreateAuthUsers {
   override protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]] = {
 
     def asSaveable(u : AuthUser) = new Saveable[ResourceUser] {
-      val value = u.createUnsavedResourceUser()
+      val value = u.createUnsavedResourceUser() match {
+        case Full(u) => u
+      }
       def save() = {
         val usr = Users.users.vend.saveResourceUser(value)
         for (uu <- usr) {

@@ -336,7 +336,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   def getUserFromToken(tokenID : Box[String]) : Box[User] = {
     logger.info("DirectLogin header correct ")
-    Tokens.tokens.vend.getTokenByKey(tokenID.getOrElse("")) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID) match {
       case Full(token) => {
         logger.info("access token: " + token + " found")
         val user = token.user
@@ -365,7 +365,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
     val consumer: Option[Consumer] = for {
       tokenId: String <- directLoginParameters.get("token")
-      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
+      token: Token <- Tokens.tokens.vend.getTokenByKey(Full(tokenId))
       consumer: Consumer <- token.consumer
     } yield {
       consumer

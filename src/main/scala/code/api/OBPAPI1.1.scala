@@ -113,7 +113,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
   if(httpCode==200)
   {
     logger.info("OAuth header correct ")
-    Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID) match {
       case Full(token) => {
         logger.info("access token: "+ token + " found")
         val user = User.findByResourceUserId(token.userForeignKey.get)
@@ -266,7 +266,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
       def gitCommit : String = {
         val commit = tryo{
           val properties = new java.util.Properties()
-          properties.load(getClass().getClassLoader().getResourceAsStream("git.properties"))
+          properties.load(getClass.getClassLoader.getResourceAsStream("git.properties"))
           properties.getProperty("git.commit.id", "")
         }
         commit getOrElse ""

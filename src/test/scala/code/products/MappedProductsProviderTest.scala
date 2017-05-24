@@ -80,20 +80,20 @@ class MappedProductsProviderTest extends ServerSetup {
 
 
       Given("the bank in question has Products")
-      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdX)).isDefined should equal(true)
+      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdX)).isDefined must equal(true)
 
       When("we try to get the Products for that bank")
       val productsOpt: Option[List[Product]] = MappedProductsProvider.getProducts(BankId(fixture.bankIdX))
 
-      Then("We should get a Products list")
-      productsOpt.isDefined should equal (true)
+      Then("We must get a Products list")
+      productsOpt.isDefined must equal (true)
       val products = productsOpt.get
 
-      And("it should contain two Products")
-      products.size should equal(2)
+      And("it must contain two Products")
+      products.size must equal(2)
 
-      And("they should be the licensed ones")
-      products should equal (expectedProducts)
+      And("they must be the licensed ones")
+      products must equal (expectedProducts)
     }
 
     scenario("We try to get Products for a bank that doesn't have any") {
@@ -102,16 +102,16 @@ class MappedProductsProviderTest extends ServerSetup {
 
       Given("we don't have any Products")
 
-      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdY)).isDefined should equal(false)
+      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdY)).isDefined must equal(false)
 
       When("we try to get the Products for that bank")
       val productsOpt = MappedProductsProvider.getProducts(BankId(fixture.bankIdY))
 
-      Then("we should get back an empty list")
-      productsOpt.isDefined should equal(true)
+      Then("we must get back an empty list")
+      productsOpt.isDefined must equal(true)
       val products = productsOpt.get
 
-      products.size should equal(0)
+      products.size must equal(0)
 
     }
 

@@ -114,7 +114,7 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     def saveAndShowResults(consumer : Consumer) = {
-      val c = Consumers.consumers.vend.updateConsumer(consumer.id, Some(Helpers.randomString(40).toLowerCase), Some(Helpers.randomString(40).toLowerCase), Some(true), None, None, None, None, None, None)
+      val c = Consumers.consumers.vend.updateConsumer(consumer.id.get, Some(Helpers.randomString(40).toLowerCase), Some(Helpers.randomString(40).toLowerCase), Some(true), None, None, None, None, None, None)
       val result = c match {
         case Full(x) => x
         case _       => consumer
@@ -153,9 +153,11 @@ class ConsumerRegistration extends MdcLoggable {
 
       val appTypeSelected = withNameOpt(appType.is)
 
-      val consumer = Consumers.consumers.vend.createConsumer(None, None, None, Some(nameVar.is), Some(appTypeSelected.get), Some(descriptionVar.is), Some(devEmailVar.is), Some(redirectionURLVar.is), Some(AuthUser.getCurrentResourceUserUserId))
+      val consumer = Consumers.consumers.vend.createConsumer(None, None, None, Some(nameVar.is), Some(appTypeSelected.get), Some(descriptionVar.is), Some(devEmailVar.is), Some(redirectionURLVar.is), Some(AuthUser.getCurrentResourceUserUserId)) match {
+        case Full(c) => c
+      }
 
-      val errors = consumer.get.validate
+      val errors = consumer.validate
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
@@ -167,7 +169,7 @@ class ConsumerRegistration extends MdcLoggable {
       else if(descriptionVar.isEmpty)
         showErrorsForDescription("Description of the application can not be empty !")
       else if(errors.isEmpty)
-        saveAndShowResults(consumer.get)
+        saveAndShowResults(consumer)
       else
         showErrors(errors)
     }

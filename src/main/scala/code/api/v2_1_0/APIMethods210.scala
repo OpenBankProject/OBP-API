@@ -835,7 +835,7 @@ trait APIMethods210 {
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
-            val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
+            val json = createConsumerJSONs(consumers.sortWith(_.id.get < _.id.get))
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -874,10 +874,10 @@ trait APIMethods210 {
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserDoesNotHaveRole + CanDisableConsumers )
             }
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerId.toLong)
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
           } yield {
             // Format the data as json
-            val json = PutEnabledJSON(updatedConsumer.isActive)
+            val json = PutEnabledJSON(updatedConsumer.isActive.get)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -1073,7 +1073,7 @@ trait APIMethods210 {
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            atm  <- Box(Atms.atmsProvider.vend.getAtm(atmId)) ?~! {AtmNotFoundByAtmId}
+            atm <- Full(Atms.atmsProvider.vend.getAtm(atmId).get) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmJson(atm)
@@ -1122,7 +1122,7 @@ trait APIMethods210 {
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! 
+            branch <- Full(Branches.branchesProvider.vend.getBranch(branchId).get) ?~!
               s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
           } yield {
             // Format the data as json
@@ -1609,9 +1609,9 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! UserNoPermissionUpdateConsumer
+            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.get.equals(u.userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))

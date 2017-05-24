@@ -292,11 +292,13 @@ private object LocalConnector extends Connector with MdcLoggable {
       val envelope: Box[OBPEnvelope] = OBPEnvelope.envelopesFromJValue(transactionJS)
 
       if(envelope.isDefined) {
-        val e : OBPEnvelope = envelope.get
+        val e : OBPEnvelope = envelope match {
+          case Full(en) => en
+        }
         logger.debug(s"Updating current balance for ${thisAccount.bankName} / ${thisAccount.accountNumber} / ${thisAccount.accountType}")
-        thisAccount.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
+        thisAccount.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save(true)
         logger.debug("Saving new transaction")
-        Full(e.save)
+        Full(e.save(true))
       } else {
         Failure("couldn't save transaction")
       }
@@ -432,7 +434,7 @@ private object LocalConnector extends Connector with MdcLoggable {
     import net.liftweb.mongodb.BsonDSL._
     Account.find(
       (Account.accountNumber.name -> accountNumber)~
-        (Account.bankID.name -> hostedBank.id.is)
+        (Account.bankID.name -> hostedBank.id.get)
     ) match {
       case Full(bankAccount) => {
         logger.info(s"account with number ${bankAccount.accountNumber} at bank ${hostedBank.bankId} already exists. No need to create a new one.")
@@ -450,11 +452,11 @@ private object LocalConnector extends Connector with MdcLoggable {
             .accountLabel(accountLabel)
             .accountName("")
             .permalink(accountId.value)
-            .bankID(hostedBank.id.is)
+            .bankID(hostedBank.id.get)
             .accountCurrency(currency)
             .accountIban("")
             .accountLastUpdate(now)
-            .save
+            .save(true)
         bankAccount
       }
     }
@@ -494,7 +496,7 @@ private object LocalConnector extends Connector with MdcLoggable {
             .alias(bankName)
             .permalink(Helper.generatePermalink(bankName))
             .national_identifier(bankNationalIdentifier)
-            .save
+            .save(true)
         }
       }
     }
@@ -628,7 +630,7 @@ private object LocalConnector extends Connector with MdcLoggable {
   override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
     Account.find(
       (Account.accountNumber.name -> accountNumber)~
-        (Account.nationalIdentifier.name -> bankNationalIdentifier)
+        (Account.nationalIdentifier -> bankNationalIdentifier)
     ) match {
       case Full(acc) => acc.accountLastUpdate(updateDate).saveTheRecord().isDefined
       case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false

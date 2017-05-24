@@ -47,14 +47,14 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We must get a 200 and check all the fields")
+      responsePost.code must equal(200)
 
       var accountRoutingAddress = (responsePost.body \ "other_account_routing_address" ) match {
         case JString(i) => i
         case _ => ""
       }
-      accountRoutingAddress should  equal(counterpartyPostJSON.other_account_routing_address)
+      accountRoutingAddress must  equal(counterpartyPostJSON.other_account_routing_address)
 
     }
 
@@ -70,11 +70,11 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-      Then("We should get a 400")
-      responsePost.code should equal(400)
+      Then("We must get a 400")
+      responsePost.code must equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error  should contain  (ErrorMessages.AccountNotFound)
+      error  must contain  (ErrorMessages.AccountNotFound)
     }
 
     scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
@@ -92,11 +92,11 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       Then("We make the request again, the same name/bank_id/account_id/view_id")
       responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 400 and check the error massage")
-      responsePost.code should equal(400)
+      Then("We must get a 400 and check the error massage")
+      responsePost.code must equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error  should contain  (ErrorMessages.CounterpartyAlreadyExists)
+      error  must contain  (ErrorMessages.CounterpartyAlreadyExists)
 
     }
   }

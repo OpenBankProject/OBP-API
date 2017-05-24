@@ -7,6 +7,7 @@ import code.bankconnectors.Connector
 import code.model.{AccountId, Transaction}
 import code.setup.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Full
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers._
 
@@ -123,9 +124,9 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
     }
 
     def checkOkay(t : Transaction, value : String, newBalance : String, startDate : String, endDate : String, label : String) = {
-      t.amount.toString should equal(value)
-      t.balance.toString should equal(newBalance)
-      t.description should equal(Some(label))
+      t.amount.toString must equal(value)
+      t.balance.toString must equal(newBalance)
+      t.description must equal(Some(label))
 
       //the import api uses a different degree of detail than the main api (extra SSS)
       //to compare the import api date string values to the dates returned from the api
@@ -137,67 +138,79 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
         f
       }
 
-      t.transactionType should equal(dummyKind)
+      t.transactionType must equal(dummyKind)
 
       //compare time as a long to avoid issues comparing Dates, e.g. java.util.Date vs java.sql.Date
-      t.startDate.getTime should equal(importJsonDateFormat.parse(startDate).getTime) 
-      t.finishDate.getTime should equal(importJsonDateFormat.parse(endDate).getTime)
+      t.startDate.getTime must equal(importJsonDateFormat.parse(startDate).getTime) 
+      t.finishDate.getTime must equal(importJsonDateFormat.parse(endDate).getTime)
     }
 
     scenario("Attempting to import transactions without using a secret key") {
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(0)
 
       When("We try to import transactions without using a secret key")
       val response = addTransactions(f.testJson, None)
 
-      Then("We should get a 400")
-      response.code should equal(400)
+      Then("We must get a 400")
+      response.code must equal(400)
 
-      And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
+      And("No transactions must be added")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(0)
     }
 
     scenario("Attempting to import transactions with the incorrect secret key") {
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(0)
 
       When("We try to import transactions with the incorrect secret key")
       val response = addTransactions(f.testJson, Some(secretKeyValue + "asdsadsad"))
 
-      Then("We should get a 401")
-      response.code should equal(401)
+      Then("We must get a 401")
+      response.code must equal(401)
 
-      And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
+      And("No transactions must be added")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(0)
     }
 
     scenario("Attempting to import transactions with the correct secret key") {
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(0)
 
       When("We try to import transactions with the correct secret key")
       val response = addTransactions(f.testJson, Some(secretKeyValue))
 
-      Then("We should get a 200") //implementation returns 200 and not 201, so we'll leave it like that
-      response.code should equal(200)
+      Then("We must get a 200") //implementation returns 200 and not 201, so we'll leave it like that
+      response.code must equal(200)
 
-      And("Transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(2)
+      And("Transactions must be added")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(2)
 
-      And("The transactions should have the correct parameters")
+      And("The transactions must have the correct parameters")
       val t1 = tsAfter(0)
       checkOkay(t1, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
@@ -205,13 +218,15 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       checkOkay(t2, f.t2Value, f.t2NewBalance, f.t2StartDate, f.t2EndDate, f.dummyLabel)
 
 
-      And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
-      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
-      account.balance.toString should equal(f.t2NewBalance) //t2 has a later completed date than t1
+      And("The account must have its balance set to the 'new_balance' value of the most recently completed transaction")
+      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId) match {
+        case Full(a) => a
+      }
+      account.balance.toString must equal(f.t2NewBalance) //t2 has a later completed date than t1
 
-      And("The account should have accountLastUpdate set to the current time")
+      And("The account must have accountLastUpdate set to the current time")
       val dt = (now.getTime - account.lastUpdate.getTime)
-      dt < 1000 should equal(true)
+      dt < 1000 must equal(true)
 
     }
 
@@ -220,33 +235,39 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       def checkTransactionOkay(t : Transaction) = checkOkay(t, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(0)
 
       When("We try to import two identical transactions with the correct secret key")
       val t1Json = f.tJson(f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate)
       val importJson = f.importJson(List.fill(2)(t1Json))
       val response = addTransactions(importJson, Some(secretKeyValue))
 
-      //it should NOT complain about identical "new balances" as sometimes this value is unknown, or computed on a daily basis
+      //it must NOT complain about identical "new balances" as sometimes this value is unknown, or computed on a daily basis
       //and hence all transactions for the day will have the same end balance
-      Then("We should get a 200") //implementation returns 200 and not 201, so we'll leave it like that
-      response.code should equal(200)
+      Then("We must get a 200") //implementation returns 200 and not 201, so we'll leave it like that
+      response.code must equal(200)
 
-      And("Transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(2)
+      And("Transactions must be added")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(2)
 
-      And("The transactions should have the correct parameters")
+      And("The transactions must have the correct parameters")
       tsAfter.foreach(checkTransactionOkay)
 
-      And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
-      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
-      account.balance.toString should equal(f.t1NewBalance)
+      And("The account must have its balance set to the 'new_balance' value of the most recently completed transaction")
+      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId) match {
+        case Full(a) => a
+      }
+      account.balance.toString must equal(f.t1NewBalance)
 
-      And("The account should have accountLastUpdate set to the current time")
+      And("The account must have accountLastUpdate set to the current time")
       val dt = (now.getTime - account.lastUpdate.getTime)
-      dt < 1000 should equal(true)
+      dt < 1000 must equal(true)
     }
 
     scenario("Adding transactions that have already been imported") {
@@ -258,31 +279,39 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
       Given("Two 'identical' existing transactions")
       addTransactions(importJson, Some(secretKeyValue))
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(2)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(2)
 
       tsBefore.foreach(checkTransactionOkay)
 
       //remember lastUpdate time
-      var account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
+      var account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId) match {
+        case Full(a) => a
+      }
       val oldTime = if(account.lastUpdate != null) account.lastUpdate.getTime else 0
 
       When("We try to add those transactions again")
       val response = addTransactions(importJson, Some(secretKeyValue))
 
-      Then("We should get a 200") //implementation returns 200 and not 201, so we'll leave it like that
-      response.code should equal(200)
+      Then("We must get a 200") //implementation returns 200 and not 201, so we'll leave it like that
+      response.code must equal(200)
 
-      And("There should still only be two transactions")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(2)
+      And("There must still only be two transactions")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(2)
 
       tsAfter.foreach(checkTransactionOkay)
 
-      And("The account should have accountLastUpdate set to the current time (different from first insertion)")
-      account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
+      And("The account must have accountLastUpdate set to the current time (different from first insertion)")
+      account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId) match {
+        case Full(a) => a
+      }
       val dt = (account.lastUpdate.getTime - oldTime)
-      dt > 0 should equal(true)
+      dt > 0 must equal(true)
     }
 
     scenario("Adding 'identical' transactions, some of which have already been imported") {
@@ -295,8 +324,10 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
       Given("Two 'identical' existing transactions")
       addTransactions(initialImportJson, Some(secretKeyValue))
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(2)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(2)
 
       checkTransactionOkay(tsBefore(0))
       checkTransactionOkay(tsBefore(1))
@@ -304,12 +335,14 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       When("We try to add 5 copies of the transaction")
       val response = addTransactions(secondImportJson, Some(secretKeyValue))
 
-      Then("We should get a 200") //implementation returns 200 and not 201, so we'll leave it like that
-      response.code should equal(200)
+      Then("We must get a 200") //implementation returns 200 and not 201, so we'll leave it like that
+      response.code must equal(200)
 
-      And("There should now be 5 transactions")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(5)
+      And("There must now be 5 transactions")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(5)
 
       tsAfter.foreach(checkTransactionOkay)
     }
@@ -330,20 +363,26 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       Given("Two 'identical' existing transactions at a different account")
       addTransactions(t1F1ImportJson, Some(secretKeyValue))
 
-      val f1TsBefore = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).get
-      f1TsBefore.size should equal(2)
+      val f1TsBefore = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId) match {
+        case Full(ts) => ts
+      }
+      f1TsBefore.size must equal(2)
       f1TsBefore.foreach(checkF1TransactionOkay)
 
       When("We add these same 'identical' transactions to a different account")
       addTransactions(t1F2ImportJson, Some(secretKeyValue))
 
-      Then("There should be two transactions for each account")
-      val f1TsAfter = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).get
-      f1TsAfter.size should equal(2)
+      Then("There must be two transactions for each account")
+      val f1TsAfter = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId) match {
+        case Full(ts) => ts
+      }
+      f1TsAfter.size must equal(2)
       f1TsAfter.foreach(checkF1TransactionOkay)
 
-      val f2Ts = Connector.connector.vend.getTransactions(f2.account.bankId, f2.account.accountId).get
-      f2Ts.size should equal(2)
+      val f2Ts = Connector.connector.vend.getTransactions(f2.account.bankId, f2.account.accountId) match {
+        case Full(ts) => ts
+      }
+      f2Ts.size must equal(2)
       f2Ts.foreach(checkF2TransactionOkay)
 
     }
@@ -351,18 +390,22 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
     scenario("Attempting to import transactions using an incorrect json format") {
       val f = defaultFixture()
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsBefore.size must equal(0)
 
       When("We try to import transactions with the correct secret key")
       val response = addTransactions("""{"some_gibberish" : "json"}""", Some(secretKeyValue))
 
-      Then("We should get a 500") //implementation returns 500, so we'll leave it like that
-      response.code should equal(200)
+      Then("We must get a 500") //implementation returns 500, so we'll leave it like that
+      response.code must equal(200)
 
-      And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
+      And("No transactions must be added")
+      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId) match {
+        case Full(ts) => ts
+      }
+      tsAfter.size must equal(0)
     }
 
   }

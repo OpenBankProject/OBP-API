@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License
+You must have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
@@ -54,9 +54,10 @@ import code.users.Users
 import code.views.Views
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, ShouldMatchers}
+import org.scalatest.{BeforeAndAfterEach, FlatSpec, MustMatchers}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
@@ -71,7 +72,7 @@ This tests:
 Posting of json to the sandbox creation API endpoint.
 Checking that the various objects were created OK via calling the Mapper.
  */
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers with BeforeAndAfterEach {
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustMatchers with BeforeAndAfterEach {
 
   val SUCCESS: Int = 201
   val FAILED: Int = 400
@@ -84,7 +85,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   def sandboxApiPrefix = baseRequest / "obp" / "vsandbox"
 
-  //users should automatically be assigned the "hostname" as a provider (for now at least)
+  //users must automatically be assigned the "hostname" as a provider (for now at least)
   val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
 
   val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
@@ -149,15 +150,17 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bankId = BankId(bank.id)
     val foundBankBox = Connector.connector.vend.getBank(bankId)
 
-    foundBankBox.isDefined should equal(true)
+    foundBankBox.isDefined must equal(true)
 
-    val foundBank = foundBankBox.get
+    val foundBank = foundBankBox match {
+      case Full(b) => b
+    }
 
-    foundBank.bankId should equal(bankId)
-    foundBank.shortName should equal(bank.short_name)
-    foundBank.fullName should equal(bank.full_name)
-    foundBank.logoUrl should equal(bank.logo)
-    foundBank.websiteUrl should equal(bank.website)
+    foundBank.bankId must equal(bankId)
+    foundBank.shortName must equal(bank.short_name)
+    foundBank.fullName must equal(bank.full_name)
+    foundBank.logoUrl must equal(bank.logo)
+    foundBank.websiteUrl must equal(bank.website)
   }
 
   def verifyBranchCreated(branch : SandboxBranchImport) = {
@@ -169,28 +172,28 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // check we have found a branch
     val foundBranchOpt: Option[Branch] = Branches.branchesProvider.vend.getBranch(branchId)
-    foundBranchOpt.isDefined should equal(true)
+    foundBranchOpt.isDefined must equal(true)
 
     val foundBranch = foundBranchOpt.get
-    foundBranch.name should equal(branch.name)
-    foundBranch.address.line1 should equal(branch.address.line_1)
-    foundBranch.address.line2 should equal(branch.address.line_2)
-    foundBranch.address.line3 should equal(branch.address.line_3)
-    foundBranch.address.city should equal(branch.address.city)
-    foundBranch.address.county should equal(branch.address.county)
-    foundBranch.address.state should equal(branch.address.state)
+    foundBranch.name must equal(branch.name)
+    foundBranch.address.line1 must equal(branch.address.line_1)
+    foundBranch.address.line2 must equal(branch.address.line_2)
+    foundBranch.address.line3 must equal(branch.address.line_3)
+    foundBranch.address.city must equal(branch.address.city)
+    foundBranch.address.county must equal(branch.address.county)
+    foundBranch.address.state must equal(branch.address.state)
 
-    foundBranch.location.latitude should equal(branch.location.latitude)
-    foundBranch.location.longitude should equal(branch.location.longitude)
+    foundBranch.location.latitude must equal(branch.location.latitude)
+    foundBranch.location.longitude must equal(branch.location.longitude)
 
-    foundBranch.address.postCode should equal(branch.address.post_code)
-    foundBranch.address.countryCode should equal(branch.address.country_code)
+    foundBranch.address.postCode must equal(branch.address.post_code)
+    foundBranch.address.countryCode must equal(branch.address.country_code)
 
-    foundBranch.meta.license.id should equal(branch.meta.license.id)
-    foundBranch.meta.license.name should equal(branch.meta.license.name)
+    foundBranch.meta.license.id must equal(branch.meta.license.id)
+    foundBranch.meta.license.name must equal(branch.meta.license.name)
 
-    foundBranch.lobby.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
-    foundBranch.driveUp.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
+    foundBranch.lobby.hours must equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
+    foundBranch.driveUp.hours must equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
 
   def verifyAtmCreated(atm : SandboxAtmImport) = {
@@ -200,25 +203,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // check we have found a branch
     val foundAtmOpt: Option[Atm] = Atms.atmsProvider.vend.getAtm(atmId)
-    foundAtmOpt.isDefined should equal(true)
+    foundAtmOpt.isDefined must equal(true)
 
     val foundAtm = foundAtmOpt.get
-    foundAtm.name should equal(atm.name)
-    foundAtm.address.line1 should equal(atm.address.line_1)
-    foundAtm.address.line2 should equal(atm.address.line_2)
-    foundAtm.address.line3 should equal(atm.address.line_3)
-    foundAtm.address.city should equal(atm.address.city)
-    foundAtm.address.county should equal(atm.address.county)
-    foundAtm.address.state should equal(atm.address.state)
+    foundAtm.name must equal(atm.name)
+    foundAtm.address.line1 must equal(atm.address.line_1)
+    foundAtm.address.line2 must equal(atm.address.line_2)
+    foundAtm.address.line3 must equal(atm.address.line_3)
+    foundAtm.address.city must equal(atm.address.city)
+    foundAtm.address.county must equal(atm.address.county)
+    foundAtm.address.state must equal(atm.address.state)
 
-    foundAtm.location.latitude should equal(atm.location.latitude)
-    foundAtm.location.longitude should equal(atm.location.longitude)
+    foundAtm.location.latitude must equal(atm.location.latitude)
+    foundAtm.location.longitude must equal(atm.location.longitude)
 
-    foundAtm.address.postCode should equal(atm.address.post_code)
-    foundAtm.address.countryCode should equal(atm.address.country_code)
+    foundAtm.address.postCode must equal(atm.address.post_code)
+    foundAtm.address.countryCode must equal(atm.address.country_code)
 
-    foundAtm.meta.license.id should equal(atm.meta.license.id)
-    foundAtm.meta.license.name should equal(atm.meta.license.name)
+    foundAtm.meta.license.id must equal(atm.meta.license.id)
+    foundAtm.meta.license.name must equal(atm.meta.license.name)
   }
 
 
@@ -229,16 +232,16 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // check we have found a product
     val foundProductOpt: Option[Product] = Products.productsProvider.vend.getProduct(bankId, code)
-    foundProductOpt.isDefined should equal(true)
+    foundProductOpt.isDefined must equal(true)
 
     val foundProduct = foundProductOpt.get
-    foundProduct.bankId.toString should equal (product.bank_id)
-    foundProduct.code.value should equal(product.code)
-    foundProduct.name should equal(product.name)
-    foundProduct.category should equal(product.category)
-    foundProduct.family should equal(product.family)
-    foundProduct.superFamily should equal(product.super_family)
-    foundProduct.moreInfoUrl should equal(product.more_info_url)
+    foundProduct.bankId.toString must equal (product.bank_id)
+    foundProduct.code.value must equal(product.code)
+    foundProduct.name must equal(product.name)
+    foundProduct.category must equal(product.category)
+    foundProduct.family must equal(product.family)
+    foundProduct.superFamily must equal(product.super_family)
+    foundProduct.moreInfoUrl must equal(product.more_info_url)
   }
 
 
@@ -250,64 +253,70 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // check we have found a CrmEvent
     val foundCrmEventOpt: Option[CrmEvent] = CrmEvent.crmEventProvider.vend.getCrmEvent(crmEventId)
-    foundCrmEventOpt.isDefined should equal(true)
+    foundCrmEventOpt.isDefined must equal(true)
 
     val foundCrmEvent = foundCrmEventOpt.get
-//    foundCrmEvent.actualDate should equal (crmEvent.actual_date)
-    foundCrmEvent.category should equal (crmEvent.category)
-    foundCrmEvent.channel should equal (crmEvent.channel)
-    foundCrmEvent.detail should equal (crmEvent.detail)
-    foundCrmEvent.customerName should equal (crmEvent.customer.name)
-    foundCrmEvent.customerNumber should equal (crmEvent.customer.number)
+//    foundCrmEvent.actualDate must equal (crmEvent.actual_date)
+    foundCrmEvent.category must equal (crmEvent.category)
+    foundCrmEvent.channel must equal (crmEvent.channel)
+    foundCrmEvent.detail must equal (crmEvent.detail)
+    foundCrmEvent.customerName must equal (crmEvent.customer.name)
+    foundCrmEvent.customerNumber must equal (crmEvent.customer.number)
     // TODO check dates
 
   }
 
   def verifyUserCreated(user : SandboxUserImport) = {
     val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.user_name)
-    foundUserBox.isDefined should equal(true)
+    foundUserBox.isDefined must equal(true)
 
-    val foundUser = foundUserBox.get
+    val foundUser = foundUserBox match {
+      case Full(u) => u
+    }
 
-    foundUser.provider should equal(defaultProvider)
-    foundUser.idGivenByProvider should equal(user.user_name)
-    foundUser.emailAddress should equal(user.email)
-    foundUser.name should equal(user.user_name)
+    foundUser.provider must equal(defaultProvider)
+    foundUser.idGivenByProvider must equal(user.user_name)
+    foundUser.emailAddress must equal(user.email)
+    foundUser.name must equal(user.user_name)
   }
 
   def verifyAccountCreated(account : SandboxAccountImport) = {
     val accId = AccountId(account.id)
     val bankId = BankId(account.bank)
     val foundAccountBox = Connector.connector.vend.getBankAccount(bankId, accId)
-    foundAccountBox.isDefined should equal(true)
+    foundAccountBox.isDefined must equal(true)
 
-    val foundAccount = foundAccountBox.get
-
-    foundAccount.bankId should equal(bankId)
-    foundAccount.accountId should equal(accId)
-    foundAccount.label should equal(account.label)
-    foundAccount.number should equal(account.number)
-    foundAccount.accountType should equal(account.`type`)
-    foundAccount.iban should equal(Some(account.IBAN))
-    foundAccount.balance.toString should equal(account.balance.amount)
-    foundAccount.currency should equal(account.balance.currency)
-
-    foundAccount.owners.map(_.name) should equal(account.owners.toSet)
-
-    if(account.generate_public_view) {
-      foundAccount.publicViews.size should equal(1)
-    } else {
-      foundAccount.publicViews.size should equal(0)
+    val foundAccount = foundAccountBox match {
+      case Full(a) => a
     }
 
-    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
-    //there should be an owner view
+    foundAccount.bankId must equal(bankId)
+    foundAccount.accountId must equal(accId)
+    foundAccount.label must equal(account.label)
+    foundAccount.number must equal(account.number)
+    foundAccount.accountType must equal(account.`type`)
+    foundAccount.iban must equal(Some(account.IBAN))
+    foundAccount.balance.toString must equal(account.balance.amount)
+    foundAccount.currency must equal(account.balance.currency)
+
+    foundAccount.owners.map(_.name) must equal(account.owners.toSet)
+
+    if(account.generate_public_view) {
+      foundAccount.publicViews.size must equal(1)
+    } else {
+      foundAccount.publicViews.size must equal(0)
+    }
+
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name) match {
+      case Full(o) => o
+    }
+    //there must be an owner view
     val views = Views.views.vend.permittedViews(owner, BankAccountUID(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
-    ownerView.isDefined should equal(true)
+    ownerView.isDefined must equal(true)
 
-    //and the owners should have access to it
-    Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider) should equal(account.owners.toSet)
+    //and the owners must have access to it
+    Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider) must equal(account.owners.toSet)
   }
 
   def verifyTransactionCreated(transaction : SandboxTransactionImport, accountsUsed : List[SandboxAccountImport]) = {
@@ -316,43 +325,47 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionId = TransactionId(transaction.id)
     val foundTransactionBox = Connector.connector.vend.getTransaction(bankId, accountId, transactionId)
 
-    foundTransactionBox.isDefined should equal(true)
+    foundTransactionBox.isDefined must equal(true)
 
-    val foundTransaction = foundTransactionBox.get
-
-    foundTransaction.id should equal(transactionId)
-    foundTransaction.bankId should equal(bankId)
-    foundTransaction.accountId should equal(accountId)
-    foundTransaction.description should equal(Some(transaction.details.description))
-    foundTransaction.balance.toString should equal(transaction.details.new_balance)
-    foundTransaction.amount.toString should equal(transaction.details.value)
-
-    def toDate(dateString : String) : Date = {
-      DateParser.parse(dateString).get
+    val foundTransaction = foundTransactionBox match {
+      case Full(t) => t
     }
 
-    foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)
-    foundTransaction.finishDate.getTime should equal(toDate(transaction.details.completed).getTime)
+    foundTransaction.id must equal(transactionId)
+    foundTransaction.bankId must equal(bankId)
+    foundTransaction.accountId must equal(accountId)
+    foundTransaction.description must equal(Some(transaction.details.description))
+    foundTransaction.balance.toString must equal(transaction.details.new_balance)
+    foundTransaction.amount.toString must equal(transaction.details.value)
 
-    //a counterparty should exist
+    def toDate(dateString : String) : Date = {
+      DateParser.parse(dateString) match {
+        case Full(d) => d
+      }
+    }
+
+    foundTransaction.startDate.getTime must equal(toDate(transaction.details.posted).getTime)
+    foundTransaction.finishDate.getTime must equal(toDate(transaction.details.completed).getTime)
+
+    //a counterparty must exist
     val otherAcc = foundTransaction.otherAccount
-    otherAcc.counterPartyId should not be empty
-    otherAcc.otherAccountId should equal(accountId)
-    otherAcc.otherBankId should equal(bankId)
+    otherAcc.counterPartyId must not be empty
+    otherAcc.otherAccountId must equal(accountId)
+    otherAcc.otherBankId must equal(bankId)
     val otherAccMeta = otherAcc.metadata
-    otherAccMeta.getPublicAlias should not be empty
+    otherAccMeta.getPublicAlias must not be empty
 
-    //if a counterparty was originally specified in the import data, it should correspond to that
+    //if a counterparty was originally specified in the import data, it must correspond to that
     //counterparty
     if(transaction.counterparty.isDefined) {
       transaction.counterparty.get.name match {
-        case Some(name) => otherAcc.label should equal(name)
-        case None => otherAcc.label.nonEmpty should equal(true) //it should generate a counterparty label
+        case Some(name) => otherAcc.label must equal(name)
+        case None => otherAcc.label.nonEmpty must equal(true) //it must generate a counterparty label
       }
 
       transaction.counterparty.get.account_number match {
-        case Some(number) => otherAcc.thisAccountId.value should equal(number)
-        case None => otherAcc.thisAccountId.value should equal("")
+        case Some(number) => otherAcc.thisAccountId.value must equal(number)
+        case None => otherAcc.thisAccountId.value must equal("")
       }
     }
 
@@ -365,7 +378,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   def removeField(json : JValue, fieldName : String) = {
-    json.remove {
+    json.removeField {
       case JField(`fieldName`, _) => true
       case _ => false
     }
@@ -539,9 +552,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
    *
    */
 
-  "Data import" should "work in the general case" in {
+  "Data import" must "work in the general case" in {
 
-    //same transaction id as another one used, but for a different bank account, so it should work
+    //same transaction id as another one used, but for a different bank account, so it must work
     val anotherTransaction = SandboxTransactionImport(id = transactionWithoutCounterparty.id,
       this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
       counterparty = None,
@@ -595,7 +608,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val response = postImportJson(write(importJson))
 
-    response.code should equal(SUCCESS)
+    response.code must equal(SUCCESS)
 
     banks.foreach(verifyBankCreated)
     users.foreach(verifyUserCreated)
@@ -604,32 +617,32 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     transactions.foreach(verifyTransactionCreated(_, accounts))
   }
 
-  it should "not allow data to be imported without a secret token" in {
+  it must "not allow data to be imported without a secret token" in {
     val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts, standardCrmEvents)
     val response = postImportJson(write(importJson), None)
 
-    response.code should equal(403)
+    response.code must equal(403)
 
-    //nothing should be created
-    Connector.connector.vend.getBanks should equal(Nil)
+    //nothing must be created
+    Connector.connector.vend.getBanks must equal(Nil)
   }
 
-  it should "not allow data to be imported with an invalid secret token" in {
+  it must "not allow data to be imported with an invalid secret token" in {
     val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts, standardCrmEvents)
     val badToken = "12345"
-    badToken should not equal(theImportToken)
+    badToken must not equal(theImportToken)
     val response = postImportJson(write(importJson), Some(badToken))
 
-    response.code should equal(403)
+    response.code must equal(403)
 
-    //nothing should be created
-    Connector.connector.vend.getBanks should equal(Nil)
+    //nothing must be created
+    Connector.connector.vend.getBanks must equal(Nil)
   }
 
-  it should "require banks to have non-empty ids" in {
+  it must "require banks to have non-empty ids" in {
 
-    //no banks should exist initially
-    Connector.connector.vend.getBanks.size should equal(0)
+    //no banks must exist initially
+    Connector.connector.vend.getBanks.size must equal(0)
 
     val bank1Json = Extraction.decompose(bank1)
 
@@ -640,38 +653,38 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    getResponse(bankWithoutId).code should equal(FAILED)
+    getResponse(bankWithoutId).code must equal(FAILED)
 
-    //no banks should have been created
-    Connector.connector.vend.getBanks.size should equal(0)
+    //no banks must have been created
+    Connector.connector.vend.getBanks.size must equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
-    getResponse(bankWithEmptyId).code should equal(FAILED)
+    getResponse(bankWithEmptyId).code must equal(FAILED)
 
-    //no banks should have been created
-    Connector.connector.vend.getBanks.size should equal(0)
+    //no banks must have been created
+    Connector.connector.vend.getBanks.size must equal(0)
 
     //Check that the same json becomes valid when a non-empty id is added
     val validId = "foo"
     val bankWithValidId = addIdField(bankWithoutId, validId)
     val response = getResponse(bankWithValidId)
-    response.code should equal(SUCCESS)
+    response.code must equal(SUCCESS)
 
     //Check the bank was created
     val banks = Connector.connector.vend.getBanks
-    banks.size should equal(1)
+    banks.size must equal(1)
     val createdBank  = banks(0)
 
-    createdBank.bankId should equal(BankId(validId))
-    createdBank.shortName should equal(bank1.short_name)
-    createdBank.fullName should equal(bank1.full_name)
-    createdBank.logoUrl should equal(bank1.logo)
-    createdBank.websiteUrl should equal(bank1.website)
+    createdBank.bankId must equal(BankId(validId))
+    createdBank.shortName must equal(bank1.short_name)
+    createdBank.fullName must equal(bank1.full_name)
+    createdBank.logoUrl must equal(bank1.logo)
+    createdBank.websiteUrl must equal(bank1.website)
   }
 
-  it should "not allow multiple banks with the same id" in {
-    //no banks should exist initially
-    Connector.connector.vend.getBanks.size should equal(0)
+  it must "not allow multiple banks with the same id" in {
+    //no banks must exist initially
+    Connector.connector.vend.getBanks.size must equal(0)
 
     val bank1AsJValue = Extraction.decompose(bank1)
 
@@ -689,19 +702,19 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    getResponse(List(bank1AsJValue, bankWithSameId)).code should equal(FAILED)
+    getResponse(List(bank1AsJValue, bankWithSameId)).code must equal(FAILED)
 
     //now try again but this time with a different id
     val validOtherBank = addIdField(baseOtherBank, {bank1.id + "2"})
 
-    getResponse(List(bank1AsJValue, validOtherBank)).code should equal(SUCCESS)
+    getResponse(List(bank1AsJValue, validOtherBank)).code must equal(SUCCESS)
 
     //check that two banks were created
     val banks = Connector.connector.vend.getBanks
-    banks.size should equal(2)
+    banks.size must equal(2)
   }
 
-  it should "fail if a specified bank already exists" in {
+  it must "fail if a specified bank already exists" in {
     def getResponse(bankJsons : List[JValue]) = {
       val json = createImportJson(bankJsons, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -710,18 +723,18 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bank1Json = Extraction.decompose(bank1)
 
     //add bank1
-    getResponse(List(bank1Json)).code should equal(SUCCESS)
+    getResponse(List(bank1Json)).code must equal(SUCCESS)
 
 
     val otherBank = bank2
-    //when we try to add bank1 and another valid bank it should now fail
-    getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(FAILED)
+    //when we try to add bank1 and another valid bank it must now fail
+    getResponse(List(bank1Json, Extraction.decompose(bank2))).code must equal(FAILED)
 
-    //and the other bank should not have been created
-    Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined should equal(false)
+    //and the other bank must not have been created
+    Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined must equal(false)
   }
 
-  it should "require users to have valid emails" in {
+  it must "require users to have valid emails" in {
 
     def getResponse(userJson : JValue) = {
       val json = createImportJson(Nil, List(userJson), Nil, Nil, Nil, Nil, Nil, Nil)
@@ -732,54 +745,57 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val userWithoutEmail = removeEmailField(user1AsJson)
 
-    getResponse(userWithoutEmail).code should equal(FAILED)
+    getResponse(userWithoutEmail).code must equal(FAILED)
 
     val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
-    //there should be no user with a blank id before we try to add one
+    //there must be no user with a blank id before we try to add one
     Users.users.vend.getUserByProviderId(defaultProvider, "") match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
 
-    getResponse(userWithEmptyEmail).code should equal(FAILED)
+    getResponse(userWithEmptyEmail).code must equal(FAILED)
 
-    //there should still be no user with a blank email
+    //there must still be no user with a blank email
     Users.users.vend.getUserByProviderId(defaultProvider, "") match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
 
-    //invalid email should fail
+    //invalid email must fail
     val invalidEmail = "foooo"
     val userWithInvalidEmail = addEmailField(userWithoutEmail, invalidEmail)
 
-    getResponse(userWithInvalidEmail).code should equal(FAILED)
+    getResponse(userWithInvalidEmail).code must equal(FAILED)
 
-    //there should still be no user
+    //there must still be no user
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
 
     val validEmail = "test@example.com"
     val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
 
-    getResponse(userWithValidEmail).code should equal(SUCCESS)
+    getResponse(userWithValidEmail).code must equal(SUCCESS)
 
-    //a user should now have been created
-    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
-    createdUser.isDefined should equal(true)
-    createdUser.get.provider should equal(defaultProvider)
-    createdUser.get.idGivenByProvider should equal(user1.user_name)
-    createdUser.get.name should equal(user1.user_name)
+    //a user must now have been created
+    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case Full(c) => c
+      case Empty => null
+    }
+    createdUser must not equal(null)
+    createdUser.provider must equal(defaultProvider)
+    createdUser.idGivenByProvider must equal(user1.user_name)
+    createdUser.name must equal(user1.user_name)
 
   }
 
-  it should "not allow multiple users with the same username" in {
+  it must "not allow multiple users with the same username" in {
 
     def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil, Nil)
@@ -792,50 +808,57 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val user1Json = Extraction.decompose(user1)
 
     val differentUsername = "user-one"
-    differentUsername should not equal(user1.user_name)
+    differentUsername must not equal(user1.user_name)
     val userWithSameUsernameAsUser1 = user1Json
 
-    //neither of the users should exist initially
+    //neither of the users must exist initially
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
     Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
 
-    getResponse(List(user1Json, userWithSameUsernameAsUser1)).code should equal(FAILED)
+    getResponse(List(user1Json, userWithSameUsernameAsUser1)).code must equal(FAILED)
 
-    //no user with firstUserId should be created
+    //no user with firstUserId must be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
-      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
-      case Empty                 => Empty should equal(Empty)
-      case _                     => 0 should equal (1) // Should not happen
+      case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty must equal(Empty)
+      case _                     => 0 must equal (1) // Should not happen
     }
 
-    //when we only alter the id (display name stays the same), it should work
+    //when we only alter the id (display name stays the same), it must work
     val userWithUsername2 = userWithSameUsernameAsUser1.replace("user_name", secondUserName)
 
-    getResponse(List(user1Json, userWithUsername2)).code should equal(SUCCESS)
+    getResponse(List(user1Json, userWithUsername2)).code must equal(SUCCESS)
 
-    //and both users should be created
-    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
+    //and both users must be created
+    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case Full(fu) => fu
+      case Empty => null
+    }
     val secondUser = Users.users.vend.getUserByProviderId(defaultProvider, secondUserName)
+     match {
+      case Full(su) => su
+      case Empty => null
+    }
 
-    firstUser.isDefined should equal(true)
-    secondUser.isDefined should equal(true)
+    firstUser must not equal(null)
+    secondUser must not equal(null)
 
-    firstUser.get.idGivenByProvider should equal(user1.user_name)
-    secondUser.get.idGivenByProvider should equal(secondUserName)
+    firstUser.idGivenByProvider must equal(user1.user_name)
+    secondUser.idGivenByProvider must equal(secondUserName)
 
-    firstUser.get.name should equal(user1.user_name)
-    secondUser.get.name should equal(secondUserName)
+    firstUser.name must equal(user1.user_name)
+    secondUser.name must equal(secondUserName)
   }
 
-  it should "fail if a specified user already exists" in {
+  it must "fail if a specified user already exists" in {
     def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -844,18 +867,18 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val user1Json = Extraction.decompose(user1)
 
     //add user1
-    getResponse(List(user1Json)).code should equal(SUCCESS)
+    getResponse(List(user1Json)).code must equal(SUCCESS)
 
 
     val otherUser = user2
-    //when we try to add user1 and another valid new user it should now fail
-    getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(FAILED)
+    //when we try to add user1 and another valid new user it must now fail
+    getResponse(List(user1Json, Extraction.decompose(otherUser))).code must equal(FAILED)
 
-    //and the other user should not have been created
+    //and the other user must not have been created
     Users.users.vend.getUserByProviderId(defaultProvider, otherUser.user_name)
   }
 
-  it should "fail if a user's password is missing or empty" in {
+  it must "fail if a user's password is missing or empty" in {
     def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -864,38 +887,40 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val goodUser = Extraction.decompose(user1)
 
     val userWithoutPassword = removeField(goodUser, "password")
-    getResponse(List(userWithoutPassword)).code should equal(FAILED)
-    //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
+    getResponse(List(userWithoutPassword)).code must equal(FAILED)
+    //no user must be created
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined must equal(false)
 
     val userWithBlankPassword = replaceField(goodUser, "password", "")
-    getResponse(List(userWithBlankPassword)).code should equal(FAILED)
-    //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
+    getResponse(List(userWithBlankPassword)).code must equal(FAILED)
+    //no user must be created
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined must equal(false)
 
     //check that a normal password is okay
-    getResponse(List(goodUser)).code should equal(SUCCESS)
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(true)
+    getResponse(List(goodUser)).code must equal(SUCCESS)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined must equal(true)
   }
 
-  it should "set user passwords properly" in {
+  it must "set user passwords properly" in {
     def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
-    getResponse(List(Extraction.decompose(user1))).code should equal(SUCCESS)
+    getResponse(List(Extraction.decompose(user1))).code must equal(SUCCESS)
 
     //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
     val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
-    createdAuthUserBox.isDefined should equal(true)
+    createdAuthUserBox.isDefined must equal(true)
 
-    val createdAuthUser = createdAuthUserBox.get
-    createdAuthUser.password.match_?(user1.password) should equal(true)
+    val createdAuthUser = createdAuthUserBox match {
+      case Full(cu) => cu
+    }
+    createdAuthUser.password.match_?(user1.password) must equal(true)
   }
 
-  it should "require accounts to have non-empty ids" in {
+  it must "require accounts to have non-empty ids" in {
 
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
@@ -907,22 +932,22 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val acc1AtBank1Json = Extraction.decompose(account1AtBank1)
     val accountWithoutId = removeIdField(acc1AtBank1Json)
 
-    getResponse(List(accountWithoutId)).code should equal(FAILED)
+    getResponse(List(accountWithoutId)).code must equal(FAILED)
 
     val accountWithEmptyId = addIdField(accountWithoutId, "")
 
-    getResponse(List(accountWithEmptyId)).code should equal(FAILED)
+    getResponse(List(accountWithEmptyId)).code must equal(FAILED)
 
-    //no account should exist with an empty id
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")).isDefined should equal(false)
+    //no account must exist with an empty id
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")).isDefined must equal(false)
 
-    getResponse(List(acc1AtBank1Json)).code should equal(SUCCESS)
+    getResponse(List(acc1AtBank1Json)).code must equal(SUCCESS)
 
-    //an account should now exist
+    //an account must now exist
     verifyAccountCreated(account1AtBank1)
   }
 
-  it should "not allow multiple accounts at the same bank with the same id" in {
+  it must "not allow multiple accounts at the same bank with the same id" in {
 
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
@@ -934,25 +959,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
     val accountWithSameId = replaceField(Extraction.decompose(account2AtBank1), "id", account1AtBank1.id)
     //might be nice to test a case where the only similar attribute between the accounts is the id
-    getResponse(List(account1AtBank1Json, accountWithSameId)).code should equal(FAILED)
+    getResponse(List(account1AtBank1Json, accountWithSameId)).code must equal(FAILED)
 
-    //no accounts should have been created
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(false)
+    //no accounts must have been created
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined must equal(false)
 
     val accountIdTwo = "2"
-    accountIdTwo should not equal(account1AtBank1.id)
+    accountIdTwo must not equal(account1AtBank1.id)
 
     val accountWithDifferentId = replaceField(accountWithSameId, "id", accountIdTwo)
 
-    getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(SUCCESS)
+    getResponse(List(account1AtBank1Json, accountWithDifferentId)).code must equal(SUCCESS)
 
-    //two accounts should have been created
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined should equal(true)
+    //two accounts must have been created
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined must equal(true)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined must equal(true)
 
   }
 
-  it should "fail if a specified account already exists" in {
+  it must "fail if a specified account already exists" in {
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
@@ -962,22 +987,22 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
 
     //add account1AtBank1
-    getResponse(List(account1AtBank1Json)).code should equal(SUCCESS)
+    getResponse(List(account1AtBank1Json)).code must equal(SUCCESS)
 
     val otherAccount = account1AtBank2
-    //when we try to add account1AtBank1 and another valid account it should now fail
-    getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code should equal(FAILED)
+    //when we try to add account1AtBank1 and another valid account it must now fail
+    getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code must equal(FAILED)
 
-    //and the other account should not have been created
-    Connector.connector.vend.getBankAccount(BankId(otherAccount.bank), AccountId(otherAccount.id)).isDefined should equal(false)
+    //and the other account must not have been created
+    Connector.connector.vend.getBankAccount(BankId(otherAccount.bank), AccountId(otherAccount.id)).isDefined must equal(false)
   }
 
-  it should "not allow an account to have a bankId not specified in the imported banks" in {
+  it must "not allow an account to have a bankId not specified in the imported banks" in {
 
     val badBankId = "asdf"
 
     def getResponse(accountJsons : List[JValue]) = {
-      standardBanks.exists(b => b.id == badBankId) should equal(false)
+      standardBanks.exists(b => b.id == badBankId) must equal(false)
       val banks = standardBanks.map(Extraction.decompose)
 
       val users = standardUsers.map(Extraction.decompose)
@@ -987,13 +1012,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val badBankAccount = replaceField(Extraction.decompose(account1AtBank1), "bank", badBankId)
 
-    getResponse(List(badBankAccount)).code should equal(FAILED)
+    getResponse(List(badBankAccount)).code must equal(FAILED)
 
-    //no account should have been created
-    Connector.connector.vend.getBankAccount(BankId(badBankId), AccountId(account1AtBank1.id)).isDefined should equal(false)
+    //no account must have been created
+    Connector.connector.vend.getBankAccount(BankId(badBankId), AccountId(account1AtBank1.id)).isDefined must equal(false)
   }
 
-  it should "not allow an account to be created without an owner" in {
+  it must "not allow an account to be created without an owner" in {
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
@@ -1006,14 +1031,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val accountWithNoOwnerField = removeField(acc1AtBank1Json, "owners")
 
-    getResponse(List(accountWithNoOwnerField)).code should equal(FAILED)
+    getResponse(List(accountWithNoOwnerField)).code must equal(FAILED)
 
     val accountWithNilOwners = Extraction.decompose(account1AtBank1.copy(owners = Nil))
 
-    getResponse(List(accountWithNilOwners)).code should equal(FAILED)
+    getResponse(List(accountWithNilOwners)).code must equal(FAILED)
   }
 
-  it should "not allow an account to be created with an owner not specified in data import users" in {
+  it must "not allow an account to be created with an owner not specified in data import users" in {
 
     val users = standardUsers
     val banks = standardBanks
@@ -1024,25 +1049,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     val nonExistentOwnerEmail = "asdfasdfasdf@example.com"
-    users.exists(u => u.email == nonExistentOwnerEmail) should equal(false)
+    users.exists(u => u.email == nonExistentOwnerEmail) must equal(false)
 
     val accountWithInvalidOwner = account1AtBank1.copy(owners = List(nonExistentOwnerEmail))
 
-    getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(FAILED)
+    getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code must equal(FAILED)
 
-    //it should not have been created
-    Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined should equal(false)
+    //it must not have been created
+    Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined must equal(false)
 
-    //a mix of valid an invalid owners should also not work
+    //a mix of valid an invalid owners must also not work
     val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.user_name))
-    getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
+    getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code must equal(FAILED)
 
-    //it should not have been created
-    Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)).isDefined should equal(false)
+    //it must not have been created
+    Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)).isDefined must equal(false)
 
   }
 
-  it should "not allow multiple accounts at the same bank with the same account number" in {
+  it must "not allow multiple accounts at the same bank with the same account number" in {
     val users = standardUsers
     val banks = standardBanks
 
@@ -1058,21 +1083,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val acc2Json = Extraction.decompose(acc2)
     val sameNumberJson = replaceField(acc2Json, "number", acc1.number)
 
-    getResponse(List(acc1Json, sameNumberJson)).code should equal(FAILED)
+    getResponse(List(acc1Json, sameNumberJson)).code must equal(FAILED)
 
-    //no accounts should have been created
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(false)
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(false)
+    //no accounts must have been created
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined must equal(false)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined must equal(false)
 
     //check it works with the normal different number
-    getResponse(List(acc1Json, acc2Json)).code should equal(SUCCESS)
+    getResponse(List(acc1Json, acc2Json)).code must equal(SUCCESS)
 
-    //and the accounts should be created
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(true)
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(true)
+    //and the accounts must be created
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined must equal(true)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined must equal(true)
   }
 
-  it should "require transactions to have non-empty ids" in {
+  it must "require transactions to have non-empty ids" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
@@ -1089,21 +1114,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionJson = Extraction.decompose(transactionWithoutCounterparty)
 
     val missingIdTransaction = removeIdField(transactionJson)
-    getResponse(List(missingIdTransaction)).code should equal(FAILED)
-    transactionExists() should equal(false)
+    getResponse(List(missingIdTransaction)).code must equal(FAILED)
+    transactionExists() must equal(false)
 
     val emptyIdTransaction = replaceField(transactionJson, "id", "")
-    getResponse(List(emptyIdTransaction)).code should equal(FAILED)
-    transactionExists() should equal(false)
+    getResponse(List(emptyIdTransaction)).code must equal(FAILED)
+    transactionExists() must equal(false)
 
-    //the original transaction should work too (just to make sure it's not failing because we have, e.g. a bank id that doesn't exist)
-    getResponse(List(transactionJson)).code should equal(SUCCESS)
+    //the original transaction must work too (just to make sure it's not failing because we have, e.g. a bank id that doesn't exist)
+    getResponse(List(transactionJson)).code must equal(SUCCESS)
 
-    //it should exist now
-    transactionExists() should equal(true)
+    //it must exist now
+    transactionExists() must equal(true)
   }
 
-  it should "require transactions for a single account do not have the same id" in {
+  it must "require transactions for a single account do not have the same id" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
@@ -1115,9 +1140,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t2 = transactionWithCounterparty
 
     //make sure the two transactions are for the same account have different ids
-    t1.this_account.bank should equal(t2.this_account.bank)
-    t1.this_account.id should equal(t2.this_account.id)
-    t1.id should not equal(t2.id)
+    t1.this_account.bank must equal(t2.this_account.bank)
+    t1.this_account.id must equal(t2.this_account.id)
+    t1.id must not equal(t2.id)
 
     val transactionJson = Extraction.decompose(t1)
     val transaction2Json = Extraction.decompose(t2)
@@ -1125,27 +1150,27 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //now edit the second transaction to give it the same id as the first one
     val sameIdAsOtherTransaction = replaceField(transaction2Json, "id", t1.id)
 
-    getResponse(List(transactionJson, sameIdAsOtherTransaction)).code should equal(FAILED)
+    getResponse(List(transactionJson, sameIdAsOtherTransaction)).code must equal(FAILED)
 
-    //Neither should exist
+    //Neither must exist
     Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
       AccountId(t1.this_account.id),
-      TransactionId(t1.id)).isDefined should equal(false)
+      TransactionId(t1.id)).isDefined must equal(false)
 
     //now make sure it's not failing because we have, e.g. a bank id that doesn't exist by checking the originals worked
-    getResponse(List(transactionJson, transaction2Json)).code should equal(SUCCESS)
+    getResponse(List(transactionJson, transaction2Json)).code must equal(SUCCESS)
 
-    //both should exist now
+    //both must exist now
     Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
       AccountId(t1.this_account.id),
-      TransactionId(t1.id)).isDefined should equal(true)
+      TransactionId(t1.id)).isDefined must equal(true)
 
     Connector.connector.vend.getTransaction(BankId(t2.this_account.bank),
       AccountId(t2.this_account.id),
-      TransactionId(t2.id)).isDefined should equal(true)
+      TransactionId(t2.id)).isDefined must equal(true)
   }
 
-  it should "fail if a specified transaction already exists" in {
+  it must "fail if a specified transaction already exists" in {
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
         standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
@@ -1155,20 +1180,20 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1Json = Extraction.decompose(transactionWithoutCounterparty)
 
     //add transaction
-    getResponse(List(t1Json)).code should equal(SUCCESS)
+    getResponse(List(t1Json)).code must equal(SUCCESS)
 
     val otherTransaction = transactionWithCounterparty
 
-    //when we try to add t1Json and another valid transaction it should now fail
-    getResponse(List(t1Json, Extraction.decompose(otherTransaction))).code should equal(FAILED)
+    //when we try to add t1Json and another valid transaction it must now fail
+    getResponse(List(t1Json, Extraction.decompose(otherTransaction))).code must equal(FAILED)
 
-    //and no new transaction should exist
+    //and no new transaction must exist
     Connector.connector.vend.getTransaction(BankId(otherTransaction.this_account.bank),
       AccountId(otherTransaction.this_account.id),
-      TransactionId(otherTransaction.id)).isDefined should equal(false)
+      TransactionId(otherTransaction.id)).isDefined must equal(false)
   }
 
-  it should "not create any transactions when one has an invalid this_account" in {
+  it must "not create any transactions when one has an invalid this_account" in {
     val banks = standardBanks
     val users = standardUsers
     val accounts = standardAccounts
@@ -1184,48 +1209,48 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validTransaction = Extraction.decompose(t)
 
     //ensure bank is correct
-    banks.exists(b => b.id == t.this_account.bank) should equal(true)
+    banks.exists(b => b.id == t.this_account.bank) must equal(true)
 
     val invalidAccountId = "asdfasdfasdf"
     //ensure account id is invalid
-    accounts.exists(a => a.bank == t.this_account.bank && a.id == invalidAccountId) should equal(false)
+    accounts.exists(a => a.bank == t.this_account.bank && a.id == invalidAccountId) must equal(false)
 
     //check one where the bank id exists, but the account id doesn't
     val invalidAccTransaction = validTransaction.replace(List("this_account","id"), invalidAccountId)
 
-    getResponse(List(invalidAccTransaction)).code should equal(FAILED)
+    getResponse(List(invalidAccTransaction)).code must equal(FAILED)
 
-    //transaction should not exist
+    //transaction must not exist
     Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(invalidAccountId),
-      TransactionId(t.id)).isDefined should equal(false)
+      TransactionId(t.id)).isDefined must equal(false)
 
     //now check one where the bankId is invalid
 
     val invalidBankId = "omommomom"
     //ensure bank is invalid
-    banks.exists(b => b.id == invalidBankId) should equal(false)
+    banks.exists(b => b.id == invalidBankId) must equal(false)
 
     val invalidBankTransaction = validTransaction.replace(List("this_account", "bank"), invalidBankId)
 
-    getResponse(List(invalidBankTransaction)).code should equal(FAILED)
+    getResponse(List(invalidBankTransaction)).code must equal(FAILED)
 
-    //transaction should not exist
+    //transaction must not exist
     Connector.connector.vend.getTransaction(BankId(invalidBankId),
       AccountId(t.this_account.id),
-      TransactionId(t.id)).isDefined should equal(false)
+      TransactionId(t.id)).isDefined must equal(false)
 
     //now make sure it works when all is well
-    getResponse(List(validTransaction)).code should equal(SUCCESS)
+    getResponse(List(validTransaction)).code must equal(SUCCESS)
 
-    //transaction should exist
+    //transaction must exist
     Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
-      TransactionId(t.id)).isDefined should equal(true)
+      TransactionId(t.id)).isDefined must equal(true)
 
   }
 
-  it should "allow counterparty name to be empty" in {
+  it must "allow counterparty name to be empty" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1238,22 +1263,24 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val baseT = Extraction.decompose(t)
     val emptyCounterpartyNameTransaction = baseT.replace(List("counterparty", "name"), "")
 
-    getResponse(List(emptyCounterpartyNameTransaction)).code should equal(SUCCESS)
+    getResponse(List(emptyCounterpartyNameTransaction)).code must equal(SUCCESS)
 
     //check it was created, name is generated, and account number matches
     val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
-    createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.get
+    createdTransaction.isDefined must equal(true)
+    val created = createdTransaction match {
+      case Full(c) => c
+    }
 
-    created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.label.nonEmpty must equal(true)
+    created.otherAccount.thisAccountId.value must equal(t.counterparty.get.account_number.get)
 
   }
 
-  it should "allow counterparty name to be unspecified" in {
+  it must "allow counterparty name to be unspecified" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1266,22 +1293,24 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val baseT = Extraction.decompose(t)
     val missingCounterpartNameTransaction = removeField(baseT, List("counterparty", "name"))
 
-    getResponse(List(missingCounterpartNameTransaction)).code should equal(SUCCESS)
+    getResponse(List(missingCounterpartNameTransaction)).code must equal(SUCCESS)
 
     //check it was created, name is generated, and account number matches
     val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
-    createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.get
+    createdTransaction.isDefined must equal(true)
+    val created = createdTransaction match {
+      case Full(c) => c
+    }
 
-    created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.label.nonEmpty must equal(true)
+    created.otherAccount.thisAccountId.value must equal(t.counterparty.get.account_number.get)
 
   }
 
-  it should "allow counterparty account number to be empty" in {
+  it must "allow counterparty account number to be empty" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1294,21 +1323,23 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val baseT = Extraction.decompose(t)
     val emptyCounterpartyAccountNumberTransaction = baseT.replace(List("counterparty", "account_number"), "")
 
-    getResponse(List(emptyCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
+    getResponse(List(emptyCounterpartyAccountNumberTransaction)).code must equal(SUCCESS)
 
     //check it was created, name matches, and account number is empty
     val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
-    createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.get
+    createdTransaction.isDefined must equal(true)
+    val created = createdTransaction match {
+      case Full(c) => c
+    }
 
-    created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.thisAccountId.value should equal("")
+    created.otherAccount.label must equal(t.counterparty.get.name.get)
+    created.otherAccount.thisAccountId.value must equal("")
   }
 
-  it should "allow counterparty account number to be unspecified" in {
+  it must "allow counterparty account number to be unspecified" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1321,21 +1352,23 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val baseT = Extraction.decompose(t)
     val missingCounterpartyAccountNumberTransaction = removeField(baseT, List("counterparty", "account_number"))
 
-    getResponse(List(missingCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
+    getResponse(List(missingCounterpartyAccountNumberTransaction)).code must equal(SUCCESS)
 
     //check it was created, name matches, and account number is empty
     val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
-    createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.get
+    createdTransaction.isDefined must equal(true)
+    val created = createdTransaction match {
+      case Full(c) => c
+    }
 
-    created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.thisAccountId.value should equal("")
+    created.otherAccount.label must equal(t.counterparty.get.name.get)
+    created.otherAccount.thisAccountId.value must equal("")
   }
 
-  it should "allow counterparties with the same name to have different account numbers" in {
+  it must "allow counterparties with the same name to have different account numbers" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1347,13 +1380,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1 = Extraction.decompose(transactionWithCounterparty)
     val t1Id = transactionWithCounterparty.id
     val t2Id = "t2Id"
-    t2Id should not equal(t1Id)
+    t2Id must not equal(t1Id)
     val c1 = transactionWithCounterparty.counterparty.get
     val counterparty2AccountNumber = c1.account_number.get + "2"
 
     val badT2 = t1.replace("id", t2Id).replace(List("counterparty", "account_number"), counterparty2AccountNumber)
 
-    getResponse(List(t1, badT2)).code should equal(SUCCESS)
+    getResponse(List(t1, badT2)).code must equal(SUCCESS)
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
@@ -1362,14 +1395,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id))
       val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id))
 
-      foundTransaction1Box.isDefined should equal(created)
-      foundTransaction2Box.isDefined should equal(created)
+      foundTransaction1Box.isDefined must equal(created)
+      foundTransaction2Box.isDefined must equal(created)
     }
 
     checkTransactionsCreated(true)
   }
 
-  it should "have transactions share counterparties if they are the same" in {
+  it must "have transactions share counterparties if they are the same" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1381,28 +1414,34 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1 = Extraction.decompose(transactionWithCounterparty)
     val t1Id = transactionWithCounterparty.id
     val t2Id = "t2Id"
-    t2Id should not equal(t1Id)
+    t2Id must not equal(t1Id)
     val t2 = replaceField(t1, "id", t2Id)
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
 
-    getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
+    getResponse(t1 :: t2 :: Nil).code must equal(SUCCESS)
 
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id)) match {
+      case Full(tb) => tb
+      case Empty => null
+    }
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id)) match {
+      case Full(t2b) => t2b
+      case Empty => null
+    }
 
-    foundTransaction1Box.isDefined should equal(true)
-    foundTransaction2Box.isDefined should equal(true)
+    foundTransaction1Box must not equal(null)
+    foundTransaction2Box must not equal(null)
 
-    val counter1 = foundTransaction1Box.get.otherAccount
-    val counter2 = foundTransaction2Box.get.otherAccount
+    val counter1 = foundTransaction1Box.otherAccount
+    val counter2 = foundTransaction2Box.otherAccount
 
-    counter1.counterPartyId should equal(counter2.counterPartyId)
-    counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
+    counter1.counterPartyId must equal(counter2.counterPartyId)
+    counter1.metadata.getPublicAlias must equal(counter2.metadata.getPublicAlias)
   }
 
-  it should "consider counterparties with the same name but different account numbers to be different" in {
+  it must "consider counterparties with the same name but different account numbers to be different" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1419,26 +1458,32 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1 = baseT.replace(List("counterparty", "account_number"), counterAcc1).replace(List("id"), id1)
     val t2 = baseT.replace(List("counterparty", "account_number"), counterAcc2).replace(List("id"), id2)
 
-    getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
+    getResponse(t1 :: t2 :: Nil).code must equal(SUCCESS)
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)) match {
+      case Full(tb) => tb
+      case Empty => null
+    }
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)) match {
+      case Full(t2b) => t2b
+      case Empty => null
+    }
 
-    foundTransaction1Box.isDefined should equal(true)
-    foundTransaction2Box.isDefined should equal(true)
+    foundTransaction1Box must not equal(null)
+    foundTransaction2Box must not equal(null)
 
-    val counter1 = foundTransaction1Box.get.otherAccount
-    val counter2 = foundTransaction2Box.get.otherAccount
+    val counter1 = foundTransaction1Box.otherAccount
+    val counter2 = foundTransaction2Box.otherAccount
 
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.thisAccountId.value should equal(counterAcc1)
-    counter2.thisAccountId.value should equal(counterAcc2)
+    counter1.counterPartyId must not equal(counter2.counterPartyId)
+    counter1.metadata.getPublicAlias must not equal(counter2.metadata.getPublicAlias)
+    counter1.thisAccountId.value must equal(counterAcc1)
+    counter2.thisAccountId.value must equal(counterAcc2)
   }
 
-  it should "consider counterparties without names but with the same account numbers to be the same" in {
+  it must "consider counterparties without names but with the same account numbers to be the same" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1453,26 +1498,32 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val id2 = id1 + "--2"
     val t2 = removeField(t1.replace("id", id2), List("counterparty", "name"))
 
-    getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
+    getResponse(t1 :: t2 :: Nil).code must equal(SUCCESS)
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)) match {
+      case Full(tb) => tb
+      case Empty => null
+    }
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)) match {
+      case Full(t2b) => t2b
+      case Empty => null
+    }
 
-    foundTransaction1Box.isDefined should equal(true)
-    foundTransaction2Box.isDefined should equal(true)
+    foundTransaction1Box must not equal(null)
+    foundTransaction2Box must not equal(null)
 
-    val counter1 = foundTransaction1Box.get.otherAccount
-    val counter2 = foundTransaction2Box.get.otherAccount
+    val counter1 = foundTransaction1Box.otherAccount
+    val counter2 = foundTransaction2Box.otherAccount
 
-    counter1.counterPartyId should equal(counter2.counterPartyId)
-    counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
-    counter1.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
-    counter2.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter1.counterPartyId must equal(counter2.counterPartyId)
+    counter1.metadata.getPublicAlias must equal(counter2.metadata.getPublicAlias)
+    counter1.thisAccountId.value must equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter2.thisAccountId.value must equal(transactionWithCounterparty.counterparty.get.account_number.get)
   }
 
-  it should "consider counterparties without names but with different account numbers to be different" in {
+  it must "consider counterparties without names but with different account numbers to be different" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1492,29 +1543,34 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1 = baseTransaction.replace(List("id"), id1).replace(List("counterparty"), ("account_number" -> counterpartyAccNumber1))
     val t2 = baseTransaction.replace(List("id"), id2).replace(List("counterparty"), ("account_number" -> counterpartyAccNumber2))
 
-    getResponse(List(t1, t2)).code should equal(SUCCESS)
+    getResponse(List(t1, t2)).code must equal(SUCCESS)
 
     val bankId = BankId(baseT.this_account.bank)
     val accountId = AccountId(baseT.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)) match {
+      case Full(tb) => tb
+    }
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)) match {
+      case Full(t2b) => t2b
+      case Empty => null
+    }
 
-    foundTransaction1Box.isDefined should equal(true)
-    foundTransaction2Box.isDefined should equal(true)
+    foundTransaction1Box must not equal(null)
+    foundTransaction2Box must not equal(null)
 
-    val counter1 = foundTransaction1Box.get.otherAccount
-    val counter2 = foundTransaction2Box.get.otherAccount
+    val counter1 = foundTransaction1Box.otherAccount
+    val counter2 = foundTransaction2Box.otherAccount
 
-    //transactions should have the same counterparty
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.counterPartyId.isEmpty should equal(false)
-    counter2.counterPartyId.isEmpty should equal(false)
-    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.thisAccountId.value should equal(counterpartyAccNumber1)
-    counter2.thisAccountId.value should equal(counterpartyAccNumber2)
+    //transactions must have the same counterparty
+    counter1.counterPartyId must not equal(counter2.counterPartyId)
+    counter1.counterPartyId.isEmpty must equal(false)
+    counter2.counterPartyId.isEmpty must equal(false)
+    counter1.metadata.getPublicAlias must not equal(counter2.metadata.getPublicAlias)
+    counter1.thisAccountId.value must equal(counterpartyAccNumber1)
+    counter2.thisAccountId.value must equal(counterpartyAccNumber2)
   }
 
-  it should "always create a new counterparty if none was specified, rather than having all transactions without specified" +
+  it must "always create a new counterparty if none was specified, rather than having all transactions without specified" +
     "counterparties share a single one" in {
 
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
@@ -1526,14 +1582,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     val id2 = "id2"
-    id2 should not equal(transactionWithoutCounterparty.id)
+    id2 must not equal(transactionWithoutCounterparty.id)
     val anotherTransactionWithoutCounterparty = replaceField(Extraction.decompose(transactionWithoutCounterparty), "id", id2)
 
     val id3 = transactionWithCounterparty.id + "id3"
     val transactionWithBlankCounterparty = replaceField(Extraction.decompose(transactionWithoutCounterparty), "id", id3).replace(List("counterparty"), JNothing)
 
     val response = getResponse(anotherTransactionWithoutCounterparty :: transactionWithBlankCounterparty :: Extraction.decompose(transactionWithoutCounterparty) :: Nil)
-    response.code should equal(SUCCESS)
+    response.code must equal(SUCCESS)
 
     val accountId = AccountId(transactionWithoutCounterparty.this_account.id)
     val bankId = BankId(transactionWithoutCounterparty.this_account.bank)
@@ -1541,27 +1597,36 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val tId2 = TransactionId(id2)
     val tId3 = TransactionId(id3)
 
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, tId1)
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, tId2)
-    val foundTransaction3Box = Connector.connector.vend.getTransaction(bankId, accountId, tId3)
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, tId1) match {
+      case Full(tb) => tb
+      case Empty => null
+    }
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, tId2) match {
+      case Full(t2b) => t2b
+      case Empty => null
+    }
+    val foundTransaction3Box = Connector.connector.vend.getTransaction(bankId, accountId, tId3) match {
+      case Full(t3b) => t3b
+      case Empty => null
+    }
 
-    foundTransaction1Box.isDefined should equal(true)
-    foundTransaction2Box.isDefined should equal(true)
-    foundTransaction3Box.isDefined should equal(true)
+    foundTransaction1Box must not equal(null)
+    foundTransaction2Box must not equal(null)
+    foundTransaction3Box must not equal(null)
 
-    val counter1 = foundTransaction1Box.get.otherAccount
-    val counter2 = foundTransaction2Box.get.otherAccount
-    val counter3 = foundTransaction3Box.get.otherAccount
+    val counter1 = foundTransaction1Box.otherAccount
+    val counter2 = foundTransaction2Box.otherAccount
+    val counter3 = foundTransaction3Box.otherAccount
 
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.counterPartyId should not equal(counter3.counterPartyId)
-    counter2.counterPartyId should not equal(counter3.counterPartyId)
-    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
-    counter2.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
+    counter1.counterPartyId must not equal(counter2.counterPartyId)
+    counter1.counterPartyId must not equal(counter3.counterPartyId)
+    counter2.counterPartyId must not equal(counter3.counterPartyId)
+    counter1.metadata.getPublicAlias must not equal(counter2.metadata.getPublicAlias)
+    counter1.metadata.getPublicAlias must not equal(counter3.metadata.getPublicAlias)
+    counter2.metadata.getPublicAlias must not equal(counter3.metadata.getPublicAlias)
   }
 
-  it should "not create any transactions when one has an invalid or missing value" in {
+  it must "not create any transactions when one has an invalid or missing value" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1575,14 +1640,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validTransaction = Extraction.decompose(t)
 
     val newTransId = "0239403294322343"
-    newTransId should not equal(t.id)
+    newTransId must not equal(t.id)
 
     val baseNewTransaction = replaceField(validTransaction, "id", newTransId)
 
     val transactionWithoutValue = removeField(baseNewTransaction, List("details", "value"))
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithoutValue)).code should equal(FAILED)
+    getResponse(List(validTransaction, transactionWithoutValue)).code must equal(FAILED)
 
     def checkNoTransactionsExist() = checkTransactions(false)
     def checkTransactionsExist() = checkTransactions(true)
@@ -1590,31 +1655,31 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     def checkTransactions(exist: Boolean) = {
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(t.id)).isDefined should equal(exist)
+        TransactionId(t.id)).isDefined must equal(exist)
 
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(newTransId)).isDefined should equal(exist)
+        TransactionId(newTransId)).isDefined must equal(exist)
     }
 
-    //no transactions should be created
+    //no transactions must be created
     checkNoTransactionsExist()
 
     //check transaction with bad value
     val transactionWithBadValue = baseNewTransaction.replace(List("details", "value"), "ABCD")
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithBadValue)).code should equal(FAILED)
+    getResponse(List(validTransaction, transactionWithBadValue)).code must equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a good value
     val transactionWithGoodValue = baseNewTransaction.replace(List("details", "value"), "-34.65")
 
-    getResponse(List(validTransaction, transactionWithGoodValue)).code should equal(SUCCESS)
+    getResponse(List(validTransaction, transactionWithGoodValue)).code must equal(SUCCESS)
     checkTransactionsExist()
   }
 
-  it should "not create any transactions when one has an invalid or missing completed date" in {
+  it must "not create any transactions when one has an invalid or missing completed date" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1628,7 +1693,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validTransaction = Extraction.decompose(t)
 
     val newTransId = "0239403294322343"
-    newTransId should not equal(t.id)
+    newTransId must not equal(t.id)
 
     def checkNoTransactionsExist() = checkTransactions(false)
     def checkTransactionsExist() = checkTransactions(true)
@@ -1636,11 +1701,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     def checkTransactions(exist: Boolean) = {
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(t.id)).isDefined should equal(exist)
+        TransactionId(t.id)).isDefined must equal(exist)
 
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(newTransId)).isDefined should equal(exist)
+        TransactionId(newTransId)).isDefined must equal(exist)
     }
 
     val baseNewTransaction = validTransaction.replace("id", newTransId)
@@ -1648,25 +1713,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionWithMissingCompleted = removeField(baseNewTransaction, List("details", "completed"))
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithMissingCompleted)).code should equal(FAILED)
+    getResponse(List(validTransaction, transactionWithMissingCompleted)).code must equal(FAILED)
     checkNoTransactionsExist()
 
     //check transaction with bad completed date
     val transactionWithBadCompleted = baseNewTransaction.replace(List("details", "completed"), "ASDF")
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithBadCompleted)).code should equal(FAILED)
+    getResponse(List(validTransaction, transactionWithBadCompleted)).code must equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a valid completed date
     val transactionWithGoodcompleted = baseNewTransaction.replace(List("details", "completed"), "2016-11-07T05:25:33.001Z")
 
     //should work
-    getResponse(List(validTransaction, transactionWithGoodcompleted)).code should equal(SUCCESS)
+    getResponse(List(validTransaction, transactionWithGoodcompleted)).code must equal(SUCCESS)
     checkTransactionsExist()
   }
 
-  it should "check that counterparty specified is not generated if it already exists (for the original account in question)" in {
+  it must "check that counterparty specified is not generated if it already exists (for the original account in question)" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
@@ -1680,25 +1745,27 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validTransaction = Extraction.decompose(t)
 
     val newTransId = "0239403294322343"
-    newTransId should not equal(t.id)
+    newTransId must not equal(t.id)
 
     val transactionWithSameCounterparty = replaceField(validTransaction, "id", newTransId)
 
-    getResponse(List(validTransaction, transactionWithSameCounterparty)).code should equal(SUCCESS)
+    getResponse(List(validTransaction, transactionWithSameCounterparty)).code must equal(SUCCESS)
 
     def getCreatedTransaction(id : String) =
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(id)).get
+        TransactionId(id)) match {
+        case Full(ct) => ct
+      }
 
     val t1 = getCreatedTransaction(t.id)
     val t2 = getCreatedTransaction(newTransId)
 
     //check the created transactions have the same counterparty id
-    t1.otherAccount.counterPartyId should equal(t2.otherAccount.counterPartyId)
+    t1.otherAccount.counterPartyId must equal(t2.otherAccount.counterPartyId)
   }
 
-  it should "create branches ok" in {
+  it must "create branches ok" in {
 
     // Helper function expects banks and branches
     def getResponse(branchList : List[JValue]) = {
@@ -1717,15 +1784,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // We want the size of the list inside the Option
     val existingBranchesCount = countOfBranches(existingBranches)
-    existingBranchesCount should equal (0)
+    existingBranchesCount must equal (0)
 
     // Check creation succeeds
     val response = getResponse(branchesJson)
-    response.code should equal(SUCCESS)
+    response.code must equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countBranchesAfter = countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
-    countBranchesAfter should equal(standardBranches.size) // We expect N branches
+    countBranchesAfter must equal(standardBranches.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good
     standardBranches.foreach(verifyBranchCreated)
@@ -1734,7 +1801,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
 
-  it should "create ATMs ok" in {
+  it must "create ATMs ok" in {
 
     // Helper function expects banks and branches
     def getResponse(atmList : List[JValue]) = {
@@ -1754,22 +1821,22 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // We want the size of the list inside the Option
     val existingAtmsCount = countOfAtms(existingAtms)
-    existingAtmsCount should equal (0)
+    existingAtmsCount must equal (0)
 
     // Check creation succeeds
     val response = getResponse(atmsJson).code
-    response should equal(SUCCESS)
+    response must equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1))
-    countAtmsAfter should equal(standardBranches.size) // We expect N branches
+    countAtmsAfter must equal(standardBranches.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good
     standardAtms.foreach(verifyAtmCreated)
   }
 
 
-  it should "create Products ok" in {
+  it must "create Products ok" in {
 
     // Helper function expects banks and branches
     def getResponse(productList : List[JValue]) = {
@@ -1789,15 +1856,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // We want the size of the list inside the Option
     val existingCount = countOfProducts(existingProducts)
-    existingCount should equal (0)
+    existingCount must equal (0)
 
     // Check creation succeeds
     val response = getResponse(productsJson).code
-    response should equal(SUCCESS)
+    response must equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countAfter = countOfProducts(Products.productsProvider.vend.getProducts(bankId1))
-    countAfter should equal(standardProducts.size) // We expect N branches
+    countAfter must equal(standardProducts.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good
     standardProducts.foreach(verifyProductCreated)
@@ -1805,7 +1872,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
 
-  it should "create CRM Events ok" in {
+  it must "create CRM Events ok" in {
 
     // Helper function expects banks and branches
     def getResponse(crmEventList : List[JValue]) = {
@@ -1826,15 +1893,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // We want the size of the list inside the Option
     val existingCount = CrmEvent.countOfCrmEvents(existingCrmEvents)
-    existingCount should equal (0)
+    existingCount must equal (0)
 
     // Check creation succeeds
     val response = getResponse(crmEventsJson).code
-    response should equal(SUCCESS)
+    response must equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countAfter = CrmEvent.countOfCrmEvents(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId1))
-    countAfter should equal(standardCrmEvents.size) // We expect N events
+    countAfter must equal(standardCrmEvents.size) // We expect N events
 
     // Check that for each branch we did indeed create something good
     standardCrmEvents.foreach(verifyCrmEventCreated)

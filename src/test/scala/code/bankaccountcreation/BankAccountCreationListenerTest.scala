@@ -35,26 +35,28 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
       Users.users.vend.getUserByProviderId(userProvider, userId).getOrElse {
-        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None).get
+        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None) match {
+          case Full(u) => u
+        }
       }
 
     val expectedBankId = "quxbank"
     val accountNumber = "123456"
 
     def thenCheckAccountCreated(user: User) = {
-      Then("An account with the proper parameters should be created")
+      Then("An account with the proper parameters must be created")
       val userAccounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
-      userAccounts.size should equal(1)
+      userAccounts.size must equal(1)
       val createdAccount = userAccounts(0)
 
-      //the account id should be randomly generated
-      createdAccount.accountId.value.nonEmpty should be(true)
+      //the account id must be randomly generated
+      createdAccount.accountId.value.nonEmpty must be(true)
 
-      createdAccount.bankId.value should equal(expectedBankId)
-      createdAccount.accountId should equal(accountNumber)
+      createdAccount.bankId.value must equal(expectedBankId)
+      createdAccount.accountId must equal(accountNumber)
 
-      And("The account holder should be set correctly")
-      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))
+      And("The account holder must be set correctly")
+      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) must equal(Set(user))
     }
 
     if (Props.getBool("messageQueue.createBankAccounts", false) == false) {
@@ -67,14 +69,14 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         val user = getTestUser()
 
         Given("The account doesn't already exist")
-        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
+        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size must equal(0)
 
         And("The bank in question doesn't already exist")
-        Connector.connector.vend.getBank(BankId(expectedBankId)).isDefined should equal(false)
+        Connector.connector.vend.getBank(BankId(expectedBankId)).isDefined must equal(false)
 
         When("We create a bank account")
 
-        //using expectedBankId as the bank name should be okay as the behaviour should be to slugify the bank name to get the id
+        //using expectedBankId as the bank name must be okay as the behaviour must be to slugify the bank name to get the id
         //what to do if this slugification results in an id collision has not been determined yet
         val msgContent = CreateBankAccount(userId, userProvider, accountNumber, bankIdentifier, expectedBankId)
 
@@ -85,18 +87,20 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
         thenCheckAccountCreated(user)
 
-        And("A bank should be created")
+        And("A bank must be created")
         val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId))
-        createdBankBox.isDefined should equal(true)
-        val createdBank = createdBankBox.get
-        createdBank.nationalIdentifier should equal(bankIdentifier)
+        createdBankBox.isDefined must equal(true)
+        val createdBank = createdBankBox match {
+          case Full(cb) => cb
+        }
+        createdBank.nationalIdentifier must equal(bankIdentifier)
 
       }
 
       scenario("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {
         val user = getTestUser()
         Given("The account doesn't already exist")
-        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
+        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size must equal(0)
 
         And("The bank in question already exists")
         val createdBank = createBank(expectedBankId)

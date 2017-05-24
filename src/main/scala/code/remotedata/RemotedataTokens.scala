@@ -1,20 +1,23 @@
 package code.remotedata
 
 import java.util.Date
+
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.token.{RemotedataTokensCaseClasses, TokensProvider}
 import code.model.Token
 import code.model.TokenType.TokenType
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 
 
 object RemotedataTokens extends ObpActorInit with TokensProvider {
 
   val cc = RemotedataTokensCaseClasses
 
-  def getTokenByKey(key: String): Box[Token] =
-    extractFutureToBox(actor ? cc.getTokenByKey(key))
+  def getTokenByKey(key: Box[String]): Box[Token] =
+    key match {
+      case Full(k) => extractFutureToBox(actor ? cc.getTokenByKey(k))
+    }
 
   def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] =
     extractFutureToBox(actor ? cc.getTokenByKeyAndType(key, tokenType))

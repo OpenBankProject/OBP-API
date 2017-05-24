@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License
+You must have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
@@ -43,7 +43,7 @@ import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.setup.ServerSetup
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.common.{Box, Failure}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
@@ -68,9 +68,13 @@ class OAuthTest extends ServerSetup {
 
   val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 
-  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None).get
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None) match {
+    case Full(tc) => tc
+  }
 
-  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None).get
+  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None) match {
+    case Full(c) => c
+  }
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
@@ -94,8 +98,8 @@ class OAuthTest extends ServerSetup {
       lastName(randomString(10)).
       saveMe
 
-  lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
-  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key, disabledTestConsumer.secret)
+  lazy val consumer = new Consumer (testConsumer.key.get, testConsumer.secret.get)
+  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key.get, disabledTestConsumer.secret.get)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
@@ -192,8 +196,8 @@ class OAuthTest extends ServerSetup {
       Given("The application is registered and does not have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, oob)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
+      Then("we must get a 200 code")
+      reply.code must equal (200)
       And("we can extract the token form the body")
       val requestToken = extractToken(reply.body)
     }
@@ -201,8 +205,8 @@ class OAuthTest extends ServerSetup {
       Given("The application is registered and have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, "localhost:8080/app")
-      Then("we should get a 200 code")
-      reply.code should equal (200)
+      Then("we must get a 200 code")
+      reply.code must equal (200)
       And("we can extract the token form the body")
       val requestToken = extractToken(reply.body)
     }
@@ -210,24 +214,24 @@ class OAuthTest extends ServerSetup {
       Given("The application not registered")
       When("the request is sent")
       val reply = getRequestToken(notRegisteredConsumer, oob)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
+      Then("we must get a 401 code")
+      reply.code must equal (401)
     }
     scenario("we don't get a request token since the application is not registered even with a callback URL", RequestToken, Oauth) {
       Given("The application not registered")
       When("the request is sent")
       val reply = getRequestToken(notRegisteredConsumer, "localhost:8080/app")
-      Then("we should get a 401 code")
-      reply.code should equal (401)
+      Then("we must get a 401 code")
+      reply.code must equal (401)
     }
     scenario("We don't get a request token since the application is not enabled", RequestToken, Oauth) {
       Given("The application is not enabled")
       When("The request is sent")
       val reply = getRequestToken(disabledConsumer, oob)
-      Then("We should get a 401 code")
-      reply.code should equal (401)
-      And("We should get message")
-      reply.body should equal (ErrorMessages.InvalidConsumerCredentials)
+      Then("We must get a 401 code")
+      reply.code must equal (401)
+      And("We must get message")
+      reply.body must equal (ErrorMessages.InvalidConsumerCredentials)
     }
   }
 
@@ -237,9 +241,12 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
-      Then("we should get a verifier")
-      verifier.get.nonEmpty should equal (true)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password) match {
+        case Full(v) => v
+        case Empty => null
+      }
+      Then("we must get a verifier")
+      verifier must not equal (null)
     }
     scenario("the user login and is asked to enter the verifier manually", Verifier, Oauth){
       Given("we will use a valid request token")
@@ -247,22 +254,22 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
-      Then("we should get a verifier")
-      verifier.isEmpty should equal (false)
+      Then("we must get a verifier")
+      verifier.isEmpty must equal (false)
     }
     scenario("the user cannot login because there is no token", Verifier, Oauth){
       Given("there will be no token")
       When("the browser is launched to login")
       val verifier = getVerifier(user1.username.get, user1Password)
-      Then("we should not get a verifier")
-      verifier.isEmpty should equal (true)
+      Then("we must not get a verifier")
+      verifier.isEmpty must equal (true)
     }
     scenario("the user cannot login because the token does not exist", Verifier, Oauth){
       Given("we will use a random request token")
       When("the browser is launched to login")
       val verifier = getVerifier(randomString(4), user1.username.get, user1Password)
-      Then("we should not get a verifier")
-      verifier.isEmpty should equal (true)
+      Then("we must not get a verifier")
+      verifier.isEmpty must equal (true)
     }
   }
   feature("access token"){
@@ -270,20 +277,24 @@ class OAuthTest extends ServerSetup {
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password) match {
+        case Full(v) => v
+      }
       When("when we ask for an access token")
-      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
-      Then("we should get an access token")
+      val accessToken = getAccessToken(consumer, requestToken, verifier)
+      Then("we must get an access token")
       extractToken(accessToken.body)
     }
     scenario("we get an access token with a callback", AccessToken, Oauth){
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password) match {
+        case Full(v) => v
+      }
       When("when we ask for an access token")
-      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
-      Then("we should get an access token")
+      val accessToken = getAccessToken(consumer, requestToken, verifier)
+      Then("we must get an access token")
       extractToken(accessToken.body)
     }
     scenario("we don't get an access token because the verifier is wrong", AccessToken, Oauth){
@@ -292,19 +303,21 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
       When("when we ask for an access token")
       val accessTokenReply = getAccessToken(consumer, requestToken, randomString(5))
-      Then("we should get a 401")
-      accessTokenReply.code should equal (401)
+      Then("we must get a 401")
+      accessTokenReply.code must equal (401)
     }
     scenario("we don't get an access token because the request token is wrong", AccessToken, Oauth){
       Given("we will first get request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password) match {
+        case Full(v) => v
+      }
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
-      val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)
-      Then("we should get a 401")
-      accessTokenReply.code should equal (401)
+      val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier)
+      Then("we must get a 401")
+      accessTokenReply.code must equal (401)
     }
     scenario("we don't get an access token because the requestToken and the verifier are wrong", AccessToken, Oauth){
       Given("we will first get request token and a verifier")
@@ -312,8 +325,8 @@ class OAuthTest extends ServerSetup {
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(5))
-      Then("we should get a 401")
-      accessTokenReply.code should equal (401)
+      Then("we must get a 401")
+      accessTokenReply.code must equal (401)
     }
   }
 
@@ -333,14 +346,14 @@ class OAuthTest extends ServerSetup {
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       
-      Then("we should get a locked account verifier")
+      Then("we must get a locked account verifier")
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
 
 
       Then("We login in with valid username and password, it will still be failed")
       verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
 
-      Then("we should get a locked account verifier")
+      Then("we must get a locked account verifier")
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
       
       Then("We unlock the username")
@@ -358,8 +371,8 @@ class OAuthTest extends ServerSetup {
       Then("we set the valid username, valid  password and try to login")
       val verifier = getVerifier(requestToken.value, user2.username.get, user2Password)
 
-      Then("we should get a message: " + accountValidationError)
-      verifier.contains(accountValidationError) should equal (true)
+      Then("we must get a message: " + accountValidationError)
+      verifier.contains(accountValidationError) must equal (true)
     }
   }
 

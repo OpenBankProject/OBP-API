@@ -11,12 +11,12 @@
   <name>Open Bank Project API</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
-    <scala.version>2.11</scala.version>
-    <scala.compiler>2.11.8</scala.compiler>
-    <akka.version>2.5.1</akka.version>
     <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
     <avro.version>1.6.4</avro.version>
-    <lift.version>2.6.3</lift.version>
+    <scala.version>2.12</scala.version>
+    <scala.compiler>2.12.2</scala.compiler>
+    <akka.version>2.5.1</akka.version>
+    <lift.version>3.0.1</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -77,12 +77,12 @@
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-lift-json_${scala.version}</artifactId>
-      <version>0.11.3</version>
+      <version>0.12.1</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.11.3</version>
+      <version>0.12.1</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -130,7 +130,7 @@
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version}</artifactId>
-      <version>2.2.6</version>
+      <version>3.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -148,7 +148,7 @@
     <dependency>
         <groupId>net.manub</groupId>
         <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
-        <version>0.9.0</version>
+        <version>0.13.1</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.zookeeper</groupId>
@@ -198,8 +198,8 @@
     </dependency>
     <dependency>
       <groupId>net.liftmodules</groupId>
-      <artifactId>amqp_2.6_${scala.version}</artifactId>
-      <version>1.4-SNAPSHOT</version>
+      <artifactId>amqp_3.0_${scala.version}</artifactId>
+      <version>1.4.0</version>
     </dependency>
     <dependency>
       <groupId>org.pegdown</groupId>
@@ -307,7 +307,7 @@
     <dependency>
      <groupId>com.github.romix.akka</groupId>
       <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
-      <version>0.4.1</version>
+      <version>0.5.2</version>
     </dependency>
     <dependency>
       <groupId>com.github.cb372</groupId>
@@ -317,7 +317,7 @@
     <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-slf4j_${scala.version}</artifactId>
-      <version>2.4.1</version>
+      <version>${akka.version}</version>
     </dependency>
 
 
@@ -339,8 +339,8 @@
       <plugin>
         <!-- enable the scalatest plugin -->
         <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0</version>
+        <artifactId>scalatest_${scala.version}</artifactId>
+        <version>3.0.3</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
             <forkMode>once</forkMode>
@@ -361,7 +361,7 @@
           <!-- add src/main/java to source dirs -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.10</version>
+          <version>3.0.0</version>
           <executions>
             <execution>
               <phase>generate-sources</phase>
@@ -417,7 +417,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-war-plugin</artifactId>
-          <version>2.6</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

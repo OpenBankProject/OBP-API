@@ -33,34 +33,34 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
 
     scenario("We try to get UserCustomerLink") {
       Given("There is no user to customer link at all but we try to get it")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks.getOrElse(List()).size should equal(0)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks.getOrElse(List()).size must equal(0)
 
       When("We try to get it all")
       val found = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks.getOrElse(List())
 
       Then("We don't")
-      found.size should equal(0)
+      found.size must equal(0)
     }
 
 
     scenario("A UserCustomerLink exists for user and we try to get it") {
       val userCustomerLink1 = userCustomerLink(userId1, customerId1)
       Given("Create a user to customer link")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId1, customerId1).isDefined should equal(true)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId1, customerId1).isDefined must equal(true)
 
       When("We try to get it by user and customer")
       val foundOpt = UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId1, customerId1)
 
       Then("We do")
-      foundOpt.isDefined should equal(true)
+      foundOpt.isDefined must equal(true)
 
       And("It is the right thing")
       val foundThing = foundOpt
-      foundThing should equal(userCustomerLink1)
+      foundThing must equal(userCustomerLink1)
 
-      And("Primary id should be UUID")
+      And("Primary id must be UUID")
       val customerId = foundThing.map(x => x.userCustomerLinkId).getOrElse("").filter(_ != '-')
-      customerId.length should equal(32)
+      customerId.length must equal(32)
     }
 
     scenario("We try to get all UserCustomerLink rows"){
@@ -71,15 +71,15 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
       val found: List[UserCustomerLink] = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks.getOrElse(List())
 
       Then("We don't")
-      found.size should equal(2)
+      found.size must equal(2)
 
       And("We try to get it by user1 and customer1")
       val foundThing1 = found.filter(_.userId == userId1).filter(_.customerId == customerId1).map(x=>Full(x))
-      foundThing1 should equal(List(userCustomerLink1))
+      foundThing1 must equal(List(userCustomerLink1))
 
       And("We try to get it by user2 and customer2")
       val foundThing2 = found.filter(_.userId == userId2).filter(_.customerId == customerId2).map(x=>Full(x))
-      foundThing2 should equal(List(userCustomerLink2))
+      foundThing2 must equal(List(userCustomerLink2))
 
     }
 

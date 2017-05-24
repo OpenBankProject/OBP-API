@@ -48,7 +48,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
       By(MapperAccountHolders.accountPermalink, accountId.value))
 
     results.flatMap { accHolder =>
-      ResourceUser.find(By(ResourceUser.id, accHolder.user))
+      ResourceUser.find(By(ResourceUser.id, accHolder.user.get))
     }.toSet
   }
 

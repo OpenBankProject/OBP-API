@@ -1520,10 +1520,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountId)
-
-    val accountDeleted = account match {
-      case acc => true //acc.delete_! //TODO
+    val accountDeleted = getBankAccount(bankId, accountId) match {
+      case Full(acc) => Connector.connector.vend.removeAccount(bankId, accountId)
       case _ => false
     }
 
@@ -1708,7 +1706,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     } yield {
         val acc = getBankAccount(bankId, account.accountId)
         acc match {
-          case a => true //a.lastUpdate = updateDate //TODO
+          case Full(a) => logger.warn(s"can't set bank account.lastUpdated for account ${a} because the field is not writable"); false //a.lastUpdate = updateDate //TODO
           case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
         }
     }

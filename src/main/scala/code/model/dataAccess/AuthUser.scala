@@ -55,25 +55,25 @@ import net.liftweb.util
   *
   *
   * // TODO Document the difference between this and AuthUser / ResourceUser
-  * 
+  *
   * 1 AuthUser : is used for authentication, only for webpage Login in stuff
   *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
-  *      Such as lost password, reset password ..... 
-  *      Lift have some helper methods to make these things easily. 
-  *   
-  *  
-  * 
-  * 2 ResourceUser: is only a normal LongKeyedMapper 
+  *      Such as lost password, reset password .....
+  *      Lift have some helper methods to make these things easily.
+  *
+  *
+  *
+  * 2 ResourceUser: is only a normal LongKeyedMapper
   *   1) All the accounts, transactions ,roles, views, accountHolders, customers... should be linked to ResourceUser.userId_ field.
   *   2) The consumer keys, tokens are also belong ResourceUser
-  *  
-  * 
+  *
+  *
   * 3 RelationShips:
   *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
   *      They share the same username and email.
-  *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
-  *      one AuthUser <---> one ResourceUser 
-  *  
+  *   2)AuthUser `user` field as the Foreign Key to link to Resource User.
+  *      one AuthUser <---> one ResourceUser
+  *
   *
  */
 class AuthUser extends MegaProtoUser[AuthUser] with Logger {
@@ -164,22 +164,22 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     }
   }
 
-  def createUnsavedResourceUser() : ResourceUser = {
-    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
+  def createUnsavedResourceUser() : Box[ResourceUser] = {
+    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username.get), Some(username.get), Some(email.get), None)
     user
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
     Users.users.vend.getUserByEmail(userEmail) match {
       case Full(userList) => userList
-      case Empty => List()
+      case _ => List()
     }
   }
 
   def getResourceUsers(): List[ResourceUser] = {
     Users.users.vend.getAllUsers match {
       case Full(userList) => userList
-      case Empty => List()
+      case _ => List()
     }
   }
 
@@ -190,17 +190,17 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create a ResourceUser")
-      val resourceUser = createUnsavedResourceUser()
-      val savedUser = Users.users.vend.saveResourceUser(resourceUser)
-      user(savedUser)   //is this saving resourceUser into a user field?
+      val resourceUser = createUnsavedResourceUser() match {
+        case Full(u) => user(Users.users.vend.saveResourceUser(u)) //is this saving resourceUser into a user field?
+      }
     }
     else {
       info("user reference is not null. Trying to update the ResourceUser")
       Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
           info("API User found ")
-          u.name_(username)
-          .email(email)
-          .providerId(username)
+          u.name_(username.get)
+          .email(email.get)
+          .providerId(username.get)
           .save
         }
       }
@@ -209,7 +209,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   override def delete_!(): Boolean = {
-    user.obj.map(u => Users.users.vend.deleteResourceUser(u.id))
+    user.obj.map(u => Users.users.vend.deleteResourceUser(u.id.get))
     super.delete_!
   }
 
@@ -397,11 +397,12 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
-  override def lostPassword = {
-    bind("user", lostPasswordXhtml,
-      "email" -> SHtml.text("", sendPasswordReset _),
-      "submit" -> lostPasswordSubmitButton(S.?("submit")))
-  }
+  //TODO not supported in lift3, find another way
+  override def lostPassword = { lostPasswordXhtml }
+  //  bind("user", lostPasswordXhtml,
+  //    "email" -> SHtml.text("", sendPasswordReset _),
+  //    "submit" -> lostPasswordSubmitButton(S.?("submit")))
+  //}
 
   //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
 
@@ -495,7 +496,7 @@ import net.liftweb.util.Helpers._
             {
               // We logged in correctly, so reset badLoginAttempts counter (if it exists)
               LoginAttempt.resetBadLoginAttempts(username)
-              Full(user.user) // Return the user.
+              Full(user.user.get) // Return the user.
             }
         // User is unlocked AND password is bad
         else if (
@@ -527,7 +528,7 @@ import net.liftweb.util.Helpers._
                 val userId = for { kafkaUser <- getUserFromConnector(username, password)
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
-                    kafkaUserId.toLong
+                    kafkaUserId.get
                 }
                 userId match {
                   case Full(l:Long) => Full(l)
@@ -540,7 +541,7 @@ import net.liftweb.util.Helpers._
                 val userId = for { obpjvmUser <- getUserFromConnector(username, password)
                   obpjvmUserId <- tryo{obpjvmUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
-                    obpjvmUserId.toLong
+                    obpjvmUserId.get
                 }
                 userId match {
                   case Full(l:Long) => Full(l)
@@ -560,10 +561,10 @@ import net.liftweb.util.Helpers._
   }
 
   /**
-    * This method is belong to AuthUser, it is used for authentication(Login stuff)
+    * This method belongs to AuthUser, it is used for authentication(Login stuff)
     * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side. 
-    * 3 if not existing, will create new AuthUser. 
+    * 2 check whether it is existing in AuthUser table in obp side.
+    * 3 if not existing, will create new AuthUser.
     * @return Return the authUser
     */
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
@@ -619,11 +620,11 @@ import net.liftweb.util.Helpers._
 
   //overridden to allow a redirection if login fails
   /**
-    * Success cases: 
+    * Success cases:
     *  case1: user validated && user not locked && user.provider from localhost && password correct --> Login in
     *  case2: user validated && user not locked && user.provider not localhost  && password correct --> Login in
     *  case3: user from remote && checked over connector --> Login in
-    *  
+    *
     * Error cases:
     *  case1: user is locked --> UsernameHasBeenLocked
     *  case2: user.validated_? --> account.validation.error
@@ -654,7 +655,7 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+              registeredUserHelper(user.username.get)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
@@ -691,7 +692,7 @@ import net.liftweb.util.Helpers._
               }
               //This method is used for connector = kafka* || obpjvm*
               //It will update the views and createAccountHolder ....
-              registeredUserHelper(user.username)
+              registeredUserHelper(user.username.get)
               //Check the internal redirect, in case for open redirect issue.
               // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
               // val currentUrl = S.uriAndQueryString.getOrElse("/")
@@ -759,13 +760,13 @@ import net.liftweb.util.Helpers._
                     info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
                   }
                 case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(username)
+                  LoginAttempt.incrementBadLoginAttempts(username.get)
                   Empty
               }
 
-          //If the username is not exiting, throw the error message.  
+          //If the username is not exiting, throw the error message.
           case Empty => S.error(S.?("Invalid Login Credentials"))
-            
+
           case _ =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
@@ -780,11 +781,13 @@ import net.liftweb.util.Helpers._
       scala.xml.XML.loadString(loginSubmitButton(S.?("Login"), loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
-    bind("user", loginXhtml,
-         "submit" -> insertSubmitButton)
+    //TODO not supported in lift3, find another way
+    //bind("user", loginXhtml,
+    //     "submit" -> insertSubmitButton)
+    loginXhtml
   }
-  
-  
+
+
   /**
     * The user authentications is not exciting in obp side, it need get the user from south-side
     */
@@ -809,7 +812,7 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- Users.users.vend.getUserByUserName(username)
+       u <- Users.users.vend.getUserByUserName(username.get)
        //TODO need more error handle here, I need the exception to debug
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
@@ -831,7 +834,7 @@ import net.liftweb.util.Helpers._
       } yield v
     }
   }
- 
+
   /**
     * find the authUser by author user name(authUser and resourceUser are the same)
     */
@@ -879,10 +882,10 @@ import net.liftweb.util.Helpers._
       }
     }
 
-    def innerSignup = bind("user",
-      signupXhtml(theUser),
-      "submit" -> signupSubmitButton(S.?("sign.up"), testSignup _))
-
+    //TODO not supported in lift3, find another way
+    def innerSignup = //bind("user",
+      signupXhtml(theUser)//,
+    //  "submit" -> signupSubmitButton(S.?("sign.up"), testSignup _))
     innerSignup
   }
 }

@@ -880,10 +880,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountId)
-
-    val accountDeleted = account match {
-      case acc => true //acc.delete_! //TODO
+    val accountDeleted = getBankAccount(bankId, accountId) match {
+      case Full(acc) => Connector.connector.vend.removeAccount(bankId, accountId)
       case _ => false
     }
 

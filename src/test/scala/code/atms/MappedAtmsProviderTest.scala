@@ -91,20 +91,20 @@ class MappedAtmsProviderTest extends ServerSetup {
 
 
       Given("the bank in question has atms")
-      MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdX)).isDefined should equal(true)
+      MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdX)).isDefined must equal(true)
 
       When("we try to get the atms for that bank")
       val atmsOpt: Option[List[Atm]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX))
 
-      Then("We should get a atms list")
-      atmsOpt.isDefined should equal (true)
+      Then("We must get a atms list")
+      atmsOpt.isDefined must equal (true)
       val atms = atmsOpt.get
 
-      And("it should contain two atms")
-      atms.size should equal(2)
+      And("it must contain two atms")
+      atms.size must equal(2)
 
-      And("they should be the licensed ones")
-      atms should equal (expectedAtms)
+      And("they must be the licensed ones")
+      atms must equal (expectedAtms)
     }
 
     scenario("We try to get atms for a bank that doesn't have any") {
@@ -113,16 +113,16 @@ class MappedAtmsProviderTest extends ServerSetup {
 
       Given("we don't have any atms")
 
-      MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdY)).isDefined should equal(false)
+      MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdY)).isDefined must equal(false)
 
       When("we try to get the atms for that bank")
       val atmDataOpt = MappedAtmsProvider.getAtms(BankId(fixture.bankIdY))
 
-      Then("we should get back an empty list")
-      atmDataOpt.isDefined should equal(true)
+      Then("we must get back an empty list")
+      atmDataOpt.isDefined must equal(true)
       val atms = atmDataOpt.get
 
-      atms.size should equal(0)
+      atms.size must equal(0)
 
     }
 

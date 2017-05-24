@@ -8,6 +8,7 @@ import code.token.RemotedataTokensCaseClasses
 import code.model.TokenType.TokenType
 import code.model._
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Full
 
 
 class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
@@ -19,7 +20,7 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.getTokenByKey(key: String) =>
       logger.debug("getTokenByKey(" + key +")")
-      sender ! extractResult(mapper.getTokenByKey(key))
+      sender ! extractResult(mapper.getTokenByKey(Full(key)))
 
     case cc.getTokenByKeyAndType(key: String, tokenType: TokenType) =>
       logger.debug("getTokenByKeyAndType(" + key + ", " + tokenType + ")")

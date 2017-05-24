@@ -191,11 +191,11 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   }
 
   override def getPublicAlias(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.publicAlias)
+    getCounterpartyMetadata(counterPartyId).map(_.publicAlias.get)
   }
 
   override def getPrivateAlias(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.privateAlias)
+    getCounterpartyMetadata(counterPartyId).map(_.privateAlias.get)
   }
 
   override def getPhysicalLocation(counterPartyId : String): Box[GeoTag] = {

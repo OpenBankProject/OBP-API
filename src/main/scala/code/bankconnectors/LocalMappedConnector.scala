@@ -320,10 +320,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     for (l <- list) yield
       new PhysicalCard(
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankCardNumber = l.mBankCardNumber.get,
+        nameOnCard = l.mNameOnCard.get,
+        issueNumber = l.mIssueNumber.get,
+        serialNumber = l.mSerialNumber.get,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -344,10 +344,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
     for (l <- list) yield
       new PhysicalCard(
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankCardNumber = l.mBankCardNumber.get,
+        nameOnCard = l.mNameOnCard.get,
+        issueNumber = l.mIssueNumber.get,
+        serialNumber = l.mSerialNumber.get,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -405,10 +405,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                             )
     for (l <- list) yield
     new PhysicalCard(
-      bankCardNumber = l.mBankCardNumber,
-      nameOnCard = l.mNameOnCard,
-      issueNumber = l.mIssueNumber,
-      serialNumber = l.mSerialNumber,
+      bankCardNumber = l.mBankCardNumber.get,
+      nameOnCard = l.mNameOnCard.get,
+      issueNumber = l.mIssueNumber.get,
+      serialNumber = l.mSerialNumber.get,
       validFrom = l.validFrom,
       expires = l.expires,
       enabled = l.enabled,
@@ -441,11 +441,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       fx.exchangeRate(fromAccount.currency, toAccount.currency)
     } ?~! {
       s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+    } match {
+      case Full(r) => r
     }
 
     // Is it better to pass these into this function ?
     val fromTransAmt = -amount//from fromAccount balance should decrease
-    val toTransAmt = fx.convert(amount, rate.get)
+    val toTransAmt = fx.convert(amount, rate)
 
     // From
     val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -470,19 +472,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               chargePolicy: String): Box[TransactionId] = {
     //Note: read the latest data from database
     //For FREE_FORM, we need make sure always use the latest data
-    val fromAccountUpdate: Box[MappedBankAccount] = getBankAccount(fromAccount.bankId, fromAccount.accountId)
+    val fromAccountUpdate: MappedBankAccount = getBankAccount(fromAccount.bankId, fromAccount.accountId) match {
+      case Full(ba) => ba
+    }
     val transactionTime = now
     val currency = fromAccount.currency
 
 
     //update the balance of the fromAccount for which a transaction is being created
-    val newAccountBalance: Long = fromAccountUpdate.get.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.get.currency)
-    fromAccountUpdate.get.accountBalance(newAccountBalance).save()
+    val newAccountBalance: Long = fromAccountUpdate.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.currency)
+    fromAccountUpdate.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
       //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-      .bank(fromAccountUpdate.get.bankId.value)
-      .account(fromAccountUpdate.get.accountId.value)
+      .bank(fromAccountUpdate.bankId.value)
+      .account(fromAccountUpdate.accountId.value)
       .transactionType(transactionRequestType.value)
       .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
@@ -1022,7 +1026,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId) match {
+          case Full(ba) => ba.currency
+        }
         TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
 

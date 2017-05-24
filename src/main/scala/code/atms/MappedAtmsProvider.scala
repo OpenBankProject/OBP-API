@@ -68,8 +68,8 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   }
 
   override def location: Location = new Location {
-    override def latitude: Double = mlocationLatitude
-    override def longitude: Double = mlocationLongitude
+    override def latitude: Double = mlocationLatitude.get
+    override def longitude: Double = mlocationLongitude.get
   }
 
 }

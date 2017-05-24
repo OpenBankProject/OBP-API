@@ -18,7 +18,7 @@ object Tokens extends SimpleInjector {
 }
 
 trait TokensProvider {
-  def getTokenByKey(key: String): Box[Token]
+  def getTokenByKey(key: Box[String]): Box[Token]
   def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token]
   def createToken(tokenType: TokenType,
                   consumerId: Option[Long],

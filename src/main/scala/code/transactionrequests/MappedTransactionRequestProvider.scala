@@ -232,14 +232,14 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     )
 
     val t_challenge = TransactionRequestChallenge (
-      id = mChallenge_Id,
-      allowed_attempts = mChallenge_AllowedAttempts,
-      challenge_type = mChallenge_ChallengeType
+      id = mChallenge_Id.get,
+      allowed_attempts = mChallenge_AllowedAttempts.get,
+      challenge_type = mChallenge_ChallengeType.get
     )
 
     val t_charge = TransactionRequestCharge (
-    summary = mCharge_Summary,
-    value = AmountOfMoney(currency = mCharge_Currency, amount = mCharge_Amount)
+    summary = mCharge_Summary.get,
+    value = AmountOfMoney(currency = mCharge_Currency.get, amount = mCharge_Amount.get)
     )
 
 
@@ -261,7 +261,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         end_date = mEndDate.get,
         challenge = t_challenge,
         charge = t_charge,
-        charge_policy =mcharge_Policy,
+        charge_policy = mcharge_Policy.get,
         counterparty_id =  CounterpartyId(mCounterpartyId.get),
         name = mName.get,
         this_bank_id = BankId(mThisBankId.get),

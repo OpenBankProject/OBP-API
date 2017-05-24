@@ -343,8 +343,9 @@ class Boot extends MdcLoggable {
       case _ => Locale.ENGLISH
     }
 
+    //TODO Not supported in lift3, find another way
     //for XSS vulnerability, set X-Frame-Options header as DENY
-    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    //LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)

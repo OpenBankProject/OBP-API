@@ -86,7 +86,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       implementedByPartialFunction(implementedByPartialFunction).
       implementedInVersion(implementedInVersion).
       verb(verb)
-      save
+      save(true)
   }
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {

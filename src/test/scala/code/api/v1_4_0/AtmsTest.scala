@@ -73,7 +73,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     override protected def getAtmFromProvider(AtmId: AtmId): Option[Atm] = {
       AtmId match {
          case BankWithLicense => Some(fakeAtm1)
-         case BankWithoutLicense=> Some(fakeAtm3) // In case the connector returns, the API should guard
+         case BankWithoutLicense=> Some(fakeAtm3) // In case the connector returns, the API must guard
         case _ => None
       }
     }
@@ -81,17 +81,17 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   }
 
   def verifySameData(atm: Atm, atmJson : AtmJson) = {
-    atm.name should equal (atmJson.name)
-    atm.atmId should equal(AtmId(atmJson.id))
-    atm.address.line1 should equal(atmJson.address.line_1)
-    atm.address.line2 should equal(atmJson.address.line_2)
-    atm.address.line3 should equal(atmJson.address.line_3)
-    atm.address.city should equal(atmJson.address.city)
-    atm.address.state should equal(atmJson.address.state)
-    atm.address.countryCode should equal(atmJson.address.country)
-    atm.address.postCode should equal(atmJson.address.postcode)
-    atm.location.latitude should equal(atmJson.location.latitude)
-    atm.location.longitude should equal(atmJson.location.longitude)
+    atm.name must equal (atmJson.name)
+    atm.atmId must equal(AtmId(atmJson.id))
+    atm.address.line1 must equal(atmJson.address.line_1)
+    atm.address.line2 must equal(atmJson.address.line_2)
+    atm.address.line3 must equal(atmJson.address.line_3)
+    atm.address.city must equal(atmJson.address.city)
+    atm.address.state must equal(atmJson.address.state)
+    atm.address.countryCode must equal(atmJson.address.country)
+    atm.address.postCode must equal(atmJson.address.postcode)
+    atm.location.latitude must equal(atmJson.location.latitude)
+    atm.location.longitude must equal(atmJson.location.longitude)
   }
 
   /*
@@ -117,8 +117,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
 
     }
 
@@ -127,21 +127,21 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      Then("We must get a 200")
+      response.code must equal(200)
 
-      And("We should get the right json format containing a list of ATMs")
+      And("We must get the right json format containing a list of ATMs")
       val wholeResponseBody = response.body
       val responseBodyOpt = wholeResponseBody.extractOpt[AtmsJson]
-      responseBodyOpt.isDefined should equal(true)
+      responseBodyOpt.isDefined must equal(true)
 
       val responseBody = responseBodyOpt.get
 
-      And("We should get the right atms")
+      And("We must get the right atms")
       val atms = responseBody.atms
 
       // Order of ATMs in the list is arbitrary
-      atms.size should equal(2)
+      atms.size must equal(2)
       val first = atms(0)
       if(first.id == fakeAtm1.atmId.value) {
         verifySameData(fakeAtm1, first)
