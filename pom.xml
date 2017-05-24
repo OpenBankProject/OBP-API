@@ -13,7 +13,9 @@
   <properties>
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
-    <akka.version>2.4.17</akka.version>
+    <akka.version>2.5.1</akka.version>
+    <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
+    <avro.version>1.6.4</avro.version>
     <lift.version>2.6.3</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
@@ -291,6 +293,16 @@
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-remote_${scala.version}</artifactId>
       <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-stream-kafka_${scala.version}</artifactId>
+      <version>${akka-streams-kafka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sksamuel.avro4s</groupId>
+      <artifactId>avro4s-core_${scala.version}</artifactId>
+      <version>${avro.version}</version>
     </dependency>
     <dependency>
      <groupId>com.github.romix.akka</groupId>
