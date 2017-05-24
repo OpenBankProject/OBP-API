@@ -712,6 +712,14 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeWhereTag_(true)
       .canDeleteWhereTag_(true)
       .canInitiateTransaction_(true)
+      .canSeeBankRoutingScheme_(true) //added following in V300
+      .canSeeBankRoutingAddress_(true)
+      .canSeeBankAccountRoutingScheme_(true)
+      .canSeeBankAccountRoutingAddress_(true)
+      .canSeeOtherBankRoutingScheme_(true)
+      .canSeeOtherBankRoutingAddress_(true)
+      .canSeeOtherAccountRoutingScheme_(true)
+      .canSeeOtherAccountRoutingAddress_(true)
   }
 
   def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
