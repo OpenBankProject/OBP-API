@@ -13,7 +13,7 @@
   <properties>
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
-    <akka.version>2.4.10</akka.version>
+    <akka.version>2.4.17</akka.version>
     <lift.version>2.6.3</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
@@ -89,18 +89,13 @@
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka_${scala.version}</artifactId>
-      <version>0.10.0.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>log4j</groupId>
-          <artifactId>log4j</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
+      <artifactId>kafka-clients</artifactId>
+      <version>0.10.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-json</artifactId>
+      <version>0.10.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>

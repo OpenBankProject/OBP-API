@@ -6,9 +6,10 @@ import code.model.Nonce
 import code.nonce.{NoncesProvider, RemotedataNoncesCaseClasses}
 import net.liftweb.common.Box
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 
 
-object RemotedataNonces extends ActorInit with NoncesProvider {
+object RemotedataNonces extends ObpActorInit with NoncesProvider {
 
   val cc = RemotedataNoncesCaseClasses
 

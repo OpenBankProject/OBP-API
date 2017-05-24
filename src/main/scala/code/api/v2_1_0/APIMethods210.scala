@@ -17,7 +17,7 @@ import code.api.v2_1_0.JSONFactory210._
 import code.api.v2_2_0.{CounterpartyJsonV220, JSONFactory220}
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors._
+import code.bankconnectors.{OBPQueryParam, _}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -40,7 +40,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 // Makes JValue assignment to Nil work
 import code.api.util.APIUtil._
 import code.api.{APIFailure, ChargePolicy}
@@ -915,7 +915,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), UserDoesNotHaveRole +CanCreateCardsForBank)
+            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserDoesNotHaveRole +CanCreateCardsForBank)
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
@@ -1682,8 +1682,7 @@ trait APIMethods210 {
             u <- user ?~! UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), UserDoesNotHaveRole + CanReadMetrics )
   
-            //Note: Filters Part 1:
-            //?start_date=100&end_date=1&limit=200&offset=0
+            //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
   
             inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
             // set the long,long ago as the default date.
@@ -1705,39 +1704,14 @@ trait APIMethods210 {
                         }
                       ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-  
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~! s"${InvalidNumber } offset:${S.param("offset").get }"
   
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
             //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
-            
-            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(startDate)) && (rd.getDate().before(startDatePlusOneDay))))
   
-            /** pages: 
-              * eg: total=79
-              * offset=0, limit =50
-              *  filterByDate.slice(0,50)
-              * offset=1, limit =50
-              *  filterByDate.slice(50*1,50+50*1)--> filterByDate.slice(50,100)
-              * offset=2, limit =50
-              *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
-              */
-            //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
-
-            //Filters Part 2.
-            //eg: /management/metrics?start_date=100&end_date=1&limit=200&offset=0
-            //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            // consumer_id (if null ignore)
-            // user_id (if null ignore)
-            // anon true => return where user_id is null. false => return where where user_id is not null(if null ignore)
-            // url (if null ignore)
-            // app_name (if null ignore)
-            // implemented_by_partial_function (if null ignore)
-            // implemented_in_version (if null ignore)
-            // verb (if null ignore)
+            //Filters Part 2. -- the optional varibles:
+            //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             consumerId <- Full(S.param("consumer_id")) //(if null ignore)
             userId <- Full(S.param("user_id")) //(if null ignore)
             anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
@@ -1751,17 +1725,33 @@ trait APIMethods210 {
               assert(anon.get.equals("true") || anon.get.equals("false"))
             }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
 
+            parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
+            setFilterPart1 <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate))
+
+            setFilterPart2 <- if (!consumerId.isEmpty)
+              Full(parameters += OBPConsumerId(consumerId.get))
+            else if (!userId.isEmpty)
+              Full(parameters += OBPUserId(userId.get))
+            else if (!url.isEmpty)
+              Full(parameters += OBPUrl(url.get))
+            else if (!appName.isEmpty)
+              Full(parameters += OBPAppName(appName.get))
+            else if (!implementedInVersion.isEmpty)
+              Full(parameters += OBPImplementedInVersion(implementedInVersion.get))
+            else if (!implementedByPartialFunction.isEmpty)
+              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.get))
+            else if (!verb.isEmpty)
+              Full(parameters += OBPVerb(verb.get))
+            else
+              Full(parameters)
+            
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
+     
+            // the anon field is not in database, so here use different way to filer it.
             filterByFields: List[APIMetric] = metrics
-              .filter(rd => (if (!consumerId.isEmpty) rd.getConsumerId().equals(consumerId.get) else true))
-              .filter(rd => (if (!userId.isEmpty) rd.getUserId().equals(userId.get) else true))
               .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
               .filter(rd => (if (!anon.isEmpty && anon.get.equals("false")) (!rd.getUserId().equals("null")) else true))
-              //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
-              .filter(rd => (if (!url.isEmpty) rd.getUrl().equals(url.get) else true))
-              .filter(rd => (if (!appName.isEmpty) rd.getAppName.equals(appName.get) else true))
-              .filter(rd => (if (!implementedByPartialFunction.isEmpty) rd.getImplementedByPartialFunction().equals(implementedByPartialFunction.get) else true))
-              .filter(rd => (if (!implementedInVersion.isEmpty) rd.getImplementedInVersion().equals(implementedInVersion.get) else true))
-              .filter(rd => (if (!verb.isEmpty) rd.getVerb().equals(verb.get) else true))
+            
           } yield {
             val json = JSONFactory210.createMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))

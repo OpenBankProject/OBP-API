@@ -2,20 +2,16 @@ package code.remotedata
 
 import java.util.Date
 
-import akka.actor.ActorKilledException
 import akka.pattern.ask
-import akka.util.Timeout
-import code.api.APIFailure
+import code.actorsystem.ObpActorInit
 import code.metadata.comments.{Comments, RemotedataCommentsCaseClasses}
 import code.model._
-import net.liftweb.common.{Full, _}
+import net.liftweb.common.Box
 
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 
-object RemotedataComments extends ActorInit with Comments {
+object RemotedataComments extends ObpActorInit with Comments {
 
    val cc = RemotedataCommentsCaseClasses
 

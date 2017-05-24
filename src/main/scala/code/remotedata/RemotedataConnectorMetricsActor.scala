@@ -3,12 +3,11 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.metrics.{ConnectorMetrics, RemotedataConnectorMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 
-
-class RemotedataConnectorMetricsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataConnectorMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = ConnectorMetrics
   val cc = RemotedataConnectorMetricsCaseClasses

@@ -3,12 +3,13 @@ package code.remotedata
 import java.util.Date
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.bankconnectors.OBPQueryParam
 import code.customer.{AmountOfMoney => _}
 import code.metrics.{APIMetric, APIMetrics, RemotedataMetricsCaseClasses}
 
 
-object RemotedataMetrics extends ActorInit with APIMetrics {
+object RemotedataMetrics extends ObpActorInit with APIMetrics {
 
   val cc = RemotedataMetricsCaseClasses
 

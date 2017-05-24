@@ -1,21 +1,14 @@
 package code.remotedata
 
 import java.util.Date
-
-import akka.actor.ActorKilledException
 import akka.pattern.ask
-import akka.util.Timeout
-import code.api.APIFailure
+import code.actorsystem.ObpActorInit
 import code.metadata.transactionimages.{RemotedataTransactionImagesCaseClasses, TransactionImages}
 import code.model._
-import net.liftweb.common.{Full, _}
-
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import net.liftweb.common.Box
 
-
-object RemotedataTransactionImages extends ActorInit with TransactionImages {
+object RemotedataTransactionImages extends ObpActorInit with TransactionImages {
 
   val cc = RemotedataTransactionImagesCaseClasses
 

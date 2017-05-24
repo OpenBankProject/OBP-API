@@ -1,13 +1,13 @@
 package code.remotedata
 
 import akka.actor.Actor
-import akka.event.Logging
+import code.actorsystem.ObpActorHelper
 import code.metadata.comments.{MappedComments, RemotedataCommentsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
 
 
-class RemotedataCommentsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataCommentsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedComments
   val cc = RemotedataCommentsCaseClasses

@@ -2,7 +2,7 @@ package code.metrics
 
 import java.util.Date
 
-import code.bankconnectors._
+import code.bankconnectors.{OBPImplementedByPartialFunction, _}
 import code.util.DefaultStringField
 import net.liftweb.mapper._
 
@@ -52,7 +52,29 @@ object MappedMetrics extends APIMetrics {
           case OBPDescending => OrderBy(MappedMetric.date, Descending)
         }
     }
-    val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+    // the optional variables:
+    val toConsumerId = queryParams.collect {case OBPConsumerId(value) => By(MappedMetric.consumerId, value)}.headOption
+    val toUserId = queryParams.collect {case OBPUserId(value) => By(MappedMetric.userId, value)}.headOption
+    val toUrl = queryParams.collect {case OBPUrl(value) => By(MappedMetric.url, value)}.headOption
+    val toAppName = queryParams.collect {case OBPAppName(value) => By(MappedMetric.appName, value)}.headOption
+    val toImplementedInVersion = queryParams.collect {case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value)}.headOption
+    val toImplementedByPartialFunction = queryParams.collect {case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value)}.headOption
+    val toVerb = queryParams.collect {case OBPVerb(value) => By(MappedMetric.verb, value)}.headOption
+    
+    val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(
+      offset.toSeq, 
+      fromDate.toSeq, 
+      toDate.toSeq, 
+      ordering,
+      toConsumerId.toSeq, 
+      toUserId.toSeq,
+      toUrl.toSeq,
+      toAppName.toSeq,
+      toImplementedInVersion.toSeq,
+      toImplementedByPartialFunction.toSeq,
+      toVerb.toSeq,
+      limit.toSeq
+    ).flatten
 
     MappedMetric.findAll(optionalParams: _*)
   }

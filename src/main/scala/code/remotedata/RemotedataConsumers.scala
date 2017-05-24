@@ -1,12 +1,13 @@
 package code.remotedata
 
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.consumer.{ConsumersProvider, RemotedataConsumersCaseClasses}
 import code.model._
 import net.liftweb.common._
 
 
-object RemotedataConsumers extends ActorInit with ConsumersProvider {
+object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
 
   val cc = RemotedataConsumersCaseClasses
 

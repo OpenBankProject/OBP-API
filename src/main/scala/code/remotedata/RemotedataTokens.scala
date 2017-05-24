@@ -1,15 +1,15 @@
 package code.remotedata
 
 import java.util.Date
-
 import akka.pattern.ask
+import code.actorsystem.ObpActorInit
 import code.token.{RemotedataTokensCaseClasses, TokensProvider}
 import code.model.Token
 import code.model.TokenType.TokenType
-import net.liftweb.common._
+import net.liftweb.common.Box
 
 
-object RemotedataTokens extends ActorInit with TokensProvider {
+object RemotedataTokens extends ObpActorInit with TokensProvider {
 
   val cc = RemotedataTokensCaseClasses
 

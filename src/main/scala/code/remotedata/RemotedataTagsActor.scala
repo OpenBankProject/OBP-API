@@ -1,20 +1,12 @@
 package code.remotedata
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.Actor
-import akka.event.Logging
-import akka.util.Timeout
+import code.actorsystem.ObpActorHelper
 import code.metadata.tags.{MappedTags, RemotedataTagsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.common._
-import net.liftweb.util.ControlHelpers.tryo
 
-import scala.concurrent.duration._
-
-
-class RemotedataTagsActor extends Actor with ActorHelper with MdcLoggable {
+class RemotedataTagsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedTags
   val cc = RemotedataTagsCaseClasses
