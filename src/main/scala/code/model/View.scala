@@ -70,7 +70,7 @@ trait ViewSpecification {
 /*
 The JSON that should be supplied to create a view. Conforms to ViewSpecification
  */
-case class CreateViewJSON(
+case class CreateViewJson(
   name: String,
   description: String,
   is_public: Boolean,

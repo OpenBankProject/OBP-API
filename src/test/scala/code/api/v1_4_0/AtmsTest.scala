@@ -1,13 +1,12 @@
 package code.api.v1_4_0
 
-import code.api.DefaultUsers
 import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.api.util.APIUtil.OAuth._
-
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.{Atms, AtmsProvider}
 import code.common.{Address, License, Location, Meta}
 import code.model.BankId
+import code.setup.DefaultUsers
 
 class AtmsTest extends V140ServerSetup with DefaultUsers {
 

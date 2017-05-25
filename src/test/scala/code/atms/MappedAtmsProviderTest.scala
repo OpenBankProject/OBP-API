@@ -1,8 +1,8 @@
 package code.atms
 
-import code.api.ServerSetup
 import code.atms.Atms.Atm
 import code.model.BankId
+import code.setup.ServerSetup
 import net.liftweb.mapper.By
 
 class MappedAtmsProviderTest extends ServerSetup {

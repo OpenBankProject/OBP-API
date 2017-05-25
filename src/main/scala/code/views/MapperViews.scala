@@ -5,7 +5,7 @@ import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
-import code.model.{CreateViewJSON, Permission, UpdateViewJSON, User, _}
+import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
@@ -203,7 +203,7 @@ object MapperViews extends Views with MdcLoggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View] = {
   
     if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
       return Failure(AllowPublicViewsNotSpecified)
@@ -543,14 +543,21 @@ object MapperViews extends Views with MdcLoggable {
       })
     true
   }
-  
   /**
-    * grant one user access to specific view. It is only used in Scala Tests 
-    * @param user The user, who will get the access of input view
-    * @param view 
-    * @return
+    * "Grant view access"  means to create the link between User <---> View.
+    *  All these links are handled in ViewPrivileges table. 
+    *  If ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0,
+    *  this means there is no link between v <--> user. 
+    *  So Just create one . 
+    * 
+    * @param user the user will to be granted access to.
+    * @param view the view will be granted access. 
+    *             
+    * @return create the link between user<--> view, return true. 
+    *         otherwise(If there existed view/ if there is no view ), it return false.
+    *         
     */
-  def grantAccessToView(user : User, view : View) = {
+  def grantAccessToView(user : User, view : View): Boolean = {
     val v = ViewImpl.find(view.uid).orNull
     if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0 )
     ViewPrivileges.create.

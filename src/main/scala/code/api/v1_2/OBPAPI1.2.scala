@@ -209,7 +209,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
     case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
+          json <- tryo{json.extract[CreateViewJson]} ?~ "wrong JSON format"
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
           view <- account createView (u, json)

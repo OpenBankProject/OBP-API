@@ -4,7 +4,7 @@ import net.liftweb.common.Box
 import code.model._
 import net.liftweb.util.SimpleInjector
 import code.model.Permission
-import code.model.CreateViewJSON
+import code.model.CreateViewJson
 import code.remotedata.RemotedataViews
 
 object Views  extends SimpleInjector {
@@ -29,7 +29,7 @@ trait Views {
   def view(viewId : ViewId, bankAccountId: BankAccountUID) : Box[View]
   def view(viewUID : ViewUID) : Box[View]
 
-  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View]
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankAccountUID): Box[Unit]
   def updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def views(bankAccountId : BankAccountUID) : List[View]
@@ -71,7 +71,7 @@ class RemotedataViewsCaseClasses {
   case class addPermissions(views: List[ViewUID], user: User)
   case class revokePermission(viewUID: ViewUID, user: User)
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
-  case class createView(bankAccountId: BankAccountUID, view: CreateViewJSON)
+  case class createView(bankAccountId: BankAccountUID, view: CreateViewJson)
   case class removeView(viewId: ViewId, bankAccountId: BankAccountUID)
   case class updateView(bankAccountId: BankAccountUID, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class views(bankAccountId: BankAccountUID)

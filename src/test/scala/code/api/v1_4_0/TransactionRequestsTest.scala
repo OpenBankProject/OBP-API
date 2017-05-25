@@ -1,18 +1,18 @@
 package code.api.v1_4_0
 
-import code.api.{DefaultUsers, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankAccount, TransactionRequestId}
+import code.setup.{DefaultUsers}
 import code.transactionrequests.TransactionRequests
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 
-class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V140ServerSetup {
+class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
 
   object TransactionRequest extends Tag("transactionRequests")
 
@@ -35,8 +35,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -166,8 +166,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
