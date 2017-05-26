@@ -114,7 +114,7 @@ trait APIMethods300 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """#Create a view on bank account
+      """Create a view on bank account
         |
         | OAuth authentication is required and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
