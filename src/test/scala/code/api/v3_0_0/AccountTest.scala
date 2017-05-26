@@ -1,25 +1,22 @@
-package code.api.v2_0_0
-
-import java.text.SimpleDateFormat
+package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-import code.model.BankId
-import code.model.dataAccess.MappedBankAccount
 import code.setup.DefaultUsers
-import net.liftweb.json.Serialization.write
 import net.liftweb.json.JsonAST._
+import net.liftweb.json.Serialization.write
 
-class AccountTest extends V200ServerSetup with DefaultUsers {
-  feature("Assuring that Get all accounts at all banks works as expected - v2.0.0") {
+
+class AccountTest extends V300ServerSetup with DefaultUsers {
+  feature("Assuring that Get all accounts at all banks works as expected - v3.0.0") {
 
     scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
       Given("The bank")
       val testBank = mockBankId1
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -67,7 +64,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId1
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId,"CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId,"CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -116,7 +113,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val newAccountIdWithSpaces = "account%20with%20spaces"
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJsonV300(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 

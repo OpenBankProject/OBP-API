@@ -1,7 +1,5 @@
 package code.bankaccountcreation
 
-import code.api.DefaultConnectorTestSetup
-import code.api.ServerSetup
 import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
@@ -12,6 +10,7 @@ import com.tesobe.model.CreateBankAccount
 import code.model.dataAccess.{BankAccountCreationListener, ResourceUser}
 import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
+import code.setup.{DefaultConnectorTestSetup, ServerSetup}
 import code.users.Users
 
 class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorTestSetup {

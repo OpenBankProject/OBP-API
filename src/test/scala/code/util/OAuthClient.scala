@@ -30,20 +30,20 @@ Berlin 13359, Germany
 
  */
 
-package code.api
+package code.util
 
+import java.net.{URI, URLDecoder}
+
+import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Props
 import oauth.signpost.basic.{DefaultOAuthConsumer, DefaultOAuthProvider}
 import oauth.signpost.{OAuthConsumer, OAuthProvider}
-import org.apache.http.NameValuePair
+import org.apache.http.client.utils.URLEncodedUtils
 import org.openqa.selenium._
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
-import java.net.{URI, URLDecoder}
-import org.apache.http.client.utils.URLEncodedUtils
+
 import scala.collection.JavaConversions._
-import scala.util.DynamicVariable
-import code.util.Helper.MdcLoggable
 
 sealed trait Provider {
   val name : String

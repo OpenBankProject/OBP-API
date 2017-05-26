@@ -2,8 +2,8 @@ package code.usercustomerlinks
 
 import java.util.Date
 
-import code.api.ServerSetup
-import net.liftweb.common.{Full}
+import code.setup.ServerSetup
+import net.liftweb.common.Full
 
 class MappedUserCustomerLinkProviderTest extends ServerSetup {
 

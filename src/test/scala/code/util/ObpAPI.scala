@@ -1,26 +1,22 @@
-package code.api
+package code.util
 
-import net.liftweb.json._
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.common.Empty
-import java.net.URL
-import java.io.{BufferedWriter, OutputStreamWriter}
-import java.net.HttpURLConnection
-import net.liftweb.common.Failure
-import java.io.{PrintWriter, StringWriter, BufferedReader, InputStreamReader}
-import net.liftweb.util.Helpers._
-import java.util.Date
-import net.liftweb.http.RequestVar
+import java.io._
+import java.net.{HttpURLConnection, URL}
 import java.text.SimpleDateFormat
+import java.util.Date
+
 import code.util.Helper.MdcLoggable
+import code.util.ObpJson._
+import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.http.RequestVar
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.{JObject, _}
+import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import code.api.ObpJson._
 
 case class Header(key: String, value: String)
+case class ObpError(error :String)
 
 object ObpAPI extends MdcLoggable {
   implicit val formats = DefaultFormats
@@ -219,7 +215,7 @@ object ObpAPI extends MdcLoggable {
   }
 }
 
-case class ObpError(error :String)
+
 
 object OBPRequest extends MdcLoggable {
   implicit val formats = DefaultFormats

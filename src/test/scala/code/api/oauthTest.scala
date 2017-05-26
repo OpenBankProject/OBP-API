@@ -40,6 +40,7 @@ import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
+import code.setup.ServerSetup
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.{Box, Failure}
@@ -51,7 +52,6 @@ import org.scalatest.selenium._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
 import code.util.Helper.MdcLoggable
 
 case class OAuthResponse(

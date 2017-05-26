@@ -29,12 +29,11 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
  */
-package code.api
+package code.setup
 
-
-import code.token.Tokens
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
+import code.token.Tokens
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full
@@ -49,6 +48,13 @@ import scala.concurrent.duration.Duration
 
 case class APIResponse(code: Int, body: JValue)
 
+/**
+  * This trait simulate the Rest process, HTTP parameters --> Reset parameters
+  * simulate the four methods GET, POST, DELETE and POST 
+  * Prepare the Headers, query parameters and form parameters, send these to OBP-API 
+  * and get the response code and response body back.
+  * 
+  */
 trait SendServerRequests {
 
   case class ReqData (
@@ -134,6 +140,7 @@ trait SendServerRequests {
     }
   }
 
+  // generate the requestData from input values, such as request, body, encoding and headers.
   def extractParamsAndHeaders(req: Req, body: String, encoding: String, extra_headers:Map[String,String] = Map.empty): ReqData= {
     val r = req.toRequest
     val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> qp.getValue).toMap[String,String]

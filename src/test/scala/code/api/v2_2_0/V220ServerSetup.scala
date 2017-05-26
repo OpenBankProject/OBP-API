@@ -1,6 +1,6 @@
 package code.api.v2_2_0
 
-import code.api.ServerSetupWithTestData
+import code.setup.ServerSetupWithTestData
 
 /**
  * Created by markom on 10/14/16.

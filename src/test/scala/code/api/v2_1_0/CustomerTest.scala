@@ -2,7 +2,6 @@ package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
 
-import code.api.DefaultUsers
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.customer.Customer
@@ -11,23 +10,14 @@ import code.model.BankId
 import net.liftweb.json.Serialization.write
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 
 class CustomerTest extends V210ServerSetup with DefaultUsers {
-
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
-
-  val mockBankId1 = BankId("testBank1")
-  val mockBankId2 = BankId("testBank2")
-  val mockCustomerNumber1 = "93934903201"
-  val mockCustomerNumber2 = "93934903202"
-
   def createCustomerJson(customerNumber: String) = {
     PostCustomerJsonV210(
-      user_id = authuser1.userId,
+      user_id = resourceUser1.userId,
       customer_number = customerNumber,
       legal_name = "Someone",
       mobile_phone_number = "125245",
@@ -46,17 +36,6 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
     )
   }
 
-
-  override def beforeAll() {
-    super.beforeAll()
-  }
-
-  override def afterAll() {
-    super.afterAll()
-    Customer.customerProvider.vend.bulkDeleteCustomers()
-    UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
-  }
-
   feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {
 
     scenario("There is a user, and the bank in questions has customer info for that user - v2.0.0") {
@@ -71,13 +50,13 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       responsePost.code should equal(400)
 
       When("We add one required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, authuser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
       val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 400")
       responsePost1.code should equal(400)
 
       When("We add all required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val responsePost2 = makePostRequest(requestPost, write(customerPostJSON))
       println("responsePost2 " + responsePost2)
       Then("We should get a 201")
@@ -123,8 +102,8 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
 
       When("We try to make a request with same customer number at different bank")
       Then("first we add all required entitlements")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, authuser1.userId, ApiRole.CanCreateCustomer.toString)
-      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val customerPostJSON4 = createCustomerJson(mockCustomerNumber1)
       val requestPost4 = (v2_1Request / "banks" / mockBankId2.value / "customers").POST <@ (user1)
       val responsePost4 = makePostRequest(requestPost4, write(customerPostJSON4))

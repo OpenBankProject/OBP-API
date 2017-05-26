@@ -4,7 +4,6 @@ import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -16,12 +15,11 @@ import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import code.products.Products.{Product, ProductCode}
+import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.util.Helper.MdcLoggable
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
-
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
 
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
 
@@ -100,9 +98,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     //these methods are required
     override def getPhysicalCards(user : User) : List[PhysicalCard] = {
-      if(user == authuser1) {
+      if(user == resourceUser1) {
         user1AllCards
-      } else if (user == authuser2) {
+      } else if (user == resourceUser2) {
         user2AllCards
       } else {
         List()
@@ -110,9 +108,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     }
 
     override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = {
-      if(user == authuser1) {
+      if(user == resourceUser1) {
         user1CardsForOneBank
-      } else if (user == authuser2) {
+      } else if (user == resourceUser2) {
         user2CardsForOneBank
       } else {
         List()

@@ -1,9 +1,8 @@
 package code.bankaccountcreation
 
-import code.api.ServerSetup
-import code.api.{DefaultConnectorTestSetup, DefaultUsers}
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankId}
+import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import org.scalatest.Tag
 
 class BankAccountCreationTest extends ServerSetup with DefaultUsers with DefaultConnectorTestSetup {
