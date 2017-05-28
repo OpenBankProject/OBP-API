@@ -152,7 +152,7 @@ class WebUI extends MdcLoggable{
 
   // Text about data in FAQ
   def faqDataText: CssSel = {
-    ".faq-data-text *" #> scala.xml.Unparsed(Props.get("webui_faq_data_text", "This depends on the end point and/or OBP instance you are currently using."))
+    ".faq-data-text *" #> scala.xml.Unparsed(Props.get("webui_faq_data_text", "This depends on the end point and/or OBP instance you are using. A combination of synthetic, anonymised and real data may be available. Please ask support for more information."))
   }
 
   // Link to FAQ
