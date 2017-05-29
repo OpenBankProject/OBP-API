@@ -4,7 +4,7 @@ import java.util.UUID
 
 import net.liftweb.util.Props
 
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
+import scala.concurrent.duration.{FiniteDuration, SECONDS, MILLISECONDS}
 
 /**
   * Basic kafka configuration utility
@@ -18,5 +18,6 @@ trait KafkaConfig {
 
   val autoOffsetResetConfig = "earliest"
   val maxWakeups = 50
-  val completionTimeout = FiniteDuration(Props.getInt("kafka.akka.timeout", 3), SECONDS)
+  //TODO should be less then container's timeout
+  val completionTimeout =  FiniteDuration(Math.max(Props.getInt("kafka.akka.timeout", 3) - 1, 1), SECONDS)
 }
