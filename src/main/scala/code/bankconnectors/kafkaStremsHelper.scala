@@ -23,7 +23,7 @@ import scala.concurrent.{ExecutionException, Future, TimeoutException}
 /**
   * Actor for accessing kafka from North side.
   */
-class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable with KafkaConfig {
+class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable with KafkaConfig with AvroSerializer{
 
   implicit val formats = DefaultFormats
 
@@ -93,10 +93,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       }
 
       f recover {
-        case ie: InterruptedException => json.parse(s"""{"error":"sending message to kafka interrupted: ${ie}"}""")
-        case ex: ExecutionException => json.parse(s"""{"error":"could not send message to kafka: ${ex}"}""")
-        case te: TimeoutException => json.parse(s"""{"error":"receiving message from kafka timed out: ${te}"}""")
-        case t: Throwable => json.parse(s"""{"error":"unexpected error sending message to kafka: ${t}"}""")
+        case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
+        case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
+        case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
+        case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
       } pipeTo orgSender
   }
 }
