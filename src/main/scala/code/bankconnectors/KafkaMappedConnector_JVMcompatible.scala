@@ -190,7 +190,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             "userId" -> username,
             "bankId" -> bankId)}
           } yield {
-            process(req).extract[List[KafkaInboundAccount]]
+            val res = process(req)
+            logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
+            res.extract[List[KafkaInboundAccount]]
           }
         }
       }.flatten
