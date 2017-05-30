@@ -82,6 +82,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   }
 
   val extractF: (JsonAST.JValue => Future[Any]) = { r =>
+    logger.info("kafka-response:" + r)
     Future(extractResult(r))
   }
 
@@ -115,7 +116,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         jv <- parseF(r)
         any <- extractF(jv)
       } yield {
-        logger.info("kafka-response:" + any)
         any
       }
 
@@ -124,7 +124,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
         case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
         case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
-        case _ => logger.info("kafka_-_response:" + _ ); _
       } pipeTo orgSender
   }
 }
