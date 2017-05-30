@@ -1,10 +1,10 @@
 package code.branches
 
-import code.api.ServerSetup
 import code.model.BankId
 import code.branches.Branches.BranchId
 import net.liftweb.mapper.By
 import code.branches.Branches.Branch
+import code.setup.ServerSetup
 
 class MappedBranchesProviderTest extends ServerSetup {
 

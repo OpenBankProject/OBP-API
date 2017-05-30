@@ -1,9 +1,9 @@
-package code.api
+package code.setup
 
 import java.util.{Calendar, Date}
 
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import net.liftweb.util.Helpers._
 
@@ -16,13 +16,24 @@ trait TestConnectorSetup {
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
   protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait
-
+  
+  /**
+    * This method, will do three things:
+    * 1 create account by (bankId, accountId, currency), note: no user here.
+    * 2 create the `owner-view` for the created account, note: no user here.
+    * 3 grant the `owner-view` access to the User. 
+    * @param accountOwner it is just a random user here, the user will have the access to the `owner view`
+    * @param bankId one bankId
+    * @param accountId one accountId
+    * @param currency the currency to create account.
+    *                 
+    * @return this method will return a bankAccount, which contains `owner view` and grant the access to the input user.
+    *         
+    */
   final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-    val account = createAccount(bankId, accountId, currency)
-    val ownerView = createOwnerView(bankId, accountId)
-    accountOwner.foreach(owner => {
-      grantAccessToView(owner, ownerView)
-    })
+    val account = createAccount(bankId, accountId, currency) //In the test, account has no relevant with owner.Just need bankId, accountId and currency. 
+    val ownerView = createOwnerView(bankId, accountId)//You can create the `owner-view` for the created account.
+    accountOwner.foreach(grantAccessToView(_, ownerView)) //grant access to one user. (Here, this user is not owner for the account, just grant `owner-view` to the user)
     account
   }
 

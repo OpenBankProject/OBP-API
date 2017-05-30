@@ -42,8 +42,10 @@ TESOBE (http://www.tesobe.com/)
 
 import java.util.Date
 
-import code.api.ObpJson._
-import code.api.{SendServerRequests, _}
+import code.util.ObpJson._
+import code.api._
+import code.setup.SendServerRequests
+import code.util.{OAuthClient, ObpGet, ObpPost}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.RequestVar
 import net.liftweb.json._

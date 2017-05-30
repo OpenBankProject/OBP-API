@@ -82,13 +82,32 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
   }
 
   object BankAccountCreation extends MdcLoggable {
-
+  
+    /**
+      * 1 Create `Owner` view if the account do not have `Owner` view.
+      * 2 Add Permission to `Owner` view
+      * 3 Set the User as the account Holder.
+      * 
+      * @param bankId 
+      * @param accountId
+      * @param user the user can be Login user or other users(Have the CanCreateAccount role)
+      *             
+      * @return This is a procedure, no return value. Just use the side effect.
+      */
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
       Connector.connector.vend.setAccountHolder(BankAccountUID(bankId, accountId), user)
     }
-
-
+  
+    /**
+      * 1 Create or Update `Owner` view for Account.
+      * 2 Add Permission to the User
+      * @param bankId
+      * @param accountId
+      * @param user
+      *       
+      * @return This is a procedure, no return value. Just use the side effect.
+      */
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
       val ownerViewUID = ViewUID(ViewId("owner"), bankId, accountId)

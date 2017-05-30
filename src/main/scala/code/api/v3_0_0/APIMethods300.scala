@@ -6,7 +6,7 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.model.{BankId, ViewId, _}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
@@ -14,6 +14,7 @@ import net.liftweb.json.Extraction
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import code.api.v3_0_0.JSONFactory300._
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 
 
@@ -22,6 +23,25 @@ trait APIMethods300 {
   self: RestHelper =>
 
   // helper methods begin here
+
+  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): JValue = {
+    Extraction.decompose(coreBankAccountList(callerContext, codeContext, bankAccounts, user))
+  }
+
+  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJsonV300] = {
+    val accJson : List[CoreAccountJsonV300] = bankAccounts.map(account => {
+      val views = account.permittedViews(user)
+      val viewsAvailable : List[BasicViewJson] =
+        views.map( v => {
+          JSONFactory300.createBasicViewJSON(v)
+        })
+
+      val dataContext = DataContext(user, Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
+
+      JSONFactory300.createCoreAccountJSON(account)
+    })
+    accJson
+  }
   val Implementations3_0_0 = new Object() {
 
     val apiVersion: String = "3_0_0"
@@ -94,7 +114,7 @@ trait APIMethods300 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """#Create a view on bank account
+      """Create a view on bank account
         |
         | OAuth authentication is required and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
@@ -110,7 +130,7 @@ trait APIMethods300 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      SwaggerDefinitionsJSON.createViewJSON,
+      SwaggerDefinitionsJSON.createViewJson,
       viewJsonV300,
       List(
         UserNotLoggedIn,
@@ -126,7 +146,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            json <- tryo{json.extract[CreateViewJSON]} ?~!InvalidJsonFormat
+            json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
             u <- user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
@@ -271,7 +291,48 @@ trait APIMethods300 {
       }
     }
 
-  
+    resourceDocs += ResourceDoc(
+      corePrivateAccountsAllBanks,
+      apiVersion,
+      "corePrivateAccountsAllBanks",
+      "GET",
+      "/my/accounts",
+      "Get Accounts at all Banks (Private)",
+      s"""Get private accounts at all banks (Authenticated access)
+         |Returns the list of accounts containing private views for the user at all banks.
+         |For each account the API returns the ID and the available views.
+         |
+        |${authenticationRequiredMessage(true)}
+         |""",
+      emptyObjectJson,
+      coreAccountsJsonV300,
+      List(UserNotLoggedIn,UnKnownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount, apiTagPrivateData))
+
+
+    apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
+    apiRelations += ApiRelation(corePrivateAccountsAllBanks, corePrivateAccountsAllBanks, "self")
+
+
+
+    lazy val corePrivateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for all banks
+      case "my" :: "accounts" :: Nil JsonGet json => {
+        user =>
+
+          for {
+            u <- user ?~! UserNotLoggedIn
+          } yield {
+            val availableAccounts = BankAccount.nonPublicAccounts(u)
+            val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, availableAccounts, Full(u))
+            val response = successJsonResponse(coreBankAccountListJson)
+            response
+          }
+      }
+    }
+
+
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       apiVersion,
@@ -315,7 +376,7 @@ trait APIMethods300 {
           for {
             //Note: error handling and messages for getTransactionParams are in the sub method
             params <- getTransactionParams(json)
-            u <- user ?~ UserNotLoggedIn
+            u <- user ?~! UserNotLoggedIn
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl(ViewId("owner"), bankAccount) ?~! ViewNotFound

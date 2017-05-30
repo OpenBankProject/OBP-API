@@ -1,8 +1,8 @@
 package code.products
 
-import code.api.ServerSetup
 import code.products.Products.Product
 import code.model.BankId
+import code.setup.ServerSetup
 import code.util.DefaultStringField
 import net.liftweb.mapper.By
 

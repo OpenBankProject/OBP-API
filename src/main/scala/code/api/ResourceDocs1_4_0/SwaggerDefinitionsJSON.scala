@@ -26,13 +26,82 @@ object SwaggerDefinitionsJSON {
     amount = "100"
   )
   
-  val createViewJSON = CreateViewJSON(
+  val createViewJson = CreateViewJson(
     name = "test",
     description = "good",
     is_public = true,
     which_alias_to_use = "good",
-    hide_metadata_if_alias_used = true,
-    allowed_actions = List("good")
+    hide_metadata_if_alias_used = false,
+    allowed_actions = List(
+      "can_see_transaction_this_bank_account",
+      "can_see_transaction_other_bank_account",
+      "can_see_transaction_metadata",
+      "can_see_transaction_label",
+      "can_see_transaction_amount",
+      "can_see_transaction_type",
+      "can_see_transaction_currency",
+      "can_see_transaction_start_date",
+      "can_see_transaction_finish_date",
+      "can_see_transaction_balance",
+      "can_see_comments",
+      "can_see_narrative", "can_see_tags",
+      "can_see_images",
+      "can_see_bank_account_owners",
+      "can_see_bank_account_type",
+      "can_see_bank_account_balance",
+      "can_see_bank_account_currency",
+      "can_see_bank_account_label",
+      "can_see_bank_account_national_identifier",
+      "can_see_bank_account_swift_bic",
+      "can_see_bank_account_iban",
+      "can_see_bank_account_number",
+      "can_see_bank_account_bank_name",
+      "can_see_other_account_national_identifier",
+      "can_see_other_account_swift_bic",
+      "can_see_other_account_iban",
+      "can_see_other_account_bank_name",
+      "can_see_other_account_number",
+      "can_see_other_account_metadata",
+      "can_see_other_account_kind",
+      "can_see_more_info",
+      "can_see_url",
+      "can_see_image_url",
+      "can_see_open_corporates_url",
+      "can_see_corporate_location",
+      "can_see_physical_location",
+      "can_see_public_alias",
+      "can_see_private_alias",
+      "can_add_more_info",
+      "can_add_url",
+      "can_add_image_url",
+      "can_add_open_corporates_url",
+      "can_add_corporate_location",
+      "can_add_physical_location",
+      "can_add_public_alias",
+      "can_add_private_alias",
+      "can_delete_corporate_location",
+      "can_delete_physical_location",
+      "can_edit_narrative",
+      "can_add_comment",
+      "can_delete_comment",
+      "can_add_tag",
+      "can_delete_tag",
+      "can_add_image",
+      "can_delete_image",
+      "can_add_where_tag",
+      "can_see_where_tag",
+      "can_delete_where_tag",
+      "can_create_counterparty",
+      //V300 New
+      "can_see_bank_routing_scheme",
+      "can_see_bank_routing_address",
+      "can_see_bank_account_routing_scheme",
+      "can_see_bank_account_routing_address",
+      "can_see_other_bank_routing_scheme",
+      "can_see_other_bank_routing_address",
+      "can_see_other_account_routing_scheme",
+      "can_see_other_account_routing_addres"
+    )
   )
   
   val updateViewJSON = UpdateViewJSON(
@@ -40,7 +109,76 @@ object SwaggerDefinitionsJSON {
     is_public = true,
     which_alias_to_use = "good",
     hide_metadata_if_alias_used = true,
-    allowed_actions = List("good")
+    allowed_actions = List(
+      "can_see_transaction_this_bank_account",
+      "can_see_transaction_other_bank_account",
+      "can_see_transaction_metadata",
+      "can_see_transaction_label",
+      "can_see_transaction_amount",
+      "can_see_transaction_type",
+      "can_see_transaction_currency",
+      "can_see_transaction_start_date",
+      "can_see_transaction_finish_date", 
+      "can_see_transaction_balance",
+      "can_see_comments",
+      "can_see_narrative", "can_see_tags", 
+      "can_see_images",
+      "can_see_bank_account_owners",
+      "can_see_bank_account_type", 
+      "can_see_bank_account_balance",
+      "can_see_bank_account_currency",
+      "can_see_bank_account_label", 
+      "can_see_bank_account_national_identifier",
+      "can_see_bank_account_swift_bic", 
+      "can_see_bank_account_iban",
+      "can_see_bank_account_number",
+      "can_see_bank_account_bank_name",
+      "can_see_other_account_national_identifier",
+      "can_see_other_account_swift_bic", 
+      "can_see_other_account_iban",
+      "can_see_other_account_bank_name", 
+      "can_see_other_account_number",
+      "can_see_other_account_metadata", 
+      "can_see_other_account_kind",
+      "can_see_more_info",
+      "can_see_url", 
+      "can_see_image_url", 
+      "can_see_open_corporates_url",
+      "can_see_corporate_location",
+      "can_see_physical_location", 
+      "can_see_public_alias",
+      "can_see_private_alias", 
+      "can_add_more_info",
+      "can_add_url", 
+      "can_add_image_url", 
+      "can_add_open_corporates_url",
+      "can_add_corporate_location",
+      "can_add_physical_location", 
+      "can_add_public_alias",
+      "can_add_private_alias",
+      "can_delete_corporate_location", 
+      "can_delete_physical_location",
+      "can_edit_narrative",
+      "can_add_comment", 
+      "can_delete_comment", 
+      "can_add_tag", 
+      "can_delete_tag",
+      "can_add_image",
+      "can_delete_image", 
+      "can_add_where_tag", 
+      "can_see_where_tag",
+      "can_delete_where_tag", 
+      "can_create_counterparty",
+      //V300 New
+      "can_see_bank_routing_scheme",
+      "can_see_bank_routing_address",
+      "can_see_bank_account_routing_scheme",
+      "can_see_bank_account_routing_address",
+      "can_see_other_bank_routing_scheme",
+      "can_see_other_bank_routing_address",
+      "can_see_other_account_routing_scheme",
+      "can_see_other_account_routing_addres"
+    )
   )
   
   val transactionTypeId = TransactionTypeId(value = "123")
@@ -201,11 +339,11 @@ object SwaggerDefinitionsJSON {
     open_corporates_URL = "String"
   )
   
-  val accountRoutingJSON = AccountRoutingJsonV121(
+  val accountRoutingJsonV121 = AccountRoutingJsonV121(
     scheme = "IBAN",
     address = "DE89 3704 0044 0532 0130 00"
   )
-  
+
   val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
     currency = "EUR",
     amount = "10"
@@ -215,7 +353,7 @@ object SwaggerDefinitionsJSON {
     provider = "OBP",
     display_name = "OBP"
   )
-  
+
   val viewJSONV121 = ViewJSONV121(
     id = "123",
     short_name = "short_name",
@@ -283,27 +421,27 @@ object SwaggerDefinitionsJSON {
     can_see_url = true,
     can_see_where_tag = true
   )
-  
+
   val viewsJSONV121 = ViewsJSONV121(
     views = List(viewJSONV121)
   )
-  
+
   val accountJSON = AccountJSON(
     id = "123",
     label = "OBP",
     views_available = List(viewJSONV121),
     bank_id = "gh.uk.db"
   )
-  
+
   val accountsJSON = AccountsJSON(
     accounts = List(accountJSON)
   )
-  
+
   val bankRoutingJSON = BankRoutingJsonV121(
     scheme = "Bank_ID",
     address = "gh.29.uk"
   )
-  
+
   val bankJSON = BankJSON(
     id = "gh.29.uk",
     short_name = "short_name ",
@@ -312,21 +450,21 @@ object SwaggerDefinitionsJSON {
     website = "www.openbankproject.com",
     bank_routing = bankRoutingJSON
   )
-  
+
   val banksJSON = BanksJSON(
     banks = List(bankJSON)
   )
-  
+
   val accountHolderJSON = AccountHolderJSON(
     name = "OBP",
     is_alias = true
   )
-  
+
   val minimalBankJSON = MinimalBankJSON(
     national_identifier = "OBP",
     name = "OBP"
   )
-  
+
   val moderatedAccountJSON = ModeratedAccountJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     label = "NoneLabel",
@@ -338,9 +476,9 @@ object SwaggerDefinitionsJSON {
     swift_bic = "OKOYFIHH",
     views_available = List(viewJSONV121),
     bank_id = "gh.29.uk",
-    account_routing = accountRoutingJSON
+    account_routing = accountRoutingJsonV121
   )
-  
+
   val thisAccountJSON = ThisAccountJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     holders = List(accountHolderJSON),
@@ -350,14 +488,14 @@ object SwaggerDefinitionsJSON {
     swift_bic = "UK1234AD",
     bank = minimalBankJSON
   )
-  
+
   val locationJSONV121 = LocationJSONV121(
     latitude = 1.231,
     longitude = 1.231,
     date = exampleDate,
     user = userJSONV121
   )
-  
+
   val otherAccountMetadataJSON = OtherAccountMetadataJSON(
     public_alias = "NONE",
     private_alias = "NONE",
@@ -368,7 +506,7 @@ object SwaggerDefinitionsJSON {
     corporate_location = locationJSONV121,
     physical_location = locationJSONV121
   )
-  
+
   val otherAccountJSON = OtherAccountJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     holder = accountHolderJSON,
@@ -379,7 +517,7 @@ object SwaggerDefinitionsJSON {
     bank = minimalBankJSON,
     metadata = otherAccountMetadataJSON
   )
-  
+
   val transactionDetailsJSON = TransactionDetailsJSON(
     `type` = "AC",
     description = "GOOD",
@@ -388,7 +526,7 @@ object SwaggerDefinitionsJSON {
     new_balance = amountOfMoneyJsonV121,
     value = amountOfMoneyJsonV121
   )
-  
+
   val transactionImageJSON = TransactionImageJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     label = "NONE",
@@ -396,29 +534,29 @@ object SwaggerDefinitionsJSON {
     date = exampleDate,
     user = userJSONV121
   )
-  
+
   val transactionImagesJSON = TransactionImagesJSON(
     images = List(transactionImageJSON)
   )
-  
+
   val transactionCommentJSON = TransactionCommentJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     value = "OBP",
     date = exampleDate,
     user = userJSONV121
   )
-  
+
   val transactionTagJSON = TransactionTagJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     value = "OBP",
     date = exampleDate,
     user = userJSONV121
   )
-  
+
   val transactionTagsJSON = TransactionTagsJSON(
     tags = List(transactionTagJSON)
   )
-  
+
   val transactionMetadataJSON = TransactionMetadataJSON(
     narrative = "NONE",
     comments = List(transactionCommentJSON),
@@ -426,7 +564,7 @@ object SwaggerDefinitionsJSON {
     images = List(transactionImageJSON),
     where = locationJSONV121
   )
-  
+
   val transactionJSON = TransactionJSON(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     this_account = thisAccountJSON,
@@ -434,81 +572,81 @@ object SwaggerDefinitionsJSON {
     details = transactionDetailsJSON,
     metadata = transactionMetadataJSON
   )
-  
+
   val transactionsJSON = TransactionsJSON(
     transactions = List(transactionJSON)
   )
-  
+
   val successMessage = SuccessMessage(
     success = "Success"
   )
-  
+
   val otherAccountsJSON = OtherAccountsJSON(
     other_accounts = List(otherAccountJSON)
   )
-  
+
   val transactionNarrativeJSON = TransactionNarrativeJSON(
     narrative = "narative"
   )
-  
+
   val transactionCommentsJSON = TransactionCommentsJSON(
     comments = List(transactionCommentJSON)
   )
-  
+
   val transactionWhereJSON = TransactionWhereJSON(
     where = locationJSONV121
   )
-  
+
   val permissionJSON = PermissionJSON(
     user = userJSONV121,
     views = List(viewJSONV121)
   )
-  
+
   val permissionsJSON = PermissionsJSON(
     permissions = List(permissionJSON)
   )
-  
+
   val updateAccountJSON = UpdateAccountJSON(
     id = "123123",
     label = "label",
     bank_id = "gh.29.uk"
   )
-  
+
   val viewIdsJson = ViewIdsJson(
     views = List("good")
   )
-  
+
   val locationPlainJSON = LocationPlainJSON(
     latitude = 1.532,
     longitude = 1.535
   )
-  
+
   val postTransactionWhereJSON = PostTransactionWhereJSON(
     where = locationPlainJSON
   )
-  
+
   val corporateLocationJSON = CorporateLocationJSON(
     corporate_location = locationPlainJSON
   )
   val physicalLocationJSON = PhysicalLocationJSON(
     physical_location = locationPlainJSON
   )
-  
+
   //V130 -- code.api.v1_3_0
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_3_0._
-  
+
   val pinResetJSON = PinResetJSON(
     requested_date = exampleDate,
     reason_requested = "forgot"
   )
-  
+
   val replacementJSON = ReplacementJSON(
     requested_date = exampleDate,
     reason_requested = "Good Point"
   )
-  
+
   val physicalCardJSON = PhysicalCardJSON(
     bank_card_number = "String",
     name_on_card = "String",
@@ -528,11 +666,11 @@ object SwaggerDefinitionsJSON {
     collected = exampleDate,
     posted = exampleDate
   )
-  
+
   val physicalCardsJSON = PhysicalCardsJSON(
     cards = List(physicalCardJSON)
   )
-  
+
   val postPhysicalCardJSON = PostPhysicalCardJSON(
     bank_card_number = "String",
     name_on_card = "String",
@@ -552,47 +690,47 @@ object SwaggerDefinitionsJSON {
     collected = exampleDate,
     posted = exampleDate
   )
-  
+
   //V140 -- code.api.v1_4_0.JSONFactory1_4_0
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_4_0.JSONFactory1_4_0._
-  
+
   val customerFaceImageJson = CustomerFaceImageJson(
     url = "www.openbankproject",
     date = exampleDate
   )
-  
+
   val locationJson = LocationJson(
     latitude = 11.45,
     longitude = 11.45
   )
-  
+
   val transactionRequestChargeJsonV140 = TransactionRequestChargeJsonV140(
     summary = "Good",
     value = amountOfMoneyJsonV121 //amountOfMoneyJSON
   )
-  
+
   val transactionRequestTypeJsonV140 = TransactionRequestTypeJsonV140(
     value = "10",
     charge = transactionRequestChargeJsonV140
   )
-  
+
   val transactionRequestTypesJsonV140 = TransactionRequestTypesJsonV140(
     transaction_request_types = List(transactionRequestTypeJsonV140)
   )
-  
+
   val transactionRequestAccountJsonV140 = TransactionRequestAccountJsonV140(
     bank_id = "gh.29.uk",
     account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
   )
-  
+
   val challengeJsonV140 = ChallengeJsonV140(
     id = "be1a183d-b301-4b83-b855-5eeffdd3526f",
     allowed_attempts = 3,
     challenge_type = "SANDBOX_TAN"
   )
-  
+
   val driveUpJson = DriveUpJson(
     hours = "5"
   )
@@ -619,7 +757,7 @@ object SwaggerDefinitionsJSON {
     id = "b20dd004-93e3-494f-8773-69e3ff8c205e",
     answer = "good"
   )
-  
+
   val postCustomerJson = PostCustomerJson(
     customer_number = "String",
     legal_name = "String",
@@ -635,7 +773,7 @@ object SwaggerDefinitionsJSON {
     kyc_status = true,
     last_ok_date = exampleDate
   )
-  
+
   val customerJsonV140 = CustomerJsonV140(
     customer_id = "String",
     customer_number = "String",
@@ -652,11 +790,11 @@ object SwaggerDefinitionsJSON {
     kyc_status = true,
     last_ok_date = exampleDate
   )
-  
+
   val customersJsonV140 = CustomersJsonV140(
     customers = List(customerJsonV140)
   )
-  
+
   val customerMessageJson = CustomerMessageJson(
     id = "String",
     date = exampleDate,
@@ -664,22 +802,22 @@ object SwaggerDefinitionsJSON {
     from_department = "String",
     from_person = "String"
   )
-  
+
   val customerMessagesJson = CustomerMessagesJson(
     messages = List(customerMessageJson)
   )
-  
+
   val addCustomerMessageJson = AddCustomerMessageJson(
     message = "String",
     from_department = "String",
     from_person = "String"
   )
-  
+
   val branchRoutingJSON = BranchRoutingJsonV141(
     scheme = "String",
     address = "String"
   )
-  
+
   val branchJson = BranchJson(
     id = "String",
     name = "String",
@@ -690,9 +828,9 @@ object SwaggerDefinitionsJSON {
     meta = metaJson,
     branch_routing = branchRoutingJSON
   )
-  
+
   val branchesJson = BranchesJson(branches = List(branchJson))
-  
+
   val atmJson = AtmJson(
     id = "String",
     name = "String",
@@ -700,9 +838,9 @@ object SwaggerDefinitionsJSON {
     location = locationJson,
     meta = metaJson
   )
-  
+
   val atmsJson = AtmsJson(atms = List(atmJson))
-  
+
   val productJson = ProductJson(
     code = "String",
     name = "String",
@@ -712,10 +850,10 @@ object SwaggerDefinitionsJSON {
     more_info_url = "String",
     meta = metaJson
   )
-  
+
   val productsJson = ProductsJson(products = List(productJson))
-  
-  
+
+
   val crmEventJson = CrmEventJson(
     id = "String",
     bank_id = "String",
@@ -728,9 +866,9 @@ object SwaggerDefinitionsJSON {
     actual_date = exampleDate,
     result = "String"
   )
-  
+
   val crmEventsJson = CrmEventsJson(crm_events = List(crmEventJson))
-  
+
   val implementedByJson = ImplementedByJson(
     version = "1_4_0",
     function = "getBranches"
@@ -751,9 +889,9 @@ object SwaggerDefinitionsJSON {
     is_obwg = true,
     tags = List("String")
   )
-  
+
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))
-  
+
   val transactionRequestBodyJsonV140 = TransactionRequestBodyJsonV140(
     to = transactionRequestAccountJsonV140,
     value = amountOfMoneyJsonV121,
@@ -771,33 +909,33 @@ object SwaggerDefinitionsJSON {
     end_date = exampleDate,
     challenge = challengeJsonV140
   )
-  
+
   //V200
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v2_0_0.JSONFactory200._
   import code.api.v2_0_0._
-  
+
   val basicViewJSON = BasicViewJson(
     id = "1",
     short_name = "HHH",
     is_public = true
   )
-  
+
   val basicAccountJSON = BasicAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
     bank_id = "gh.29.uk",
     views_available = List(basicViewJSON)
   )
-  
+
   val coreAccountJSON = CoreAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
     bank_id = "gh.29.uk",
     _links = defaultJValue
   )
-  
+
   val moderatedCoreAccountJSON = ModeratedCoreAccountJSON(
     id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     label = "NoneLabel",
@@ -808,7 +946,7 @@ object SwaggerDefinitionsJSON {
     IBAN = "GR1301720530005053000582373",
     swift_bic = "UKTF3049auf",
     bank_id = "gh.29.uk",
-    account_routing = accountRoutingJSON
+    account_routing = accountRoutingJsonV121
   )
   
   val basicAccountsJSON = BasicAccountsJSON(
@@ -1615,7 +1753,14 @@ object SwaggerDefinitionsJSON {
   val viewsJsonV300 =  ViewsJsonV300(
     views = List(viewJsonV300)
   )
-  
+
+  val coreAccountJsonV300 = CoreAccountJsonV300(
+    id = "String",
+    label = "String",
+    bank_id = "String",
+    account_routing = accountRoutingJsonV121
+  )
+  val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
   //The commont error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

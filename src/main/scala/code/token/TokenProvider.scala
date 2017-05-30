@@ -22,7 +22,7 @@ trait TokensProvider {
   def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token]
   def createToken(tokenType: TokenType,
                   consumerId: Option[Long],
-                  userId: Option[Long],
+                  userId: Option[Long], //Why do we use the UserId Long type??
                   key: Option[String],
                   secret: Option[String],
                   duration: Option[Long],

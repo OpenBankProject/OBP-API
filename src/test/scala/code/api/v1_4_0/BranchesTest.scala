@@ -1,13 +1,13 @@
 package code.api.v1_4_0
 
-import code.api.DefaultUsers
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
-import code.common.{License, Address, Location, Meta}
-import code.branches.Branches.{BranchId, Branch, Lobby, DriveUp}
+import code.common.{Address, License, Location, Meta}
+import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
+import code.setup.DefaultUsers
 
 /*
 Note This does not test retrieval from a backend.

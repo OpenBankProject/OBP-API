@@ -50,6 +50,7 @@ import code.util.Helper.MdcLoggable
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
   * bank resources.
   */
+@deprecated("This is used obp-jvm library, we used KafkaMappedConnector_JVMcompatible instead")
 object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   type JConnector = com.tesobe.obp.transport.Connector
@@ -1409,6 +1410,18 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
   override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  
+  override def createOrUpdateBank(
+    bankId: String,
+    fullBankName: String,
+    shortBankName: String,
+    logoURL: String,
+    websiteURL: String,
+    swiftBIC: String,
+    national_identifier: String,
+    bankRoutingScheme: String,
+    bankRoutingAddress: String
+  ): Box[Bank] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 

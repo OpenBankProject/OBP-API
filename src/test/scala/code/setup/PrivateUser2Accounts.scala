@@ -1,4 +1,4 @@
-package code.api
+package code.setup
 
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
@@ -29,13 +29,13 @@ trait PrivateUser2Accounts {
     //fake bank accounts
 
     //private accounts for authuser1 (visible to authuser1)
-    generateAccounts(authuser1)
+    generateAccounts(resourceUser1)
     //private accounts for authuser2 (not visible to authuser1)
-    generateAccounts(authuser2)
+    generateAccounts(resourceUser2)
 
     //public accounts owned by authuser2 (visible to authuser1)
     //create accounts
-    val accounts = generateAccounts(authuser2)
+    val accounts = generateAccounts(resourceUser2)
     //add public views
     accounts.foreach(acc => createPublicView(acc.bankId, acc.accountId))
   }
