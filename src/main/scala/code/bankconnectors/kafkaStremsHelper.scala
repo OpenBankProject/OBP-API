@@ -115,6 +115,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         jv <- parseF(r)
         any <- extractF(jv)
       } yield {
+        logger.info("kafka_response:" + any)
         any
       }
 
