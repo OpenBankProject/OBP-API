@@ -333,7 +333,23 @@ object APIUtil extends MdcLoggable {
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
 
-      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), date, duration: Long, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
+      //execute saveMetric in future, as we do not need to know result of operation
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future {
+        APIMetrics.apiMetrics.vend.saveMetric(
+          userId,
+          S.uriAndQueryString.getOrElse(""),
+          date,
+          duration: Long,
+          userName,
+          appName,
+          developerEmail,
+          consumerId,
+          implementedByPartialFunction,
+          implementedInVersion, verb
+        )
+      }
+
     }
   }
 

@@ -62,7 +62,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val flow: (String => Source[String, Consumer.Control]) = { key =>
     consumer
-      //      .filter(msg => msg.key() == key)
+      .filter(msg => msg.key() == key)
       .map { msg =>
       logger.debug(s"${Topics.connectorTopic} with $msg")
       msg.value
@@ -94,8 +94,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     Future(json.compactRender(m))
   }
 
-  private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
-
+  //private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
 
   import akka.pattern.ask
 
