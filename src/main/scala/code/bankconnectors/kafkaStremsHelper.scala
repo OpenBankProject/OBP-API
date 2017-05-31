@@ -45,8 +45,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val consumerActor: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
 
+  val MAX_PARTITIONS = 249
   private val consumer: Source[ConsumerRecord[String, String], Consumer.Control] = {
-    val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(Topics.connectorTopic.response, 0), 0)
+    val tps = for(i <- 0 to MAX_PARTITIONS)yield (new TopicPartition(Topics.connectorTopic.response, i))
+    val assignment = Subscriptions.assignment(tps.toSet)
     Consumer.plainExternalSource(consumerActor, assignment)
       .completionTimeout(completionTimeout)
   }
@@ -54,7 +56,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   private val producerSettings = ProducerSettings(system, new StringSerializer, new StringSerializer)
     .withBootstrapServers(bootstrapServers)
     .withProperty("batch.size", "0")
-    .withParallelism(20)
   //.withProperty("auto.create.topics.enable", "true")
 
   private val producer = producerSettings
@@ -62,16 +63,17 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val flow: (String => Source[String, Consumer.Control]) = { key =>
     consumer
-      //      .filter(msg => msg.key() == key)
+      .filter(msg => msg.key() == key)
       .map { msg =>
-      logger.debug(s"${Topics.connectorTopic} with $msg")
-      msg.value
-    }
+        logger.debug(s"${Topics.connectorTopic} with $msg")
+        msg.value
+      }
   }
 
 
   private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
-    producer.send(new ProducerRecord[String, String](topic.request, 0, key, value))
+    val r = scala.util.Random.nextInt(MAX_PARTITIONS)
+    producer.send(new ProducerRecord[String, String](topic.request, r, key, value))
     flow(key)
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
@@ -100,7 +102,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   override def preStart(): Unit = {
     super.preStart()
-    self ? Map()
+    //self ? Map()
   }
 
   def receive = {
