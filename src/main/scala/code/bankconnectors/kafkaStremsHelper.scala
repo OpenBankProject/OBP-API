@@ -82,6 +82,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   }
 
   val extractF: (JsonAST.JValue => Future[Any]) = { r =>
+    logger.info("kafka-response:" + r)
     Future(extractResult(r))
   }
 

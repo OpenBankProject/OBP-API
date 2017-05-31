@@ -189,9 +189,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             "target" -> "accounts",
             "userId" -> username,
             "bankId" -> bankId)}
-          // Generate random uuid to be used as request-response match id
           } yield {
-            process(req).extract[List[KafkaInboundAccount]]
+            val res = process(req)
+            logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
+            res.extract[List[KafkaInboundAccount]]
           }
         }
       }.flatten

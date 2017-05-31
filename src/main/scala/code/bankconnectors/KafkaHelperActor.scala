@@ -97,7 +97,9 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
   def receive = {
     case request: Map[String, String] =>
       logger.info("kafka_request: " + request )
-      sender ! extractResult(kafkaProcess(request))
+      val res = extractResult(kafkaProcess(request))
+      logger.info("kafka_response: " + res )
+      sender ! res
   }
 }
 
