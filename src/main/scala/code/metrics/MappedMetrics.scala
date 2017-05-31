@@ -120,5 +120,6 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
-  override def dbIndexes = Index(userId) :: Index(url) :: Index(date) :: Index(userName) :: Index(appName) :: Index(developerEmail) :: super.dbIndexes
+  //override def dbIndexes = Index(userId) :: Index(url) :: Index(date) :: Index(userName) :: Index(appName) :: Index(developerEmail) :: super.dbIndexes
+  override def dbIndexes = super.dbIndexes
 }
