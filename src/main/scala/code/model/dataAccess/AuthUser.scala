@@ -540,7 +540,13 @@ import net.liftweb.util.Helpers._
     }
   }
 
-
+  /**
+    * This method is belong to AuthUser, it is used for authentication(Login stuff)
+    * 1 get the user over connector.
+    * 2 check whether it is existing in AuthUser table in obp side. 
+    * 3 if not existing, will create new AuthUser. 
+    * @return Return the authUser
+    */
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
@@ -593,6 +599,19 @@ import net.liftweb.util.Helpers._
   }
 
   //overridden to allow a redirection if login fails
+  /**
+    * Success cases: 
+    *  case1: user validated && user not locked && user.provider from localhost && password correct --> Login in
+    *  case2: user validated && user not locked && user.provider not localhost  && password correct --> Login in
+    *  case3: user from remote && checked over connector --> Login in
+    *  
+    * Error cases:
+    *  case1: user is locked --> UsernameHasBeenLocked
+    *  case2: user.validated_? --> account.validation.error
+    *  case3: right username but wrong password --> Invalid Login Credentials
+    *  case4: wrong username   --> Invalid Login Credentials
+    *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
+    */
   override def login = {
     def loginAction = {
       if (S.post_?) {
@@ -651,6 +670,8 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
+              //This method is used for connector = kafka* || obpjvm*
+              //It will update the views and createAccountHolder ....
               registeredUserHelper(user.username)
               //Check the internal redirect, in case for open redirect issue.
               // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
@@ -722,6 +743,10 @@ import net.liftweb.util.Helpers._
                   LoginAttempt.incrementBadLoginAttempts(username)
                   Empty
               }
+
+          //If the username is not exiting, throw the error message.  
+          case Empty => S.error(S.?("Invalid Login Credentials"))
+            
           case _ =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
@@ -739,8 +764,11 @@ import net.liftweb.util.Helpers._
     bind("user", loginXhtml,
          "submit" -> insertSubmitButton)
   }
-
-
+  
+  
+  /**
+    * The user authentications is not exciting in obp side, it need get the user from south-side
+    */
  def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
    if (connector.startsWith("kafka") || connector == "obpjvm") {
      val res = for {
@@ -757,16 +785,13 @@ import net.liftweb.util.Helpers._
   
   /**
     * This method will update the views and createAccountHolder ....
-    * //TODO, maybe not right to save the AccounHolder locally.
-    * @param name name from HTTP request,
-    * @param password password from HTTP request
-    * @return
     */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
        u <- Users.users.vend.getUserByUserName(username)
+       //TODO need more error handle here, I need the exception to debug
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
@@ -777,20 +802,20 @@ import net.liftweb.util.Helpers._
   
   /**
     * This method will update the views and createAccountHolder ....
-    * //TODO, maybe not right to save the AccounHolder locally.
-    * @param username
-    * @return
     */
   def registeredUserHelper(username: String) = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       //TODO need more error handle here, I need the exception to debug, so set it here.
+       //TODO need more error handle here, I need the exception to debug
        v <- Full(Connector.connector.vend.updateUserAccountViews(u))
       } yield v
     }
   }
-
+ 
+  /**
+    * find the authUser by author user name(authUser and resourceUser are the same)
+    */
   protected def findUserByUsername(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
