@@ -38,6 +38,9 @@ import code.model.{BankAccountUID, User, UserId, View}
 import code.views.Views
 import net.liftweb.common.Full
 
+/**
+  * Refer to AuthUser, see the difference between AuthUser and ResourceUser
+  */
 class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMany with OneToMany[Long, ResourceUser]{
   def getSingleton = ResourceUser
   def primaryKeyField = id

@@ -27,6 +27,7 @@ trait Users {
   //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
 
+  // find ResourceUser by Resourceuser user name 
   def getUserByUserName(userName: String) : Box[ResourceUser]
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]
