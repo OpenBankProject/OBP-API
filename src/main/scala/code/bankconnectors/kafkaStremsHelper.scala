@@ -18,10 +18,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
-import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
-
-import akka.stream.ThrottleMode.Shaping
 
 /**
   * Actor for accessing kafka from North side.
@@ -45,10 +42,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val consumerActor: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
 
-  val MAX_PARTITIONS = 249
   private val consumer: Source[ConsumerRecord[String, String], Consumer.Control] = {
-    val tps = for(i <- 0 to MAX_PARTITIONS)yield (new TopicPartition(Topics.connectorTopic.response, i))
-    val assignment = Subscriptions.assignment(tps.toSet)
+    val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(Topics.connectorTopic.response, 0), 0)
     Consumer.plainExternalSource(consumerActor, assignment)
       .completionTimeout(completionTimeout)
   }
@@ -56,6 +51,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   private val producerSettings = ProducerSettings(system, new StringSerializer, new StringSerializer)
     .withBootstrapServers(bootstrapServers)
     .withProperty("batch.size", "0")
+    .withParallelism(3)
   //.withProperty("auto.create.topics.enable", "true")
 
   private val producer = producerSettings
@@ -70,10 +66,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       }
   }
 
-
   private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
-    val r = scala.util.Random.nextInt(MAX_PARTITIONS)
-    producer.send(new ProducerRecord[String, String](topic.request, r, key, value))
+    producer.send(new ProducerRecord[String, String](topic.request, 0, key, value))
     flow(key)
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
@@ -97,12 +91,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
 
-
-  import akka.pattern.ask
-
   override def preStart(): Unit = {
     super.preStart()
-    //self ? Map()
+//    self ? Map()
   }
 
   def receive = {
@@ -138,6 +129,3 @@ object Topics {
   val connectorTopic = Topic(requestTopic, responseTopic)
 
 }
-
-
-
