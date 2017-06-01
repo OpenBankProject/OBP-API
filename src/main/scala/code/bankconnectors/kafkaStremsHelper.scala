@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
+import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
@@ -78,6 +79,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   }
 
   val extractF: (JsonAST.JValue => Future[Any]) = { r =>
+    logger.info("kafka-response:" + r)
     Future(extractResult(r))
   }
 
@@ -89,7 +91,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     Future(json.compactRender(m))
   }
 
-  private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
+  //private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
 
   override def preStart(): Unit = {
     super.preStart()

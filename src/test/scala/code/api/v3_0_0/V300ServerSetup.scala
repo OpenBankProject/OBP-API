@@ -1,6 +1,6 @@
 package code.api.v3_0_0
 
-import code.api.ServerSetupWithTestData
+import code.setup.ServerSetupWithTestData
 
 /**
  * Created by Hongwei Zhang on 05/05/17.

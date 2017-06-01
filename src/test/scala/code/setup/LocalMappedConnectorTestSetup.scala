@@ -1,10 +1,10 @@
-package code.api
+package code.setup
 
 import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.entitlement.{Entitlement, MappedEntitlement}
+import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.model.dataAccess._

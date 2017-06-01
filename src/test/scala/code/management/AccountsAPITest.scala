@@ -5,6 +5,7 @@ import code.api.v1_2_1._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankId}
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2Accounts, User1AllPrivileges}
 import net.liftweb.common.Empty
 import org.scalatest.Tag
 

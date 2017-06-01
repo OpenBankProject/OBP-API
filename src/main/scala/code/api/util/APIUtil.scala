@@ -324,10 +324,6 @@ object APIUtil extends MdcLoggable {
       val consumerId = if (u != null) c.id.toString() else "null"
       var appName = if (u != null) c.name.toString() else "null"
       var developerEmail = if (u != null) c.developerEmail.toString() else "null"
-
-      //TODO no easy way to get it, make it later
-      //name of the Scala Partial Function being used for the endpoint
-
       val implementedByPartialFunction = rd match {
         case Some(r) => r.apiFunction
         case _       => ""
@@ -337,8 +333,23 @@ object APIUtil extends MdcLoggable {
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
 
+      //execute saveMetric in future, as we do not need to know result of operation
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future {
+        APIMetrics.apiMetrics.vend.saveMetric(
+          userId,
+          S.uriAndQueryString.getOrElse(""),
+          date,
+          duration: Long,
+          userName,
+          appName,
+          developerEmail,
+          consumerId,
+          implementedByPartialFunction,
+          implementedInVersion, verb
+        )
+      }
 
-      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), date, duration: Long, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
     }
   }
 

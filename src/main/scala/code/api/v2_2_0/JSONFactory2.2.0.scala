@@ -189,6 +189,7 @@ case class BranchJSONV220(
 )
 
 // keep similar to case class CreateAccountJSON - v200
+// Added branch_id and account_routing
 case class CreateAccountJSONV220(
   user_id : String,
   label   : String,
