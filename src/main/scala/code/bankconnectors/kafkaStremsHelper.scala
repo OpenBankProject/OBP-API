@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
+import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
@@ -18,10 +19,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
-import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
-
-import akka.stream.ThrottleMode.Shaping
 
 /**
   * Actor for accessing kafka from North side.
@@ -54,7 +52,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   private val producerSettings = ProducerSettings(system, new StringSerializer, new StringSerializer)
     .withBootstrapServers(bootstrapServers)
     .withProperty("batch.size", "0")
-    .withParallelism(20)
+    .withParallelism(3)
   //.withProperty("auto.create.topics.enable", "true")
 
   private val producer = producerSettings
@@ -64,11 +62,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     consumer
       .filter(msg => msg.key() == key)
       .map { msg =>
-      logger.debug(s"${Topics.connectorTopic} with $msg")
-      msg.value
-    }
+        logger.debug(s"${Topics.connectorTopic} with $msg")
+        msg.value
+      }
   }
-
 
   private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
     producer.send(new ProducerRecord[String, String](topic.request, 0, key, value))
@@ -96,11 +93,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   //private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
 
-  import akka.pattern.ask
-
   override def preStart(): Unit = {
     super.preStart()
-    self ? Map()
+//    self ? Map()
   }
 
   def receive = {
@@ -136,6 +131,3 @@ object Topics {
   val connectorTopic = Topic(requestTopic, responseTopic)
 
 }
-
-
-
