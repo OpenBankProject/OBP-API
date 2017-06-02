@@ -45,7 +45,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val consumer: Source[ConsumerRecord[String, String], Consumer.Control] = {
     val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(Topics.connectorTopic.response, 0), 0)
-    Consumer.plainExternalSource(consumerActor, assignment)
+    Consumer.plainSource(consumerSettings, assignment)
       .completionTimeout(completionTimeout)
   }
 
