@@ -354,6 +354,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     var httpCode : Int = 500
 
     var parameters = getAllParameters
+    if (! getAllParameters.contains("oauth_consumer_key"))
+      return (httpCode, message, parameters)
     //TODO store the consumer key in appConsumerKey variable, may be fixed latter.
     currentAppConsumerKey=getAllParameters("oauth_consumer_key")
 

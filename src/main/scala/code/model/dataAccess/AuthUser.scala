@@ -377,6 +377,7 @@ import net.liftweb.util.Helpers._
     }
   }
 
+
   override def lostPasswordXhtml = {
     <div id="authorizeSection">
       <div id="userAccess">
@@ -384,11 +385,11 @@ import net.liftweb.util.Helpers._
           Enter your email address or username and we'll email you a link to reset your password
           <form class="forgotPassword" action={S.uri} method="post">
             <div class="field username">
-              <label>Username or email address</label> <user:email />
+              <label>Username or email address</label> <input type="text" class="email" />
             </div>
             <div class="field buttons">
               <div class="button button-field">
-                <user:submit />
+                <input type="submit" />
               </div>
             </div>
           </form>
@@ -397,12 +398,13 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
-  //TODO not supported in lift3, find another way
-  override def lostPassword = { lostPasswordXhtml }
-  //  bind("user", lostPasswordXhtml,
-  //    "email" -> SHtml.text("", sendPasswordReset _),
-  //    "submit" -> lostPasswordSubmitButton(S.?("submit")))
-  //}
+  override def lostPassword = {
+    val bind =
+      ".email" #> SHtml.text("", sendPasswordReset _) &
+        "type=submit" #> lostPasswordSubmitButton(S.?("submit"))
+
+    bind(lostPasswordXhtml)
+  }
 
   //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
 
@@ -784,7 +786,15 @@ import net.liftweb.util.Helpers._
     //TODO not supported in lift3, find another way
     //bind("user", loginXhtml,
     //     "submit" -> insertSubmitButton)
-    loginXhtml
+    //loginXhtml
+    //val usernameElemId = nextFuncName
+    //S.appendJs(Focus(usernameElemId))
+    //val emailElemId = nextFuncName
+    //S.appendJs(Focus(emailElemId))
+    val bind =
+      "submit" #> insertSubmitButton
+
+    bind(loginXhtml)
   }
 
 
