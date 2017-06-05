@@ -351,7 +351,7 @@ trait APIMethods220 {
         UnKnownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagBank)
     )
   
     lazy val createBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -504,6 +504,9 @@ trait APIMethods220 {
               jsonBody.account_routing.address
             )
           } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
           
             val json = JSONFactory220.createAccountJSON(user_id, bankAccount)
