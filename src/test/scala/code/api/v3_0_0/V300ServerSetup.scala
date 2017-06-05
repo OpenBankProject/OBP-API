@@ -13,4 +13,5 @@ trait V300ServerSetup extends ServerSetupWithTestData {
   def v2_1Request = baseRequest / "obp" / "v2.1.0"
   def v2_2Request = baseRequest / "obp" / "v2.2.0"
   def v3_0Request = baseRequest / "obp" / "v3.0.0"
+  def v3_0RequestExternal = externalBaseRequest / "obp" / "v3.0.0"
 }
