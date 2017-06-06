@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.snippet
 
+import scala.xml
 import net.liftweb.common.Logger
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
@@ -168,6 +169,12 @@ class WebUI extends MdcLoggable{
     val emailMailto = scala.xml.Unparsed("mailto:" + email.toString())
     ".faq-email a *" #>  email &
     ".faq-email a [href]" #> emailMailto
+  }
+
+  // Page title
+  def pageTitle = {
+    val prefix = Props.get("webui_page_title_prefix", "Open Bank Project: ")
+    scala.xml.XML.loadString(s"<title>$prefix<lift:Menu.title /></title>")
   }
 
   def mainStyleSheet: CssSel = {

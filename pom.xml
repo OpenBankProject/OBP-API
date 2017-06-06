@@ -347,6 +347,7 @@
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
             <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
+            <tagsToExclude>code.external</tagsToExclude>
         </configuration>
         <executions>
           <execution>

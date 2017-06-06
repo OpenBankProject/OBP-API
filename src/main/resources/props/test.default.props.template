@@ -109,3 +109,8 @@ transactionRequests_supported_types=SANDBOX_TAN,FREE_FORM,SEPA,COUNTERPARTY
 
 # control the create and access to public views. 
 allow_public_views =true
+
+# Used to run external test against some OBP-API instance
+#external.hostname=apisandbox.openbankproject.com
+#external.https=true
+#external.port=8080
