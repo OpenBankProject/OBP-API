@@ -16,10 +16,10 @@ object ApiRole {
     val requiresBankId = false
   }
   case object CanSearchWarehouse extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanSearchMetrics extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanCreateCustomer extends ApiRole{
     val requiresBankId = true

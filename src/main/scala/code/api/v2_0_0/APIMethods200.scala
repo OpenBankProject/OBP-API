@@ -2121,8 +2121,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2208,8 +2207,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchMetrics}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchMetrics}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
