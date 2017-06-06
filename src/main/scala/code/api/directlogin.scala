@@ -91,6 +91,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
   dlServe
   {
     //Handling get request for a token
+    // Why do we support GET here? TODO disable GET?
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest|GetRequest) => {
 
       //Extract the directLogin parameters from the header and test if the request is valid
