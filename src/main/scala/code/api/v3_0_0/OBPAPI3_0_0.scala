@@ -196,7 +196,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.createUserCustomerLinks ::
                           Implementations2_0_0.deleteEntitlement ::
                           Implementations2_0_0.elasticSearchMetrics ::
-                          Implementations2_0_0.elasticSearchWarehouse ::
+                          //Implementations2_0_0.elasticSearchWarehouse ::
                           Implementations2_0_0.getAllEntitlements ::
                           //now in V300 Implementations2_0_0.getCoreAccountById ::
                           //now in V300 Implementations2_0_0.getCoreTransactionsForBankAccount ::
@@ -302,6 +302,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.createViewForBankAccount ::
                           Implementations3_0_0.updateViewForBankAccount ::
                           Implementations3_0_0.corePrivateAccountsAllBanks ::
+                          Implementations3_0_0.elasticSearchWarehouseV300 ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
