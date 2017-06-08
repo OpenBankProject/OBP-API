@@ -18,11 +18,15 @@ The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-
 
 ## DOCUMENTATION 
 
-Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to see the API specification. 
+The API documentation is best viewed using the OBP API Explorer or a third party tool that has imported the OBP Swagger definitions.
+Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) for links. 
 
-## STATUS
+## STATUS of API Versions
 
-[V1.2.1] (https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1) is the current stable API.
+OBP instances support multiple versions of the API simultaniously (unless they are deactivated in config)
+To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at the root endpoint e.g. /obp/v2.0.0/root or /obp/v3.0.0/root
+
+On the 8th of June 2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable.
 
 ## LICENSE
 
