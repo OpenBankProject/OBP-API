@@ -72,6 +72,8 @@ import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.MappingException
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
@@ -192,7 +194,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           } yield {
             val res = process(req)
             logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
-            res.extract[List[KafkaInboundAccount]]
+            try {
+              res.extract[List[KafkaInboundAccount]]
+            } catch {
+              case m: MappingException => List.empty
+            }
+
           }
         }
       }.flatten
