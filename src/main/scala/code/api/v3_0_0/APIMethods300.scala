@@ -467,59 +467,32 @@ trait APIMethods300 {
         |Elastic (search) is used in the background. See links below for syntax.
         |
         |
-        |parameters:
         |
-        | esType  - elasticsearch type
+        |Example of usage:
         |
-        | simple query:
+        |POST /search/warehouse
         |
-        | q       - plain_text_query
-        |
-        | df      - default field to search
-        |
-        | sort    - field to sort on
-        |
-        | size    - number of hits returned, default 10
-        |
-        | from    - show hits starting from
-        |
-        | json query:
-        |
-        | source  - JSON_query_(URL-escaped)
-        |
-        |
-        |Example usage:
-        |
-        |GET /search/warehouse/q=findThis
-        |
-        |or:
-        |
-        |GET /search/warehouse/source={"query":{"query_string":{"query":"findThis"}}}
-        |
-        |
-        |Note!!
-        |
-        |The whole JSON query string MUST be URL-encoded:
-        |
-        |* For {  use %7B
-        |* For }  use %7D
-        |* For : use %3A
-        |* For " use %22
-        |
-        |etc..
-        |
-        |
-        |
-        |Only q, source and esType are passed to Elastic
+        |{
+        |  "es_uri_part": "/blog/_search?pretty=true",
+        |  "es_body_part": {
+        |    "query": {
+        |      "range": {
+        |        "postDate": {
+        |          "from": "2011-12-10",
+        |          "to": "2011-12-12"
+        |        }
+        |      }
+        |    }
+        |  }
+        |}
         |
         |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
         |
         |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
         |
-        |You can specify the esType thus: /search/warehouse/esType=type&q=a
         |
         """,
-      ElasticSearchJSON(es_uri_part = ""),
+      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -535,7 +508,8 @@ trait APIMethods300 {
           } yield {
             import net.liftweb.json._
             val uriPart = compact(render(json \ "es_uri_part"))
-            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart)))
+            val bodyPart = compact(render(json \ "es_body_part"))
+            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
       }
     }

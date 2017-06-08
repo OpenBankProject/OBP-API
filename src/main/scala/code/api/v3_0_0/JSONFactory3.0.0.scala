@@ -224,7 +224,7 @@ case class ModeratedCoreAccountJSON(
   account_routing: AccountRoutingJsonV121
 )
 
-case class ElasticSearchJSON(es_uri_part: String)
+case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
 
 //ended -- account relevant case classes /////
 
