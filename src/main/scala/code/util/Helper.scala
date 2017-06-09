@@ -242,7 +242,6 @@ object Helper{
       candidatePort = findRandomPort()
     }
     while (!isPortAvailable(candidatePort))
-    println("==================================> RANDOM PORT = " + candidatePort)
     candidatePort
   }
 

@@ -28,7 +28,7 @@ trait ObpActorInit {
     Await.result(r, TIMEOUT).asInstanceOf[T]
   }
 
-    def extractFutureToBox[T](f: Future[Any]): Box[T] = {
+  def extractFutureToBox[T](f: Future[Any]): Box[T] = {
     val r = f.map {
       case pf: ParamFailure[_] => Empty ~> pf
       case af: APIFailure => Empty ~> af

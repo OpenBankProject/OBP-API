@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
@@ -72,6 +73,8 @@ import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.JsonAST.{JObject, JValue}
+import net.liftweb.json.MappingException
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
@@ -110,6 +113,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
+  def tryExtract[T](in: JValue)(implicit ev: Manifest[T]): Box[T] = {
+    try {
+      Full(in.extract[T])
+    } catch {
+      case m: MappingException => Empty
+    }
+  }
 
   // TODO Create and use a case class for each Map so we can document each structure.
   
@@ -123,16 +133,19 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       )
     
       logger.debug(s"Kafka getBanks says: req is: $req")
-    
-      val rList = process(req).extract[List[KafkaInboundBank]]
+
+      val rList = tryExtract[List[KafkaInboundBank]](process(req)) match {
+        case Full(b) => b
+        case Empty => List.empty
+      }
     
       logger.debug(s"Kafka getBanks says rList is $rList")
     
       // Loop through list of responses and create entry for each
-      val res = { for ( r <- rList ) yield {new KafkaBank(r)}}
-    
-      // Return list of results
-      res
+      for ( r <- rList )
+        yield {
+          KafkaBank(r)
+        }
     }
   }("getBanks")
 
@@ -146,9 +159,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         "target" -> "bank",
         "bankId" -> id.value
       )
-      val r = process(req).extract[KafkaInboundBank]
-      // Return result
-      Full(new KafkaBank(r))
+      tryExtract[KafkaInboundBank](process(req)) match {
+        case Full(b) => Full(KafkaBank(b))
+        case Empty => Empty
+      }
     }
   }("getBank")
   
@@ -165,7 +179,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             "password" -> password
           )
         }
-        u <- tryo { process(req).extract[KafkaInboundValidatedUser] }
+        u <- tryExtract[KafkaInboundValidatedUser](process(req))
         recUsername <- tryo { u.displayName }
       } yield {
         if (username == u.displayName) new InboundUser(recUsername, password,
@@ -190,9 +204,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             "userId" -> username,
             "bankId" -> bankId)}
           } yield {
-            val res = process(req)
+            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
+              case Full(a) => a
+              case Empty => List.empty
+            }
             logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
-            res.extract[List[KafkaInboundAccount]]
+            res
           }
         }
       }.flatten
@@ -444,7 +461,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       
         val responseFromKafka = process(requestToMap)
         logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
-        val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
+        val rList = tryExtract[List[KafkaInboundTransaction]](responseFromKafka) match {
+          case Full(t) => t
+          case Empty => return Empty
+        }
         // Check does the response data match the requested data
         val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
         if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
@@ -490,9 +510,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         "bankId" -> bankId.toString,
         "userId" -> userId //TODO there will be the issue, login user is not revelent on BankId and AcocuntId. for Adaper, it need the userid
       )
-      val r = process(req).extract[KafkaInboundAccount]
+      val r = tryExtract[KafkaInboundAccount](process(req)) match {
+        case Full(a) => Full(KafkaBankAccount(a))
+        case Empty => Empty
+      }
       logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
-      Full(new KafkaBankAccount(r))
+      r
     }
     getBankAccountCached(bankId: BankId, accountId: AccountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
   }("getBankAccount")
@@ -719,11 +742,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     // Since result is single account, we need only first list entry
     val r = process(req)
 
-    r.extract[KafkaInboundTransactionId] match {
-      case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
-      case _ => Full(TransactionId("0"))
+    tryExtract[KafkaInboundTransactionId](r) match {
+      case Full(i) => Full(TransactionId(i.transactionId))
+      case Empty => Empty
     }
-
   }
 
   /*
