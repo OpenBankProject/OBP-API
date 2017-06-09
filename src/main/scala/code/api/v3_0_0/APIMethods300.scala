@@ -466,6 +466,8 @@ trait APIMethods300 {
         |
         |Elastic (search) is used in the background. See links below for syntax.
         |
+        |This version differs from v2.0.0
+        |
         |
         |
         |Example of usage:
@@ -473,7 +475,7 @@ trait APIMethods300 {
         |POST /search/warehouse
         |
         |{
-        |  "es_uri_part": "/blog/_search?pretty=true",
+        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
         |  "es_body_part": {
         |    "query": {
         |      "range": {
@@ -486,15 +488,17 @@ trait APIMethods300 {
         |  }
         |}
         |
-        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
         |
-        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
+        |
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
         |
         |
         """,
       ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
-      List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnKnownError),
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 

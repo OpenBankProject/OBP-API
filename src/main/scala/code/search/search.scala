@@ -59,7 +59,7 @@ class elasticsearch extends MdcLoggable {
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
       logger.debug(esUrl)
       logger.debug(body)
-      val request = url(esUrl).<<(body).GET
+      val request = url(esUrl).<<(body).GET // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
       ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
