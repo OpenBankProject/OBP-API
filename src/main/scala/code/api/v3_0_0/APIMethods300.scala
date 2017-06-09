@@ -3,19 +3,22 @@ package code.api.v3_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages
+import code.api.util.ApiRole.CanSearchWarehouse
 import code.api.util.ErrorMessages._
+import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v3_0_0.JSONFactory300._
+import code.entitlement.Entitlement
 import code.model.{BankId, ViewId, _}
+import code.search.elasticsearchWarehouse
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.api.v3_0_0.JSONFactory300._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.tryo
 
 
 trait APIMethods300 {
@@ -442,6 +445,76 @@ trait APIMethods300 {
           }
       }
     }
+
+
+    // TODO Put message into doc below if not enabled (but continue to show API Doc)
+    resourceDocs += ResourceDoc(
+      elasticSearchWarehouseV300,
+      apiVersion,
+      "elasticSearchWarehouse",
+      "POST",
+      "/search/warehouse",
+      "Search Warehouse Data Via Elasticsearch",
+      """
+        |Search warehouse data via Elastic Search.
+        |
+        |Login is required.
+        |
+        |CanSearchWarehouse entitlement is required to search warehouse data!
+        |
+        |Send your email, name, project name and user_id to the admins to get access.
+        |
+        |Elastic (search) is used in the background. See links below for syntax.
+        |
+        |
+        |
+        |Example of usage:
+        |
+        |POST /search/warehouse
+        |
+        |{
+        |  "es_uri_part": "/blog/_search?pretty=true",
+        |  "es_body_part": {
+        |    "query": {
+        |      "range": {
+        |        "postDate": {
+        |          "from": "2011-12-10",
+        |          "to": "2011-12-12"
+        |        }
+        |      }
+        |    }
+        |  }
+        |}
+        |
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+        |
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+        |
+        |
+        """,
+      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      emptyObjectJson, //TODO what is output here?
+      List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnKnownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List())
+
+    val esw = new elasticsearchWarehouse
+    lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+          } yield {
+            import net.liftweb.json._
+            val uriPart = compact(render(json \ "es_uri_part"))
+            val bodyPart = compact(render(json \ "es_body_part"))
+            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
+          }
+      }
+    }
+
+
   }
 }
 
