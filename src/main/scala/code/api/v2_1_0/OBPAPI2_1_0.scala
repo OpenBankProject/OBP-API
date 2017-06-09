@@ -224,7 +224,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.1.0 - BEGIN ###
   // New in 2.1.0
   //First step - make a list of allowed endpoints
-  // TODO make these use the values of partial functions rather than strings
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
                           Implementations2_1_0.createTransactionRequest ::
