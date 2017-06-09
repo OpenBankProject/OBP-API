@@ -28,7 +28,6 @@ import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, UUID}
-import javafx.beans.binding.Binding
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
