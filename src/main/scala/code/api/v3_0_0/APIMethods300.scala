@@ -451,7 +451,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       elasticSearchWarehouseV300,
       apiVersion,
-      "elasticSearchWarehouse",
+      "elasticSearchWarehouseV300",
       "POST",
       "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
