@@ -103,7 +103,7 @@ object PostCustomer extends SendServerRequests {
 
 
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/OP/load_op_11/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_RD_and_I/loaded_12/OBP_sandbox_customers_pretty.json"
 
     // This contains a list of customers.
     val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
@@ -124,7 +124,7 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/OP/load_op_11/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_RD_and_I/loaded_12/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
@@ -167,10 +167,10 @@ object PostCustomer extends SendServerRequests {
       println(" ")
       print("login as user: ")
 
-      println (user.email + " - " + user.password)
+      println (user.user_name + " - " + user.password)
 
       if(!OAuthClient.loggedIn) {
-        OAuthClient.authenticateWithOBPCredentials(user.email, user.password)
+        OAuthClient.authenticateWithOBPCredentials(user.user_name, user.password)
         //println(" - ok.")
       }
 
@@ -183,6 +183,9 @@ object PostCustomer extends SendServerRequests {
 
         // We are able to post this (no need to convert to string explicitly)
         val json = Extraction.decompose(c)
+
+
+
 
         // For now, create a customer
         for (b <- banks) {
