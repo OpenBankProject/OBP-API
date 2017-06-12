@@ -32,7 +32,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   import materializer._
 
-  private def makeKeyFuture = Future(UUID.randomUUID().toString)
+  private def makeKeyFuture = Future(scala.util.Random.nextInt(40) + "_" + UUID.randomUUID().toString)
 
   private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
     .withBootstrapServers(bootstrapServers)
@@ -43,8 +43,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val consumerActor: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
 
-  private val consumer: Source[ConsumerRecord[String, String], Consumer.Control] = {
-    val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(Topics.connectorTopic.response, 0), 0)
+  private val consumer: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
+    val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(topic, partition), 0)
     Consumer.plainSource(consumerSettings, assignment)
       .completionTimeout(completionTimeout)
   }
@@ -58,18 +58,18 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   private val producer = producerSettings
     .createKafkaProducer()
 
-  private val flow: (String => Source[String, Consumer.Control]) = { key =>
-    consumer
+  private val flow: ((String, String) => Source[String, Consumer.Control]) = { (topic, key) =>
+    consumer(topic, key.split("_")(0).toInt)
       .filter(msg => msg.key() == key)
       .map { msg =>
-        logger.debug(s"${Topics.connectorTopic} with $msg")
+        logger.debug(s"$topic with $msg")
         msg.value
       }
   }
 
   private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
-    producer.send(new ProducerRecord[String, String](topic.request, 0, key, value))
-    flow(key)
+    producer.send(new ProducerRecord[String, String](topic.request, key.split("_")(0).toInt, key, value))
+    flow(topic.response, key)
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
   }
@@ -95,10 +95,29 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   override def preStart(): Unit = {
     super.preStart()
-//    self ? Map()
+    //    self ? Map()
   }
 
   def receive = {
+    case request: GetBanks =>
+      logger.info("kafka_request: " + request)
+      val orgSender = sender
+      val f = for {
+        key <- makeKeyFuture
+        s <- serializeFuture(request)
+        r <- sendRequest(Topics.caseClassToTopic(GetBanks), key, s)
+        d <- deserializeFuture[Banks](r)
+      } yield {
+        d.get.data
+      }
+
+      f recover {
+        case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
+        case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
+        case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
+        case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
+      } pipeTo orgSender
+
     case request: Map[String, String] =>
       logger.info("kafka_request: " + request)
       val orgSender = sender
@@ -129,5 +148,9 @@ object Topics {
   private val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
 
   val connectorTopic = Topic(requestTopic, responseTopic)
+
+  def caseClassToTopic(caseClass: Any): Topic =
+    Topic("obp.Q." + caseClass.getClass.getSimpleName.replace("$", ""),
+      "obp.R." + caseClass.getClass.getSimpleName.replace("$", ""))
 
 }
