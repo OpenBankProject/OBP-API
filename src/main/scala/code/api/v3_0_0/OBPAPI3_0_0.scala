@@ -39,8 +39,8 @@ import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.model.User
-import net.liftweb.common.Box
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.util.Props
 
@@ -212,7 +212,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getPermissionsForBankAccount ::
                           Implementations2_0_0.getSocialMediaHandles ::
                           Implementations2_0_0.getTransactionTypes ::
-                          Implementations2_0_0.getUser ::
+                          // Implementations2_0_0.getUser ::
                           //now in V300 Implementations2_0_0.corePrivateAccountsAllBanks ::
                           Implementations2_0_0.privateAccountsAtOneBank ::
                           Implementations2_0_0.publicAccountsAllBanks ::
@@ -303,6 +303,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.updateViewForBankAccount ::
                           Implementations3_0_0.corePrivateAccountsAllBanks ::
                           Implementations3_0_0.elasticSearchWarehouseV300 ::
+                          Implementations3_0_0.getUser ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

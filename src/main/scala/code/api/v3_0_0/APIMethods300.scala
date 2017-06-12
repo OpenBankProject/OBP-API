@@ -3,13 +3,16 @@ package code.api.v3_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.CanSearchWarehouse
+import code.api.util.ApiRole.{CanGetAnyUser, CanSearchWarehouse}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.entitlement.Entitlement
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
+import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -517,6 +520,44 @@ trait APIMethods300 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getUser,
+      apiVersion,
+      "getUser",
+      "GET",
+      "/users/email/EMAIL",
+      "Get Users by Email Address",
+      """Get users by email address
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "email" :: email :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
+          }
+          yield {
+            // Format the data as V2.0.0 json
+            val json = JSONFactory200.createUserJSONs(users)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
 
 
   }
