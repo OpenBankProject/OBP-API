@@ -12,6 +12,7 @@ import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
+import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -555,6 +556,42 @@ trait APIMethods300 {
             val json = JSONFactory200.createUserJSONs(users)
             successJsonResponse(Extraction.decompose(json))
           }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getUserByUserId,
+      apiVersion,
+      "getUserByUserId",
+      "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      """Get user by USER_ID
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
       }
     }
 

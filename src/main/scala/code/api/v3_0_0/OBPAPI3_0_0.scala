@@ -304,6 +304,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.corePrivateAccountsAllBanks ::
                           Implementations3_0_0.elasticSearchWarehouseV300 ::
                           Implementations3_0_0.getUser ::
+                          Implementations3_0_0.getUserByUserId ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
