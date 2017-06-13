@@ -595,6 +595,41 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getUserByUsername,
+      apiVersion,
+      "getUserByUsername",
+      "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      """Get user by USERNAME
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "username" :: username :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
+      }
+    }
 
 
   }
