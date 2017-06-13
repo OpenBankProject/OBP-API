@@ -6,10 +6,8 @@ import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserDoesNotHaveRole
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
-import net.liftweb.http.LiftRules
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.randomString
 
 
@@ -71,14 +69,9 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
 
-      // We have to exclude suffix "ai" in order to work for instance next url path http://localhost:8016/obp/v3.0.0/users/email/yafdwbnnuv@bar.ai
-      LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes - "ai"
-
       Then("We have to find it by endpoint getUsersByEmail")
-      val requestGet = (v3_0Request / "users" / "email" / email).GET <@ (user1)
+      val requestGet = (v3_0Request / "users" / "email" / email / "terminator").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-
-      LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes + "ai"
 
       And("We should get a 200")
       responseGet.code should equal(200)

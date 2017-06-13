@@ -528,7 +528,7 @@ trait APIMethods300 {
       apiVersion,
       "getUser",
       "GET",
-      "/users/email/EMAIL",
+      "/users/email/EMAIL/terminator",
       "Get Users by Email Address",
       """Get users by email address
         |
@@ -544,7 +544,7 @@ trait APIMethods300 {
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "users" :: "email" :: email :: Nil JsonGet _ => {
+      case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
