@@ -18,7 +18,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
     scenario("We try to get user data by email without required role " + CanGetAnyUser){
 
       When("We have to find it by endpoint getUsersByEmail")
-      val requestGet = (v3_0Request / "users" / "email" / "some@email.com").GET <@ (user1)
+      val requestGet = (v3_0Request / "users" / "email" / "some@email.com"/ "terminator").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       And("We should get a 400")
