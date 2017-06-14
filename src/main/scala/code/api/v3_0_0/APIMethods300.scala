@@ -3,13 +3,17 @@ package code.api.v3_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.CanSearchWarehouse
+import code.api.util.ApiRole.{CanGetAnyUser, CanSearchWarehouse}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.entitlement.Entitlement
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
+import code.users.Users
+import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -515,6 +519,115 @@ trait APIMethods300 {
             val bodyPart = compact(render(json \ "es_body_part"))
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getUser,
+      apiVersion,
+      "getUser",
+      "GET",
+      "/users/email/EMAIL/terminator",
+      "Get Users by Email Address",
+      """Get users by email address
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
+          }
+          yield {
+            // Format the data as V2.0.0 json
+            val json = JSONFactory200.createUserJSONs(users)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getUserByUserId,
+      apiVersion,
+      "getUserByUserId",
+      "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      """Get user by USER_ID
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getUserByUsername,
+      apiVersion,
+      "getUserByUsername",
+      "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      """Get user by USERNAME
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnKnownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "username" :: username :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
       }
     }
 
