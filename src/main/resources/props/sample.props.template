@@ -116,7 +116,7 @@ dev.port=8080
 #It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
 #Including it here so we have a canonical source of the value
 #This was introduced March 2016, some code might use hardcoded value instead.
-#Default value is obp (highly recomended)
+#Default value is obp (very highly recomended)
 apiPathZero=obp
 
 ## Sending mail out
