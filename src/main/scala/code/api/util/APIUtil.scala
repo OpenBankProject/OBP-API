@@ -125,6 +125,8 @@ import code.api.util.APIUtil._
   val FilterOffersetError = "OBP-20024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!"
   val FilterLimitError = "OBP-20025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!"
   val FilterDateFormatError = s"OBP-20026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!"
+
+  val UserNotFoundByUsername = "OBP-20027: User not found by username."
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
