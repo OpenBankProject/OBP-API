@@ -93,6 +93,57 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.info(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
 
+
+// This code was copied from API Explorer
+// TODO make this work on the API See
+//      https://github.com/OpenBankProject/OBP-API/issues/603
+// Add query parameters for catalogs and tags work like this:
+//
+//      def stringToOptBoolean (x: String) : Option[Boolean] = x.toLowerCase match {
+//        case "true" | "yes" | "1" | "-1" => Some(true)
+//        case "false" | "no" | "0" => Some(false)
+//        case _ => Empty
+//      }
+//
+//      val showCoreParam: Option[Boolean] = for {
+//        x <- S.param("core")
+//        y <- stringToOptBoolean(x)
+//      } yield y
+//
+//      logger.info(s"showCore is $showCoreParam")
+//
+//      val showPSD2Param: Option[Boolean] = for {
+//        x <- S.param("psd2")
+//        y <- stringToOptBoolean(x)
+//      } yield y
+//
+//      logger.info(s"showPSD2 is $showPSD2Param")
+//
+//      val showOBWGParam: Option[Boolean] = for {
+//        x <- S.param("obwg")
+//        y <- stringToOptBoolean(x)
+//      } yield y
+//
+//      logger.info(s"showOBWG is $showOBWGParam")
+//
+//
+//      val rawTagsParam = S.param("tags")
+//
+//      val tagsParam: Option[List[String]] = rawTagsParam match {
+//        // if tags= is supplied in the url we want to ignore it
+//        case Full("") => None
+//        case _  => {
+//          for {
+//            x <- rawTagsParam
+//            y <- Some(x.trim().split(",").toList)
+//          } yield {
+//            y
+//          }
+//
+//        }
+//      }
+//      logger.info(s"tags are $tagsParam")
+
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
       Some(activeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
