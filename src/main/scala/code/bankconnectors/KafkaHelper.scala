@@ -37,10 +37,8 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     extractFuture(actor ? request)
   }
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  def process(request: GetBanks): List[InboundBank] = {
-    Await.result((actor ? request).mapTo[List[InboundBank]], TIMEOUT)
+  def process[T] (request: T): JValue ={
+    extractFuture(actor ? request)
   }
 
 }

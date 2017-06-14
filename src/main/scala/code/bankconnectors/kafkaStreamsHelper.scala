@@ -32,7 +32,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   import materializer._
 
-  private def makeKeyFuture = Future(scala.util.Random.nextInt(40) + "_" + UUID.randomUUID().toString)
+  private def makeKeyFuture = Future(scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString)
 
   private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
     .withBootstrapServers(bootstrapServers)
@@ -40,8 +40,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     .withClientId(clientId)
     .withMaxWakeups(maxWakeups)
     .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
-
-  private val consumerActor: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
 
   private val consumer: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
     val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(topic, partition), 0)
@@ -87,6 +85,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     Future(Extraction.decompose(m))
   }
 
+  val decomposeF1: (Any => Future[json.JValue]) = { m =>
+    Future(Extraction.decompose(m))
+  }
+
   val serializeF: (json.JValue => Future[String]) = { m =>
     Future(json.compactRender(m))
   }
@@ -95,28 +97,47 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   override def preStart(): Unit = {
     super.preStart()
-    //    self ? Map()
+    val conn = {
+
+      val c = Props.get("connector").openOr("Jun2017")
+      if (c.contains("_")) c.split("_")(1) else c
+    }
+    //configuration optimization is postponed
+    //self ? conn
   }
 
+  def pipeToSender(sender: ActorRef, f: Future[Any]) = f recover {
+    case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
+    case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
+    case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
+    case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
+  } pipeTo sender
+
   def receive = {
-    case request: GetBanks =>
-      logger.info("kafka_request: " + request)
-      val orgSender = sender
-      val f = for {
+    case v: String =>
+      for {
         key <- makeKeyFuture
-        s <- serializeFuture(request)
-        r <- sendRequest(Topics.caseClassToTopic(GetBanks), key, s)
-        d <- deserializeFuture[Banks](r)
+        r <- sendRequest(Topics.version, key, v)
+        jv <- parseF(r)
+        any <- extractF(jv)
       } yield {
-        d.get.data
+        logger.info("South Side recognises version info")
+        any
       }
 
-      f recover {
-        case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
-        case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
-        case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
-        case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
-      } pipeTo orgSender
+    case request: TopicCaseClass =>
+      logger.info("kafka_request: " + request)
+      val f = for {
+        key <- makeKeyFuture
+        d <- decomposeF1(request)
+        s <- serializeF(d)
+        r <- sendRequest(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
+        jv <- parseF(r)
+        any <- extractF(jv)
+      } yield {
+        any
+      }
+      pipeToSender(sender, f)
 
     case request: Map[String, String] =>
       logger.info("kafka_request: " + request)
@@ -131,13 +152,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       } yield {
         any
       }
-
-      f recover {
-        case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
-        case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
-        case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
-        case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
-      } pipeTo orgSender
+      pipeToSender(orgSender, f)
   }
 }
 
@@ -149,8 +164,17 @@ object Topics {
 
   val connectorTopic = Topic(requestTopic, responseTopic)
 
-  def caseClassToTopic(caseClass: Any): Topic =
-    Topic("obp.Q." + caseClass.getClass.getSimpleName.replace("$", ""),
-      "obp.R." + caseClass.getClass.getSimpleName.replace("$", ""))
+  def version = Topic("obp.q.version", "obp.R.version")
+
+  def caseClassToTopic(className: String): Topic = {
+    val version = {
+      val v = Props.get("connector").openOr("Jun2017")
+      val c = if (v.contains("_")) v.split("_")(1) else v
+      c.replaceFirst("v", "")
+    }
+
+    Topic(s"obp.${version}.Q." + className.replace("$", ""),
+      s"obp.${version}.R." + className.replace("$", ""))
+  }
 
 }
