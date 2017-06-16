@@ -382,12 +382,12 @@ class Boot extends MdcLoggable {
       TransactionStatusScheduler.start(delay)
     }
 
-    APIUtil.akkaSanityCheck() match {
-      case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
-      case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
-      case Empty => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
-      case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
-    }
+    //APIUtil.akkaSanityCheck() match {
+    //  case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
+    //  case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
+    //  case Empty => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
+    //  case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
+    //}
 
   }
 

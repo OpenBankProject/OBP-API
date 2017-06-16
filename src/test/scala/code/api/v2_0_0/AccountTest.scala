@@ -23,14 +23,14 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut.code must equal(200)
 
       When("We make the anonymous access request")
       val requestGet = (v2_0Request / "accounts").GET
       val responseGet = makeGetRequest(requestGet)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       responseGet.code must equal(200)
 
       val isPublic: List[Boolean] =
@@ -47,7 +47,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val requestGetAll = (v2_0Request / "accounts").GET <@ (user1)
       val responseGetAll = makeGetRequest(requestGetAll)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       responseGetAll.code must equal(200)
 
       val isPublicAll =
@@ -71,14 +71,14 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut.code must equal(200)
 
       When("We make the anonymous access request")
       val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
       val responseGet = makeGetRequest(requestGet)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       responseGet.code must equal(200)
 
       val isPublic: List[Boolean] =
@@ -95,7 +95,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val requestGetAll = (v2_0Request / "banks" / testBank.value / "accounts").GET <@ (user1)
       val responseGetAll = makeGetRequest(requestGetAll)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       responseGetAll.code must equal(200)
 
       val isPublicAll =
@@ -120,14 +120,14 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We must get a 400")
+      And("We should get a 400")
       responsePut.code must equal(400)
-      And("We must have the error massage")
+      And("We should have the error massage")
       val error: String = (responsePut.body \ "error") match {
         case JString(i) => i
         case _ => ""
       }
-      Then("We must have the error: " + ErrorMessages.InvalidAccountIdFormat)
+      Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
       error must equal(ErrorMessages.InvalidAccountIdFormat)
     }
   }

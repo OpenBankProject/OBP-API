@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
-You must have received a copy of the GNU Affero General Public License
+you should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
@@ -134,7 +134,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getAPIInfo
-      Then("we must get a 200 ok code")
+      Then("We should get a 200 ok code")
       reply.code must equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
       apiInfo.version must equal ("2.2.0")
@@ -147,7 +147,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBanksInfo
-      Then("we must get a 200 ok code")
+      Then("We should get a 200 ok code")
       reply.code must equal (200)
       val banksInfo = reply.body.extract[BanksJSON]
       banksInfo.banks.foreach(b => {
@@ -161,7 +161,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBankInfo(randomBank)
-      Then("we must get a 200 ok code")
+      Then("We should get a 200 ok code")
       reply.code must equal (200)
       val bankInfo = reply.body.extract[code.api.v1_2_1.BankJSON]
       bankInfo.id.nonEmpty must equal (true)
@@ -171,9 +171,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Given("We will not use an access token and request a random bankId")
       When("the request is sent")
       val reply = getBankInfo(randomString(5))
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
   }
@@ -215,7 +215,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getAccountViews(bankId, bankAccount.id, user1)
-      Then("we must get a 200 ok code")
+      Then("We should get a 200 ok code")
       reply.code must equal (200)
       reply.body.extract[ViewsJSONV220]
     }
@@ -226,9 +226,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getAccountViews(bankId, bankAccount.id, None)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
 
@@ -238,9 +238,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val bankAccount : code.api.v1_2.AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getAccountViews(bankId, bankAccount.id, user3)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
   }
@@ -253,10 +253,10 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user1)
-      Then("we must get a 201 code")
+      Then("We should get a 201 code")
       reply.code must equal (201)
       reply.body.extract[ViewJSONV220]
-      And("we must get a new view")
+      And("We should get a new view")
       val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV220].views
       viewsBefore.size must equal (viewsAfter.size -1)
     }
@@ -268,9 +268,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, None)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
 
@@ -281,9 +281,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user3)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
 
@@ -293,9 +293,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postView(bankId, randomString(3), view, user1)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
 
@@ -307,9 +307,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       postView(bankId, bankAccount.id, view, user1)
       When("the request is sent")
       val reply = postView(bankId, bankAccount.id, view, user1)
-      Then("we must get a 400 code")
+      Then("We should get a 400 code")
       reply.code must equal (400)
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
   }
@@ -359,7 +359,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
       When("We use a valid access token and valid put json")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
-      Then("We must get back the updated view")
+      Then("We should get back the updated view")
       reply.code must equal (200)
       val updatedView = reply.body.extract[ViewJSONV220]
       updatedView.can_see_images must equal(true)
@@ -384,7 +384,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We must get a 404")
+      Then("We should get a 404")
       reply.code must equal(404)
     }
 
@@ -399,10 +399,10 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
       When("we don't use an access token")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), None)
-      Then("we must get a 400")
+      Then("We should get a 400")
       reply.code must equal(400)
 
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
 
@@ -417,10 +417,10 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
       When("we try to update a view without having sufficient privileges to do so")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user3)
-      Then("we must get a 400")
+      Then("We should get a 400")
       reply.code must equal(400)
 
-      And("we must get an error message")
+      And("We should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty must equal (true)
     }
   }

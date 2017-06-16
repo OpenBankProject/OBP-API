@@ -120,7 +120,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       Then("We do")
       foundOpt.isDefined must equal(true)
 
-      And("There must be two")
+      And("There should be two")
       val foundThings = foundOpt.get
       foundThings.size must equal(2)
 

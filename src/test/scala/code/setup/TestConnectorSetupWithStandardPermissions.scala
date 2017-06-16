@@ -54,7 +54,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     //drop the mongo Database after each test
     MongoDB.getDb(DefaultConnectionIdentifier).foreach(_.dropDatabase())
 
-    //returns true if the model must not be wiped after each test
+    //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
       m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }

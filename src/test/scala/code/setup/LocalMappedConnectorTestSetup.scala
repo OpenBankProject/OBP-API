@@ -127,7 +127,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def wipeTestData() = {
-    //returns true if the model must not be wiped after each test
+    //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
       m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }

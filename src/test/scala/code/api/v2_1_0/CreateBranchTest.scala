@@ -45,7 +45,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       var responsePut = makePutRequest(requestPut, write(customerPutJSON))
 
-      Then("We must get a 201 and check all the fields")
+      Then("We should get a 201 and check all the fields")
       responsePut.code must equal(201)
 
       var nameResponse = (responsePut.body \ "name" ) match {
@@ -76,7 +76,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePut = makePutRequest(requestPut, write(customerPutJSON2))
 
-      Then("We must get a 201 and check all the fields")
+      Then("We should get a 201 and check all the fields")
       responsePut.code must equal(201)
 
       var nameResponse = (responsePut.body \ "name" ) match {
@@ -117,7 +117,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val requestPut = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
       val responsePost = makePostRequest(requestPut, write(customerPostJSON))
 
-      Then("We must get a 201 and check all the fields")
+      Then("We should get a 201 and check all the fields")
       responsePost.code must equal(201)
 
       var nameResponse = (responsePost.body \ "name" ) match {
@@ -147,7 +147,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       var requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
       var responsePost = makePostRequest(requestPost, write(customerPostJSON))
 
-      Then("We must get a 201 and check all the fields")
+      Then("We should get a 201 and check all the fields")
       responsePost.code must equal(201)
 
       val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
@@ -155,7 +155,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePost = makePutRequest(requestPost, write(customerPostJSON2))
 
-      Then("We must get a 201 and check all the fields")
+      Then("We should get a 201 and check all the fields")
       responsePost.code must equal(201)
 
       var nameResponse = (responsePost.body \ "name" ) match {

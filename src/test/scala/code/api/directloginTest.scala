@@ -96,7 +96,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
-      Then("We must be able to find it")
+      Then("We should be able to find it")
       //val consumers =  OBPConsumer.findAll()
       //assert(registeredApplication(KEY) == true)
 
@@ -104,7 +104,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", List(accessControlOriginHeader))
 
-      Then("We must get a 400 - Bad Request")
+      Then("We should get a 400 - Bad Request")
       response.code must equal(400)
       assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
     }
@@ -114,14 +114,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
-      Then("We must be able to find it")
+      Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
 
       When("we try to login with an invalid username/password")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordHeaders)
 
-      Then("We must get a 401 - Unauthorized")
+      Then("We should get a 401 - Unauthorized")
       response.code must equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
@@ -131,7 +131,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
 
-      Then("We must get a 400 - Invalid Characters")
+      Then("We should get a 400 - Invalid Characters")
       response.code must equal(400)
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
@@ -148,13 +148,13 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
       response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
 
-      Then("We must get a 401 - the username has been locked")
+      Then("We should get a 401 - the username has been locked")
       response.code must equal(401)
       assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
 
       Then("We login in with the valid username and valid passpord, the username still be locked ")
       response = makePostRequestAdditionalHeader(request, "", validHeaders)
-      Then("We must get a 401 - the username has been locked")
+      Then("We should get a 401 - the username has been locked")
       response.code must equal(401)
       assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
 
@@ -167,7 +167,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       When("We try to login with username/password")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", disabledConsumerKeyHeaders)
-      Then("We must get a 401")
+      Then("We should get a 401")
       response.code must equal(401)
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
@@ -177,14 +177,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
-      Then("We must be able to find it")
+      Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
 
       When("we try to login with a missing DirectLogin header")
       val request = directLoginRequest
       val response = makePostRequest(request,"")
 
-      Then("We must get a 400 - Bad Request")
+      Then("We should get a 400 - Bad Request")
       response.code must equal(400)
       assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
     }
@@ -194,14 +194,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
-      Then("We must be able to find it")
+      Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
 
       When("the consumer key is invalid")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidConsumerKeyHeaders)
 
-      Then("We must get a 401 - Unauthorized")
+      Then("We should get a 401 - Unauthorized")
       response.code must equal(401)
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
@@ -211,14 +211,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
-      Then("We must be able to find it")
+      Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
 
       When("the header and credentials are good")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", validHeaders)
       var token = "INVALID"
-      Then("We must get a 200 - OK and a token")
+      Then("We should get a 200 - OK and a token")
       response.code must equal(200)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>
@@ -235,7 +235,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
-      Then("We must get a 200 - OK and an empty list of accounts")
+      Then("We should get a 200 - OK and an empty list of accounts")
       response2.code must equal(200)
       response2.body match {
         case JArray(List()) =>

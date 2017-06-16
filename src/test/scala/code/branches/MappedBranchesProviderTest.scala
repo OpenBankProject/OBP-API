@@ -96,14 +96,14 @@ class MappedBranchesProviderTest extends ServerSetup {
       When("we try to get the branches for that bank")
       val branchesOpt: Option[List[Branch]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX))
 
-      Then("We must get a branches list")
+      Then("We should get a branches list")
       branchesOpt.isDefined must equal (true)
       val branches = branchesOpt.get
 
       And("it must contain two branches")
       branches.size must equal(2)
 
-      And("they must be the licensed ones")
+      And("they should be the licensed ones")
       branches must equal (expectedBranches)
     }
 
@@ -118,7 +118,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       When("we try to get the branches for that bank")
       val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdY))
 
-      Then("we must get back an empty list")
+      Then("We should get back an empty list")
       branchDataOpt.isDefined must equal(true)
       val branches = branchDataOpt.get
 

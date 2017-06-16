@@ -79,7 +79,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
       var request = (v2_0Request / "users").POST
       var response = makePostRequest(request, write(params))
-      Then("we must get a 201 created code")
+      Then("We should get a 201 created code")
       response.code must equal(201)
     }
 
@@ -88,7 +88,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       var request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validHeaders)
       var token = "INVALID"
-      Then("we must get a 200 - OK and a token")
+      Then("We should get a 200 - OK and a token")
       response.code must equal(200)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>
@@ -103,7 +103,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
     scenario("we login using OAuth as newly created user", CreateUser) {
       When("the request an OAuth token")
       val reply = getRequestToken(consumer, oob)
-      Then("we must get a 200 - OK and a token")
+      Then("We should get a 200 - OK and a token")
       reply.code must equal (200)
       val requestToken = extractToken(reply.body)
       requestToken.value.size must not equal (0)
@@ -119,7 +119,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
       val request = (v2_0Request / "users").POST
       val response = makePostRequest(request, write(params))
-      Then("we must get a 409 created code")
+      Then("We should get a 409 created code")
       response.code must equal(409)
     }
 

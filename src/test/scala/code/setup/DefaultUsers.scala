@@ -1,10 +1,12 @@
 package code.setup
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
 import code.model.TokenType._
 import code.model.{User, Consumer => OBPConsumer, Token => OBPToken}
 import code.token.Tokens
+import net.liftweb.common.Full
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
@@ -15,7 +17,7 @@ import net.liftweb.util.TimeHelpers.TimeSpan
   * The login users are tuples (consumer, token), contains the consumer and token, used for direct login.
   */
 trait DefaultUsers {
-  
+
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)
   lazy val testConsumer = Consumers.consumers.vend.createConsumer(
     key = Some(randomString(40).toLowerCase),
@@ -27,8 +29,11 @@ trait DefaultUsers {
     developerEmail = None,
     redirectURL = None,
     createdByUserId = None //Internally, the consumer is not relevant to UserId.
-  ).get
-  lazy val consumer = Consumer(testConsumer.key, testConsumer.secret)
+  ) match {
+    case Full(t) => t
+  }
+
+  lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
   
   // create the access token
   val expiration = Props.getInt("token_expiration_weeks", 4)
@@ -38,50 +43,62 @@ trait DefaultUsers {
   val defaultProvider = Props.get("hostname", "")
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, None).get
-  lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).get
-  lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).get
+  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, None) match {
+    case Full(u1) => u1
+  }
+  lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None) match {
+    case Full(u2) => u2
+  }
+  lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None) match {
+    case Full(u3) => u3
+  }
   
   // create the tokens in database, we only need token-key and token-secret
   lazy val testToken1 = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id),
-    Some(resourceUser1.id.toLong),
+    Some(testConsumer.id.get),
+    Some(resourceUser1.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).get
+  ) match {
+    case Full(t) => t
+  }
   
   lazy val testToken2 = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id),
-    Some(resourceUser2.id.toLong),
+    Some(testConsumer.id.get),
+    Some(resourceUser2.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).get
+  ) match {
+    case Full(t) => t
+  }
   
   lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
-    Some(testConsumer.id),
-    Some(resourceUser3.id.toLong),
+    Some(testConsumer.id.get),
+    Some(resourceUser3.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).get
+  ) match {
+    case Full(t) => t
+  }
   
   // prepare the tokens
-  lazy val token1 = Token(testToken1.key, testToken1.secret)
-  lazy val token2 = Token(testToken2.key, testToken2.secret)
-  lazy val token3 = Token(testToken3.key, testToken3.secret)
+  lazy val token1 = Token(testToken1.key.get, testToken1.secret.get)
+  lazy val token2 = Token(testToken2.key.get, testToken2.secret.get)
+  lazy val token3 = Token(testToken3.key.get, testToken3.secret.get)
   
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)

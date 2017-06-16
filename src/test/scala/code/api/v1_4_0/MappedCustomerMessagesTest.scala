@@ -30,10 +30,10 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / mockBankId1.value / "customer" / "messages").GET <@ user1
       val response = makeGetRequest(request)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       response.code must equal(200)
 
-      And("We must get no messages")
+      And("We should get no messages")
       val json = response.body.extract[CustomerMessagesJson]
       json.messages.size must equal(0)
     }
@@ -73,7 +73,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       request = (v1_4Request / "banks" / mockBankId1.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       response = makePostRequest(request, write(messageJson))
-      Then("We must get a 201")
+      Then("We should get a 201")
       response.code must equal(201)
 
       And("We should get that message when we do a get messages request ")

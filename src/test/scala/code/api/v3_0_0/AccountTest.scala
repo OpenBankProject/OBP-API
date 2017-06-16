@@ -21,14 +21,14 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
       And("We should get a 200")
-      responsePut.code should equal(200)
+      responsePut.code must equal(200)
 
       When("We make the anonymous access request")
       val requestGet = (v2_0Request / "accounts").GET
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
-      responseGet.code should equal(200)
+      responseGet.code must equal(200)
 
       val isPublic: List[Boolean] =
         for {
@@ -38,14 +38,14 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
           isPublic
         }
       And("All received accounts have to be public")
-      isPublic.forall(_ == true) should equal(true)
+      isPublic.forall(_ == true) must equal(true)
 
       When("We make the authenticated access request")
       val requestGetAll = (v2_0Request / "accounts").GET <@ (user1)
       val responseGetAll = makeGetRequest(requestGetAll)
 
       Then("We should get a 200")
-      responseGetAll.code should equal(200)
+      responseGetAll.code must equal(200)
 
       val isPublicAll =
         for {
@@ -56,7 +56,7 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
           isPublic
         }
       And("The new created account has to be private")
-      isPublicAll.forall(_ == false) should equal(true)
+      isPublicAll.forall(_ == false) must equal(true)
     }
 
     scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
@@ -69,14 +69,14 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
       And("We should get a 200")
-      responsePut.code should equal(200)
+      responsePut.code must equal(200)
 
       When("We make the anonymous access request")
       val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
-      responseGet.code should equal(200)
+      responseGet.code must equal(200)
 
       val isPublic: List[Boolean] =
         for {
@@ -86,14 +86,14 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
           isPublic
         }
       And("All received accounts have to be public")
-      isPublic.forall(_ == true) should equal(true)
+      isPublic.forall(_ == true) must equal(true)
 
       When("We make the authenticated access request")
       val requestGetAll = (v2_0Request / "banks" / testBank.value / "accounts").GET <@ (user1)
       val responseGetAll = makeGetRequest(requestGetAll)
 
       Then("We should get a 200")
-      responseGetAll.code should equal(200)
+      responseGetAll.code must equal(200)
 
       val isPublicAll =
         for {
@@ -104,7 +104,7 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
           isPublic
         }
       And("The new created account has to be private")
-      isPublicAll.forall(_ == false) should equal(true)
+      isPublicAll.forall(_ == false) must equal(true)
     }
 
     scenario("We create an account, but with wrong format of account_id ") {
@@ -118,14 +118,14 @@ class AccountTest extends V300ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
       And("We should get a 400")
-      responsePut.code should equal(400)
+      responsePut.code must equal(400)
       And("We should have the error massage")
       val error: String = (responsePut.body \ "error") match {
         case JString(i) => i
         case _ => ""
       }
       Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
-      error should equal(ErrorMessages.InvalidAccountIdFormat)
+      error must equal(ErrorMessages.InvalidAccountIdFormat)
     }
   }
 

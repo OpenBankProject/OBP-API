@@ -44,7 +44,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     val accountNumber = "123456"
 
     def thenCheckAccountCreated(user: User) = {
-      Then("An account with the proper parameters must be created")
+      Then("An account with the proper parameters should be created")
       val userAccounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
       userAccounts.size must equal(1)
       val createdAccount = userAccounts(0)
@@ -76,7 +76,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
         When("We create a bank account")
 
-        //using expectedBankId as the bank name must be okay as the behaviour must be to slugify the bank name to get the id
+        //using expectedBankId as the bank name should be okay as the behaviour should be to slugify the bank name to get the id
         //what to do if this slugification results in an id collision has not been determined yet
         val msgContent = CreateBankAccount(userId, userProvider, accountNumber, bankIdentifier, expectedBankId)
 
@@ -87,7 +87,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
         thenCheckAccountCreated(user)
 
-        And("A bank must be created")
+        And("A bank should be created")
         val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId))
         createdBankBox.isDefined must equal(true)
         val createdBank = createdBankBox match {

@@ -74,7 +74,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
                         "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
-        Then("we must get a 201 created code")
+        Then("We should get a 201 created code")
         response.code must equal(201)
 
         //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
@@ -82,7 +82,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           case JString(i) => i
           case _ => ""
         }
-        Then("We must have some new transaction id")
+        Then("We should have some new transaction id")
         transId must not equal ("")
 
         val status: String = (response.body \ "status") match {
@@ -105,7 +105,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
                     "owner" / "transaction-requests").GET <@(user1)
         response = makeGetRequest(request)
 
-        Then("we must get a 200 ok code")
+        Then("We should get a 200 ok code")
         response.code must equal(200)
         val transactionRequests = response.body.children
         transactionRequests.size must not equal(0)
@@ -126,7 +126,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           "owner" / "transactions").GET <@(user1)
         response = makeGetRequest(request)
 
-        Then("we must get a 200 ok code")
+        Then("We should get a 200 ok code")
         response.code must equal(200)
         val transactions = response.body.children
 
@@ -143,19 +143,19 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //(do it here even though the payments test does test makePayment already)
 
         val fromAccountBalance = getFromAccount.balance
-        And("the from account must have a balance smaller by the amount specified to pay")
+        And("the from account should have a balance smaller by the amount specified to pay")
         fromAccountBalance must equal((beforeFromBalance - amt))
 
         /*
-        And("the newest transaction for the account receiving the payment must have the proper amount")
+        And("the newest transaction for the account receiving the payment should have the proper amount")
         newestToAccountTransaction.details.value.amount must equal(amt.toString)
         */
 
-        And("the account receiving the payment must have a new balance plus the amount paid")
+        And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
         toAccountBalance must equal(beforeToBalance + amt)
 
-        And("there must now be 2 new transactions in the database (one for the sender, one for the receiver")
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) must equal(totalTransactionsBefore + 2)
       }
     }
@@ -204,7 +204,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
-        Then("we must get a 201 created code")
+        Then("We should get a 201 created code")
         response.code must equal(201)
 
         //ok, created a transaction request, check some return values. As type is SANDBOX_TAN but over 100€, we expect a challenge
@@ -240,7 +240,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
-        Then("we must get a 200 ok code")
+        Then("We should get a 200 ok code")
         response.code must equal(200)
         var transactionRequests = response.body.children
 
@@ -260,7 +260,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
-        Then("we must get a 400 bad request code")
+        Then("We should get a 400 bad request code")
         response.code must equal(400)
 
         //TODO: check if allowed_attempts is decreased
@@ -270,7 +270,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
-        Then("we must get a 202 accepted code")
+        Then("We should get a 202 accepted code")
         response.code must equal(202)
 
         //check if returned data includes new transaction's id
@@ -291,7 +291,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
-        Then("we must get a 200 ok code")
+        Then("We should get a 200 ok code")
         response.code must equal(200)
         transactionRequests = response.body.children
 
@@ -309,19 +309,19 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //(do it here even though the payments test does test makePayment already)
 
         val fromAccountBalance = getFromAccount.balance
-        And("the from account must have a balance smaller by the amount specified to pay")
+        And("the from account should have a balance smaller by the amount specified to pay")
         fromAccountBalance must equal((beforeFromBalance - amt))
 
         /*
-        And("the newest transaction for the account receiving the payment must have the proper amount")
+        And("the newest transaction for the account receiving the payment should have the proper amount")
         newestToAccountTransaction.details.value.amount must equal(amt.toString)
         */
 
-        And("the account receiving the payment must have a new balance plus the amount paid")
+        And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
         toAccountBalance must equal(beforeToBalance + amt)
 
-        And("there must now be 2 new transactions in the database (one for the sender, one for the receiver")
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) must equal(totalTransactionsBefore + 2)
       }
     }
@@ -357,13 +357,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user2)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for each account must remain unchanged")
+      And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount, toAccount))
 
-      And("the balances of each account must remain unchanged")
+      And("the balances of each account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
       beforeToBalance must equal(getToAccount.balance)
     }
@@ -397,13 +397,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, None)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for each account must remain unchanged")
+      And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount, toAccount))
 
-      And("the balances of each account must remain unchanged")
+      And("the balances of each account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
       beforeToBalance must equal(getToAccount.balance)
     }
@@ -439,13 +439,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for each account must remain unchanged")
+      And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount, toAccount))
 
-      And("the balances of each account must remain unchanged")
+      And("the balances of each account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
       beforeToBalance must equal(getToAccount.balance)
     }
@@ -482,13 +482,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for each account must remain unchanged")
+      And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount, toAccount))
 
-      And("the balances of each account must remain unchanged")
+      And("the balances of each account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
       beforeToBalance must equal(getToAccount.balance)
     }
@@ -517,13 +517,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(bankId.value, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for the sender's account must remain unchanged")
+      And("the number of transactions for the sender's account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount))
 
-      And("the balance of the sender's account must remain unchanged")
+      And("the balance of the sender's account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
     }
 
@@ -557,13 +557,13 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
       val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      Then("we must get a 400")
+      Then("We should get a 400")
       postResult.code must equal(400)
 
-      And("the number of transactions for each account must remain unchanged")
+      And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore must equal(transactionCount(fromAccount, toAccount))
 
-      And("the balances of each account must remain unchanged")
+      And("the balances of each account should remain unchanged")
       beforeFromBalance must equal(getFromAccount.balance)
       beforeToBalance must equal(getToAccount.balance)
     } */

@@ -24,24 +24,35 @@ object ObpActorConfig {
       provider = "akka.remote.RemoteActorRefProvider"
       allow-java-serialization = off
       kryo  {
-      type = "graph"
-      idstrategy = "default"
-      buffer-size = 65536
-      max-buffer-size = -1
-      use-manifests = false
-      use-unsafe = true
-      post-serialization-transformations = "off"
-      #post-serialization-transformations = "lz4,aes"
-      #encryption {
-      #  aes {
-      #      mode = "AES/CBC/PKCS5Padding"
-      #      key = j68KkRjq21ykRGAQ
-      #      IV-length = 16
-      #  }
-      #}
-      implicit-registration-logging = false
-      kryo-trace = false
-      resolve-subclasses = true
+        setIgnoreSyntheticFields  = true
+        type = "graph"
+        idstrategy = "default"
+        buffer-size = 65536
+        max-buffer-size = -1
+        use-manifests = false
+        use-unsafe = false
+        post-serialization-transformations = "off"
+        #post-serialization-transformations = "lz4,aes"
+        #encryption {
+        #  aes {
+        #      mode = "AES/CBC/PKCS5Padding"
+        #      key = j68KkRjq21ykRGAQ
+        #      IV-length = 16
+        #  }
+        #}
+        implicit-registration-logging = false
+        kryo-trace = true
+        resolve-subclasses = true
+        #mappings = {
+        #  "akka.actor.ActorSelectionMessage" = 40
+        #  "scala.collection.immutnnnnable.Vector" = 41
+        #  "akka.actor.SelectChildName" = 42
+        #  "code.views.RemotedataViewsCaseClasses" = 43
+        #  "code.views.RemotedataViewsCaseClasses$createOwnerView" = 44
+        #  "code.model.AccountId" = 45
+        #  "code.model.BankId" = 46
+        #  "net.liftweb.mapper.MappedString$$Lambda" = 47
+        #}
       }
       serializers {
         kryo = "com.romix.akka.serialization.kryo.KryoSerializer"
@@ -51,6 +62,7 @@ object ObpActorConfig {
         "net.liftweb.common.Empty" = kryo,
         "net.liftweb.common.Box" = kryo,
         "net.liftweb.common.ParamFailure" = kryo,
+        "net.liftweb.mapper.MappedString" = kryo,
         "code.api.APIFailure" = kryo,
         "code.model.BankAccount" = kryo,
         "code.model.View" = kryo,

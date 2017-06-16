@@ -413,10 +413,12 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, "Owner") match {
+    val res = getExistingView(bankId, accountId, "Owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
     }
+    println("============================================> res=" + res)
+    res
   }
 
   def getOwners(view: View) : Set[User] = {

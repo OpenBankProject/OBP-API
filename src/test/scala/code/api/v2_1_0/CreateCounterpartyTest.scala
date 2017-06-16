@@ -47,7 +47,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We must get a 200 and check all the fields")
+      Then("We should get a 200 and check all the fields")
       responsePost.code must equal(200)
 
       var accountRoutingAddress = (responsePost.body \ "other_account_routing_address" ) match {
@@ -70,7 +70,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-      Then("We must get a 400")
+      Then("We should get a 400")
       responsePost.code must equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
@@ -92,7 +92,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       Then("We make the request again, the same name/bank_id/account_id/view_id")
       responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We must get a 400 and check the error massage")
+      Then("We should get a 400 and check the error massage")
       responsePost.code must equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error

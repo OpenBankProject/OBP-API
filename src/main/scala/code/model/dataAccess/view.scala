@@ -56,7 +56,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
-  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
+  //object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
   object bankPermalink extends MappedString(this, 255)
   object accountPermalink extends MappedString(this, 255)
@@ -67,7 +67,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object description_ extends MappedString(this, 255)
   object permalink_ extends MappedString(this, 255)
 
-  def users : List[User] =  users_.toList
+  def users : List[User] =  List.empty //users_.toList
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {

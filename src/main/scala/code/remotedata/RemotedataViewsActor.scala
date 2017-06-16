@@ -103,8 +103,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       sender ! extractResult(mapper.getNonPublicBankAccounts(user))
 
     case cc.createOwnerView(bankId, accountId, description) =>
-      logger.debug("createOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.createOwnerView(bankId, accountId, description))
+      logger.info("createOwnerView(" + bankId +", "+ accountId +", "+ description +")")
+      val res = extractResult(mapper.createOwnerView(bankId, accountId, description))
+      println("------------------------------------> res=" + res)
+      sender ! res.asInstanceOf[code.model.View]
 
     case cc.createPublicView(bankId, accountId, description) =>
       logger.debug("createPublicView(" + bankId +", "+ accountId +", "+ description +")")

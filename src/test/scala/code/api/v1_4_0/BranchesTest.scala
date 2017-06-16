@@ -146,7 +146,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       response.code must equal(200)
     }
 
@@ -155,17 +155,17 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       response.code must equal(200)
 
-      And("We must get the right json format containing a list of Branches")
+      And("We should get the right json format containing a list of Branches")
       val wholeResponseBody = response.body
       val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
       responseBodyOpt.isDefined must equal(true)
 
       val responseBody = responseBodyOpt.get
 
-      And("We must get the right branches")
+      And("We should get the right branches")
       val branches = responseBody.branches
 
       // Order of branches in the list is arbitrary

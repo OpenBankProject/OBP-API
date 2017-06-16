@@ -85,14 +85,14 @@ class MappedProductsProviderTest extends ServerSetup {
       When("we try to get the Products for that bank")
       val productsOpt: Option[List[Product]] = MappedProductsProvider.getProducts(BankId(fixture.bankIdX))
 
-      Then("We must get a Products list")
+      Then("We should get a Products list")
       productsOpt.isDefined must equal (true)
       val products = productsOpt.get
 
       And("it must contain two Products")
       products.size must equal(2)
 
-      And("they must be the licensed ones")
+      And("they should be the licensed ones")
       products must equal (expectedProducts)
     }
 
@@ -107,7 +107,7 @@ class MappedProductsProviderTest extends ServerSetup {
       When("we try to get the Products for that bank")
       val productsOpt = MappedProductsProvider.getProducts(BankId(fixture.bankIdY))
 
-      Then("we must get back an empty list")
+      Then("We should get back an empty list")
       productsOpt.isDefined must equal(true)
       val products = productsOpt.get
 

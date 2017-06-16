@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
-You must have received a copy of the GNU Affero General Public License
+you should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
@@ -310,12 +310,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name) match {
       case Full(o) => o
     }
-    //there must be an owner view
+    //there should be an owner view
     val views = Views.views.vend.permittedViews(owner, BankAccountUID(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
     ownerView.isDefined must equal(true)
 
-    //and the owners must have access to it
+    //and the owners should have access to it
     Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider) must equal(account.owners.toSet)
   }
 
@@ -623,7 +623,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     response.code must equal(403)
 
-    //nothing must be created
+    //nothing should be created
     Connector.connector.vend.getBanks must equal(Nil)
   }
 
@@ -635,7 +635,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     response.code must equal(403)
 
-    //nothing must be created
+    //nothing should be created
     Connector.connector.vend.getBanks must equal(Nil)
   }
 
@@ -655,13 +655,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(bankWithoutId).code must equal(FAILED)
 
-    //no banks must have been created
+    //no banks should have been created
     Connector.connector.vend.getBanks.size must equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
     getResponse(bankWithEmptyId).code must equal(FAILED)
 
-    //no banks must have been created
+    //no banks should have been created
     Connector.connector.vend.getBanks.size must equal(0)
 
     //Check that the same json becomes valid when a non-empty id is added
@@ -727,10 +727,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
 
     val otherBank = bank2
-    //when we try to add bank1 and another valid bank it must now fail
+    //when we try to add bank1 and another valid bank it should now fail
     getResponse(List(bank1Json, Extraction.decompose(bank2))).code must equal(FAILED)
 
-    //and the other bank must not have been created
+    //and the other bank should not have been created
     Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined must equal(false)
   }
 
@@ -749,7 +749,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
-    //there must be no user with a blank id before we try to add one
+    //there should be no user with a blank id before we try to add one
     Users.users.vend.getUserByProviderId(defaultProvider, "") match {
       case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
       case Empty                 => Empty must equal(Empty)
@@ -783,7 +783,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(userWithValidEmail).code must equal(SUCCESS)
 
-    //a user must now have been created
+    //a user should now have been created
     val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
       case Full(c) => c
       case Empty => null
@@ -825,7 +825,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(user1Json, userWithSameUsernameAsUser1)).code must equal(FAILED)
 
-    //no user with firstUserId must be created
+    //no user with firstUserId should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
       case ParamFailure(_,x,y,_) => x must equal(Empty) // Returned result in case when akka is used
       case Empty                 => Empty must equal(Empty)
@@ -837,7 +837,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(user1Json, userWithUsername2)).code must equal(SUCCESS)
 
-    //and both users must be created
+    //and both users should be created
     val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
       case Full(fu) => fu
       case Empty => null
@@ -871,10 +871,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
 
     val otherUser = user2
-    //when we try to add user1 and another valid new user it must now fail
+    //when we try to add user1 and another valid new user it should now fail
     getResponse(List(user1Json, Extraction.decompose(otherUser))).code must equal(FAILED)
 
-    //and the other user must not have been created
+    //and the other user should not have been created
     Users.users.vend.getUserByProviderId(defaultProvider, otherUser.user_name)
   }
 
@@ -888,12 +888,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     val userWithoutPassword = removeField(goodUser, "password")
     getResponse(List(userWithoutPassword)).code must equal(FAILED)
-    //no user must be created
+    //no user should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined must equal(false)
 
     val userWithBlankPassword = replaceField(goodUser, "password", "")
     getResponse(List(userWithBlankPassword)).code must equal(FAILED)
-    //no user must be created
+    //no user should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined must equal(false)
 
     //check that a normal password is okay
@@ -943,7 +943,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(acc1AtBank1Json)).code must equal(SUCCESS)
 
-    //an account must now exist
+    //an account should now exist
     verifyAccountCreated(account1AtBank1)
   }
 
@@ -961,7 +961,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
     //might be nice to test a case where the only similar attribute between the accounts is the id
     getResponse(List(account1AtBank1Json, accountWithSameId)).code must equal(FAILED)
 
-    //no accounts must have been created
+    //no accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined must equal(false)
 
     val accountIdTwo = "2"
@@ -971,7 +971,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(account1AtBank1Json, accountWithDifferentId)).code must equal(SUCCESS)
 
-    //two accounts must have been created
+    //two accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined must equal(true)
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined must equal(true)
 
@@ -990,10 +990,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
     getResponse(List(account1AtBank1Json)).code must equal(SUCCESS)
 
     val otherAccount = account1AtBank2
-    //when we try to add account1AtBank1 and another valid account it must now fail
+    //when we try to add account1AtBank1 and another valid account it should now fail
     getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code must equal(FAILED)
 
-    //and the other account must not have been created
+    //and the other account should not have been created
     Connector.connector.vend.getBankAccount(BankId(otherAccount.bank), AccountId(otherAccount.id)).isDefined must equal(false)
   }
 
@@ -1014,7 +1014,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(badBankAccount)).code must equal(FAILED)
 
-    //no account must have been created
+    //no account should have been created
     Connector.connector.vend.getBankAccount(BankId(badBankId), AccountId(account1AtBank1.id)).isDefined must equal(false)
   }
 
@@ -1055,14 +1055,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code must equal(FAILED)
 
-    //it must not have been created
+    //it should not have been created
     Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined must equal(false)
 
     //a mix of valid an invalid owners must also not work
     val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.user_name))
     getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code must equal(FAILED)
 
-    //it must not have been created
+    //it should not have been created
     Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)).isDefined must equal(false)
 
   }
@@ -1085,14 +1085,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     getResponse(List(acc1Json, sameNumberJson)).code must equal(FAILED)
 
-    //no accounts must have been created
+    //no accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined must equal(false)
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined must equal(false)
 
     //check it works with the normal different number
     getResponse(List(acc1Json, acc2Json)).code must equal(SUCCESS)
 
-    //and the accounts must be created
+    //and the accounts should be created
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined must equal(true)
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined must equal(true)
   }
@@ -1184,7 +1184,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
 
     val otherTransaction = transactionWithCounterparty
 
-    //when we try to add t1Json and another valid transaction it must now fail
+    //when we try to add t1Json and another valid transaction it should now fail
     getResponse(List(t1Json, Extraction.decompose(otherTransaction))).code must equal(FAILED)
 
     //and no new transaction must exist
@@ -1561,7 +1561,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
     val counter1 = foundTransaction1Box.otherAccount
     val counter2 = foundTransaction2Box.otherAccount
 
-    //transactions must have the same counterparty
+    //transactions should have the same counterparty
     counter1.counterPartyId must not equal(counter2.counterPartyId)
     counter1.counterPartyId.isEmpty must equal(false)
     counter2.counterPartyId.isEmpty must equal(false)
@@ -1662,7 +1662,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with MustM
         TransactionId(newTransId)).isDefined must equal(exist)
     }
 
-    //no transactions must be created
+    //no transactions should be created
     checkNoTransactionsExist()
 
     //check transaction with bad value

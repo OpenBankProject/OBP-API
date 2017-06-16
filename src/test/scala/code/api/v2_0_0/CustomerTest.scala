@@ -44,34 +44,34 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size must equal(0)
       val requestPost = (v2_0Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We must get a 400")
+      Then("We should get a 400")
       responsePost.code must equal(400)
 
       When("We add one required entitlement")
       Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
       val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We must get a 400")
+      Then("We should get a 400")
       responsePost1.code must equal(400)
 
       When("We add all required entitlement")
       Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val responsePost2 = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We must get a 201")
+      Then("We should get a 201")
       responsePost2.code must equal(201)
-      And("We must get the right information back")
+      And("We should get the right information back")
       val infoPost = responsePost2.body.extract[CustomerJsonV140]
 
       When("We make the request")
       val requestGet = (v2_0Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       responseGet.code must equal(200)
 
-      And("We must get the right information back")
+      And("We should get the right information back")
       val infoGet = responseGet.body.extract[CustomerJsonV140]
 
-      And("POST feedback and GET feedback must be the same")
+      And("POST feedback and GET feedback should be the same")
       infoGet must equal(infoPost)
 
       And("User is linked to 1 customer")
@@ -80,10 +80,10 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       When("We try to make the second request with same customer number at same bank")
       val secondResponsePost = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We must get a 400")
+      Then("We should get a 400")
       secondResponsePost.code must equal(400)
       val error = for { JObject(o) <- secondResponsePost.body; JField("error", JString(error)) <- o } yield error
-      And("We must get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
+      And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
       error must contain (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size must equal(1)
@@ -92,7 +92,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val customerPostJSON3 = createCustomerJson(mockCustomerNumber2)
       val requestPost3 = (v2_0Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
       val responsePost3 = makePostRequest(requestPost3, write(customerPostJSON3))
-      Then("We must get a 201")
+      Then("We should get a 201")
       responsePost3.code must equal(201)
       And("User is linked to 2 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON3.user_id).size must equal(2)
@@ -104,17 +104,17 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val customerPostJSON4 = createCustomerJson(mockCustomerNumber1)
       val requestPost4 = (v2_0Request / "banks" / mockBankId2.value / "customers").POST <@ (user1)
       val responsePost4 = makePostRequest(requestPost4, write(customerPostJSON4))
-      Then("We must get a 201")
+      Then("We should get a 201")
       responsePost4.code must equal(201)
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON4.user_id).size must equal(3)
 
       When("We try to make the second request with same customer number at same bank")
       val secondResponsePost4 = makePostRequest(requestPost4, write(customerPostJSON4))
-      Then("We must get a 400")
+      Then("We should get a 400")
       secondResponsePost4.code must equal(400)
       val error4 = for { JObject(o) <- secondResponsePost4.body; JField("error", JString(error)) <- o } yield error
-      And("We must get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
+      And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
       error4 must contain (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size must equal(3)

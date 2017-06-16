@@ -266,12 +266,12 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       val request = (v1_3Request / "cards").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       response.code must equal(200)
 
-      //dummy connector above tells us we must get back user1AllCards
+      //dummy connector above tells us We should get back user1AllCards
       //we are just testing that the api calls the connector properly
-      And("We must get the correct cards")
+      And("We should get the correct cards")
       val expectedCardNumbers = user1AllCards.map(_.bankCardNumber)
       val json = response.body.extract[PhysicalCardsJSON]
       val returnedCardNumbers = json.cards.map(_.bank_card_number)
@@ -286,12 +286,12 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       val request = (v1_3Request / "banks" / bank.bankId.value / "cards").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We must get a 200")
+      Then("We should get a 200")
       response.code must equal(200)
 
-      //dummy connector above tells us we must get back user1CardsForOneBank
+      //dummy connector above tells us We should get back user1CardsForOneBank
       //we are just testing that the api calls the connector properly
-      And("We must get the correct cards")
+      And("We should get the correct cards")
 
       val expectedCardNumbers = user1CardsForOneBank.map(_.bankCardNumber)
       val json = response.body.extract[PhysicalCardsJSON]

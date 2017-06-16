@@ -277,7 +277,7 @@ object APIUtil extends MdcLoggable {
 
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(application) => application.isActive
+      case Full(application) => application.isActive.get
       case _ => false
     }
   }
@@ -523,10 +523,10 @@ object APIUtil extends MdcLoggable {
       }
       
       if(parsedDate.isDefined){
-        Full(parsedDate.get)
+        parsedDate
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.get)
+        fallBackParsedDate
       }
       else{
         Failure(FilterDateFormatError)

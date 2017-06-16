@@ -43,10 +43,10 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       When("We make the request")
       val requestPut = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
-      Then("We must get a 400")
+      Then("We should get a 400")
       responsePut.code must equal(400)
       val error = for {JObject(o) <- responsePut.body; JField("error", JString(error)) <- o} yield error
-      And("We must get a message: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
+      And("We should get a message: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
       error must contain(ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
@@ -58,7 +58,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut.code must equal(200)
     }
   }
@@ -73,7 +73,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut1 = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut1 = makePutRequest(requestPut1, write(transactionTypeJSON))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut1.code must equal(200)
 
       Then("update input value and We make the request")
@@ -88,7 +88,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON2))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut.code must equal(200)
     }
 
@@ -100,7 +100,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut1 = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut1 = makePutRequest(requestPut1, write(transactionTypeJSON))
 
-      And("We must get a 200")
+      And("We should get a 200")
       responsePut1.code must equal(200)
 
       Then("insert new data and We make the request")
@@ -115,10 +115,10 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut2 = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut2 = makePutRequest(requestPut2, write(transactionTypeJSON1))
 
-      And("We must get a 400")
+      And("We should get a 400")
       responsePut2.code must equal(400)
       val errorInsert = for {JObject(o) <- responsePut2.body; JField("error", JString(error)) <- o} yield error
-      And("We must get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
+      And("We should get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
       errorInsert must contain(ErrorMessages.CreateTransactionTypeInsertError)
 
 
@@ -134,10 +134,10 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val requestPut3 = (v2_1Request / "banks" / mockBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut3 = makePutRequest(requestPut3, write(transactionTypeJSON2))
 
-      And("We must get a 400")
+      And("We should get a 400")
       responsePut3.code must equal(400)
       val errorUpdate = for {JObject(o) <- responsePut3.body; JField("error", JString(error)) <- o} yield error
-      And("We must get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
+      And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
       errorUpdate must contain(ErrorMessages.CreateTransactionTypeUpdateError)
     }
   }

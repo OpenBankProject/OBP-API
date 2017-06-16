@@ -45,7 +45,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
     And("Try to create a customer")
     val requestPost = (v1_4Request / "banks" / bankId.value / "customer").POST <@ (user)
     val responsePost = makePostRequest(requestPost, write(customerPostJSON1))
-    Then("We must get a 200")
+    Then("We should get a 200")
     responsePost.code must equal(200)
 
     val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(nmb, bankId)
@@ -92,7 +92,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       When("We try to get the user for a bank with that customer number")
       val found = Customer.customerProvider.vend.getUser(BankId("some-bank"), customerNumber)
 
-      Then("We must not find a user")
+      Then("We should not find a user")
       found.isDefined must equal(false)
     }
 
@@ -104,13 +104,13 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       When("We try to get the user for the same bank")
       val user = Customer.customerProvider.vend.getUser(BankId(mockBankId2.value), customerNumber)
 
-      Then("We must find a user")
+      Then("We should find a user")
       user.isDefined must equal(true)
 
       When("We try to get the user for a different bank")
       val found = Customer.customerProvider.vend.getUser(BankId(mockBankId2.value + "asdsad"), customerNumber)
 
-      Then("We must not find a user")
+      Then("We should not find a user")
       found.isDefined must equal(false)
     }
 
@@ -130,7 +130,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       When("We try to get the user for that bank")
       val found = Customer.customerProvider.vend.getUser(mockBankId2, customerNumber)
 
-      Then("We must not find a user")
+      Then("We should not find a user")
       found.isDefined must equal(true)
     }
 
