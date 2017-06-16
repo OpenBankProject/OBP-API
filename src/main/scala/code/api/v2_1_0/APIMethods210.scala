@@ -272,9 +272,9 @@ trait APIMethods210 {
 
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
-      createTransactionRequest,
+      createTransactionRequestCouterparty,
       apiVersion,
-      "createTransactionRequest",
+      "createTransactionRequestCouterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
       "Create Transaction Request (COUNTERPARTY)",
@@ -316,9 +316,9 @@ trait APIMethods210 {
 
     // Transaction Request (SEPA)
     resourceDocs += ResourceDoc(
-      createTransactionRequest,
+      createTransactionRequestSepa,
       apiVersion,
-      "createTransactionRequest",
+      "createTransactionRequestSepa",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
       "Create Transaction Request (SEPA)",
@@ -354,7 +354,8 @@ trait APIMethods210 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-
+    lazy val createTransactionRequestSepa = createTransactionRequest
+    lazy val createTransactionRequestCouterparty = createTransactionRequest
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
