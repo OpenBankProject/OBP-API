@@ -1324,6 +1324,19 @@ object SwaggerDefinitionsJSON {
     "This is a SEPA Transaction Request",
     "SHARED"
   )
+
+  val transactionRequestBodySP2PJSON = TransactionRequestBodyP2PJSON(
+    this_account_secondary_routing = RoutingJSON(scheme = "PHONE_NUMBER", address = "+9722398746"),
+    value = amountOfMoneyJsonV121,
+    description = "This is a PHONE_TO_PHONE Transaction Request",
+    charge_policy = "SHARED",
+    couterparty = CounterpartyP2PJSON(name = "Counterparty Name",
+      other_bank_name = "BANK L",
+      other_bank_routing = RoutingJSON(scheme = "OBP", address = "test.uk.en.1"),
+      other_branch_routing = RoutingJSON(scheme = "OBP", address = "yuaiusydf"),
+      other_account_routing = RoutingJSON(scheme = "OBP", address = "asoiuf79a8s79dfasdhlkjh37f"),
+      other_account_secondary_routing = RoutingJSON(scheme = "PHONE_NUMBER", address = "+9722398746"))
+  )
   
   val customerCreditRatingJSON = CustomerCreditRatingJSON(
     rating = "OBP",
