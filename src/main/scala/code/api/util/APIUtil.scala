@@ -1156,10 +1156,10 @@ Returns a string showed to the developer
 
   def validatePhoneNumber(number: String): Boolean = {
     number.toList match {
-      case x :: _ if x != "+" => false // First char has to be +
-      case _ :: xs if xs.forall(c => Character.isDigit(c) == true) => false // Ony digits are allowed
+      case x :: _ if x != '+' => false // First char has to be +
       case _ :: xs if xs.size > 15 => false // Number of digits has to be up to 15
       case _ :: xs if xs.size < 5  => false // Minimal number of digits is 5
+      case _ :: xs if xs.exists(c => Character.isDigit(c) == false) => false // Ony digits are allowed
       case _ => true
 
     }

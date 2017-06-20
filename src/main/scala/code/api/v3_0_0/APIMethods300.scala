@@ -10,7 +10,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.JSONFactory200
-import code.api.v2_1_0.{TransactionRequestBodyP2PJSON, _}
+import code.api.v2_1_0.{TransactionRequestBodyPhoneToPhoneJson, _}
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.entitlement.Entitlement
@@ -837,7 +837,7 @@ trait APIMethods300 {
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
-      transactionRequestBodySP2PJSON,
+      transactionRequestBodyPhoneToPhoneJson,
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
@@ -1023,7 +1023,7 @@ trait APIMethods300 {
               }
               case "PHONE_TO_PHONE" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyP2PJSON]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
                   toBankId <- Full(BankId(transDetailsP2PJson.couterparty.other_bank_routing.address))
                   toAccountId <-Full(AccountId(transDetailsP2PJson.couterparty.other_account_routing.address))
                   toAccount <- BankAccount(toBankId, toAccountId) ?~! {CounterpartyNotFound}

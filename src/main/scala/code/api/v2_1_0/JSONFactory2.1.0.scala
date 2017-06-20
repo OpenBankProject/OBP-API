@@ -114,20 +114,20 @@ case class TransactionRequestBodyFreeFormJSON(
                                              ) extends TransactionRequestCommonBodyJSON
 
 
-case class RoutingJSON(scheme: String, address: String)
-case class CounterpartyP2PJSON(name: String,
-                            other_bank_name: String,
-                            other_bank_routing: RoutingJSON,
-                            other_branch_routing: RoutingJSON,
-                            other_account_routing: RoutingJSON,
-                            other_account_secondary_routing: RoutingJSON
+case class RoutingPhoneToPhoneJson(scheme: String, address: String)
+case class CounterpartyPhoneToPhoneJson(name: String,
+                                        other_bank_name: String,
+                                        other_bank_routing: RoutingPhoneToPhoneJson,
+                                        other_branch_routing: RoutingPhoneToPhoneJson,
+                                        other_account_routing: RoutingPhoneToPhoneJson,
+                                        other_account_secondary_routing: RoutingPhoneToPhoneJson
                            )
 // the data from endpoint, extract as valid JSON
-case class TransactionRequestBodyP2PJSON(this_account_secondary_routing: RoutingJSON,
-                                         value: AmountOfMoneyJsonV121,
-                                         description: String,
-                                         charge_policy: String,
-                                         couterparty: CounterpartyP2PJSON
+case class TransactionRequestBodyPhoneToPhoneJson(this_account_secondary_routing: RoutingPhoneToPhoneJson,
+                                                  value: AmountOfMoneyJsonV121,
+                                                  description: String,
+                                                  charge_policy: String,
+                                                  couterparty: CounterpartyPhoneToPhoneJson
                                         ) extends TransactionRequestCommonBodyJSON
 
 //Mapper means this part will be stored into mapper.mdetails
