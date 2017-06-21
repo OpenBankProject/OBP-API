@@ -234,7 +234,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //First step - make a list of allowed endpoints
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
-                          Implementations2_1_0.createTransactionRequest ::
+                          // Implementations2_1_0.createTransactionRequest ::
                           Implementations2_1_0.answerTransactionRequestChallenge ::
                           Implementations2_1_0.getTransactionRequests ::
                           Implementations2_1_0.getRoles ::
@@ -306,6 +306,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUser ::
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
+                          Implementations3_0_0.createTransactionRequest ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
