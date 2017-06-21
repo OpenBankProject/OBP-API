@@ -460,6 +460,7 @@ trait APIMethods210 {
 
                   //if the connector is mapped, we get the data from local mapper
                   toAccount <- if(isMapped)
+                    // TODO should not create bank account here!!
                     LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                   else
                   //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
