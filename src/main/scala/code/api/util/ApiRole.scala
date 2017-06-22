@@ -24,6 +24,9 @@ object ApiRole {
   case object CanCreateCustomer extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateCustomerAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateAccount extends ApiRole{
     val requiresBankId = true
   }
@@ -83,6 +86,9 @@ object ApiRole {
   }
   case object CanCreateUserCustomerLink extends ApiRole{
     val requiresBankId = true
+  }
+  case object CanCreateUserCustomerLinkAtAnyBank extends ApiRole{
+    val requiresBankId = false
   }
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
