@@ -76,6 +76,9 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.json.JsonAST.{JObject, JValue}
 import net.liftweb.json.MappingException
 
+import scala.concurrent.TimeoutException
+import code.api.util.ErrorMessages._
+
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
   type AccountType = KafkaBankAccount
@@ -159,9 +162,15 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         "target" -> "bank",
         "bankId" -> id.value
       )
-      tryExtract[KafkaInboundBank](process(req)) match {
-        case Full(b) => Full(KafkaBank(b))
-        case Empty => Empty
+      try {
+        tryExtract[KafkaInboundBank](process(req)) match {
+          case Full(b) => Full(KafkaBank(b))
+          case Empty => Empty
+        }
+      } catch {
+        case m: TimeoutException => 
+          logger.info("getBank-timeoutException"+m.toString) 
+          Failure(FutureTimeoutError)
       }
     }
   }("getBank")
