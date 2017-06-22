@@ -127,7 +127,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   // TODO Create and use a case class for each Map so we can document each structure.
   
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = saveConnectorMetric {
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond) {
       val req = Map(
         "version" -> formatVersion,
@@ -136,21 +136,26 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       )
     
       logger.debug(s"Kafka getBanks says: req is: $req")
-
-      val rList = tryExtract[List[KafkaInboundBank]](process(req)) match {
-        case Full(b) => b
-        case Empty => List.empty
-      }
-    
-      logger.debug(s"Kafka getBanks says rList is $rList")
-    
-      // Loop through list of responses and create entry for each
-      for ( r <- rList )
-        yield {
-          KafkaBank(r)
+      try {
+        val rList = tryExtract[List[KafkaInboundBank]](process(req)) match {
+          case Full(b) => b
+          case Empty => List.empty
         }
-    }
-  }("getBanks")
+        
+        logger.debug(s"Kafka getBanks says rList is $rList")
+        
+        // Loop through list of responses and create entry for each
+        Full(for (r <- rList)
+          yield {
+            KafkaBank(r)
+          }
+        )
+      } catch {
+        case m: TimeoutException =>
+          logger.info("getBanks-timeoutException"+m.toString)
+          Failure(FutureTimeoutError)
+      }      
+  }}("getBanks")
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = saveConnectorMetric {
@@ -201,7 +206,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
     memoizeSync(updateUserAccountViewsTTL millisecond){
-      val accounts: List[KafkaInboundAccount] = getBanks.flatMap { bank => {
+      val accounts: List[KafkaInboundAccount] = getBanks.get.flatMap { bank => {
         val bankId = bank.bankId.value
         val username = user.name
         logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")

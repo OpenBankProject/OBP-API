@@ -152,8 +152,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = saveConnectorMetric {
-      MappedBank
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+     Full(MappedBank
         .findAll()
         .map(
           bank =>
@@ -162,6 +162,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               case _ => bank
             }
         )
+     )
   }("getBanks")
 
 

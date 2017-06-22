@@ -151,8 +151,8 @@ trait APIMethods121 {
             val banks = new BanksJSON(banksJSON)
             Extraction.decompose(banks)
           }
-
-          Full(successJsonResponse(banksToJson(Bank.all)))
+          for(banks <- Bank.all) 
+            yield(successJsonResponse(banksToJson(banks)))
       }
     }
 

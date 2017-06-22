@@ -137,7 +137,7 @@ trait Connector {
   def getBank(bankId : BankId) : Box[Bank]
 
   //gets banks handled by this connector
-  def getBanks : List[Bank]
+  def getBanks(): Box[List[Bank]]
 
   def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
     for {

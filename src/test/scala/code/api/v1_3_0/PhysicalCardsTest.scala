@@ -84,7 +84,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
                                 currency: String): Box[AmountOfMoney] = Empty
     override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
-    override def getBanks : List[Bank] = Nil
+    override def getBanks(): Box[List[Bank]] = Empty
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
     override def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =

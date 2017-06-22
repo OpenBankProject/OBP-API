@@ -193,7 +193,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   )
 
   def updateUserAccountViews( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks.flatMap { bank => {
+    val accounts: List[InboundAccount] = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -268,7 +268,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   )
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = {
+  override def getBanks(): Box[List[Bank]] = {
     val req = OutboundBanksBase(
       messageFormat = messageFormat,
       action = "obp.get.Banks",
@@ -292,7 +292,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    res
+    Full(res)
   }
   
   messageDocs += MessageDoc(
