@@ -72,7 +72,10 @@ import code.api.util.APIUtil._
   val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
   val ServerAddDataError = "OBP-00004: Server error: could not add message"
   val AllowPublicViewsNotSpecified = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
-
+  val FutureTimeoutError = "OBP-00006: Fatal error, this happened when server was broken. Please contact the admin to check Future timeout error."
+  val KafkaTimeoutError = "OBP-00007: Fatal error, this happened when server was broken. Please contact the admin to Kafka response timeout error."
+  val AdapterOrCoreBankingError = "OBP-00008: There is no proper data in Remote Bank side or this happened when server was broken. Please contact the admin to check the Adapter Or Core Banking System."
+  
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."

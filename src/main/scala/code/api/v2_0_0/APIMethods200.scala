@@ -841,7 +841,7 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -941,8 +941,8 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
-            account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
+            account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView

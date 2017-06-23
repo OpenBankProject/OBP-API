@@ -34,7 +34,7 @@ object CreateTestAccountForm{
       }
     }
 
-    val banks = Connector.connector.vend.getBanks
+    val banks = Connector.connector.vend.getBanks.get
     val bankOptions = banks.map{b =>
       val id = b.bankId.value
       (id, id)
