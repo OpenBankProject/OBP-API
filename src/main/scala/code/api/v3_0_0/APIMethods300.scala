@@ -240,8 +240,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! BankNotFound
-            account <- BankAccount(bank.bankId, accountId) ?~! ErrorMessages.AccountNotFound
+            bank <- Bank(bankId) ?~ BankNotFound
+            account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
@@ -285,7 +285,7 @@ trait APIMethods300 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
