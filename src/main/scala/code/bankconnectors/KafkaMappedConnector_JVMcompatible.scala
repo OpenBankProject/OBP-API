@@ -150,13 +150,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       } catch {
         case m: MappingException =>
           logger.error("getBanks-MappingException",m)
-          Failure(AdapterOrCoreBankingError) 
+          Failure(AdapterOrCoreBankingSystemException)
         case m: TimeoutException =>
           logger.error("getBanks-TimeoutException",m)
-          Failure(FutureTimeoutError)
+          Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getBanks-ClassCastException",m)
-          Failure(KafkaTimeoutError)
+          Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBanks-Unexpected",m)
           Failure(UnKnownError)
@@ -180,13 +180,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       } catch {
         case m: MappingException =>
           logger.error("getBank-MappingException",m)
-          Failure(AdapterOrCoreBankingError)
+          Failure(AdapterOrCoreBankingSystemException)
         case m: TimeoutException =>
           logger.error("getBank-TimeoutException",m)
-          Failure(FutureTimeoutError)
+          Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getBank-ClassCastException",m)
-          Failure(KafkaTimeoutError)
+          Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
           Failure(UnKnownError)
@@ -219,13 +219,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       } catch {
         case m: MappingException =>
           logger.error("getUser-MappingException",m)
-          Failure(AdapterOrCoreBankingError)
+          Failure(AdapterOrCoreBankingSystemException)
         case m: TimeoutException =>
           logger.error("getUser-TimeoutException",m)
-          Failure(FutureTimeoutError)
+          Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getUser-ClassCastException",m)
-          Failure(KafkaTimeoutError)
+          Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
           Failure(UnKnownError)
@@ -399,13 +399,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         } catch {
           case m: MappingException =>
             logger.error("getTransaction-MappingException",m)
-            Failure(AdapterOrCoreBankingError)
+            Failure(AdapterOrCoreBankingSystemException)
           case m: TimeoutException =>
             logger.error("getTransaction-timeoutException",m)
-            Failure(FutureTimeoutError)
+            Failure(FutureTimeoutException)
           case m: ClassCastException =>
             logger.error("getTransaction-ClassCastException",m)
-            Failure(KafkaTimeoutError)
+            Failure(KafkaTimeoutException)
           case m: Throwable =>
             logger.error("getTransaction-Unexpected",m)
             Failure(UnKnownError)
@@ -538,13 +538,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       } catch {
         case m: MappingException =>
           logger.error("getTransactions-MappingException",m)
-          Failure(AdapterOrCoreBankingError)
+          Failure(AdapterOrCoreBankingSystemException)
         case m: TimeoutException =>
           logger.error("getTransactions-timeoutException",m)
-          Failure(FutureTimeoutError)
+          Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getTransactions-ClassCastException",m)
-          Failure(KafkaTimeoutError)
+          Failure(KafkaTimeoutException)
         case m: RuntimeException =>
           logger.error("getTransactions-AccountID-UserId-Mapping",m)
           Failure(m.getMessage)
