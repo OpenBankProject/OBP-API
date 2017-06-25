@@ -115,7 +115,7 @@ trait APIMethods220 {
       List(
         UserNotLoggedIn, 
         BankAccountNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -165,7 +165,7 @@ trait APIMethods220 {
         UserNotLoggedIn, 
         InvalidJsonFormat, 
         BankAccountNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -206,7 +206,7 @@ trait APIMethods220 {
         InvalidJsonFormat, 
         UserNotLoggedIn, 
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
@@ -238,7 +238,7 @@ trait APIMethods220 {
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
       fXRateJSON,
-      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnKnownError),
+      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -276,7 +276,7 @@ trait APIMethods220 {
         ViewNotFound, 
         ViewNoPermission,
         UserNoPermissionAccessView, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
@@ -312,7 +312,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
-      List(UnKnownError),
+      List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -348,7 +348,7 @@ trait APIMethods220 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         InsufficientAuthorisationToCreateBank,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -395,7 +395,7 @@ trait APIMethods220 {
         UserNotLoggedIn,
         BankNotFound,
         InsufficientAuthorisationToCreateBranch,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       Nil
@@ -461,8 +461,8 @@ trait APIMethods220 {
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
         InvalidAccountBalanceCurrency,
-        AccountIdHasExsited,
-        UnKnownError
+        AccountIdAlreadyExsits,
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
@@ -490,7 +490,7 @@ trait APIMethods220 {
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
-            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdHasExsited)
+            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExsits)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
               bankId,
               accountId,
@@ -534,7 +534,7 @@ trait APIMethods220 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
@@ -590,7 +590,7 @@ trait APIMethods220 {
       connectorMetricsJson,
       List(
         InvalidDateFormat,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -713,7 +713,7 @@ trait APIMethods220 {
         UserNotLoggedIn,
         UserDoesNotHaveRole,
         InvalidJsonFormat,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)

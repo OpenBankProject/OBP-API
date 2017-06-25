@@ -102,7 +102,7 @@ trait APIMethods210 {
         InvalidJsonFormat,
         DataImportDisabled,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -141,7 +141,7 @@ trait APIMethods210 {
         |""",
       emptyObjectJson,
       transactionRequestTypesJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
 
@@ -259,7 +259,7 @@ trait APIMethods210 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -299,7 +299,7 @@ trait APIMethods210 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -343,7 +343,7 @@ trait APIMethods210 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -539,7 +539,7 @@ trait APIMethods210 {
         InvalidTransactionRequesChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -643,7 +643,7 @@ trait APIMethods210 {
         BankNotFound,
         AccountNotFound,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -686,7 +686,7 @@ trait APIMethods210 {
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -723,7 +723,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
@@ -776,7 +776,7 @@ trait APIMethods210 {
         UserNotLoggedIn,
         UserDoesNotHaveRole,
         InvalidConsumerId,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -813,7 +813,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -850,7 +850,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -896,7 +896,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -960,7 +960,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
@@ -1008,7 +1008,7 @@ trait APIMethods210 {
         BankNotFound,
         InvalidJsonFormat,
         InsufficientAuthorisationToCreateTransactionType,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank)
@@ -1051,7 +1051,7 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJson,
-      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnKnownError),
+      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -1100,7 +1100,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn, 
         "License may not be set. meta.license.id and eta.license.name can not be empty",
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -1153,7 +1153,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         ProductNotFoundByProductCode,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -1205,7 +1205,7 @@ trait APIMethods210 {
         UserNotLoggedIn,
         BankNotFound,
         ProductNotFoundByProductCode,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
@@ -1278,7 +1278,7 @@ trait APIMethods210 {
         InvalidJsonFormat,
         ViewNotFound,
         CounterpartyAlreadyExists,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
@@ -1350,7 +1350,7 @@ trait APIMethods210 {
         UserNotFoundById,
         CustomerAlreadyExistsForUser,
         CreateConsumerError,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -1418,7 +1418,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         CustomerDoNotExistsForUser,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -1456,7 +1456,7 @@ trait APIMethods210 {
         CustomerDoNotExistsForUser, 
         CustomerDoNotExistsForUser, 
         CustomerNotFoundByCustomerId, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
@@ -1497,7 +1497,7 @@ trait APIMethods210 {
         BankNotFound, 
         InvalidJsonFormat, 
         InsufficientAuthorisationToCreateBranch, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -1542,7 +1542,7 @@ trait APIMethods210 {
         BankNotFound, 
         InvalidJsonFormat, 
         InsufficientAuthorisationToCreateBranch, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
@@ -1586,7 +1586,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil
@@ -1663,7 +1663,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserDoesNotHaveRole,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)

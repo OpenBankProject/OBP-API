@@ -369,7 +369,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
       if (!isCorrect) {
         //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountId.value=" + accountId.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
-        throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+        throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
       }
       // Populate fields and generate result
       val res = for {

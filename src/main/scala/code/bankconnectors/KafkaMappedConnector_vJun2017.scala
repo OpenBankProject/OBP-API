@@ -568,7 +568,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     val r = process(req).extractOpt[InternalTransaction]
     r match {
       // Check does the response data match the requested data
-      case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
+      case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
       case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
@@ -658,7 +658,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
     // Populate fields and generate result
     val res = for {
       r <- rList
@@ -722,7 +722,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bankId), AccountId(r.accountId))).toSet
     val acc = List((bankId, accountId)).toSet
-    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountConnectorResponse)
+    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccount)
 
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 
@@ -803,7 +803,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     val accRes = for (row <- r) yield {
       (BankId(row.bankId), AccountId(row.accountId))
     }
-    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
+    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccounts)
 
     r.map { t =>
       createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)

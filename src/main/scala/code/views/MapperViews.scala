@@ -66,7 +66,7 @@ object MapperViews extends Views with MdcLoggable {
 
     viewImpl match {
       case Full(vImpl) => {
-        if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+        if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
           //logger.info(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
           val saved = ViewPrivileges.create.
@@ -100,7 +100,7 @@ object MapperViews extends Views with MdcLoggable {
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
       viewImpls.foreach(v => {
-        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, v.id)) == 0) {
           ViewPrivileges.create.
             user(user.resourceUserId.value).
@@ -187,7 +187,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
     val view = ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
     
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     
     view
   }
@@ -195,7 +195,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewUID : ViewUID) : Box[View] = {
     val view=ViewImpl.find(viewUID)
     
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     
     view
   }
@@ -206,7 +206,7 @@ object MapperViews extends Views with MdcLoggable {
   def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View] = {
   
     if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
-      return Failure(AllowPublicViewsNotSpecified)
+      return Failure(PublicViewsNotAllowedOnThisInstance)
     }
   
     if(view.name.contentEquals("")) {
@@ -598,7 +598,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     if(!ALLOW_PUBLIC_VIEWS) {
-      return Failure(AllowPublicViewsNotSpecified)
+      return Failure(PublicViewsNotAllowedOnThisInstance)
     }
     createAndSaveDefaultPublicView(bankId, accountId, "Public View")
   }
@@ -617,7 +617,7 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
-    if(res.isDefined && res.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(AllowPublicViewsNotSpecified)
+    if(res.isDefined && res.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 
@@ -817,7 +817,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
     if(!ALLOW_PUBLIC_VIEWS) {
-      return Failure(AllowPublicViewsNotSpecified)
+      return Failure(PublicViewsNotAllowedOnThisInstance)
     }
     val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe
     Full(res)

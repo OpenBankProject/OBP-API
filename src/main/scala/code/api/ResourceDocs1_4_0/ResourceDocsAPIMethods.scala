@@ -171,7 +171,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       """,
       emptyObjectJson,
       emptyObjectJson,
-      UnKnownError :: Nil,
+      UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -276,7 +276,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      UnKnownError :: Nil,
+      UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -341,7 +341,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
           |_etc_...""",
         emptyObjectJson,
         emptyObjectJson,
-        UnKnownError :: Nil,
+        UnknownError :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }

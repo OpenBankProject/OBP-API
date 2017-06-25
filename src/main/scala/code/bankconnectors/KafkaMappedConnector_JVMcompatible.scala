@@ -159,7 +159,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBanks-Unexpected",m)
-          Failure(UnKnownError)
+          Failure(UnknownError)
       }      
   }}("getBanks")
 
@@ -189,7 +189,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
-          Failure(UnKnownError)
+          Failure(UnknownError)
       }
       }
   }("getBank")
@@ -228,7 +228,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(KafkaTimeoutException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
-          Failure(UnKnownError)
+          Failure(UnknownError)
       }
     }
   }("getUser")
@@ -392,7 +392,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           val r = process(req).extractOpt[KafkaInboundTransaction]
           r match {
             // Check does the response data match the requested data
-            case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
+            case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
             case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
             case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           }
@@ -408,7 +408,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             Failure(KafkaTimeoutException)
           case m: Throwable =>
             logger.error("getTransaction-Unexpected",m)
-            Failure(UnKnownError)
+            Failure(UnknownError)
         }
       }
     } ("getTransaction")
@@ -523,7 +523,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
           // Check does the response data match the requested data
           val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
-          if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+          if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
           // Populate fields and generate result
           val res = for {
             r <- rList
@@ -550,7 +550,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(m.getMessage)
         case m: Throwable =>
           logger.error("getTransactions-Unexpected",m)
-          Failure(UnKnownError)
+          Failure(UnknownError)
       }
     }("getTransactions")
 

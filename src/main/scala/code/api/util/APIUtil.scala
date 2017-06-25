@@ -66,34 +66,52 @@ import scala.concurrent.Future
 object ErrorMessages {
 import code.api.util.APIUtil._
 
-  // Infrastructure / config messages
+
+  // Notes to developers. Please:
+  // 1) Follow (the existing) grouping of messages
+  // 2) Stick to existing terminology e.g. use "invalid" or "incorrect" rather than "wrong"
+  // 3) Before adding a new message, check that you can't use one that already exists.
+  // 4) Use Proper Names for OBP Resources.
+  // 5) Don't use abbreviations.
+
+  // Infrastructure / config level messages (OBP-00XXX)
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
   val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
   val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
-  val ServerAddDataError = "OBP-00004: Server error: could not add message"
-  val AllowPublicViewsNotSpecified = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
-  val FutureTimeoutException = "OBP-00006: Future Timeout Exception."
-  val KafkaTimeoutException = "OBP-00007: Kafka Timeout Exception."
-  val AdapterOrCoreBankingSystemException = "OBP-00008: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
-  
-  // General messages
+
+  @deprecated("This is too generic","25-06-2017")
+  val ServerAddDataError = "OBP-00004: Server error: could not add message" // Do not use this
+
+  val PublicViewsNotAllowedOnThisInstance = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
+
+
+  val RemoteDataSecretMatchError = "OBP-00006: Remote data secret cannot be matched!" // (was OBP-20021)
+  val RemoteDataSecretObtainError = "OBP-00007: Remote data secret cannot be obtained!" // (was OBP-20022)
+
+
+
+  // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
-  val WrongInputJsonFormat = "OBP-10006: wrong format JSON "
-  val WrongRoleName = "OBP-10007: wrong role name "
+  val InvalidInputJsonFormat = "OBP-10006: Invalid input JSON format." // Why do we need this as well as InvalidJsonFormat?
+  val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
 
-  // Authentication / Authorisation / User messages
+  // General Sort and Paging
+  val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
+  val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
+  val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
+  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
+
+
+
+  // Authentication / Authorisation / User messages (OBP-20XXX)
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
-
-
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
-
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
-
   val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
   val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
@@ -116,22 +134,17 @@ import code.api.util.APIUtil._
 
   val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
 
-  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
-  
-  val InsufficientAuthorisationToCreateBranch  = "OBP-20019: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
-  val InsufficientAuthorisationToCreateBank  = "OBP-20020: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank."
 
-  val RemoteDataSecretMatchError = "OBP-20021: Remote data secret cannot be matched!"
-  val RemoteDataSecretObtainError = "OBP-20022: Remote data secret cannot be obtained!"
-  
-  val FilterSortDirectionError = "OBP-20023: obp_sort_direction parameter can only take two values: DESC or ASC!"
-  val FilterOffersetError = "OBP-20024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!"
-  val FilterLimitError = "OBP-20025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!"
-  val FilterDateFormatError = s"OBP-20026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!"
+  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+
+
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
-  
-  // Resource related messages
+
+
+
+
+  // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
   val CustomerNotFoundByCustomerId = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_ID."
@@ -165,6 +178,7 @@ import code.api.util.APIUtil._
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   
 
+  // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
@@ -181,21 +195,23 @@ import code.api.util.APIUtil._
   val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
   val InvalidAccountInitialBalance = "OBP-30112: Invalid Number. Initial balance must be a number, e.g 1000.00"
 
-  val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
-  val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
-  val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
-  val InvalidGetTransactionConnectorResponse = "OBP-30203: Connector did not return the transaction we requested."
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
 
-  val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
   val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
-  val AccountIdHasExsited = "OBP-30208: Account_ID already exists at the Bank."
+  val AccountIdAlreadyExsits = "OBP-30208: Account_ID already exists at the Bank."
 
-  // Transaction related messages:
+
+  val InsufficientAuthorisationToCreateBranch  = "OBP-30009: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch." // was OBP-20019
+  val InsufficientAuthorisationToCreateBank  = "OBP-30010: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank." // was OBP-20020
+
+  // General Resource related messages above here
+
+
+  // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account or you don't have access to canCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
@@ -211,9 +227,27 @@ import code.api.util.APIUtil._
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
-  
-  val UnKnownError = "OBP-50000: Unknown Error."
-  
+
+
+
+  // Exceptions (OBP-50XXX)
+  val UnknownError = "OBP-50000: Unknown Error."
+  val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
+  val KafkaTimeoutException = "OBP-50002: Kafka Timeout Exception."
+  val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
+
+
+  // Connector Data Exceptions (OBP-502XX)
+  val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
+  val InvalidConnectorResponseForGetBankAccounts = "OBP-50201: Connector did not return the set of accounts we requested."  // was OBP-30201
+  val InvalidConnectorResponseForGetBankAccount = "OBP-50202: Connector did not return the account we requested."  // was OBP-30202
+  val InvalidConnectorResponseForGetTransaction = "OBP-50203: Connector did not return the transaction we requested."  // was OBP-30203
+  val InvalidConnectorResponseForGetTransactions = "OBP-50204: Connector did not return the set of transactions we requested."  // was OBP-30204
+
+
+
+
+
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
   //   -->(InvalidUserId, "OBP-30107: Invalid User Id.")

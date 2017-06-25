@@ -93,7 +93,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -143,7 +143,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         InvalidJsonFormat,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -184,7 +184,7 @@ trait APIMethods300 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
@@ -231,7 +231,7 @@ trait APIMethods300 {
         |""",
       emptyObjectJson,
       moderatedAccountJSON,
-      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnKnownError),
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -276,7 +276,7 @@ trait APIMethods300 {
         |OAuth authentication is required""",
       emptyObjectJson,
       moderatedCoreAccountJSON,
-      List(BankAccountNotFound,UnKnownError),
+      List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -313,7 +313,7 @@ trait APIMethods300 {
          |""",
       emptyObjectJson,
       coreAccountsJsonV300,
-      List(UserNotLoggedIn,UnKnownError),
+      List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -371,7 +371,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound,
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -427,7 +427,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound, 
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -502,7 +502,7 @@ trait APIMethods300 {
         """,
       ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -538,7 +538,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -574,7 +574,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnKnownError),
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -610,7 +610,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnKnownError),
+      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
