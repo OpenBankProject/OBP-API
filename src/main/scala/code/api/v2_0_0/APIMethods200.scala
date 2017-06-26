@@ -1808,17 +1808,24 @@ trait APIMethods200 {
     }
 
 
+
+    // createUserCustomerLinks
+    val createUserCustomerLinksEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
+    val createUserCustomerLinksEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
+    val createUserCustomerLinksrequiredEntitlementsText = createUserCustomerLinksEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createUserCustomerLinksEntitlementsRequiredForAnyBank.mkString(" and ") + " entitlements are required."
+
     resourceDocs += ResourceDoc(
       createUserCustomerLinks,
       apiVersion,
       "createUserCustomerLinks",
       "POST",
       "/banks/BANK_ID/user_customer_links",
-      "Create user customer link.",
-      s"""Link a customer and a user
-        |This call may require additional permissions/role in the future.
-        |For now the authenticated user can create at most one linked customer at any one bank.
+      "Create User Customer Link.",
+      s"""Link a User to a Customer
+        |
         |${authenticationRequiredMessage(true)}
+        |
+        |$createUserCustomerLinksrequiredEntitlementsText
         |""",
       createUserCustomerLinkJson,
       userCustomerLinkJson,
@@ -1851,9 +1858,11 @@ trait APIMethods200 {
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), UserDoesNotHaveRole +CanCreateUserCustomerLink)
-            isEqual <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
+                                            hasAllEntitlements("", u.userId, createUserCustomerLinksEntitlementsRequiredForAnyBank),
+                                            s"$createUserCustomerLinksrequiredEntitlementsText")
+            _ <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
+            _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))

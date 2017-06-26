@@ -1130,6 +1130,7 @@ Returns a string showed to the developer
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
+  // TODO Should we accept Option[BankId] for bankId  instead of String ?
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
     val list: List[Boolean] = for (role <- roles) yield {
       !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty

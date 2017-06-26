@@ -1326,6 +1326,16 @@ trait APIMethods210 {
       }
     }
 
+    //////////////////
+    // createCustomer
+    val createCustomerEntitlementsRequiredForSpecificBank = CanCreateCustomer ::
+      CanCreateUserCustomerLink ::
+      Nil
+    val createCustomerEntitlementsRequiredForAnyBank = CanCreateCustomerAtAnyBank ::
+      CanCreateUserCustomerLinkAtAnyBank ::
+      Nil
+    val createCustomeEntitlementsRequiredText = createCustomerEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createCustomerEntitlementsRequiredForAnyBank.mkString(" and ") + " entitlements required."
+
     resourceDocs += ResourceDoc(
       createCustomer,
       apiVersion,
@@ -1335,10 +1345,11 @@ trait APIMethods210 {
       "Create Customer.",
       s"""Add a customer linked to the user specified by user_id
           |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
-          |This call may require additional permissions/role in the future.
-          |For now the authenticated user can create at most one linked customer.
           |Dates need to be in the format 2013-01-21T23:08:00Z
+          |
           |${authenticationRequiredMessage(true)}
+          |
+          |$createCustomeEntitlementsRequiredText
           |""",
       postCustomerJsonV210,
       customerJsonV210,
@@ -1355,11 +1366,12 @@ trait APIMethods210 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
-    // TODO
+    // TODO in next version?
     // Separate customer creation (keep here) from customer linking (remove from here)
     // Remove user_id from CreateCustomerJson
-    // Logged in user must have CanCreateCustomer (should no longer be able create customer for own user)
-    // Add ApiLink to createUserCustomerLink
+
+    // Note: Logged in user can no longer create a customer for himself
+
 
     lazy val createCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
@@ -1369,11 +1381,10 @@ trait APIMethods210 {
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
-            requiredEntitlements = CanCreateCustomer ::
-              CanCreateUserCustomerLink ::
-              Nil
-            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
-            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank)
+                                            ||
+                                            hasAllEntitlements("", u.userId, createCustomerEntitlementsRequiredForAnyBank),
+                                            s"$createCustomeEntitlementsRequiredText")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! UserNotFoundById
