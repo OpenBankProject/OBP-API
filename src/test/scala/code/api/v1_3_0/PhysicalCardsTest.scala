@@ -4,6 +4,8 @@ import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -195,6 +197,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
+    override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
     

@@ -20,6 +20,7 @@ object Atms extends SimpleInjector {
 
   trait Atm {
     def atmId : AtmId
+    def bankId : BankId
     def name : String
     def address : Address
     def location : Location

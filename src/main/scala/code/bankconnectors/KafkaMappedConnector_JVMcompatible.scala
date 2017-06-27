@@ -34,6 +34,8 @@ import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -1208,6 +1210,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   

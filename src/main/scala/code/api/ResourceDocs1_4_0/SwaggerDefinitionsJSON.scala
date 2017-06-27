@@ -1597,7 +1597,7 @@ object SwaggerDefinitionsJSON {
     )
   )
   
-  val branchJSONV220 = BranchJSONV220(
+  val branchJSONV220 = BranchJsonV220(
     id = "123",
     bank_id = "gh.29.uk",
     name = "OBP",

@@ -37,6 +37,7 @@ import java.util.Date
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
+import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -176,7 +177,7 @@ case class BankJSONV220(
 )
 
 //keep similar to "case class BranchJsonPost" in V210
-case class BranchJSONV220(
+case class BranchJsonV220(
   id: String,
   bank_id: String,
   name: String,
@@ -187,6 +188,25 @@ case class BranchJSONV220(
   drive_up: DriveUpJson,
   branch_routing: BranchRoutingJsonV141
 )
+
+
+
+case class AtmJsonV220(
+                           id: String,
+                           bank_id: String,
+                           name: String,
+                           address: AddressJson,
+                           location: LocationJson,
+                           meta: MetaJson
+                         )
+
+
+
+
+
+
+
+
 
 // keep similar to case class CreateAccountJSON - v200
 // Added branch_id and account_routing
@@ -353,7 +373,7 @@ object JSONFactory220{
     val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
     new CounterpartiesJsonV220(list)
   }
-  
+
   def createBankJSON(bank: Bank): BankJSONV220 = {
     BankJSONV220(
       id = bank.bankId.value,
@@ -369,10 +389,10 @@ object JSONFactory220{
       )
     )
   }
-  
+
   // keep similar to def createBranchJson(branch: Branch) -- v140
-  def createBranchJSON(branch: Branch): BranchJSONV220 = {
-    BranchJSONV220(
+  def createBranchJson(branch: Branch): BranchJsonV220 = {
+    BranchJsonV220(
       id= branch.branchId.value,
       bank_id= branch.bankId.value,
       name= branch.name,
@@ -387,6 +407,21 @@ object JSONFactory220{
       )
     )
   }
+
+
+  def createAtmJson(atm: Atm): AtmJsonV220 = {
+    AtmJsonV220(
+      id= atm.atmId.value,
+      bank_id= "lalala",
+      name= atm.name,
+      address= createAddressJson(atm.address),
+      location= createLocationJson(atm.location),
+      meta= createMetaJson(atm.meta)
+    )
+  }
+
+
+
   
   def createAccountJSON(userId: String, account: BankAccount): CreateAccountJSONV220 = {
     CreateAccountJSONV220(

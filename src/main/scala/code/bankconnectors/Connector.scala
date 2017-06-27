@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.atms.Atms.{AtmId, Atm}
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
@@ -949,10 +950,21 @@ trait Connector {
     bankRoutingScheme: String,
     bankRoutingAddress: String
   ): Box[Bank] = Empty
+
+
+  def createOrUpdateAtm(
+                          atm: AtmJsonPost
+                        ): Box[Atm] = Empty
+
+
+
+
   
 //  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+
+  def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =

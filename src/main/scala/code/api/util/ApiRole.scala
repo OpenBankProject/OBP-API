@@ -93,6 +93,12 @@ object ApiRole {
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateAtm extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateProduct extends ApiRole{
+    val requiresBankId = true
+  }
   case object CanCreateBank extends ApiRole{
     val requiresBankId = false
   }  

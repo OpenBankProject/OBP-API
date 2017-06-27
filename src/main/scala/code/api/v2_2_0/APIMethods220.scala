@@ -9,7 +9,9 @@ import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v2_1_0.{BranchJsonPost, ConsumerJSON, ConsumerPostJSON, JSONFactory210}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
+//import code.api.v2_2_0.JSONFactory220.AtmJsonV220
+import code.api.v2_1_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -378,7 +380,17 @@ trait APIMethods220 {
           }
       }
     }
-    
+
+
+
+    // Create Branch
+    val createBranchEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
+    //val createBranchEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
+    val createBranchEntitlementsRequiredText = createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required."
+
+
+    // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
+
     resourceDocs += ResourceDoc(
       createBranch,
       apiVersion,
@@ -386,8 +398,11 @@ trait APIMethods220 {
       "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
-      s"""Create branch for the bank (Authenticated access).
+      s"""Create Branch for the Bank.
+         |
          |${authenticationRequiredMessage(true) }
+         |
+         |$createBranchEntitlementsRequiredText
          |""",
       branchJSONV220,
       branchJSONV220,
@@ -408,7 +423,7 @@ trait APIMethods220 {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
                 branch.id,
@@ -424,11 +439,49 @@ trait APIMethods220 {
               branch.branch_routing.address
             )
           } yield {
-            val json = JSONFactory220.createBranchJSON(success)
+            val json = JSONFactory220.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }
     }
+
+
+//    case class AtmJsonPost (
+//                             id : String,
+//                             bank_id: String,
+//                             name : String,
+//                             address : AddressJson,
+//                             location : LocationJson,
+//                             meta : MetaJson
+//                           )
+
+
+
+    lazy val createAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            canCreateAtm <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateAtm) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
+            atm <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateAtm(
+              AtmJsonPost(
+                atm.id,
+                atm.bank_id,
+                atm.name,
+                atm.address,
+                atm.location,
+                atm.meta
+              )
+            )
+          } yield {
+            val json = JSONFactory220.createAtmJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
 
   
     resourceDocs += ResourceDoc(
