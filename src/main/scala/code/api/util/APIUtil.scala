@@ -176,6 +176,7 @@ import code.api.util.APIUtil._
   val CreateConsumerError = "OBP-30024: Could not create customer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
+  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"
   
 
   // Meetings
@@ -233,7 +234,7 @@ import code.api.util.APIUtil._
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
-  val KafkaTimeoutException = "OBP-50002: Kafka Timeout Exception."
+  val KafkaMessageClassCastException = "OBP-50002: Kafka Response Message Class Cast Exception."
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
 
 
