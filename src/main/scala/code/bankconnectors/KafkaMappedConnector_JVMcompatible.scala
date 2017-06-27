@@ -118,6 +118,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
+  // For this method, can only check the JValue --> correct format. We need handle the kafka or Future exception.
+  // So I try the error handling for each method.
   def tryExtract[T](in: JValue)(implicit ev: Manifest[T]): Box[T] = {
     try {
       Full(in.extract[T])
@@ -158,7 +160,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getBanks-ClassCastException",m)
-          Failure(KafkaTimeoutException)
+          Failure(KafkaMessageClassCastException)
         case m: Throwable =>
           logger.error("getBanks-Unexpected",m)
           Failure(UnknownError)
@@ -188,7 +190,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getBank-ClassCastException",m)
-          Failure(KafkaTimeoutException)
+          Failure(KafkaMessageClassCastException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
           Failure(UnknownError)
@@ -227,7 +229,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getUser-ClassCastException",m)
-          Failure(KafkaTimeoutException)
+          Failure(KafkaMessageClassCastException)
         case m: Throwable =>
           logger.error("getBank-Unexpected",m)
           Failure(UnknownError)
@@ -403,11 +405,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             logger.error("getTransaction-MappingException",m)
             Failure(AdapterOrCoreBankingSystemException)
           case m: TimeoutException =>
-            logger.error("getTransaction-timeoutException",m)
+            logger.error("getTransaction-TimeoutException",m)
             Failure(FutureTimeoutException)
           case m: ClassCastException =>
             logger.error("getTransaction-ClassCastException",m)
-            Failure(KafkaTimeoutException)
+            Failure(KafkaMessageClassCastException)
           case m: Throwable =>
             logger.error("getTransaction-Unexpected",m)
             Failure(UnknownError)
@@ -451,8 +453,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
         // So we links the bankId and UserId in MapperAccountHolders talble.
         val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-          //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-          case 0 => throw new RuntimeException("Please contact the admin. Wrong link between the userId, the bankId= " + bankId + " and acoountId = "+ accountId )
+          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
           case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
         }
         
@@ -542,11 +543,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           logger.error("getTransactions-MappingException",m)
           Failure(AdapterOrCoreBankingSystemException)
         case m: TimeoutException =>
-          logger.error("getTransactions-timeoutException",m)
+          logger.error("getTransactions-TimeoutException",m)
           Failure(FutureTimeoutException)
         case m: ClassCastException =>
           logger.error("getTransactions-ClassCastException",m)
-          Failure(KafkaTimeoutException)
+          Failure(KafkaMessageClassCastException)
         case m: RuntimeException =>
           logger.error("getTransactions-AccountID-UserId-Mapping",m)
           Failure(m.getMessage)
@@ -560,39 +561,53 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     bankId: BankId, 
     accountId: AccountId
   ): Box[KafkaBankAccount] = saveConnectorMetric{
-    //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
-    //Note: for Socegn, need bankid, accountId and userId.
-    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
-    // So we links the bankId and UserId in MapperAccountHolders talble.
-    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-      //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
-      case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
-    }
-    
-    def getBankAccountCached(
-      bankId: BankId, 
-      accountId: AccountId, 
-      userId : String, 
-      loginUser: String // added the login user here ,is just for cache 
-    ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
-      // Generate random uuid to be used as request-response match id
-      val req = Map(
-        "version" -> formatVersion,
-        "name" -> "get",
-        "target" -> "account",
-        "accountId" -> accountId.value,
-        "bankId" -> bankId.toString,
-        "userId" -> userId //TODO there will be the issue, login user is not revelent on BankId and AcocuntId. for Adaper, it need the userid
-      )
-      val r = tryExtract[KafkaInboundAccount](process(req)) match {
-        case Full(a) => Full(KafkaBankAccount(a))
-        case Empty => Empty
+    try {
+      //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
+      //Note: for Socegn, need bankid, accountId and userId.
+      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
+      // So we links the bankId and UserId in MapperAccountHolders talble.
+      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
       }
-      logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
-      r
+      
+      def getBankAccountCached(
+        bankId: BankId, 
+        accountId: AccountId, 
+        userId : String, 
+        loginUser: String // added the login user here ,is just for cache 
+      ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
+        // Generate random uuid to be used as request-response match id
+        val req = Map(
+          "version" -> formatVersion,
+          "name" -> "get",
+          "target" -> "account",
+          "accountId" -> accountId.value,
+          "bankId" -> bankId.toString,
+          "userId" -> userId 
+        )
+        val r = process(req).extract[KafkaInboundAccount]
+        logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
+        Full(new KafkaBankAccount(r))
+      }
+      getBankAccountCached(bankId: BankId, accountId: AccountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
+    } catch {
+      case m: MappingException =>
+        logger.error("getBankAccount-MappingException",m)
+        Failure(AdapterOrCoreBankingSystemException)
+      case m: TimeoutException =>
+        logger.error("getBankAccount-TimeoutException",m)
+        Failure(FutureTimeoutException)
+      case m: ClassCastException =>
+        logger.error("getBankAccount-ClassCastException",m)
+        Failure(KafkaMessageClassCastException)
+      case m: RuntimeException =>
+        logger.error("getBankAccount-AccountID-UserId-Mapping",m)
+        Failure(m.getMessage)
+      case m: Throwable =>
+        logger.error("getBankAccount-Unexpected",m)
+        Failure(UnknownError)
     }
-    getBankAccountCached(bankId: BankId, accountId: AccountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
   }("getBankAccount")
 
   //TODO not used yet
@@ -608,8 +623,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
 //      // So we links the bankId and UserId in MapperAccountHolders talble.
 //      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-//        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-//        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
+//        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
 //        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
 //      }
 //      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
@@ -646,8 +660,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.                                                                                                                             
 //    // So we links the bankId and UserId in MapperAccountHolders talble.                                                                                                                             
 //    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, AccountId(number)).toList.length match {                                                                                                                             // Generate random uuid to be used as request-respose match id
-//       //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-//      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
+//      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
 //      case _ => MapperAccountHolders.getAccountHolders(bankId, AccountId(number)).toList(0).name
 //    }
 //    val req = Map(
