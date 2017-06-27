@@ -12,3 +12,12 @@
 #main-about-box {
 	background-color: rgba(93, 133, 70, 0.7);
 }
+
+/* hide ugly home icon */
+#nav ul li:nth-child(1):before {
+	content: "";
+	height: 0px;
+	width: 0px;
+	margin-right: 0px;
+}
+
