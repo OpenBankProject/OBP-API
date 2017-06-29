@@ -771,27 +771,26 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   )
   
   case class PaymentFields(
-    fromAccountName: String, //need fill 1
-    fromAccountId: String, //need fill 2 
-    fromAccountBankId: String, //need fill 3
-    fromAccountCurrency: String, //need fill 4
-    transactionId: String, //need fill 5
-    transactionRequestType: String, //Not used for now 
-    transactionCurrency: String, //need fill 6
-    transactionAmount: String, //need fill 7
-    transactionChargePolicy: String, //Not used for now 
-    transactionChargeAmount: String, //need fill 8
-    transactionChargeCurrency: String, //Not used for now 
-    transactionDescription: String, //Not used for now 
-    transactionPostedDate: String, //Not used for now 
-    // toCounterparty
-    toCounterpartyId: String, //Not used for now 
-    toCounterpartyName: String, // need fill 9, DEBTOR_NAME
-    toCounterpartyCurrency: String, //need fill 10
-    toCounterpartyAccountRoutingAddress: String, //need fill 11 
-    toCounterpartyAccountRoutingScheme: String, //Not used for now 
-    toCounterpartyBankRoutingAddress: String, //need fill 12
-    toCounterpartyBankRoutingScheme: String //Not used for now 
+    fromAccountName: String,
+    fromAccountId: String, 
+    fromAccountBankId: String, 
+    fromAccountCurrency: String,
+    transactionId: String, 
+    transactionRequestType: String, 
+    transactionCurrency: String, 
+    transactionAmount: String, 
+    transactionChargePolicy: String, 
+    transactionChargeAmount: String, 
+    transactionChargeCurrency: String,
+    transactionDescription: String, 
+    transactionPostedDate: String, 
+    toCounterpartyId: String, 
+    toCounterpartyName: String, 
+    toCounterpartyCurrency: String, 
+    toCounterpartyAccountRoutingAddress: String, 
+    toCounterpartyAccountRoutingScheme: String,  
+    toCounterpartyBankRoutingAddress: String, 
+    toCounterpartyBankRoutingScheme: String 
   )
   /**
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
@@ -817,10 +816,14 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       else
         toCounterparty.otherBankRoutingAddress
     
-    val toCounterpartyName = AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
-      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
-      case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
-    }
+    val toCounterpartyName =
+      if (transactionRequestType.value == "SANDBOX_TAN")
+        AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
+          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
+          case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
+        }
+      else
+        toCounterparty.name
   
     val req = TransactionQuery(
       fields = PaymentFields(
@@ -831,7 +834,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         fromAccountCurrency = fromAccount.currency,//"XAF", //need fill 4
         //transaction detail
         transactionId = UUID.randomUUID().toString.take(35), //need fill 5
-        transactionRequestType = "not used 1",
+        transactionRequestType = transactionRequestType.value,
         transactionCurrency = "XAF", //need fill 6
         transactionAmount = amount.toString(), //"3001", //need fill 7
         transactionChargePolicy = "No3",
@@ -857,8 +860,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       val r = process(requestToMap)
       
       r.extract[KafkaInboundTransactionId] match {
-        case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
-        case _ => Full(TransactionId("0"))
+//        case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
+        // for now, we need just send the empty transaction-id, because the payments stuff is handling by SOPRA server.
+        // need some time to create the transaction, and get the id .  
+        case r: KafkaInboundTransactionId => Full(TransactionId(""))
+        case _ => Full(TransactionId(""))
       }
       
      } catch {
