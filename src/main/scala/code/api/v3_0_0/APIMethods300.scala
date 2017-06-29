@@ -502,7 +502,7 @@ trait APIMethods300 {
         """,
       ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -512,7 +512,7 @@ trait APIMethods300 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
             val uriPart = compact(render(json \ "es_uri_part"))
@@ -538,7 +538,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -548,7 +548,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
           }
           yield {
@@ -574,7 +574,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -584,7 +584,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
           }
             yield {
@@ -610,7 +610,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -620,7 +620,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
           }
             yield {

@@ -101,7 +101,7 @@ trait APIMethods210 {
         UserNotLoggedIn,
         InvalidJsonFormat,
         DataImportDisabled,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -117,7 +117,7 @@ trait APIMethods210 {
             u <- user ?~! UserNotLoggedIn
             allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
             allowDataImport <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
-            canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$UserDoesNotHaveRole $CanCreateSandbox")
+            canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(Extraction.decompose(successMessage), 201)
@@ -642,7 +642,7 @@ trait APIMethods210 {
         UserNotLoggedIn,
         BankNotFound,
         AccountNotFound,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
@@ -656,7 +656,7 @@ trait APIMethods210 {
               u <- user ?~ UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {UserDoesNotHaveRole + viewId}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {
@@ -722,7 +722,7 @@ trait APIMethods210 {
       entitlementJSONs,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
@@ -740,7 +740,7 @@ trait APIMethods210 {
                                   CanGetEntitlementsForAnyUserAtAnyBank::
                                   Nil
             allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
-            hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), UserDoesNotHaveRole+allowedEntitlementsTxt)
+            hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), UserHasMissingRoles+allowedEntitlementsTxt)
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             filteredEntitlements <- tryo{entitlements.filter(_.bankId == bankId.value)}
           }
@@ -774,7 +774,7 @@ trait APIMethods210 {
       consumerJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         InvalidConsumerId,
         UnknownError
       ),
@@ -787,7 +787,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers)
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers)
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong)
           } yield {
@@ -812,7 +812,7 @@ trait APIMethods210 {
       consumersJson,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -824,7 +824,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserDoesNotHaveRole + CanGetConsumers )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers )
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
@@ -849,7 +849,7 @@ trait APIMethods210 {
       putEnabledJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -863,8 +863,8 @@ trait APIMethods210 {
             u <- user ?~! UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
             _ <- putData.enabled match {
-              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserDoesNotHaveRole + CanEnableConsumers )
-              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserDoesNotHaveRole + CanDisableConsumers )
+              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
+              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
             }
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerId.toLong)
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
@@ -895,7 +895,7 @@ trait APIMethods210 {
       physicalCardJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -908,7 +908,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserDoesNotHaveRole +CanCreateCardsForBank)
+            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserHasMissingRoles +CanCreateCardsForBank)
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
@@ -959,7 +959,7 @@ trait APIMethods210 {
       usersJSONV200,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
@@ -971,7 +971,7 @@ trait APIMethods210 {
         user =>
           for {
             l <- user ?~ UserNotLoggedIn
-            canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole +CanGetAnyUser )
+            canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles +CanGetAnyUser )
             users <- tryo{AuthUser.getResourceUsers()}
           } yield {
             // Format the data as V2.0.0 json
@@ -1596,7 +1596,7 @@ trait APIMethods210 {
       consumerJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1608,7 +1608,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~ UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), UserDoesNotHaveRole + CanUpdateConsumerRedirectUrl )
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), UserHasMissingRoles + CanUpdateConsumerRedirectUrl )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
@@ -1673,7 +1673,7 @@ trait APIMethods210 {
       metricsJson,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1684,7 +1684,7 @@ trait APIMethods210 {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), UserDoesNotHaveRole + CanReadMetrics )
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), UserHasMissingRoles + CanReadMetrics )
   
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
   

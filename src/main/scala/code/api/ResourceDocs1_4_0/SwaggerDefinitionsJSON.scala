@@ -745,12 +745,12 @@ object SwaggerDefinitionsJSON {
     hours = "5"
   )
   val addressJson = AddressJson(
-    line_1 = "Berlin",
-    line_2 = "Berlin",
-    line_3 = "Berlin",
+    line_1 = "Osloer Straße 16/17",
+    line_2 = "Wedding",
+    line_3 = "",
     city = "Berlin",
-    state = "Berlin",
-    postcode = "123",
+    state = "Berlin Brandenburg",
+    postcode = "13359",
     country = "Germany"
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(
@@ -1597,7 +1597,7 @@ object SwaggerDefinitionsJSON {
     )
   )
   
-  val branchJSONV220 = BranchJsonV220(
+  val branchJsonV220 = BranchJsonV220(
     id = "123",
     bank_id = "gh.29.uk",
     name = "OBP",
@@ -1607,6 +1607,16 @@ object SwaggerDefinitionsJSON {
     lobby = lobbyJson,
     drive_up = driveUpJson,
     branch_routing = branchRoutingJSON
+  )
+
+
+  val atmJsonV220 = AtmJsonV220(
+    id = "123",
+    bank_id = "gh.29.uk",
+    name = "OBP",
+    address = addressJson,
+    location = locationJson,
+    meta = metaJson
   )
   
   val createAccountJSONV220 = CreateAccountJSONV220(

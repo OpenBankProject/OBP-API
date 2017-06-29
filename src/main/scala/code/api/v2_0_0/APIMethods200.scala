@@ -557,7 +557,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       socialMediasJSON,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, CustomerNotFoundByCustomerId, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -567,7 +567,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
-            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), UserDoesNotHaveRole + CanGetSocialMediaHandles)
+            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), UserHasMissingRoles + CanGetSocialMediaHandles)
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
@@ -775,7 +775,7 @@ trait APIMethods200 {
         UserNotLoggedIn,
         InvalidJsonFormat, 
         InvalidBankIdFormat, 
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -791,7 +791,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! BankNotFound
-            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), UserDoesNotHaveRole + CanAddSocialMediaHandle)
+            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), UserHasMissingRoles + CanAddSocialMediaHandle)
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -1675,7 +1675,7 @@ trait APIMethods200 {
         UserNotLoggedIn,
         BankNotFound,
         CustomerNumberAlreadyExists,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UserNotFoundById,
         CreateConsumerError,
         CustomerAlreadyExistsForUser,
@@ -1705,7 +1705,7 @@ trait APIMethods200 {
                                    CanCreateUserCustomerLink ::
                                    Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
-            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserDoesNotHaveRole + requiredEntitlementsTxt)
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserHasMissingRoles + requiredEntitlementsTxt)
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
@@ -1785,7 +1785,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1795,7 +1795,7 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~! ErrorMessages.UserNotLoggedIn
-              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
               users <- tryo{AuthUser.getResourceUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
@@ -1835,7 +1835,7 @@ trait APIMethods200 {
         BankNotFound, 
         InvalidJsonFormat,
         CustomerNotFoundByCustomerId, 
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         CustomerAlreadyExistsForUser, 
         CreateUserCustomerLinksError,
         UnknownError
@@ -1943,7 +1943,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1953,10 +1953,10 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
               _ <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
               u <- user ?~! ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank )
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank )
               entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
@@ -2120,7 +2120,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson, //TODO what is output here?
-        List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnknownError),
+        List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2130,7 +2130,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2206,7 +2206,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson,
-        List(UserNotLoggedIn, UserDoesNotHaveRole, UnknownError),
+        List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2216,7 +2216,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchMetrics}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserHasMissingRoles + CanSearchMetrics}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
