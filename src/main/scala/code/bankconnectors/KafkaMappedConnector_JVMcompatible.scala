@@ -788,8 +788,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     toCounterpartyId: String, //Not used for now 
     toCounterpartyName: String, // need fill 9, DEBTOR_NAME
     toCounterpartyCurrency: String, //need fill 10
-    toCounterpartyRoutingAddress: String, //need fill 11 
-    toCounterpartyRoutingScheme: String, //Not used for now 
+    toCounterpartyAccountRoutingAddress: String, //need fill 11 
+    toCounterpartyAccountRoutingScheme: String, //Not used for now 
     toCounterpartyBankRoutingAddress: String, //need fill 12
     toCounterpartyBankRoutingScheme: String //Not used for now 
   )
@@ -805,7 +805,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String) = {
   
-    val toCounterpartyRoutingAddress =
+    val toCounterpartyAccountRoutingAddress =
       if (transactionRequestType.value == "SANDBOX_TAN")
         toAccount.accountId.value
       else
@@ -817,9 +817,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       else
         toCounterparty.otherBankRoutingAddress
     
-    val toCounterpartyName = AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyRoutingAddress)).toList.length match {
-      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
-      case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyRoutingAddress)).toList(0).name
+    val toCounterpartyName = AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
+      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
+      case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
     }
   
     val req = TransactionQuery(
@@ -843,8 +843,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         toCounterpartyId = "not used 2",
         toCounterpartyName = toCounterpartyName, //toCounterparty.name, //"1000203892", // need fill 9, DEBTOR_NAME
         toCounterpartyCurrency = "XAF", //need fill 10
-        toCounterpartyRoutingAddress = toCounterpartyRoutingAddress, //"410ad4eb-9f63-300f-8cb9-12f0ab677521", //need fill 11 1000203893(account 06010616954)
-        toCounterpartyRoutingScheme = "not used 3",
+        toCounterpartyAccountRoutingAddress = toCounterpartyAccountRoutingAddress, //TODO fix the name  //"410ad4eb-9f63-300f-8cb9-12f0ab677521", //need fill 11 1000203893(account 06010616954)
+        toCounterpartyAccountRoutingScheme = "not used 3",
         toCounterpartyBankRoutingAddress = toCounterpartyBankRoutingAddress,//"00100", //need fill 12
         toCounterpartyBankRoutingScheme = "not used 4"
       )

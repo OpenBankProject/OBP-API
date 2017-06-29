@@ -31,7 +31,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   implicit val materializer = ActorMaterializer()
 
   import materializer._
-
+  /**
+    *Random select the partitions number from 0 to kafka.partitions value
+    *The specified partition number will be inside the Key.
+    */
   private def makeKeyFuture = Future(scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString)
 
   private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
@@ -57,7 +60,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     .createKafkaProducer()
 
   private val flow: ((String, String) => Source[String, Consumer.Control]) = { (topic, key) =>
-    consumer(topic, key.split("_")(0).toInt)
+    val specifiedPartition = key.split("_")(0).toInt
+    consumer(topic, specifiedPartition)
       .filter(msg => msg.key() == key)
       .map { msg =>
         logger.debug(s"$topic with $msg")
@@ -65,9 +69,14 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       }
   }
 
-  private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
-    producer.send(new ProducerRecord[String, String](topic.request, key.split("_")(0).toInt, key, value))
-    flow(topic.response, key)
+  private val sendRequestAndGetResponseFromKafka: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
+    val specifiedPartition = key.split("_")(0).toInt
+    val requestTopic = topic.request
+    val responseTopic = topic.response
+    //producer will publish the message to broker
+    producer.send(new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value))
+    //consumer will wait for the message from broker
+    flow(responseTopic, key)
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
   }
@@ -121,7 +130,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     case v: String =>
       for {
         key <- makeKeyFuture
-        r <- sendRequest(Topics.version, key, v)
+        r <- sendRequestAndGetResponseFromKafka(Topics.version, key, v)
         jv <- parseF(r)
         any <- extractF(jv)
       } yield {
@@ -135,7 +144,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         key <- makeKeyFuture
         d <- decomposeF1(request)
         s <- serializeF(d)
-        r <- sendRequest(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
+        r <- sendRequestAndGetResponseFromKafka(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
         jv <- parseF(r)
         any <- extractF(jv)
       } yield {
@@ -150,7 +159,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         key <- makeKeyFuture
         d <- decomposeF(request)
         v <- serializeF(d)
-        r <- sendRequest(Topics.connectorTopic, key, v)
+        r <- sendRequestAndGetResponseFromKafka(Topics.connectorTopic, key, v)
         jv <- parseF(r)
         any <- extractF(jv)
       } yield {
