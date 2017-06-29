@@ -1041,9 +1041,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
-  }
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.

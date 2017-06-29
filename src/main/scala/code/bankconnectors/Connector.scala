@@ -1037,7 +1037,6 @@ trait Connector {
 //
 //  def resetBadLoginAttempts(username:String):Unit
 
-  def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
 
   def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
 

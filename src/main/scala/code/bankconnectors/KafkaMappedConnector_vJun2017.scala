@@ -1746,9 +1746,6 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
-
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(
       InboundAccount(

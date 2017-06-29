@@ -1429,8 +1429,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
   //TODO need to fix in obpjvm, just mocked result as Mapper
