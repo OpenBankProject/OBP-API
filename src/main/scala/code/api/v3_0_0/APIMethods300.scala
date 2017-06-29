@@ -8,6 +8,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
+import code.bankconnectors.{Connector, InboundAdapterInfo}
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
@@ -628,6 +629,40 @@ trait APIMethods300 {
               val json = JSONFactory200.createUserJSON(user)
               successJsonResponse(Extraction.decompose(json))
             }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAdapter,
+      apiVersion,
+      "getAdapter",
+      "GET",
+      "/banks/BANK_ID/adapter",
+      "Get Info Of Adapter",
+      """Get a basic Adapter info
+        |
+        |Login is required.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
+        user =>
+          for {
+            _ <- user ?~! ErrorMessages.UserNotLoggedIn
+            // _ <- Bank(bankId) ?~! BankNotFound
+            ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
+          }
+          yield {
+            successJsonResponseFromCaseClass(ai)
+          }
       }
     }
 

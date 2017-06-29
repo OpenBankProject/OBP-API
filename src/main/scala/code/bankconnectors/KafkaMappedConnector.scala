@@ -75,6 +75,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[KafkaInboundTransactionRequestTypeCharge](cacheTTL)
 
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
 
   //
   // "Versioning" of the messages sent by this or similar connector might work like this:

@@ -135,9 +135,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         key <- makeKeyFuture
         d <- decomposeF1(request)
         s <- serializeF(d)
-        r <- sendRequest(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
-        jv <- parseF(r)
-        any <- extractF(jv)
+        r: String <- sendRequest(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
+        jv: JsonAST.JValue <- parseF(r)
+        any: Any <- extractF(jv)
       } yield {
         any
       }
