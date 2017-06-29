@@ -329,6 +329,11 @@ case class InboundAccount(
   branchId: String  = "None"
 )extends InboundMessageBase
 
+
+
+
+
+
 case class BankAccount2(r: InboundAccount) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)

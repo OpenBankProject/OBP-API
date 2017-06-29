@@ -5,6 +5,8 @@ import java.util.{Date, TimeZone, UUID}
 
 import code.accountholder.MapperAccountHolders
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -652,6 +654,10 @@ private object LocalConnector extends Connector with MdcLoggable {
   override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
+
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
+
+
 
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   

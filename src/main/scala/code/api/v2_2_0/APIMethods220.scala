@@ -9,7 +9,9 @@ import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v2_1_0.{BranchJsonPost, ConsumerJSON, ConsumerPostJSON, JSONFactory210}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
+//import code.api.v2_2_0.JSONFactory220.AtmJsonV220
+import code.api.v2_1_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -378,7 +380,17 @@ trait APIMethods220 {
           }
       }
     }
-    
+
+
+
+    // Create Branch
+    val createBranchEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
+    //val createBranchEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
+    val createBranchEntitlementsRequiredText = createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required."
+
+
+    // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
+
     resourceDocs += ResourceDoc(
       createBranch,
       apiVersion,
@@ -386,11 +398,14 @@ trait APIMethods220 {
       "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
-      s"""Create branch for the bank (Authenticated access).
+      s"""Create Branch for the Bank.
+         |
          |${authenticationRequiredMessage(true) }
+         |
+         |$createBranchEntitlementsRequiredText
          |""",
-      branchJSONV220,
-      branchJSONV220,
+      branchJsonV220,
+      branchJsonV220,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -408,7 +423,7 @@ trait APIMethods220 {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
                 branch.id,
@@ -424,11 +439,75 @@ trait APIMethods220 {
               branch.branch_routing.address
             )
           } yield {
-            val json = JSONFactory220.createBranchJSON(success)
+            val json = JSONFactory220.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }
     }
+
+
+
+
+    val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
+    val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
+
+    val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
+
+    resourceDocs += ResourceDoc(
+      createAtm,
+      apiVersion,
+      "createAtm",
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createAtmEntitlementsRequiredText
+          |""",
+      atmJsonV220,
+      atmJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InsufficientAuthorisationToCreateBranch,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+
+
+    lazy val createAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
+              ||
+              hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
+              createAtmEntitlementsRequiredText)
+            atm <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateAtm(
+              AtmJsonPost(
+                atm.id,
+                atm.bank_id,
+                atm.name,
+                atm.address,
+                atm.location,
+                atm.meta
+              )
+            )
+          } yield {
+            val json = JSONFactory220.createAtmJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
 
   
     resourceDocs += ResourceDoc(
@@ -456,7 +535,7 @@ trait APIMethods220 {
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         UserNotFoundById,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         InvalidAccountBalanceAmount,
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
@@ -483,7 +562,7 @@ trait APIMethods220 {
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! UserNotFoundById
             // User can create account for self or an account for another user if they have CanCreateAccount role
             isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) ,
-              s"${UserDoesNotHaveRole} CanCreateAccount or create account for self")
+              s"${UserHasMissingRoles} CanCreateAccount or create account for self")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~! InvalidAccountType
             accountLabel <- tryo(jsonBody.label) //?~! ErrorMessages.InvalidAccountLabel
@@ -533,7 +612,7 @@ trait APIMethods220 {
       configurationJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -542,7 +621,7 @@ trait APIMethods220 {
     lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "config" :: Nil JsonGet _ => user => for {
         u <- user ?~! ErrorMessages.UserNotLoggedIn
-        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserDoesNotHaveRole $CanGetConfig")
+        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserHasMissingRoles $CanGetConfig")
       } yield {
         successJsonResponse(getConfigInfoJSON(), 200)
       }
@@ -711,7 +790,7 @@ trait APIMethods220 {
       ),
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -724,7 +803,7 @@ trait APIMethods220 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserDoesNotHaveRole + CanCreateConsumer )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
                                                                 Some(UUID.randomUUID().toString),
