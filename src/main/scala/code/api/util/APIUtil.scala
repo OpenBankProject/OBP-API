@@ -35,10 +35,11 @@ package code.api.util
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
+
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
-import code.api.v1_2.{ErrorMessage, SuccessMessage}
+import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
@@ -46,22 +47,21 @@ import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnMetrics}
 import code.model._
 import code.sanitycheck.SanityCheck
+import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
 import net.liftweb.common.{Empty, _}
+import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.http._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props, SecurityHelpers}
-import scala.xml.{Elem, XML}
-import scala.collection.mutable.ArrayBuffer
+import net.liftweb.util.Props
+
 import scala.collection.JavaConverters._
-import code.util.Helper.SILENCE_IS_GOLDEN
-import code.util.Helper.MdcLoggable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.xml.{Elem, XML}
 
 object ErrorMessages {
 import code.api.util.APIUtil._
@@ -425,6 +425,9 @@ object APIUtil extends MdcLoggable {
   def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
 
+  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
+    JsonResponse(Extraction.decompose(cc), headers, Nil, httpCode)
+
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
 
@@ -670,7 +673,6 @@ object APIUtil extends MdcLoggable {
     import javax.crypto
 
     import dispatch.{Req => Request}
-    import net.liftweb.util.Helpers
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map

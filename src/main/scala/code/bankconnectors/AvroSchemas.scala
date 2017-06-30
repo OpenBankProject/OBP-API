@@ -12,8 +12,11 @@ import com.sksamuel.avro4s.SchemaFor
 object AvroSchemas {
   implicit val schemaForGetBanks = SchemaFor[GetBanks]
   implicit val schemaForGetBank = SchemaFor[GetBank]
+  implicit val schemaForGetAdapterInfo = SchemaFor[GetAdapterInfo]
+
 
   implicit val schemaForBanks = SchemaFor[Banks]
   implicit val schemaForBank = SchemaFor[BankWrapper]
+  implicit val schemaForAdapterInfo = SchemaFor[AdapterInfo]
 
 }
