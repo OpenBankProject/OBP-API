@@ -12,14 +12,14 @@ import code.branches.MappedBranch
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{Consumer, PhysicalCard, _}
 import code.model.dataAccess.ResourceUser
-import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import code.model.{PhysicalCard, _}
 import code.products.Products.{Product, ProductCode}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.transactionrequests.TransactionRequestTypeCharge
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Empty, Failure, Full}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
@@ -202,8 +202,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
     
     override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
-
-    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
     override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
     
