@@ -1175,7 +1175,7 @@ Returns a string showed to the developer
     if (Props.getBool("write_metrics", false)){
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
-        ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
       }
     }
     result
