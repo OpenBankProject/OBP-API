@@ -63,7 +63,7 @@ case class OutboundUserByUsernamePasswordBase(
 case class OutboundAdapterInfo(
   messageFormat: String,
   action: String,
-  currentTimeInMillis: String
+  date: String
 ) extends OutboundMessageBase
 
 case class OutboundUserAccountViewsBase(
@@ -307,7 +307,7 @@ case class InboundAdapterInfo(errorCode: String,
                               name: String,
                               version: String,
                               git_commit: String,
-                              currentTimeInMillis: String
+                              date: String
                              ) extends InboundMessageBase
 
 

@@ -109,7 +109,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       OutboundAdapterInfo(
         messageFormat = messageFormat,
         action = "obp.get.getAdapterInfo",
-        currentTimeInMillis=""
+        date = (new Date()).toString
       )
     ),
     exampleInboundMessage = Extraction.decompose(
@@ -118,12 +118,12 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         name = "Obp-Kafka-South",
         version = "June2017",
         git_commit = "...",
-        currentTimeInMillis=""
+        date = (new Date()).toString
       )
     )
   )
   override def getAdapterInfo: Box[InboundAdapterInfo] = {
-    val req = code.bankconnectors.GetAdapterInfo(System.currentTimeMillis().toString)
+    val req = code.bankconnectors.GetAdapterInfo((new Date()).toString)
     val rr = process[code.bankconnectors.GetAdapterInfo](req)
     val r = rr.extract[InboundAdapterInfo]
     Full(r)
