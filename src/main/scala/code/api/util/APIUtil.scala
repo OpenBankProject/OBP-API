@@ -305,6 +305,16 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+  def isThereGatewayHeader : Boolean = {
+    S.request match {
+      case Full(a) =>  a.header("Authorization") match {
+        case Full(parameters) => parameters.contains("Gateway")
+        case _ => false
+      }
+      case _ => false
+    }
+  }
+
   def isThereAnOAuthHeader : Boolean = {
     S.request match {
       case Full(a) =>  a.header("Authorization") match {
