@@ -4,9 +4,8 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
+import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
@@ -177,8 +176,8 @@ object Topics {
       c.replaceFirst("v", "")
     }
 
-    Topic(s"obp.${version}.Q." + className.replace("$", ""),
-      s"obp.${version}.R." + className.replace("$", ""))
+    Topic(s"obp.${version}.N." + className.replace("$", ""),
+      s"obp.${version}.S." + className.replace("$", ""))
   }
 
 }

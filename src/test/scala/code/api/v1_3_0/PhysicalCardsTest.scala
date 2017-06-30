@@ -205,8 +205,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     
     override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
-    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
     override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
     
     override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
