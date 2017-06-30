@@ -37,6 +37,8 @@ private object LocalConnector extends Connector with MdcLoggable {
 
   implicit override val nameOfConnector = LocalConnector.getClass.getSimpleName
 
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val limit = BigDecimal("50")

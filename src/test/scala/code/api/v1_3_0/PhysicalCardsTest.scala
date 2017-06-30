@@ -6,14 +6,14 @@ import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
-import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
+import code.bankconnectors.{Connector, InboundAdapterInfo, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
-import code.model.{PhysicalCard, _}
+import code.model.{Consumer, PhysicalCard, _}
 import code.products.Products.{Product, ProductCode}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.transactionrequests.TransactionRequestTypeCharge
@@ -66,6 +66,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     type AccountType = BankAccount
 
     implicit override val nameOfConnector = "MockedCardConnector"
+
+    override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
     override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
     override def getUser(name: String, password: String): Box[InboundUser] = ???
