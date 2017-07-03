@@ -18,7 +18,7 @@ object ConnMetrics extends SimpleInjector {
    * @param metric
    * @return
    */
-  def getMetricDay(metric : ConnMetric) : Date = {
+  def getMetricDay(metric : ConnectorMetric) : Date = {
     val cal = Calendar.getInstance()
     cal.setTime(metric.getDate())
     cal.set(Calendar.HOUR_OF_DAY,0)
@@ -32,25 +32,25 @@ object ConnMetrics extends SimpleInjector {
 
 trait ConnMetrics {
 
-  def saveMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long): Unit
-  def getAllMetrics(queryParams: List[OBPQueryParam]): List[ConnMetric]
-  def bulkDeleteMetrics(): Boolean
+  def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit
+  def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[ConnectorMetric]
+  def bulkDeleteConnectorMetrics(): Boolean
 
 }
 
 class RemotedataConnectorMetricsCaseClasses {
-  case class saveMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long)
-  case class getAllMetrics(queryParams: List[OBPQueryParam])
+  case class saveConnecotrMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long)
+  case class getAllConnectorMetrics(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }
 
 object RemotedataConnectorMetricsCaseClasses extends RemotedataConnectorMetricsCaseClasses
 
-trait ConnMetric {
+trait ConnectorMetric {
 
   def getConnectorName(): String
   def getFunctionName(): String
-  def getObpApiRequestId(): String
+  def getCorrelationId(): String
   def getDate(): Date
   def getDuration(): Long
 

@@ -105,6 +105,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
   
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
+
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
   
   // "Versioning" of the messages sent by this or similar connector might work like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -1279,8 +1282,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   
   //TODO need to fix in obpjvm, just mocked result as Mapper

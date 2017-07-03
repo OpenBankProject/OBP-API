@@ -4,9 +4,8 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
+import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
@@ -215,16 +214,14 @@ object Topics {
       val c = if (connectorNameFromProps.contains("_")) connectorNameFromProps.split("_")(1) else connectorNameFromProps
       c.replaceFirst("v", "")
     }
-
+  
     /**
       *  eg: 
-      *  obp.Jun2017.Request.GetBank
-      *  obp.Jun2017.Response.GetBank
+      *  obp.Jun2017.N.GetBank
+      *  obp.Jun2017.S.GetBank
       */
-    TopicPair(
-      s"obp.${connectorVersion}.Request." + className.replace("$", ""),
-      s"obp.${connectorVersion}.Response." + className.replace("$", "")
-    )
+    TopicPair(s"obp.${connectorVersion}.N." + className.replace("$", ""),
+      s"obp.${connectorVersion}.S." + className.replace("$", ""))
   }
 
 }

@@ -75,6 +75,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[KafkaInboundTransactionRequestTypeCharge](cacheTTL)
 
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
 
   //
   // "Versioning" of the messages sent by this or similar connector might work like this:
@@ -1067,9 +1069,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
-  // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
+    // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = Map(

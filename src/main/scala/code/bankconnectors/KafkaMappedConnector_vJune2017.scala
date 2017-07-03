@@ -48,6 +48,7 @@ import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -59,7 +60,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.util.Helper.MdcLoggable
 
 
 object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -101,6 +101,33 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
+  messageDocs += MessageDoc(
+    process = "obp.get.AdapterInfo",
+    messageFormat = messageFormat,
+    description = "getAdapterInfo from kafka ",
+    exampleOutboundMessage = Extraction.decompose(
+      OutboundAdapterInfo(
+        messageFormat = messageFormat,
+        action = "obp.get.getAdapterInfo",
+        date = (new Date()).toString
+      )
+    ),
+    exampleInboundMessage = Extraction.decompose(
+      InboundAdapterInfo(
+        errorCode = "OBPS-001: .... ",
+        name = "Obp-Kafka-South",
+        version = "June2017",
+        git_commit = "...",
+        date = (new Date()).toString
+      )
+    )
+  )
+  override def getAdapterInfo: Box[InboundAdapterInfo] = {
+    val req = code.bankconnectors.GetAdapterInfo((new Date()).toString)
+    val rr = process[code.bankconnectors.GetAdapterInfo](req)
+    val r = rr.extract[InboundAdapterInfo]
+    Full(r)
+  }
 
   // Each Message Doc has a process, description, example outbound and inbound messages.
 
@@ -1745,9 +1772,6 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
-
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
 
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(

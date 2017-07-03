@@ -15,7 +15,7 @@ import code.api.v2_1_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
-import code.metrics.{ConnMetric, ConnMetrics}
+import code.metrics.{ConnectorMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper._
@@ -709,7 +709,7 @@ trait APIMethods220 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
 
-            metrics <- Full(ConnMetrics.metrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
+            metrics <- Full(ConnMetrics.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
 
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
@@ -744,11 +744,11 @@ trait APIMethods220 {
             obpApiRequestId <- Full(S.param("obp_api_request_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
 
 
-            filterByFields: List[ConnMetric] = metrics
+            filterByFields: List[ConnectorMetric] = metrics
               .filter(rd => (if (!connectorName.isEmpty) rd.getConnectorName().equals(connectorName.get) else true))
               .filter(rd => (if (!functionName.isEmpty) rd.getFunctionName().equals(functionName.get) else true))
               //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
-              .filter(rd => (if (!obpApiRequestId.isEmpty) rd.getObpApiRequestId().equals(obpApiRequestId.get) else true))
+              .filter(i => (if (!obpApiRequestId.isEmpty) i.getCorrelationId().equals(obpApiRequestId.get) else true))
           } yield {
             val json = JSONFactory220.createConnectorMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))

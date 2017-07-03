@@ -41,7 +41,7 @@ import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
-import code.metrics.{APIMetric, ConnMetric}
+import code.metrics.{APIMetric, ConnectorMetric}
 import code.model._
 import code.users.Users
 import net.liftweb.common.Full
@@ -440,16 +440,16 @@ object JSONFactory220{
     )
   }
 
-  def createConnectorMetricJson(metric: ConnMetric): ConnectorMetricJson = {
+  def createConnectorMetricJson(metric: ConnectorMetric): ConnectorMetricJson = {
     ConnectorMetricJson(
       connector_name = metric.getConnectorName(),
       function_name = metric.getFunctionName(),
-      obp_api_request_id = metric.getObpApiRequestId(),
+      obp_api_request_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
       date = metric.getDate()
     )
   }
-  def createConnectorMetricsJson(metrics : List[ConnMetric]) : ConnectorMetricsJson = {
+  def createConnectorMetricsJson(metrics : List[ConnectorMetric]) : ConnectorMetricsJson = {
     ConnectorMetricsJson(metrics.map(createConnectorMetricJson))
   }
 

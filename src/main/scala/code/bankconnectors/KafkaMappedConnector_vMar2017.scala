@@ -103,6 +103,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
 
   // Each Message Doc has a process, description, example outbound and inbound messages.
 
@@ -1758,9 +1760,6 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
-  
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(
       InboundAccount(

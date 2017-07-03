@@ -113,6 +113,8 @@ trait Connector {
 
   implicit val nameOfConnector = Connector.getClass.getSimpleName
 
+  def getAdapterInfo(): Box[InboundAdapterInfo]
+
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
   // before we attempt to create a transaction on the south side
@@ -1038,7 +1040,6 @@ trait Connector {
 //
 //  def resetBadLoginAttempts(username:String):Unit
 
-  def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
 
   def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
 

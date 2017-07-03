@@ -8,17 +8,17 @@ import net.liftweb.mapper._
 
 object ConnectorMetrics extends ConnMetrics {
 
-  override def saveMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long): Unit = {
+  override def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit = {
     MappedConnectorMetric.create
       .connectorName(connectorName)
       .functionName(functionName)
       .date(date)
       .duration(duration)
-      //.obpApiRequestId(obpApiRequestId)
+      //.correlationId(correlationId)
       .save
   }
 
-  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
+  override def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedConnectorMetric](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedConnectorMetric](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedConnectorMetric.date, date) }.headOption
@@ -36,28 +36,28 @@ object ConnectorMetrics extends ConnMetrics {
     MappedConnectorMetric.findAll(optionalParams: _*)
   }
 
-  override def bulkDeleteMetrics(): Boolean = {
+  override def bulkDeleteConnectorMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
   }
 
 }
 
-class MappedConnectorMetric extends ConnMetric with LongKeyedMapper[MappedConnectorMetric] with IdPK {
+class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedConnectorMetric] with IdPK {
   override def getSingleton = MappedConnectorMetric
 
   object connectorName extends DefaultStringField(this)
   object functionName extends DefaultStringField(this)
-  object obpApiRequestId extends MappedUUID(this)
+  object correlationId extends MappedUUID(this)
   object date extends MappedDateTime(this)
   object duration extends MappedLong(this)
 
   override def getConnectorName(): String = connectorName.get
   override def getFunctionName(): String = functionName.get
-  override def getObpApiRequestId(): String = obpApiRequestId.get
+  override def getCorrelationId(): String = correlationId.get
   override def getDate(): Date = date.get
   override def getDuration(): Long = duration.get
 }
 
 object MappedConnectorMetric extends MappedConnectorMetric with LongKeyedMetaMapper[MappedConnectorMetric] {
-  override def dbIndexes = Index(connectorName) :: Index(functionName) :: Index(date) :: Index(obpApiRequestId) :: super.dbIndexes
+  override def dbIndexes = Index(connectorName) :: Index(functionName) :: Index(date) :: Index(correlationId) :: super.dbIndexes
 }

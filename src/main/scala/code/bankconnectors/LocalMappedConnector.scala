@@ -60,6 +60,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric 
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
@@ -1041,9 +1044,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
-  }
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
