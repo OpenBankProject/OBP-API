@@ -38,6 +38,7 @@ import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
+import code.api.v2_2_0.OBPAPI2_2_0._
 import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
@@ -280,6 +281,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createBank ::
                           Implementations2_2_0.createAccount ::
                           Implementations2_2_0.createBranch ::
+                          Implementations2_2_0.createAtm ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
                           Nil

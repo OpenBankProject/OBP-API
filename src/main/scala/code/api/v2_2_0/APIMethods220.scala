@@ -446,8 +446,6 @@ trait APIMethods220 {
     }
 
 
-
-
     val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
     val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
 
@@ -471,7 +469,7 @@ trait APIMethods220 {
       List(
         UserNotLoggedIn,
         BankNotFound,
-        InsufficientAuthorisationToCreateBranch,
+        UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
@@ -509,7 +507,9 @@ trait APIMethods220 {
     }
 
 
-  
+
+
+
     resourceDocs += ResourceDoc(
       createAccount,
       apiVersion,
