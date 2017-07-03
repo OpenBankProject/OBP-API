@@ -64,7 +64,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with MdcLoggable {
 
-  type AccountType = BankAccount2
+  type AccountType = BankAccountJune2017
 
   implicit override val nameOfConnector = KafkaMappedConnector_vJun2017.getClass.getSimpleName
 
@@ -72,11 +72,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   val cacheTTL = Props.get("connector.cache.ttl.seconds", "10").toInt
   val cachedUser = TTLCache[InboundValidatedUser](cacheTTL)
   val cachedBank = TTLCache[InboundBank](cacheTTL)
-  val cachedAccount = TTLCache[InboundAccount](cacheTTL)
+  val cachedAccount = TTLCache[InboundAccountJune2017](cacheTTL)
   val cachedBanks = TTLCache[List[InboundBank]](cacheTTL)
-  val cachedAccounts = TTLCache[List[InboundAccount]](cacheTTL)
-  val cachedPublicAccounts = TTLCache[List[InboundAccount]](cacheTTL)
-  val cachedUserAccounts = TTLCache[List[InboundAccount]](cacheTTL)
+  val cachedAccounts = TTLCache[List[InboundAccountJune2017]](cacheTTL)
+  val cachedPublicAccounts = TTLCache[List[InboundAccountJune2017]](cacheTTL)
+  val cachedUserAccounts = TTLCache[List[InboundAccountJune2017]](cacheTTL)
   val cachedFxRate = TTLCache[InboundFXRate](cacheTTL)
   val cachedCounterparty = TTLCache[InboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[InboundTransactionRequestTypeCharge](cacheTTL)
@@ -175,42 +175,48 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundAccount(
+      InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
         owners = "Susan" :: " Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        generateViews = "Public" :: "Accountant" :: "Auditor" ::Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       )
-        :: InboundAccount(
+        :: InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
         owners = "Susan" :: " Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       )
         :: Nil
     )
   )
 
   def updateUserAccountViews(user: ResourceUser) = {
-    val accounts: List[InboundAccount] = getBanks.get.flatMap { bank => {
+    val accounts: List[InboundAccountJune2017] = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -224,7 +230,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
       // Generate random uuid to be used as request-response match id
       } yield {
-        cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccount]])
+        cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccountJune2017]])
       }
     }
     }.flatten
@@ -234,13 +240,14 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       username <- tryo {
         user.name
       }
+    
       views <- tryo {
         createViews(BankId(acc.bankId),
           AccountId(acc.accountId),
           acc.owners.contains(username),
-          acc.generatePublicView,
-          acc.generateAccountantsView,
-          acc.generateAuditorsView
+          acc.generateViews.contains("Public"),
+          acc.generateViews.contains("Accountant"),
+          acc.generateViews.contains("Auditor")
         )
       }
       existing_views <- tryo {
@@ -714,25 +721,28 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundAccount(
+      InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
-        owners = "Susan" :: "Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        owners = "Susan" :: " Frank" :: Nil,
+        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       )
     )
   )
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount2] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccountJune2017] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
       action = "obp.get.Account",
@@ -746,16 +756,16 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate(req.toString, () => process(req).extract[InboundAccount])
+      cachedAccount.getOrElseUpdate(req.toString, () => process(req).extract[InboundAccountJune2017])
     }
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bankId), AccountId(r.accountId))).toSet
     val acc = List((bankId, accountId)).toSet
     if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccount)
 
-    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
+    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, "label")
 
-    Full(new BankAccount2(r))
+    Full(new BankAccountJune2017(r))
   }
 
   messageDocs += MessageDoc(
@@ -773,42 +783,31 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundAccount(
+      InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
-        owners = "Susan" :: "Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
-      ) :: InboundAccount(
-        errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        bankId = "gh.29.uk",
-        label = "Good",
-        number = "123",
-        `type` = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        iban = "12345",
-        owners = "Susan" :: "Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        owners = "Susan" :: " Frank" :: Nil,
+        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       ) :: Nil
     )
   )
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount2] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccountJune2017] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
-    val r: List[InboundAccount] = accts.flatMap { a => {
+    val r: List[InboundAccountJune2017] = accts.flatMap { a => {
 
       logger.info(s"KafkaMappedConnnector.getBankAccounts with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
@@ -822,7 +821,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
       implicit val formats = net.liftweb.json.DefaultFormats
       val r = {
-        cachedAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccount]])
+        cachedAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccountJune2017]])
       }
       r
     }
@@ -835,8 +834,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccounts)
 
     r.map { t =>
-      createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
-      new BankAccount2(t)
+      createMappedAccountDataIfNotExisting(t.bankId, t.accountId, "label")
+      new BankAccountJune2017(t)
     }
   }
 
@@ -856,20 +855,23 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundAccount(
+      InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
         owners = "Susan" :: " Frank" :: Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       )
     )
   )
@@ -888,10 +890,10 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate(req.toString, () => process(req).extract[InboundAccount])
+      cachedAccount.getOrElseUpdate(req.toString, () => process(req).extract[InboundAccountJune2017])
     }
-    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
-    Full(new BankAccount2(r))
+    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, "label")
+    Full(new BankAccountJune2017(r))
   }
 
   // Get all counterparties related to an account
@@ -1065,8 +1067,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
     * of the saved transaction.
     */
-  private def saveTransaction(fromAccount: BankAccount2,
-                              toAccount: BankAccount2,
+  private def saveTransaction(fromAccount: BankAccountJune2017,
+                              toAccount: BankAccountJune2017,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
@@ -1362,8 +1364,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   }
 
 
-  protected override def makePaymentImpl(fromAccount: BankAccount2,
-                                         toAccount: BankAccount2,
+  protected override def makePaymentImpl(fromAccount: BankAccountJune2017,
+                                         toAccount: BankAccountJune2017,
                                          toCounterparty: CounterpartyTrait,
                                          amt: BigDecimal,
                                          description: String,
@@ -1774,21 +1776,24 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
   override def getEmptyBankAccount(): Box[AccountType] = {
-    Full(new BankAccount2(
-      InboundAccount(
+    Full(new BankAccountJune2017(
+      InboundAccountJune2017(
         errorCode = "OBPS-001: .... ",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
-        label = "Good",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         number = "123",
-        `type` = "AC",
+        accountType = "AC",
         balanceAmount = "50",
         balanceCurrency = "EUR",
-        iban = "12345",
-        owners = Nil,
-        generatePublicView = true,
-        generateAccountantsView = true,
-        generateAuditorsView = true
+        owners = "Susan" :: " Frank" :: Nil,
+        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
       )
     )
     )
@@ -1843,7 +1848,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount2, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccountJune2017, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,
