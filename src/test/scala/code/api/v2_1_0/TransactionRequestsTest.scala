@@ -270,8 +270,8 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       def makeAnswerRequest = makePostRequest(answerRequest, write(answerJson))
 
       def checkAllAnsTransReqBodyFields(ansTransReqResponse: APIResponse, withChellenge: Boolean): Unit = {
-        Then("we should get a 202 created code")
-        (ansTransReqResponse.code) should equal(202)
+        Then("we should get a 201 created code")
+        (ansTransReqResponse.code) should equal(201)
 
         And("we should get the body sie is 10, the response Json body have 10 Attributes")
         (ansTransReqResponse.body.children.size) should equal(10)
