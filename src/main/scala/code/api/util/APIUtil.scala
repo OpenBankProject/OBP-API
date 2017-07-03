@@ -176,7 +176,7 @@ import code.api.util.APIUtil._
   val CreateConsumerError = "OBP-30024: Could not create customer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
-  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"
+  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server. "
   
 
   // Meetings

@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.MessageDoc
+import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
@@ -298,7 +298,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
 
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] = {
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {{
     val req = GetBanks(
       AuthInfo(username = currentResourceUserId, userId = AuthUser.getCurrentUserUsername),
       "")
@@ -307,7 +307,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     val res = rList map (new Bank2(_))
     logger.debug(s"Kafka getBanks says res is $res")
     Full(res)
-  }
+  }}("getBanks")
 
   messageDocs += MessageDoc(
     process = "obp.get.ChallengeThreshold",
