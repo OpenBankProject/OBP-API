@@ -4,7 +4,7 @@ import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.{AtmId, Atm}
+import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -36,6 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
 import code.api.util.APIUtil.saveConnectorMetric
+import code.api.v2_2_0.ProductJsonV220
 
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -1014,46 +1015,56 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-//  override def createOrUpdateProduct(product: Product): Box[Product] = {
-//
-//    //check the product existence and update or insert data
-//    getProduct(BankId(product.bankId.value), ProductCode(product.code.value)) match {
-//      case Full(mappedProduct) =>
-//        tryo {
-//          mappedProduct.mName(product.name)
-//          .mCode (product.code.value)
-//          .mBankId(product.bankId.value)
-//          .mName(product.name)
-//          .mCategory(product.category)
-//          .mFamily(product.family)
-//          .mSuperFamily(product.superFamily)
-//          .mMoreInfoUrl(product.moreInfoUrl)
-//          .mDetails(product.details)
-//          .mDescription(product.description)
-//            .mLicenseId(product.meta.license.id)
-//            .mLicenseName(product.meta.license.name)
-//            .saveMe()
-//        } ?~! ErrorMessages.UpdateProductError
-//      case _ =>
-//        tryo {
-//          MappedProduct.create
-//            .mName(product.name)
-//            .mCode (product.code.value)
-//            .mBankId(product.bankId.value)
-//            .mName(product.name)
-//            .mCategory(product.category)
-//            .mFamily(product.family)
-//            .mSuperFamily(product.superFamily)
-//            .mMoreInfoUrl(product.moreInfoUrl)
-//            .mDetails(product.details)
-//            .mDescription(product.description)
-//            .mLicenseId(product.meta.license.id)
-//            .mLicenseName(product.meta.license.name)
-//            .saveMe()
-//        } ?~! ErrorMessages.CreateProductError
-//    }
-//
-//  }
+  override def createOrUpdateProduct(bankId : String,
+                                     code : String,
+                                     name : String,
+                                     category : String,
+                                     family : String,
+                                     superFamily : String,
+                                     moreInfoUrl : String,
+                                     details : String,
+                                     description : String,
+                                     metaLicenceId : String,
+                                     metaLicenceName : String): Box[Product] = {
+
+    //check the product existence and update or insert data
+    getProduct(BankId(bankId), ProductCode(code)) match {
+      case Full(mappedProduct) =>
+        tryo {
+          mappedProduct.mName(name)
+          .mCode (code)
+          .mBankId(bankId)
+          .mName(name)
+          .mCategory(category)
+          .mFamily(family)
+          .mSuperFamily(superFamily)
+          .mMoreInfoUrl(moreInfoUrl)
+          .mDetails(details)
+          .mDescription(description)
+          .mLicenseId(metaLicenceId)
+          .mLicenseName(metaLicenceName)
+          .saveMe()
+        } ?~! ErrorMessages.UpdateProductError
+      case _ =>
+        tryo {
+          MappedProduct.create
+            .mName(name)
+            .mCode (code)
+            .mBankId(bankId)
+            .mName(name)
+            .mCategory(category)
+            .mFamily(family)
+            .mSuperFamily(superFamily)
+            .mMoreInfoUrl(moreInfoUrl)
+            .mDetails(details)
+            .mDescription(description)
+            .mLicenseId(metaLicenceId)
+            .mLicenseName(metaLicenceName)
+            .saveMe()
+        } ?~! ErrorMessages.CreateProductError
+    }
+
+  }
 
 
 

@@ -559,18 +559,17 @@ trait APIMethods220 {
               createProductEntitlementsRequiredText)
             product <- tryo {json.extract[ProductJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateProduct(
-              ProductJsonV220(
-                bank_id = product.bank_id,
+                bankId = product.bank_id,
                 code = product.code,
-              name = product.name,
-              category = product.category,
-              family = product.family,
-              super_family = product.super_family,
-                more_info_url = product.more_info_url,
+                name = product.name,
+                category = product.category,
+                family = product.family,
+                superFamily = product.super_family,
+                moreInfoUrl = product.more_info_url,
                 details = product.details,
                 description = product.description,
-              meta = product.meta
-              )
+                metaLicenceId = product.meta.license.id,
+                metaLicenceName = product.meta.license.name
             )
           } yield {
             val json = JSONFactory220.createProductJson(success)

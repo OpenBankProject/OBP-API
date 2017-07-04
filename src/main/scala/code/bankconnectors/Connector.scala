@@ -962,7 +962,17 @@ trait Connector {
 
 
   def createOrUpdateProduct(
-                         product: ProductJsonV220
+                             bankId : String,
+                             code : String,
+                             name : String,
+                             category : String,
+                             family : String,
+                             superFamily : String,
+                             moreInfoUrl : String,
+                             details : String,
+                             description : String,
+                             metaLicenceId : String,
+                             metaLicenceName : String
                        ): Box[Product] = Empty
 
 
