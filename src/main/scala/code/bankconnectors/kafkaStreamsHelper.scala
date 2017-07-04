@@ -71,33 +71,46 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     //producer will publish the message to broker
     val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
     producer.send(message)
+    logger.debug(s"sendRequestAndGetResponse-SendToKafka ~~$topic with $message")
     
     //consumer will wait for the message from broker
     consumer(responseTopic, specifiedPartition)
       .filter(_.key() == key) // double check the key 
-      .map { msg => 
-        logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
+      .map {
+      msg =>
+        logger.debug(s"sendRequestAndGetResponse-GetFromKafka ~~$topic with $msg")
         msg.value
-      }
+    }
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
   }
 
+  //TODO, there need more error handling, 
+  // eg : json.parse(r) return JObject(List())
+  // The \\ data will also return data, without the error here.
   private val paseStringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
-    Future(json.parse(r) \\ "data")
+    logger.debug("paseStringToJValueF-before:" + r)
+    val eventualValue = Future(json.parse(r) \\ "data")
+    eventualValue
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.info("kafka-response:" + r)
-    Future(extractResult(r))
+    logger.debug("extractJValueToAnyF-before:" + r)
+    val future = Future(extractResult(r))
+    future
+    
   }
 
   val anyToJValueF: (Any => Future[json.JValue]) = { m =>
-    Future(Extraction.decompose(m))
+    logger.debug("anyToJValueF-before:" + m)
+    val eventualValue = Future(Extraction.decompose(m))
+    eventualValue
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
-    Future(json.compactRender(m))
+    logger.debug("serializeF-before:" + m)
+    val eventualString = Future(json.compactRender(m))
+    eventualString
   }
 
   //private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
