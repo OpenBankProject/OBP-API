@@ -50,6 +50,7 @@ connector=mapped
 
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
+## This setting is also used by connector metrics (write_connector_metrics does not exist yet)
 write_metrics=true
 
 ## ElasticSearch
