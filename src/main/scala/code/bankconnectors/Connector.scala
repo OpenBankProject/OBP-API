@@ -321,9 +321,10 @@ trait Connector {
         getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       }else{
         getEmptyBankAccount()
-      }
+      } ?~ "code.bankconnectors.Connector.makePatmentV200 method toAccount is Empty!" //The error is for debugging not for showing to browser
 
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy)
+      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~ 
+        "code.bankconnectors.Connector.makePatmentV200.makePaymentImpl return Empty!" //The error is for debugging not for showing to browser
     } yield transactionId
   }
 
