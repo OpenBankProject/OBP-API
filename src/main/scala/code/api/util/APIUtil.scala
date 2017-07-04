@@ -424,26 +424,53 @@ object APIUtil extends MdcLoggable {
     }
     commit
   }
-
-  //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
+  
+//  https://httpstatuses.com/ the introduction for all http-codes
+  
+  /**
+    * 204 NO CONTENT
+    * The server has successfully fulfilled the request and that there is no additional content to send in the response payload body.
+    */
   def noContentJsonResponse : JsonResponse =
     JsonResponse(JsRaw(""), headers, Nil, 204)
-
+  
+  /**
+    * 200 OK
+    * The request has succeeded.
+    */
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
-
+  
+  /**
+    * 201 CREATED
+    * The request has been fulfilled and has resulted in one or more new resources being created.
+    */
   def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
 
   def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
     JsonResponse(Extraction.decompose(cc), headers, Nil, httpCode)
-
+  
+  /**
+    * 202 ACCEPTED
+    * The request has been accepted for processing, but the processing has not been completed.
+    * The request might or might not eventually be acted upon, as it might be disallowed when processing actually takes place.
+    */
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
-
+  
+  /**
+    * 400 BAD REQUEST
+    * The server cannot or will not process the request due to something that is perceived to be a client error
+    * (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+    */
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
-
+  
+  /**
+    * 501 NOT IMPLEMENTED
+    * The server does not support the functionality required to fulfill the request.
+    */
   def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 
