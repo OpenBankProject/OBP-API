@@ -308,8 +308,9 @@ case class CustomerJSONs(customers: List[CustomerJsonV210])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
-//V210 added details and description fields
-case class ProductJsonV210(code : String,
+////V210 added details and description fields
+case class ProductJsonV210(bank_id: String,
+                          code : String,
                        name : String,
                        category: String,
                        family : String,
@@ -359,6 +360,20 @@ case class AtmJsonPost (
     meta : MetaJson
   )
 
+
+
+
+
+
+case class ProductJsonPut(
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJson)
 
 
 
@@ -669,7 +684,9 @@ object JSONFactory210{
 
   // V210 Products
   def createProductJson(product: Product) : ProductJsonV210 = {
-    ProductJsonV210(product.code.value,
+    ProductJsonV210(
+      product.bankId.toString,
+      product.code.value,
       product.name,
       product.category,
       product.family,

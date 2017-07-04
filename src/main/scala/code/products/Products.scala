@@ -16,7 +16,7 @@ object Products extends SimpleInjector {
   case class ProductCode(value : String)
 
   object ProductCode {
-    def unapply(id : String) = Some(ProductCode(id))
+    def unapply(code : String) = Some(ProductCode(code))
   }
 
   trait Product {

@@ -6,6 +6,8 @@ sealed trait ApiRole{
 
 object ApiRole {
 
+  // TODO Is there a better way to define these. i.e. do we need to define the role in three places below?
+
   case object CanSearchAllTransactions extends ApiRole{
     val requiresBankId = false
   }
@@ -93,6 +95,9 @@ object ApiRole {
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateBranchAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateAtm extends ApiRole{
     val requiresBankId = true
   }
@@ -146,8 +151,11 @@ object ApiRole {
     case "CanCreateCardsForBank" => CanCreateCardsForBank
     case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case "CanCreateBranch" => CanCreateBranch
+    case "CanCreateBranchAtAnyBank" => CanCreateBranchAtAnyBank
     case "CanCreateAtm" => CanCreateAtm
     case "CanCreateAtmAtAnyBank" => CanCreateAtmAtAnyBank
+    case "CanCreateProduct" => CanCreateProduct
+    case "CanCreateProductAtAnyBank" => CanCreateProductAtAnyBank
     case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
     case "CanGetConfig" => CanGetConfig
@@ -182,7 +190,11 @@ object ApiRole {
                       "CanCreateCardsForBank" ::
                       "CanCreateUserCustomerLink" ::
                       "CanCreateBranch" ::
+                      "CanCreateBranchAtAnyBank" ::
                       "CanCreateAtm" ::
+                      "CanCreateAtmAtAnyBank" ::
+                      "CanCreateProduct" ::
+                      "CanCreateProductAtAnyBank" ::
                       "CanCreateBank" ::
                       "CanReadMetrics" ::
                       "CanGetConfig" ::

@@ -10,8 +10,15 @@ import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
+
+
+
+
+
+
 //import code.api.v2_2_0.JSONFactory220.AtmJsonV220
 import code.api.v2_1_0._
+import code.api.v2_2_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -506,6 +513,71 @@ trait APIMethods220 {
       }
     }
 
+
+
+    val createProductEntitlementsRequiredForSpecificBank = CanCreateProduct ::  Nil
+    val createProductEntitlementsRequiredForAnyBank = CanCreateProductAtAnyBank ::  Nil
+
+    val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createProductEntitlementsRequiredForAnyBank.mkString(" and ")
+
+    resourceDocs += ResourceDoc(
+      createProduct,
+      apiVersion,
+      "createProduct",
+      "PUT",
+      "/banks/BANK_ID/products",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createProductEntitlementsRequiredText
+          |""",
+      productJsonV220,
+      productJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+
+
+    lazy val createProduct: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "products" ::  Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            canCreateProduct <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank) == true
+              ||
+              hasAllEntitlements("", u.userId, createProductEntitlementsRequiredForAnyBank),
+              createProductEntitlementsRequiredText)
+            product <- tryo {json.extract[ProductJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateProduct(
+              ProductJsonV220(
+                bank_id = product.bank_id,
+                code = product.code,
+              name = product.name,
+              category = product.category,
+              family = product.family,
+              super_family = product.super_family,
+                more_info_url = product.more_info_url,
+                details = product.details,
+                description = product.description,
+              meta = product.meta
+              )
+            )
+          } yield {
+            val json = JSONFactory220.createProductJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
 
 
 

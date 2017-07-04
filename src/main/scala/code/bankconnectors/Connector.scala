@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.api.v2_2_0.ProductJsonV220
 import code.atms.Atms.{AtmId, Atm}
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.FXRate
@@ -959,10 +960,11 @@ trait Connector {
                         ): Box[Atm] = Empty
 
 
+  def createOrUpdateProduct(
+                         product: ProductJsonV220
+                       ): Box[Product] = Empty
 
 
-  
-//  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
 

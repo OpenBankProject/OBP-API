@@ -903,17 +903,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     result.getOrElse(false)
   }
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = {
+  override def getProducts(bankId: BankId): Box[List[MappedProduct]] = {
     Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
   }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[MappedProduct] = {
     MappedProduct.find(
       By(MappedProduct.mBankId, bankId.value),
       By(MappedProduct.mCode, productCode.value)
     )
   }
 
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
   override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
 
     //check the branch existence and update or insert data
@@ -940,7 +941,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchUpdateError
+        } ?~! ErrorMessages.UpdateBranchError
       case _ =>
         tryo {
           MappedBranch.create
@@ -963,11 +964,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchInsertError
+        } ?~! ErrorMessages.CreateBranchError
     }
   }
 
 
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
   override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
 
     //check the atm existence and update or insert data
@@ -987,7 +989,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(atm.meta.license.id)
             .mLicenseName(atm.meta.license.name)
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchUpdateError
+        } ?~! ErrorMessages.UpdateAtmError
       case _ =>
         tryo {
           MappedAtm.create
@@ -1006,13 +1008,52 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(atm.meta.license.id)
             .mLicenseName(atm.meta.license.name)
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchInsertError
+        } ?~! ErrorMessages.CreateAtmError
     }
   }
 
 
 
-
+//  override def createOrUpdateProduct(product: Product): Box[Product] = {
+//
+//    //check the product existence and update or insert data
+//    getProduct(BankId(product.bankId.value), ProductCode(product.code.value)) match {
+//      case Full(mappedProduct) =>
+//        tryo {
+//          mappedProduct.mName(product.name)
+//          .mCode (product.code.value)
+//          .mBankId(product.bankId.value)
+//          .mName(product.name)
+//          .mCategory(product.category)
+//          .mFamily(product.family)
+//          .mSuperFamily(product.superFamily)
+//          .mMoreInfoUrl(product.moreInfoUrl)
+//          .mDetails(product.details)
+//          .mDescription(product.description)
+//            .mLicenseId(product.meta.license.id)
+//            .mLicenseName(product.meta.license.name)
+//            .saveMe()
+//        } ?~! ErrorMessages.UpdateProductError
+//      case _ =>
+//        tryo {
+//          MappedProduct.create
+//            .mName(product.name)
+//            .mCode (product.code.value)
+//            .mBankId(product.bankId.value)
+//            .mName(product.name)
+//            .mCategory(product.category)
+//            .mFamily(product.family)
+//            .mSuperFamily(product.superFamily)
+//            .mMoreInfoUrl(product.moreInfoUrl)
+//            .mDetails(product.details)
+//            .mDescription(product.description)
+//            .mLicenseId(product.meta.license.id)
+//            .mLicenseName(product.meta.license.name)
+//            .saveMe()
+//        } ?~! ErrorMessages.CreateProductError
+//    }
+//
+//  }
 
 
 
@@ -1125,7 +1166,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankInsertError
+             } ?~! ErrorMessages.CreateBankError
       case _ =>
         tryo {
                MappedBank.create
@@ -1139,6 +1180,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankUpdateError
+             } ?~! ErrorMessages.UpdateBankError
     }
 }
