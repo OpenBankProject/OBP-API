@@ -354,7 +354,7 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
-    findUserByUsername(name) match {
+    findUserByUsernameLocally(name) match {
       case Full(user) if user.validated_? =>
         user.resetUniqueId().save
         val resetLink = Props.get("hostname", "ERROR")+
@@ -485,7 +485,7 @@ import net.liftweb.util.Helpers._
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
-    findUserByUsername(username) match {
+    findUserByUsernameLocally(username) match {
       case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
         if (
           user.validated_? &&
@@ -580,7 +580,7 @@ import net.liftweb.util.Helpers._
 
         val extProvider = connector
 
-        val user = findUserByUsername(name) match {
+        val user = findUserByUsernameLocally(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
             // && user.provider == extProvider
@@ -636,7 +636,7 @@ import net.liftweb.util.Helpers._
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
         val passwordFromGui = S.param("password").getOrElse("")
-        findUserByUsername(usernameFromGui) match {
+        findUserByUsernameLocally(usernameFromGui) match {
           // Check if user came from localhost and
           // if User is NOT locked and password is good
           case Full(user) if user.validated_? &&
@@ -833,9 +833,10 @@ import net.liftweb.util.Helpers._
   }
  
   /**
-    * find the authUser by author user name(authUser and resourceUser are the same)
+    * Find the authUser by author user name(authUser and resourceUser are the same).
+    * Only search for the local database. 
     */
-  protected def findUserByUsername(name: String): Box[TheUserType] = {
+  protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
 
