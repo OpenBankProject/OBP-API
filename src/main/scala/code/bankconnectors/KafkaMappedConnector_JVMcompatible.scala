@@ -1272,9 +1272,27 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId): Box[List[Product]] = {
+    LocalMappedConnector.getProducts(bankId)
+  }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+  override def createOrUpdateProduct(bankId : String,
+                                     code : String,
+                                     name : String,
+                                     category : String,
+                                     family : String,
+                                     superFamily : String,
+                                     moreInfoUrl : String,
+                                     details : String,
+                                     description : String,
+                                     metaLicenceId : String,
+                                     metaLicenceName : String): Box[Product] = {
+    LocalMappedConnector.createOrUpdateProduct(bankId, code, name, category, family, superFamily, moreInfoUrl, details, description, metaLicenceId, metaLicenceName)
+  }
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+    LocalMappedConnector.getProduct(bankId, productCode)
+  }
 
   override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
 
