@@ -33,8 +33,8 @@ import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.AtmId
+import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -1272,15 +1272,43 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId): Box[List[Product]] = {
+    LocalMappedConnector.getProducts(bankId)
+  }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+  override def createOrUpdateProduct(bankId : String,
+                                     code : String,
+                                     name : String,
+                                     category : String,
+                                     family : String,
+                                     superFamily : String,
+                                     moreInfoUrl : String,
+                                     details : String,
+                                     description : String,
+                                     metaLicenceId : String,
+                                     metaLicenceName : String): Box[Product] = {
+    LocalMappedConnector.createOrUpdateProduct(bankId, code, name, category, family, superFamily, moreInfoUrl, details, description, metaLicenceId, metaLicenceName)
+  }
 
-  override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+    LocalMappedConnector.getProduct(bankId, productCode)
+  }
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+  override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
+    LocalMappedConnector.createOrUpdateBranch(branch, branchRoutingScheme, branchRoutingAddress)
+  }
 
-  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
+    LocalMappedConnector.getBranch(bankId, branchId)
+  }
+
+  override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
+    LocalMappedConnector.createOrUpdateAtm(atm)
+  }
+
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = {
+    LocalMappedConnector.getAtm(bankId, atmId)
+  }
 
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   
