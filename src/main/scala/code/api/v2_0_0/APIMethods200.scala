@@ -1345,7 +1345,7 @@ trait APIMethods200 {
               //successJsonResponse(Extraction.decompose(json))
 
               val successJson = Extraction.decompose(json)
-              successJsonResponse(successJson, 202)
+              createdJsonResponse(successJson)
             }
           } else {
             Full(errorJsonResponse(TransactionDisabled))

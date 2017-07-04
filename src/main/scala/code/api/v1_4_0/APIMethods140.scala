@@ -595,7 +595,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
             } yield {
               val successJson = Extraction.decompose(transactionRequest)
-              successJsonResponse(successJson, 202)
+              createdJsonResponse(successJson)
             }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))

@@ -755,7 +755,7 @@ object SwaggerDefinitionsJSON {
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(
     id = "b20dd004-93e3-494f-8773-69e3ff8c205e",
-    answer = "good"
+    answer = "123"
   )
 
   val postCustomerJson = PostCustomerJson(
