@@ -221,16 +221,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
         username <- tryo(user.name)
-        req <- Full(OutboundUserAccountViewsBase(
-          messageFormat = messageFormat,
-          action = "obp.get.Accounts",
+        req <- Full(UpdateUserAccountViews(
           username = user.name,
-          userId = user.name,
-          bankId = bankId))
+          password = ""))
 
       // Generate random uuid to be used as request-response match id
       } yield {
-        cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccountJune2017]])
+        cachedUserAccounts.getOrElseUpdate(req.toString, () => process[UpdateUserAccountViews](req).extract[List[InboundAccountJune2017]])
       }
     }
     }.flatten
