@@ -270,7 +270,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
         val bankId = bank.bankId.value
         val username = user.name
-        logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+        logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
         for {
           req <- tryo { Map[String, String](
             "version" -> formatVersion,
@@ -283,13 +283,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
               case Full(a) => a
               case Empty => List.empty
             }
-            logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
+            logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
             res
           }
         }
       }.flatten
   
-      logger.info(s"JVMCompatible getAccounts says res is $accounts")
+      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
   
       val views = for {
         acc <- accounts
@@ -307,11 +307,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
         views.foreach(v => {
           Views.views.vend.addPermission(v.uid, user)
-          logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
+          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
         })
         existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
           Views.views.vend.addPermission(v.uid, user)
-          logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
+          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
         })
       }
     }
@@ -520,7 +520,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           val requestToMap= anyToMap(req1)
 
           val responseFromKafka = process(requestToMap)
-          logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
+          logger.debug("the getTransactions from JVMcompatible is : "+responseFromKafka)
           val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
           // Check does the response data match the requested data
           val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -581,7 +581,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           "userId" -> userId 
         )
         val r = process(req).extract[KafkaInboundAccount]
-        logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
+        logger.debug(s"getBankAccount says ! account.isPresent and userId is ${userId}")
         Full(new KafkaBankAccount(r))
       }
       getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)
@@ -897,7 +897,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   */
   //TODO not finished, look at override def getTransactionRequestStatusesImpl() in obpjvmMappedConnector
   override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] ={
-    logger.info("Kafka getTransactionRequestStatusesImpl response -- This is KafkaMappedConnector, just call KafkaMappedConnector_vMar2017 methods:")
+    logger.debug("Kafka getTransactionRequestStatusesImpl response -- This is KafkaMappedConnector, just call KafkaMappedConnector_vMar2017 methods:")
     KafkaMappedConnector_vMar2017.getTransactionRequestStatusesImpl()
   }
 
@@ -988,10 +988,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
-        logger.info(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
+        logger.debug(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
       case _ =>
-        logger.info(s"creating bank with national identifier $bankNationalIdentifier")
+        logger.debug(s"creating bank with national identifier $bankNationalIdentifier")
         //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
         MappedBank.create
           .permalink(Helper.generatePermalink(bankName))
@@ -1101,7 +1101,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
-        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ => null //TODO
         /*
@@ -1130,7 +1130,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         data.save()
         true
       case _ =>
-        logger.info(s"account data with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        logger.debug(s"account data with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         false
     }
   }
