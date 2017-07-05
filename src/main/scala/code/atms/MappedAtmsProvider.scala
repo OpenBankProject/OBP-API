@@ -47,6 +47,8 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
 
 
   override def atmId: AtmId = AtmId(mAtmId.get)
+
+  override def bankId : BankId = BankId(mBankId.get)
   override def name: String = mName.get
 
   override def address: Address = new Address {

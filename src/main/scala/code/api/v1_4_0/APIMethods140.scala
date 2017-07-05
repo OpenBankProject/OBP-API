@@ -78,7 +78,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       customerJsonV140,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -114,7 +114,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       customerMessagesJson,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -146,7 +146,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       addCustomerMessageJson,
       successMessage,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
     )
@@ -195,7 +195,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         UserNotLoggedIn,
         BankNotFound,
         "No branches available. License may not be set.",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -243,7 +243,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         UserNotLoggedIn,
         BankNotFound,
         "No ATMs available. License may not be set.",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -300,7 +300,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No products available.",
         "License may not be set.",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
@@ -341,7 +341,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         UserNotLoggedIn,
         BankNotFound,
         "No CRM Events available.",
-        UnKnownError),
+        UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -401,7 +401,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "account not found at bank",
         "user does not have access to owner view",
         "Sorry, Transaction Requests are not enabled in this API instance.",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -445,7 +445,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Current user does not have access to the view",
         "account not found at bank",
         "user does not have access to owner view",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -510,7 +510,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Cannot send payment to account with different currency",
         "Can't send a payment with a value of 0 or less.",
         "Sorry, Transaction Requests are not enabled in this API instance.",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -574,7 +574,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Error getting Transaction Request",
         "Transaction Request not found",
         "Couldn't create Transaction",
-        UnKnownError),
+        UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -630,7 +630,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         UserNotFoundById,
         "Could not create customer",
         "Could not create user_customer_links",
-        UnKnownError),
+        UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
@@ -710,7 +710,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |_etc_...""",
         emptyObjectJson,
         apiInfoJSON,
-        List(UserNotLoggedIn, UnKnownError),
+        List(UserNotLoggedIn, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
         Nil)
       }

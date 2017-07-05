@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 trait ObpActorInit {
-  // Deafult is 3 seconds, which should be more than enough for slower systems
+  // Default is 3 seconds, which should be more than enough for slower systems
   val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(3)
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
@@ -28,7 +28,7 @@ trait ObpActorInit {
     Await.result(r, TIMEOUT).asInstanceOf[T]
   }
 
-    def extractFutureToBox[T](f: Future[Any]): Box[T] = {
+  def extractFutureToBox[T](f: Future[Any]): Box[T] = {
     val r = f.map {
       case pf: ParamFailure[_] => Empty ~> pf
       case af: APIFailure => Empty ~> af

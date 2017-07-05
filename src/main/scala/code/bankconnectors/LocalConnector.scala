@@ -3,8 +3,9 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
-import code.accountholder.MapperAccountHolders
-import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -12,34 +13,31 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.ProductCode
+import code.products.Products.{Product, ProductCode}
+import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Empty, Failure, Full, _}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mapper.By
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.bson.types.ObjectId
-import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
-import code.transactionrequests.TransactionRequestTypeCharge
-import code.util.Helper.MdcLoggable
 
 private object LocalConnector extends Connector with MdcLoggable {
 
   type AccountType = Account
 
   implicit override val nameOfConnector = LocalConnector.getClass.getSimpleName
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
@@ -70,8 +68,8 @@ private object LocalConnector extends Connector with MdcLoggable {
     getHostedBank(bankId)
 
   //gets banks handled by this connector
-  override def getBanks : List[Bank] =
-    HostedBank.findAll
+  override def getBanks(): Box[List[Bank]] =
+    Full(HostedBank.findAll)
 
   override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[Account] = {
     for{
@@ -653,7 +651,7 @@ private object LocalConnector extends Connector with MdcLoggable {
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
   
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   

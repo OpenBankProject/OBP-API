@@ -3,7 +3,9 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.{AtmId, Atm}
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -57,6 +59,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //This is the implicit parameter for saveConnectorMetric function.  
   //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric 
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
+
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
@@ -152,8 +157,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = saveConnectorMetric {
-      MappedBank
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+     Full(MappedBank
         .findAll()
         .map(
           bank =>
@@ -162,6 +167,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               case _ => bank
             }
         )
+     )
   }("getBanks")
 
 
@@ -930,7 +936,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
-            .mDriveUpHours(branch.driveUp.hours)
+            .mDriveUpHours(branch.drive_up.hours)
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
@@ -953,13 +959,64 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
-            .mDriveUpHours(branch.driveUp.hours)
+            .mDriveUpHours(branch.drive_up.hours)
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
         } ?~! ErrorMessages.CreateBranchInsertError
     }
   }
+
+
+  override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
+
+    //check the atm existence and update or insert data
+    getAtm(BankId(atm.bank_id), AtmId(atm.id)) match {
+      case Full(mappedAtm) =>
+        tryo {
+          mappedAtm.mName(atm.name)
+            .mLine1(atm.address.line_1)
+            .mLine2(atm.address.line_2)
+            .mLine3(atm.address.line_3)
+            .mCity(atm.address.city)
+            .mCounty(atm.address.country)
+            .mState(atm.address.state)
+            .mPostCode(atm.address.postcode)
+            .mlocationLatitude(atm.location.latitude)
+            .mlocationLongitude(atm.location.longitude)
+            .mLicenseId(atm.meta.license.id)
+            .mLicenseName(atm.meta.license.name)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchUpdateError
+      case _ =>
+        tryo {
+          MappedAtm.create
+            .mAtmId(atm.id)
+            .mBankId(atm.bank_id)
+            .mName(atm.name)
+            .mLine1(atm.address.line_1)
+            .mLine2(atm.address.line_2)
+            .mLine3(atm.address.line_3)
+            .mCity(atm.address.city)
+            .mCounty(atm.address.country)
+            .mState(atm.address.state)
+            .mPostCode(atm.address.postcode)
+            .mlocationLatitude(atm.location.latitude)
+            .mlocationLongitude(atm.location.longitude)
+            .mLicenseId(atm.meta.license.id)
+            .mLicenseName(atm.meta.license.name)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchInsertError
+    }
+  }
+
+
+
+
+
+
+
+
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
     MappedBranch
@@ -975,9 +1032,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
+
+
+  override def getAtm(bankId : BankId, atmId: AtmId) : Box[MappedAtm]= {
+    MappedAtm
+      .find(
+        By(MappedAtm.mBankId, bankId.value),
+        By(MappedAtm.mAtmId, atmId.value))
   }
+
+
+
+
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.

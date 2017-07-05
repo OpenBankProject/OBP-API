@@ -148,6 +148,14 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           errorJsonResponse(message, httpCode)
         }
       }
+//    } else if (Props.getBool("allow_gateway_login", true) && isThereGatewayHeader) {
+//        DirectLogin.getUser match {
+//          case Full(u) => fn(Full(u))
+//          case _ => {
+//            var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
+//            errorJsonResponse(message, httpCode)
+//          }
+//        }
     } else {
       fn(Empty)
     }

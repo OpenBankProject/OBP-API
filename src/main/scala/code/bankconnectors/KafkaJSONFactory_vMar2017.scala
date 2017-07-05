@@ -60,6 +60,12 @@ case class OutboundUserByUsernamePasswordBase(
   password: String
 )extends OutboundMessageBase
 
+case class OutboundAdapterInfo(
+  messageFormat: String,
+  action: String,
+  date: String
+) extends OutboundMessageBase
+
 case class OutboundUserAccountViewsBase(
   messageFormat: String,
   action: String,
@@ -297,6 +303,14 @@ case class InboundBank(
   url: String
 )extends InboundMessageBase
 
+case class InboundAdapterInfo(errorCode: String,
+                              name: String,
+                              version: String,
+                              git_commit: String,
+                              date: String
+                             ) extends InboundMessageBase
+
+
 case class Bank2(r: InboundBank) extends Bank { //CM maybe kafka message
   
   def fullName = r.name
@@ -328,6 +342,11 @@ case class InboundAccount(
   accountRoutingAddress: String  = "None",
   branchId: String  = "None"
 )extends InboundMessageBase
+
+
+
+
+
 
 case class BankAccount2(r: InboundAccount) extends BankAccount {
   

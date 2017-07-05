@@ -53,6 +53,20 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
+  def searchProxyV300(userId: String, uri: String, body: String): LiftResponse = {
+    if (Props.getBool("allow_elasticsearch", false) ) {
+      val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
+      val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
+      logger.debug(esUrl)
+      logger.debug(body)
+      val request = url(esUrl).<<(body).GET // Note that WE ONLY do GET - Keep it this way!
+      val response = getAPIResponse(request)
+      ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+    } else {
+      JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+    }
+  }
+
   private def getAPIResponse(req: Req): APIResponse = {
     Await.result(
       for (response <- Http(req > as.Response(p => p)))

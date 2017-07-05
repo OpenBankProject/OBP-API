@@ -3,19 +3,27 @@ package code.api.v3_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages
+import code.api.util.ApiRole.{CanGetAnyUser, CanSearchWarehouse}
 import code.api.util.ErrorMessages._
+import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v2_0_0.JSONFactory200
+import code.api.v3_0_0.JSONFactory300._
+import code.bankconnectors.{Connector, InboundAdapterInfo}
+import code.entitlement.Entitlement
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
+import code.search.elasticsearchWarehouse
+import code.users.Users
+import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.api.v3_0_0.JSONFactory300._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.tryo
 
 
 trait APIMethods300 {
@@ -86,7 +94,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -136,7 +144,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         InvalidJsonFormat,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -177,7 +185,7 @@ trait APIMethods300 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
@@ -224,7 +232,7 @@ trait APIMethods300 {
         |""",
       emptyObjectJson,
       moderatedAccountJSON,
-      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnKnownError),
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -233,8 +241,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! BankNotFound
-            account <- BankAccount(bank.bankId, accountId) ?~! ErrorMessages.AccountNotFound
+            bank <- Bank(bankId) ?~ BankNotFound
+            account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
@@ -269,7 +277,7 @@ trait APIMethods300 {
         |OAuth authentication is required""",
       emptyObjectJson,
       moderatedCoreAccountJSON,
-      List(BankAccountNotFound,UnKnownError),
+      List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -278,7 +286,7 @@ trait APIMethods300 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -306,7 +314,7 @@ trait APIMethods300 {
          |""",
       emptyObjectJson,
       coreAccountsJsonV300,
-      List(UserNotLoggedIn,UnKnownError),
+      List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -364,7 +372,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound,
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -420,7 +428,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound, 
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -442,6 +450,223 @@ trait APIMethods300 {
           }
       }
     }
+
+
+    // TODO Put message into doc below if not enabled (but continue to show API Doc)
+    resourceDocs += ResourceDoc(
+      elasticSearchWarehouseV300,
+      apiVersion,
+      "elasticSearchWarehouseV300",
+      "POST",
+      "/search/warehouse",
+      "Search Warehouse Data Via Elasticsearch",
+      """
+        |Search warehouse data via Elastic Search.
+        |
+        |Login is required.
+        |
+        |CanSearchWarehouse entitlement is required to search warehouse data!
+        |
+        |Send your email, name, project name and user_id to the admins to get access.
+        |
+        |Elastic (search) is used in the background. See links below for syntax.
+        |
+        |This version differs from v2.0.0
+        |
+        |
+        |
+        |Example of usage:
+        |
+        |POST /search/warehouse
+        |
+        |{
+        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
+        |  "es_body_part": {
+        |    "query": {
+        |      "range": {
+        |        "postDate": {
+        |          "from": "2011-12-10",
+        |          "to": "2011-12-12"
+        |        }
+        |      }
+        |    }
+        |  }
+        |}
+        |
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
+        |
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
+        |
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
+        |
+        |
+        """,
+      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      emptyObjectJson, //TODO what is output here?
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List())
+
+    val esw = new elasticsearchWarehouse
+    lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
+          } yield {
+            import net.liftweb.json._
+            val uriPart = compact(render(json \ "es_uri_part"))
+            val bodyPart = compact(render(json \ "es_body_part"))
+            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getUser,
+      apiVersion,
+      "getUser",
+      "GET",
+      "/users/email/EMAIL/terminator",
+      "Get Users by Email Address",
+      """Get users by email address
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
+          }
+          yield {
+            // Format the data as V2.0.0 json
+            val json = JSONFactory200.createUserJSONs(users)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getUserByUserId,
+      apiVersion,
+      "getUserByUserId",
+      "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      """Get user by USER_ID
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getUserByUsername,
+      apiVersion,
+      "getUserByUsername",
+      "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      """Get user by USERNAME
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "username" :: username :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
+          }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createUserJSON(user)
+              successJsonResponse(Extraction.decompose(json))
+            }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAdapter,
+      apiVersion,
+      "getAdapter",
+      "GET",
+      "/banks/BANK_ID/adapter",
+      "Get Info Of Adapter",
+      """Get a basic Adapter info
+        |
+        |Login is required.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
+        user =>
+          for {
+            // _ <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Bank(bankId) ?~! BankNotFound
+            ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
+          }
+          yield {
+            successJsonResponseFromCaseClass(ai)
+          }
+      }
+    }
+    
+
   }
 }
 

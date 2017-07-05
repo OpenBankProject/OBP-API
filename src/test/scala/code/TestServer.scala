@@ -8,6 +8,8 @@ object TestServer {
 
   val host = "localhost"
   val port = Props.getInt("tests.port",8000)
+  val externalHost = Props.get("external.hostname")
+  val externalPort = Props.getInt("external.port")
   val server = new Server(port)
 
   val context = new WebAppContext()

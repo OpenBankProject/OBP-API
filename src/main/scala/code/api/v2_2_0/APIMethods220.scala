@@ -9,11 +9,13 @@ import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v2_1_0.{BranchJsonPost, ConsumerJSON, ConsumerPostJSON, JSONFactory210}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
+//import code.api.v2_2_0.JSONFactory220.AtmJsonV220
+import code.api.v2_1_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
-import code.metrics.{ConnMetric, ConnMetrics}
+import code.metrics.{ConnectorMetric, ConnMetrics}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper._
@@ -115,7 +117,7 @@ trait APIMethods220 {
       List(
         UserNotLoggedIn, 
         BankAccountNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -165,7 +167,7 @@ trait APIMethods220 {
         UserNotLoggedIn, 
         InvalidJsonFormat, 
         BankAccountNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -206,7 +208,7 @@ trait APIMethods220 {
         InvalidJsonFormat, 
         UserNotLoggedIn, 
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
@@ -238,7 +240,7 @@ trait APIMethods220 {
       """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
       fXRateJSON,
-      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnKnownError),
+      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
@@ -276,7 +278,7 @@ trait APIMethods220 {
         ViewNotFound, 
         ViewNoPermission,
         UserNoPermissionAccessView, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
@@ -312,7 +314,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
-      List(UnKnownError),
+      List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
@@ -348,7 +350,7 @@ trait APIMethods220 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         InsufficientAuthorisationToCreateBank,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
@@ -378,7 +380,17 @@ trait APIMethods220 {
           }
       }
     }
-    
+
+
+
+    // Create Branch
+    val createBranchEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
+    //val createBranchEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
+    val createBranchEntitlementsRequiredText = createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required."
+
+
+    // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
+
     resourceDocs += ResourceDoc(
       createBranch,
       apiVersion,
@@ -386,16 +398,19 @@ trait APIMethods220 {
       "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
-      s"""Create branch for the bank (Authenticated access).
+      s"""Create Branch for the Bank.
+         |
          |${authenticationRequiredMessage(true) }
+         |
+         |$createBranchEntitlementsRequiredText
          |""",
-      branchJSONV220,
-      branchJSONV220,
+      branchJsonV220,
+      branchJsonV220,
       List(
         UserNotLoggedIn,
         BankNotFound,
         InsufficientAuthorisationToCreateBranch,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       Nil
@@ -408,7 +423,7 @@ trait APIMethods220 {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
-            branch <- tryo {json.extract[BranchJSONV220]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
                 branch.id,
@@ -424,13 +439,77 @@ trait APIMethods220 {
               branch.branch_routing.address
             )
           } yield {
-            val json = JSONFactory220.createBranchJSON(success)
+            val json = JSONFactory220.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }
     }
 
-  
+
+    val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
+    val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
+
+    val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
+
+    resourceDocs += ResourceDoc(
+      createAtm,
+      apiVersion,
+      "createAtm",
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createAtmEntitlementsRequiredText
+          |""",
+      atmJsonV220,
+      atmJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+
+
+    lazy val createAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
+              ||
+              hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
+              createAtmEntitlementsRequiredText)
+            atm <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateAtm(
+              AtmJsonPost(
+                atm.id,
+                atm.bank_id,
+                atm.name,
+                atm.address,
+                atm.location,
+                atm.meta
+              )
+            )
+          } yield {
+            val json = JSONFactory220.createAtmJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
+
+
+
     resourceDocs += ResourceDoc(
       createAccount,
       apiVersion,
@@ -456,13 +535,13 @@ trait APIMethods220 {
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         UserNotFoundById,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         InvalidAccountBalanceAmount,
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
         InvalidAccountBalanceCurrency,
-        AccountIdHasExsited,
-        UnKnownError
+        AccountIdAlreadyExsits,
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
@@ -483,14 +562,14 @@ trait APIMethods220 {
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! UserNotFoundById
             // User can create account for self or an account for another user if they have CanCreateAccount role
             isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) ,
-              s"${UserDoesNotHaveRole} CanCreateAccount or create account for self")
+              s"${UserHasMissingRoles} CanCreateAccount or create account for self")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~! InvalidAccountType
-            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel
+            accountLabel <- tryo(jsonBody.label) //?~! ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
-            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdHasExsited)
+            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExsits)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
               bankId,
               accountId,
@@ -533,8 +612,8 @@ trait APIMethods220 {
       configurationJSON,
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
-        UnKnownError
+        UserHasMissingRoles,
+        UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
@@ -542,7 +621,7 @@ trait APIMethods220 {
     lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "config" :: Nil JsonGet _ => user => for {
         u <- user ?~! ErrorMessages.UserNotLoggedIn
-        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserDoesNotHaveRole $CanGetConfig")
+        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserHasMissingRoles $CanGetConfig")
       } yield {
         successJsonResponse(getConfigInfoJSON(), 200)
       }
@@ -590,7 +669,7 @@ trait APIMethods220 {
       connectorMetricsJson,
       List(
         InvalidDateFormat,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -630,7 +709,7 @@ trait APIMethods220 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
 
-            metrics <- Full(ConnMetrics.metrics.vend.getAllMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
+            metrics <- Full(ConnMetrics.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
 
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
@@ -665,11 +744,11 @@ trait APIMethods220 {
             obpApiRequestId <- Full(S.param("obp_api_request_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
 
 
-            filterByFields: List[ConnMetric] = metrics
+            filterByFields: List[ConnectorMetric] = metrics
               .filter(rd => (if (!connectorName.isEmpty) rd.getConnectorName().equals(connectorName.get) else true))
               .filter(rd => (if (!functionName.isEmpty) rd.getFunctionName().equals(functionName.get) else true))
               //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
-              .filter(rd => (if (!obpApiRequestId.isEmpty) rd.getObpApiRequestId().equals(obpApiRequestId.get) else true))
+              .filter(i => (if (!obpApiRequestId.isEmpty) i.getCorrelationId().equals(obpApiRequestId.get) else true))
           } yield {
             val json = JSONFactory220.createConnectorMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
@@ -711,9 +790,9 @@ trait APIMethods220 {
       ),
       List(
         UserNotLoggedIn,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         InvalidJsonFormat,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
@@ -724,7 +803,7 @@ trait APIMethods220 {
         user =>
           for {
             u <- user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserDoesNotHaveRole + CanCreateConsumer )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
                                                                 Some(UUID.randomUUID().toString),

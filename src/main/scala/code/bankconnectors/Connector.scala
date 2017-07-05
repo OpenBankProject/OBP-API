@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.atms.Atms.{AtmId, Atm}
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
@@ -112,6 +113,8 @@ trait Connector {
 
   implicit val nameOfConnector = Connector.getClass.getSimpleName
 
+  def getAdapterInfo(): Box[InboundAdapterInfo]
+
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
   // before we attempt to create a transaction on the south side
@@ -137,7 +140,7 @@ trait Connector {
   def getBank(bankId : BankId) : Box[Bank]
 
   //gets banks handled by this connector
-  def getBanks : List[Bank]
+  def getBanks(): Box[List[Bank]]
 
   def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
     for {
@@ -317,9 +320,10 @@ trait Connector {
         getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       }else{
         getEmptyBankAccount()
-      }
+      } ?~ "code.bankconnectors.Connector.makePatmentV200 method toAccount is Empty!" //The error is for debugging not for showing to browser
 
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy)
+      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~ 
+        "code.bankconnectors.Connector.makePatmentV200.makePaymentImpl return Empty!" //The error is for debugging not for showing to browser
     } yield transactionId
   }
 
@@ -949,10 +953,21 @@ trait Connector {
     bankRoutingScheme: String,
     bankRoutingAddress: String
   ): Box[Bank] = Empty
+
+
+  def createOrUpdateAtm(
+                          atm: AtmJsonPost
+                        ): Box[Atm] = Empty
+
+
+
+
   
 //  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+
+  def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =
@@ -1025,7 +1040,6 @@ trait Connector {
 //
 //  def resetBadLoginAttempts(username:String):Unit
 
-  def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
 
   def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
 

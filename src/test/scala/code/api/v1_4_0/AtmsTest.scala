@@ -10,11 +10,12 @@ import code.setup.DefaultUsers
 
 class AtmsTest extends V140ServerSetup with DefaultUsers {
 
-  val BankWithLicense = BankId("testBank1")
-  val BankWithoutLicense = BankId("testBank2")
+  val bankWithLicense = BankId("testBank1")
+  val bankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
   case class AtmImpl(atmId : AtmId,
+                        bankId: BankId,
                         name : String,
                         address : Address,
                         location : Location,
@@ -55,16 +56,16 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
 
 
-  val fakeAtm1 = AtmImpl(AtmId("atm1"), "Atm 1", fakeAddress1, fakeLocation, fakeMeta)
-  val fakeAtm2 = AtmImpl(AtmId("atm2"), "Atm 2", fakeAddress2, fakeLocation2, fakeMeta)
-  val fakeAtm3 = AtmImpl(AtmId("atm3"), "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense) // Should not be returned
+  val fakeAtm1 = AtmImpl(AtmId("atm1"), bankWithLicense, "Atm 1", fakeAddress1, fakeLocation, fakeMeta)
+  val fakeAtm2 = AtmImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta)
+  val fakeAtm3 = AtmImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {
     override protected def getAtmsFromProvider(bank: BankId): Option[List[Atm]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
-        case BankWithLicense | BankWithoutLicense=> Some(List(fakeAtm1, fakeAtm2, fakeAtm3))
+        case `bankWithLicense` | `bankWithoutLicense`=> Some(List(fakeAtm1, fakeAtm2, fakeAtm3))
         case _ => None
       }
     }
@@ -72,8 +73,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getAtmFromProvider(AtmId: AtmId): Option[Atm] = {
       AtmId match {
-         case BankWithLicense => Some(fakeAtm1)
-         case BankWithoutLicense=> Some(fakeAtm3) // In case the connector returns, the API should guard
+         case `bankWithLicense` => Some(fakeAtm1)
+         case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
         case _ => None
       }
     }
@@ -114,7 +115,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     scenario("We try to get ATMs for a bank without a data license for ATM information") {
 
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET <@ user1
+      val request = (v1_4Request / "banks" / bankWithoutLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -124,7 +125,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
     scenario("We try to get ATMs for a bank with a data license for ATM information") {
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "atms").GET <@ user1
+      val request = (v1_4Request / "banks" / bankWithLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")

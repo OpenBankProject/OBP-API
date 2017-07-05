@@ -49,7 +49,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   
   val version = "2.2.0"
-  val versionStatus = "BLEEDING-EDGE"
+  val versionStatus = "DRAFT"
 
   // Get disbled API versions from props
   val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
@@ -230,7 +230,6 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.1.0 - BEGIN ###
   // New in 2.1.0
   //First step - make a list of allowed endpoints
-  // TODO make these use the values of partial functions rather than strings
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
                           Implementations2_1_0.createTransactionRequest ::
@@ -271,7 +270,6 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 2.1.0 - BEGIN ###
   // New in 2.2.0
   //First step - make a list of allowed endpoints
-  // TODO make these use the values of partial functions rather than strings
   val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
                           Implementations2_2_0.createViewForBankAccount ::
                           Implementations2_2_0.updateViewForBankAccount ::
@@ -281,6 +279,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createBank ::
                           Implementations2_2_0.createAccount ::
                           Implementations2_2_0.createBranch ::
+                          Implementations2_2_0.createAtm ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
                           Implementations2_2_0.createConsumer ::

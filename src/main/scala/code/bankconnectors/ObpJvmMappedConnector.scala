@@ -9,6 +9,8 @@ import java.util.{Date, Locale, Optional, UUID}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -113,6 +115,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
 
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
   def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
     parameters.put("username", username)
@@ -129,7 +133,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   def updateUserAccountViews( user: ResourceUser ) = {
 
-    val accounts = getBanks.flatMap { bank => {
+    val accounts = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       val parameters = new JHashMap
@@ -184,7 +188,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = memoizeSync(getBanksTTL millisecond) {
+  override def getBanks(): Box[List[Bank]] = memoizeSync(getBanksTTL millisecond) {
     val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
 
     // todo response.error().isPresent
@@ -202,7 +206,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     logger.debug(s"ObpJvm getBanks says res is $banks")
     // Return list of results
-    banks
+    Full(banks)
   }
 
   // Gets current challenge level for transaction request
@@ -369,7 +373,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
       if (!isCorrect) {
         //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountId.value=" + accountId.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
-        throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+        throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
       }
       // Populate fields and generate result
       val res = for {
@@ -1425,7 +1429,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 

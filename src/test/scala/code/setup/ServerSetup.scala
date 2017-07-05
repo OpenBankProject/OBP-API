@@ -34,15 +34,16 @@ package code.setup
 
 import java.text.SimpleDateFormat
 
+import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.model.BankId
 import code.util.Helper.MdcLoggable
 import dispatch._
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.{DefaultFormats, ShortTypeHints}
-import org.scalatest._
-import _root_.net.liftweb.json.JsonAST.JObject
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.{DefaultFormats, ShortTypeHints}
+import net.liftweb.util.Props
+import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
@@ -55,6 +56,15 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   
   val server = TestServer
   def baseRequest = host(server.host, server.port)
+  val secured = Props.getBool("external.https", false)
+  def externalBaseRequest = (server.externalHost, server.externalPort) match {
+    case (Full(h), Full(p)) if secured  => host(h, p).secure
+    case (Full(h), Full(p)) if !secured => host(h, p)
+    case (Full(h), Empty) if secured  => host(h).secure
+    case (Full(h), Empty) if !secured => host(h)
+    case (Full(h), Empty) => host(h)
+    case _ => baseRequest
+  }
   
   val exampleDateString: String = "22/08/2013"
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")

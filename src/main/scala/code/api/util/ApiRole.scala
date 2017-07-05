@@ -16,13 +16,16 @@ object ApiRole {
     val requiresBankId = false
   }
   case object CanSearchWarehouse extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanSearchMetrics extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanCreateCustomer extends ApiRole{
     val requiresBankId = true
+  }
+  case object CanCreateCustomerAtAnyBank extends ApiRole{
+    val requiresBankId = false
   }
   case object CanCreateAccount extends ApiRole{
     val requiresBankId = true
@@ -84,8 +87,23 @@ object ApiRole {
   case object CanCreateUserCustomerLink extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateUserCustomerLinkAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
+  }
+  case object CanCreateAtm extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateAtmAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateProduct extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateProductAtAnyBank extends ApiRole{
+    val requiresBankId = false
   }
   case object CanCreateBank extends ApiRole{
     val requiresBankId = false
@@ -128,6 +146,8 @@ object ApiRole {
     case "CanCreateCardsForBank" => CanCreateCardsForBank
     case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case "CanCreateBranch" => CanCreateBranch
+    case "CanCreateAtm" => CanCreateAtm
+    case "CanCreateAtmAtAnyBank" => CanCreateAtmAtAnyBank
     case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
     case "CanGetConfig" => CanGetConfig
@@ -162,6 +182,7 @@ object ApiRole {
                       "CanCreateCardsForBank" ::
                       "CanCreateUserCustomerLink" ::
                       "CanCreateBranch" ::
+                      "CanCreateAtm" ::
                       "CanCreateBank" ::
                       "CanReadMetrics" ::
                       "CanGetConfig" ::

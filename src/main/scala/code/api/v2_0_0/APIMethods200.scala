@@ -143,7 +143,7 @@ trait APIMethods200 {
          |""",
       emptyObjectJson,
       basicAccountsJSON,
-      List(UnKnownError),
+      List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
@@ -171,7 +171,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       coreAccountsJSON,
-      List(UnKnownError),
+      List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -214,7 +214,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       basicAccountsJSON,
-      List(UserNotLoggedIn,"Could not get accounts.",UnKnownError),
+      List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -254,7 +254,7 @@ trait APIMethods200 {
       """,
       emptyObjectJson,
       basicAccountsJSON,
-      List(BankNotFound, UnKnownError),
+      List(BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
@@ -302,7 +302,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       coreAccountsJSON,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -367,7 +367,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       basicAccountsJSON,
-      List(UserNotLoggedIn, BankNotFound, UnKnownError),
+      List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
@@ -402,7 +402,7 @@ trait APIMethods200 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       basicAccountsJSON,
-      List(UnKnownError),
+      List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
@@ -432,7 +432,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
       kycDocumentsJSON,
-      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -464,7 +464,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       kycMediasJSON,
-      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagCustomer, apiTagKyc))
 
@@ -496,7 +496,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       kycChecksJSON,
-      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -526,7 +526,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       kycStatusesJSON,
-      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnKnownError),
+      List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -557,7 +557,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       socialMediasJSON,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, CustomerNotFoundByCustomerId, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
@@ -567,7 +567,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
-            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), UserDoesNotHaveRole + CanGetSocialMediaHandles)
+            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), UserHasMissingRoles + CanGetSocialMediaHandles)
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
@@ -591,7 +591,7 @@ trait APIMethods200 {
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
       kycDocumentJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnKnownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -645,7 +645,7 @@ trait APIMethods200 {
         "98FRd987auhf87jab"
       ),
       kycMediaJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnKnownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -669,7 +669,7 @@ trait APIMethods200 {
                 postedData.url,
                 postedData.date,
                 postedData.relates_to_kyc_document_id,
-                postedData.relates_to_kyc_check_id) ?~! ServerAddDataError
+                postedData.relates_to_kyc_check_id) ?~! ServerAddDataError //TODO Use specific message!
           } yield {
             val json = JSONFactory200.createKycMediaJSON(kycMediaCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -688,7 +688,7 @@ trait APIMethods200 {
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       postKycCheckJSON,
       kycCheckJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat,InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnKnownError),
+      List(UserNotLoggedIn, InvalidJsonFormat,InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -713,7 +713,7 @@ trait APIMethods200 {
                 postedData.staff_user_id,
                 postedData.staff_name,
                 postedData.satisfied,
-                postedData.comments) ?~! ServerAddDataError
+                postedData.comments) ?~! ServerAddDataError //TODO Use specific message!
           } yield {
             val json = JSONFactory200.createKycCheckJSON(kycCheckCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -732,7 +732,7 @@ trait APIMethods200 {
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       postKycStatusJSON,
       kycStatusJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnKnownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
@@ -752,7 +752,7 @@ trait APIMethods200 {
                 customerId,
                 postedData.customer_number,
                 postedData.ok,
-                postedData.date) ?~! ServerAddDataError
+                postedData.date) ?~! ServerAddDataError //TODO Use specific message!
           } yield {
             val json = JSONFactory200.createKycStatusJSON(kycStatusCreated)
             successJsonResponse(Extraction.decompose(json))
@@ -775,9 +775,9 @@ trait APIMethods200 {
         UserNotLoggedIn,
         InvalidJsonFormat, 
         InvalidBankIdFormat, 
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
-        UnKnownError),
+        UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
@@ -791,7 +791,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! BankNotFound
-            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), UserDoesNotHaveRole + CanAddSocialMediaHandle)
+            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), UserHasMissingRoles + CanAddSocialMediaHandle)
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -829,7 +829,7 @@ trait APIMethods200 {
         |OAuth authentication is required""",
       emptyObjectJson,
       moderatedCoreAccountJSON,
-      List(BankAccountNotFound,UnKnownError),
+      List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -841,7 +841,7 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -880,7 +880,7 @@ trait APIMethods200 {
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       moderatedCoreAccountJSON,
-      List(BankAccountNotFound, UnKnownError),
+      List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagTransaction))
     
@@ -932,7 +932,7 @@ trait APIMethods200 {
         |""",
       emptyObjectJson,
       moderatedAccountJSON,
-      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnKnownError),
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -941,8 +941,8 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
-            account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
+            account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
@@ -967,7 +967,7 @@ trait APIMethods200 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       permissionsJSON,
-      List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnKnownError),
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
@@ -1001,7 +1001,7 @@ trait APIMethods200 {
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
-      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnKnownError),
+      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
@@ -1052,7 +1052,7 @@ trait APIMethods200 {
         InvalidAccountType,
         InvalidAccountInitialBalance,
         InvalidAccountBalanceCurrency,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
@@ -1137,7 +1137,7 @@ trait APIMethods200 {
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
       transactionTypesJsonV200,
-      List(BankNotFound, UnKnownError),
+      List(BankNotFound, UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       List(apiTagBank)
     )
@@ -1228,7 +1228,7 @@ trait APIMethods200 {
         InvalidTransactionRequestType,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1300,7 +1300,7 @@ trait APIMethods200 {
         InvalidTransactionRequesChallengeId,
         TransactionRequestStatusNotInitiated,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1386,7 +1386,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargesJson,
-      List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnKnownError),
+      List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
@@ -1434,7 +1434,7 @@ trait APIMethods200 {
         |""",
       createUserJson,
       userJSONV200,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnKnownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagOnboarding, apiTagUser))
 
@@ -1509,7 +1509,7 @@ trait APIMethods200 {
         BankNotFound,
         InvalidJsonFormat,
         MeetingsNotSupported,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1567,7 +1567,7 @@ trait APIMethods200 {
         MeetingApiSecretNotConfigured,
         BankNotFound,
         MeetingsNotSupported,
-        UnKnownError),
+        UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
@@ -1624,7 +1624,7 @@ trait APIMethods200 {
         MeetingApiSecretNotConfigured, 
         MeetingNotFound, 
         MeetingsNotSupported,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -1675,12 +1675,12 @@ trait APIMethods200 {
         UserNotLoggedIn,
         BankNotFound,
         CustomerNumberAlreadyExists,
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         UserNotFoundById,
         CreateConsumerError,
         CustomerAlreadyExistsForUser,
         CreateUserCustomerLinksError,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
@@ -1705,7 +1705,7 @@ trait APIMethods200 {
                                    CanCreateUserCustomerLink ::
                                    Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
-            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserDoesNotHaveRole + requiredEntitlementsTxt)
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserHasMissingRoles + requiredEntitlementsTxt)
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
@@ -1750,7 +1750,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       userJSONV200,
-      List(UserNotLoggedIn, UnKnownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1785,7 +1785,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -1795,7 +1795,7 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~! ErrorMessages.UserNotLoggedIn
-              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
               users <- tryo{AuthUser.getResourceUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
@@ -1808,17 +1808,24 @@ trait APIMethods200 {
     }
 
 
+
+    // createUserCustomerLinks
+    val createUserCustomerLinksEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
+    val createUserCustomerLinksEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
+    val createUserCustomerLinksrequiredEntitlementsText = createUserCustomerLinksEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createUserCustomerLinksEntitlementsRequiredForAnyBank.mkString(" and ") + " entitlements are required."
+
     resourceDocs += ResourceDoc(
       createUserCustomerLinks,
       apiVersion,
       "createUserCustomerLinks",
       "POST",
       "/banks/BANK_ID/user_customer_links",
-      "Create user customer link.",
-      s"""Link a customer and a user
-        |This call may require additional permissions/role in the future.
-        |For now the authenticated user can create at most one linked customer at any one bank.
+      "Create User Customer Link.",
+      s"""Link a User to a Customer
+        |
         |${authenticationRequiredMessage(true)}
+        |
+        |$createUserCustomerLinksrequiredEntitlementsText
         |""",
       createUserCustomerLinkJson,
       userCustomerLinkJson,
@@ -1828,10 +1835,10 @@ trait APIMethods200 {
         BankNotFound, 
         InvalidJsonFormat,
         CustomerNotFoundByCustomerId, 
-        UserDoesNotHaveRole,
+        UserHasMissingRoles,
         CustomerAlreadyExistsForUser, 
         CreateUserCustomerLinksError,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagCustomer))
@@ -1851,9 +1858,11 @@ trait APIMethods200 {
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), UserDoesNotHaveRole +CanCreateUserCustomerLink)
-            isEqual <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
+                                            hasAllEntitlements("", u.userId, createUserCustomerLinksEntitlementsRequiredForAnyBank),
+                                            s"$createUserCustomerLinksrequiredEntitlementsText")
+            _ <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
+            _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
@@ -1883,12 +1892,12 @@ trait APIMethods200 {
       List(
         UserNotLoggedIn,
         UserNotFoundById, 
-        WrongInputJsonFormat,
-        WrongRoleName, 
+        InvalidInputJsonFormat,
+        IncorrectRoleName,
         EntitlementIsBankRole, 
         EntitlementIsSystemRole, 
         "Entitlement already exists for the user.",
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1900,8 +1909,8 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! WrongInputJsonFormat
-            _ <- tryo{valueOf(postedData.role_name)} ?~! WrongRoleName
+            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! InvalidInputJsonFormat
+            _ <- tryo{valueOf(postedData.role_name)} ?~! IncorrectRoleName
             _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
               {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
             allowedEntitlements = CanCreateEntitlementAtOneBank ::
@@ -1934,7 +1943,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1944,10 +1953,10 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
               _ <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
               u <- user ?~! ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank )
+              _ <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank )
               entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
@@ -1982,7 +1991,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, "User is not super admin!", "EntitlementId not found", UnKnownError),
+      List(UserNotLoggedIn, "User is not super admin!", "EntitlementId not found", UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -2016,7 +2025,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, "Logged user is not super admin!", UnKnownError),
+      List(UserNotLoggedIn, "Logged user is not super admin!", UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -2111,7 +2120,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson, //TODO what is output here?
-        List(UserNotLoggedIn, BankNotFound, UserDoesNotHaveRole, UnKnownError),
+        List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2121,8 +2130,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2198,7 +2206,7 @@ trait APIMethods200 {
         """,
         emptyObjectJson,
         emptyObjectJson,
-        List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
+        List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
         List())
 
@@ -2208,8 +2216,7 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            b <- tryo{Bank.all.headOption} ?~! BankNotFound //TODO: This is a temp workaround
-            _ <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchMetrics.toString) ?~! {UserHasMissingRoles + CanSearchMetrics}
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
@@ -2229,7 +2236,7 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customersJsonV140,
-      List(UserNotLoggedIn, CustomerDoNotExistsForUser, UnKnownError),
+      List(UserNotLoggedIn, CustomerDoNotExistsForUser, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 

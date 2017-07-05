@@ -30,9 +30,12 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -72,6 +75,11 @@ import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.json.Extraction._
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.JsonAST.{JObject, JValue}
+import net.liftweb.json.MappingException
+
+import scala.concurrent.TimeoutException
+import code.api.util.ErrorMessages._
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
@@ -97,6 +105,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
   
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
+
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
   
   // "Versioning" of the messages sent by this or similar connector might work like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -109,12 +120,46 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val formatVersion: String = "Nov2016"
 
   implicit val formats = net.liftweb.json.DefaultFormats
-
+  
+  //This is a temporary way to mapping the adapter(Java) side, we maybe used Adapter(Scala) later.
+  // Because of the Java Adapter has the fixed format, we need map our input vaule to it.
+  def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {
+    import scala.reflect.runtime.universe._
+    
+    val mirror = runtimeMirror(a.getClass.getClassLoader)
+    
+    def a2m(x: Any, t: Type): Any = {
+      val xm = mirror reflect x
+      
+      val members =
+        t.declarations.collect {
+          case acc: MethodSymbol if acc.isCaseAccessor =>
+            acc.name.decoded -> a2m(
+              (xm reflectMethod acc) (),
+              acc.typeSignature
+            )
+        }.toMap.asInstanceOf[Map[String, String]]
+      
+      if (members.isEmpty) x else members
+    }
+    
+    a2m(a, typeOf[A]).asInstanceOf[Map[String, String]]
+  }
+  
+  // For this method, can only check the JValue --> correct format. We need handle the kafka or Future exception.
+  // So I try the error handling for each method.
+  def tryExtract[T](in: JValue)(implicit ev: Manifest[T]): Box[T] = {
+    try {
+      Full(in.extract[T])
+    } catch {
+      case m: MappingException => Empty
+    }
+  }
 
   // TODO Create and use a case class for each Map so we can document each structure.
   
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = saveConnectorMetric {
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond) {
       val req = Map(
         "version" -> formatVersion,
@@ -123,18 +168,32 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       )
     
       logger.debug(s"Kafka getBanks says: req is: $req")
-    
-      val rList = process(req).extract[List[KafkaInboundBank]]
-    
-      logger.debug(s"Kafka getBanks says rList is $rList")
-    
-      // Loop through list of responses and create entry for each
-      val res = { for ( r <- rList ) yield {new KafkaBank(r)}}
-    
-      // Return list of results
-      res
-    }
-  }("getBanks")
+      try {
+        val rList = process(req).extract[List[KafkaInboundBank]]
+        
+        logger.debug(s"Kafka getBanks says rList is $rList")
+        
+        // Loop through list of responses and create entry for each
+        Full(for (r <- rList)
+          yield {
+            KafkaBank(r)
+          }
+        )
+      } catch {
+        case m: MappingException =>
+          logger.error("getBanks-MappingException",m)
+          Failure(AdapterOrCoreBankingSystemException)
+        case m: TimeoutException =>
+          logger.error("getBanks-TimeoutException",m)
+          Failure(FutureTimeoutException)
+        case m: ClassCastException =>
+          logger.error("getBanks-ClassCastException",m)
+          Failure(KafkaMessageClassCastException)
+        case m: Throwable =>
+          logger.error("getBanks-Unexpected",m)
+          Failure(UnknownError)
+      }      
+  }}("getBanks")
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = saveConnectorMetric {
@@ -146,39 +205,69 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         "target" -> "bank",
         "bankId" -> id.value
       )
-      val r = process(req).extract[KafkaInboundBank]
-      // Return result
-      Full(new KafkaBank(r))
-    }
+      try {
+        val r = process(req).extract[KafkaInboundBank]
+        // Return result
+        Full(new KafkaBank(r))
+      } catch {
+        case m: MappingException =>
+          logger.error("getBank-MappingException",m)
+          Failure(AdapterOrCoreBankingSystemException)
+        case m: TimeoutException =>
+          logger.error("getBank-TimeoutException",m)
+          Failure(FutureTimeoutException)
+        case m: ClassCastException =>
+          logger.error("getBank-ClassCastException",m)
+          Failure(KafkaMessageClassCastException)
+        case m: Throwable =>
+          logger.error("getBank-Unexpected",m)
+          Failure(UnknownError)
+      }
+      }
   }("getBank")
   
   //TODO this is not implement in adapter
   def getUser( username: String, password: String ): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(getUserTTL millisecond) {
-      for {
-        req <- Full {
-          Map[String, String](
-            "version" -> formatVersion,
-            "name" -> "get",
-            "target" -> "user",
-            "username" -> username,
-            "password" -> password
+      try {
+        for {
+          req <- Full {
+            Map[String, String](
+              "version" -> formatVersion,
+              "name" -> "get",
+              "target" -> "user",
+              "username" -> username,
+              "password" -> password
+            )
+          }
+          u <- tryExtract[KafkaInboundValidatedUser](process(req))
+          recUsername <- tryo { u.displayName }
+        } yield {
+          if (username == u.displayName) new InboundUser(recUsername, password,
+            recUsername
           )
+          else null
         }
-        u <- tryo { process(req).extract[KafkaInboundValidatedUser] }
-        recUsername <- tryo { u.displayName }
-      } yield {
-        if (username == u.displayName) new InboundUser(recUsername, password,
-          recUsername
-        )
-        else null
+      } catch {
+        case m: MappingException =>
+          logger.error("getUser-MappingException",m)
+          Failure(AdapterOrCoreBankingSystemException)
+        case m: TimeoutException =>
+          logger.error("getUser-TimeoutException",m)
+          Failure(FutureTimeoutException)
+        case m: ClassCastException =>
+          logger.error("getUser-ClassCastException",m)
+          Failure(KafkaMessageClassCastException)
+        case m: Throwable =>
+          logger.error("getBank-Unexpected",m)
+          Failure(UnknownError)
       }
     }
   }("getUser")
 
   def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
     memoizeSync(updateUserAccountViewsTTL millisecond){
-      val accounts: List[KafkaInboundAccount] = getBanks.flatMap { bank => {
+      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
         val bankId = bank.bankId.value
         val username = user.name
         logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
@@ -190,9 +279,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             "userId" -> username,
             "bankId" -> bankId)}
           } yield {
-            val res = process(req)
+            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
+              case Full(a) => a
+              case Empty => List.empty
+            }
             logger.info(s"JVMCompatible updateUserAccountViews got response ${res}")
-            res.extract[List[KafkaInboundAccount]]
+            res
           }
         }
       }.flatten
@@ -254,8 +346,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //      // Check does the response data match the requested data
 //      case Some(x)  => AmountOfMoney(x.currency, x.limit)
 //      case _ => {
-        val limit = BigDecimal("0")
-        val rate = fx.exchangeRate ("EUR", currency)
+        val limit = BigDecimal("1000")
+        val rate = fx.exchangeRate ("XAF", currency)
         val convertedLimit = fx.convert(limit, rate)
         AmountOfMoney(currency,convertedLimit.toString())
 //      }
@@ -318,22 +410,37 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   ): Box[Transaction] = 
     saveConnectorMetric {
       memoizeSync(getTransactionTTL millisecond)  {
-        val req = Map(
-          "version" -> formatVersion,
-          "name" -> "get",
-          "target" -> "transaction",
-          "accountId" -> accountId.toString,
-          "bankId" -> bankId.toString,
-          "transactionId" -> transactionId.toString,
-          "userId" -> AuthUser.getCurrentUserUsername
-          )
-        // Since result is single account, we need only first list entry
-        val r = process(req).extractOpt[KafkaInboundTransaction]
-        r match {
-          // Check does the response data match the requested data
-          case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
-          case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
-          case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        try {
+          val req = Map(
+            "version" -> formatVersion,
+            "name" -> "get",
+            "target" -> "transaction",
+            "accountId" -> accountId.toString,
+            "bankId" -> bankId.toString,
+            "transactionId" -> transactionId.toString,
+            "userId" -> AuthUser.getCurrentUserUsername
+            )
+          // Since result is single account, we need only first list entry
+          val r = process(req).extractOpt[KafkaInboundTransaction]
+          r match {
+            // Check does the response data match the requested data
+            case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
+            case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
+            case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+          }
+        } catch {
+          case m: MappingException =>
+            logger.error("getTransaction-MappingException",m)
+            Failure(AdapterOrCoreBankingSystemException)
+          case m: TimeoutException =>
+            logger.error("getTransaction-TimeoutException",m)
+            Failure(FutureTimeoutException)
+          case m: ClassCastException =>
+            logger.error("getTransaction-ClassCastException",m)
+            Failure(KafkaMessageClassCastException)
+          case m: Throwable =>
+            logger.error("getTransaction-Unexpected",m)
+            Failure(UnknownError)
         }
       }
     } ("getTransaction")
@@ -368,133 +475,133 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   ): Box[List[Transaction]] = 
     saveConnectorMetric 
     {
-      //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
-      //Note: for Socegn, need bankid, accountId and userId.
-      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
-      // So we links the bankId and UserId in MapperAccountHolders talble.
-      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
-        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
-      }
-      
-      //TODO this is a qucik solution for cached, because of (queryParams: OBPQueryParam*)
-      def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
-        //the following are OBP page classes
-        val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-        val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-        val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-        val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-        val ordering = queryParams.collect {
-          //we don't care about the intended sort field and only sort on finish date for now
-          case OBPOrdering(_, direction) =>
-            direction match {
-              case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-              case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-            }
+      try {
+        val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+          case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
         }
-        val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
-        val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-        val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-    
-        //the following are OBPJVM page classes, need to map to OBP pages
-        val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
-        val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
-        val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
-        val filter = new TimestampFilter("postedDate", earliest, latest)
-        val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
-        val pageSize = Pager.DEFAULT_SIZE; // all in one page
-        val pager = new DefaultPager(pageSize, 0, filter, sorter)
         
-        val req1 = OutboundTransactionsQuery(
-          version = formatVersion,
-          name = "get",
-          target = "transactions",
-          accountId = accountId.toString,
-          bankId = bankId.toString,
-          userId = userId
-        )
-        
-        def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {
-          import scala.reflect.runtime.universe._
-        
-          val mirror = runtimeMirror(a.getClass.getClassLoader)
-        
-          def a2m(x: Any, t: Type): Any = {
-            val xm = mirror reflect x
-      
-            val members =
-              t.declarations.collect {
-                case acc: MethodSymbol if acc.isCaseAccessor =>
-                  acc.name.decoded -> a2m(
-                    (xm reflectMethod acc) (),
-                    acc.typeSignature
-                  )
-              }.toMap.asInstanceOf[Map[String, String]]
-          
-            if (members.isEmpty) x else members
+        //TODO this is a quick solution for cache, because of (queryParams: OBPQueryParam*)
+        def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
+          //the following are OBP page classes
+          val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+          val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+          val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+          val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+          val ordering = queryParams.collect {
+            //we don't care about the intended sort field and only sort on finish date for now
+            case OBPOrdering(_, direction) =>
+              direction match {
+                case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+                case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+              }
           }
-        
-          a2m(a, typeOf[A]).asInstanceOf[Map[String, String]]
-        }
-        
-        val requestToMap= anyToMap(req1)
-        
-        implicit val formats = net.liftweb.json.DefaultFormats
+          val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+          val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+          val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
       
-        val responseFromKafka = process(requestToMap)
-        logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
-        val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
-        // Check does the response data match the requested data
-        val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
-        if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
-        // Populate fields and generate result
-        val res = for {
-          r <- rList
-          transaction <- createNewTransaction(r)
-        } yield {
-          transaction
-        }
-        Full(res)
-        //TODO is this needed updateAccountTransactions(bankId, accountId)
-        }
-      getTransactionsCached(bankId,accountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
+          //the following are OBPJVM page classes, need to map to OBP pages
+          val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
+          val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
+          val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
+          val filter = new TimestampFilter("postedDate", earliest, latest)
+          val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
+          val pageSize = Pager.DEFAULT_SIZE; // all in one page
+          val pager = new DefaultPager(pageSize, 0, filter, sorter)
+          
+          val req1 = OutboundTransactionsQuery(
+            version = formatVersion,
+            name = "get",
+            target = "transactions",
+            accountId = accountId.toString,
+            bankId = bankId.toString,
+            userId = userId
+          )
+          val requestToMap= anyToMap(req1)
+
+          val responseFromKafka = process(requestToMap)
+          logger.info("the getTransactions from JVMcompatible is : "+responseFromKafka)
+          val rList =responseFromKafka.extract[List[KafkaInboundTransaction]]
+          // Check does the response data match the requested data
+          val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
+          if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
+          // Populate fields and generate result
+          val res = for {
+            r <- rList
+            transaction <- createNewTransaction(r)
+          } yield {
+            transaction
+          }
+          Full(res)
+          //TODO is this needed updateAccountTransactions(bankId, accountId)
+          }
+        getTransactionsCached(bankId,accountId, accountHolder, AuthUser.getCurrentUserUsername)
+      } catch {
+        case m: MappingException =>
+          logger.error("getTransactions-MappingException",m)
+          Failure(AdapterOrCoreBankingSystemException)
+        case m: TimeoutException =>
+          logger.error("getTransactions-TimeoutException",m)
+          Failure(FutureTimeoutException)
+        case m: ClassCastException =>
+          logger.error("getTransactions-ClassCastException",m)
+          Failure(KafkaMessageClassCastException)
+        case m: RuntimeException =>
+          logger.error("getTransactions-AccountID-UserId-Mapping",m)
+          Failure(m.getMessage)
+        case m: Throwable =>
+          logger.error("getTransactions-Unexpected",m)
+          Failure(UnknownError)
+      }
     }("getTransactions")
 
   override def getBankAccount(
     bankId: BankId, 
     accountId: AccountId
   ): Box[KafkaBankAccount] = saveConnectorMetric{
-    //val primaryUserIdentifier = AuthUser.getCurrentUserUsername 
-    //Note: for Socegn, need bankid, accountId and userId.
-    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
-    // So we links the bankId and UserId in MapperAccountHolders talble.
-    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-      //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first! according to the bankId= " + bankId + " and acoountId = "+ accountId )
-      case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+    try {
+      val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+      }
+      
+      def getBankAccountCached(
+        bankId: BankId, 
+        accountId: AccountId, 
+        userId : String, 
+        loginUser: String // added the login user here ,is just for cache 
+      ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
+        // Generate random uuid to be used as request-response match id
+        val req = Map(
+          "version" -> formatVersion,
+          "name" -> "get",
+          "target" -> "account",
+          "accountId" -> accountId.value,
+          "bankId" -> bankId.toString,
+          "userId" -> userId 
+        )
+        val r = process(req).extract[KafkaInboundAccount]
+        logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
+        Full(new KafkaBankAccount(r))
+      }
+      getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)
+    } catch {
+      case m: MappingException =>
+        logger.error("getBankAccount-MappingException",m)
+        Failure(AdapterOrCoreBankingSystemException)
+      case m: TimeoutException =>
+        logger.error("getBankAccount-TimeoutException",m)
+        Failure(FutureTimeoutException)
+      case m: ClassCastException =>
+        logger.error("getBankAccount-ClassCastException",m)
+        Failure(KafkaMessageClassCastException)
+      case m: RuntimeException =>
+        logger.error("getBankAccount-AccountID-UserId-Mapping",m)
+        Failure(m.getMessage)
+      case m: Throwable =>
+        logger.error("getBankAccount-Unexpected",m)
+        Failure(UnknownError)
     }
-    
-    def getBankAccountCached(
-      bankId: BankId, 
-      accountId: AccountId, 
-      userId : String, 
-      loginUser: String // added the login user here ,is just for cache 
-    ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
-      // Generate random uuid to be used as request-response match id
-      val req = Map(
-        "version" -> formatVersion,
-        "name" -> "get",
-        "target" -> "account",
-        "accountId" -> accountId.value,
-        "bankId" -> bankId.toString,
-        "userId" -> userId //TODO there will be the issue, login user is not revelent on BankId and AcocuntId. for Adaper, it need the userid
-      )
-      val r = process(req).extract[KafkaInboundAccount]
-      logger.info(s"getBankAccount says ! account.isPresent and userId is ${userId}")
-      Full(new KafkaBankAccount(r))
-    }
-    getBankAccountCached(bankId: BankId, accountId: AccountId, primaryUserIdentifier, AuthUser.getCurrentUserUsername)
   }("getBankAccount")
 
   //TODO not used yet
@@ -505,13 +612,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //    val r:List[KafkaInboundAccount] = accts.flatMap { a => {
 //      val bankId= BankId(a._1.value)
 //      val accountId =AccountId(a._2.value)
-//      //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-//      //Note: for Socegn, need bankid, accountId and userId.
-//      // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.
-//      // So we links the bankId and UserId in MapperAccountHolders talble.
 //      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-//        //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-//        case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
+//        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
 //        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
 //      }
 //      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
@@ -543,13 +645,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = Empty
   // memoizeSync(getAccountTTL millisecond) {
-//    //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-//    //Note: for Socegn, need bankid, accountId and userId.                                                                                                                             
-//    // But the up statmnet is only get user from Login/AuthUser/DeriectLogin. It has no revelvent on the BankId and AccountId.                                                                                                                             
-//    // So we links the bankId and UserId in MapperAccountHolders talble.                                                                                                                             
 //    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, AccountId(number)).toList.length match {                                                                                                                             // Generate random uuid to be used as request-respose match id
-//       //For now just make it in the log, not throw new RuntimeException("wrong userId, set it in MapperAccountHolders table first!")
-//      case 0 => throw new RuntimeException("xxxxxxxxxxxxx, wrong userId, set it in MapperAccountHolders table first!")
+//      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
 //      case _ => MapperAccountHolders.getAccountHolders(bankId, AccountId(number)).toList(0).name
 //    }
 //    val req = Map(
@@ -669,61 +766,130 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     sentTransactionId
   }
 
-
+  
+  case class TransactionQuery(
+    name: String = "put",
+    target: String = "transaction",
+    version: String = formatVersion,
+    `type`: String = "obp.mar.2017",
+    fields: PaymentFields 
+  )
+  
+  case class PaymentFields(
+    fromAccountName: String,
+    fromAccountId: String, 
+    fromAccountBankId: String, 
+    fromAccountCurrency: String,
+    transactionId: String, 
+    transactionRequestType: String, 
+    transactionCurrency: String, 
+    transactionAmount: String, 
+    transactionChargePolicy: String, 
+    transactionChargeAmount: String, 
+    transactionChargeCurrency: String,
+    transactionDescription: String, 
+    transactionPostedDate: String, 
+    toCounterpartyId: String, 
+    toCounterpartyName: String, 
+    toCounterpartyCurrency: String, 
+    toCounterpartyAccountRoutingAddress: String, 
+    toCounterpartyAccountRoutingScheme: String,  
+    toCounterpartyBankRoutingAddress: String, 
+    toCounterpartyBankRoutingScheme: String 
+  )
   /**
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: KafkaBankAccount, //CM 3 not finished
+  private def saveTransaction(fromAccount: KafkaBankAccount,
                               toAccount: KafkaBankAccount,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String) = {
-
-    val transactionTime = now
-    val currency = fromAccount.currency
-
-    //update the balance of the account for which a transaction is being created
-    //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amount, account.currency)
-    //account.balance = newAccountBalance
-
-    val req: Map[String, String] = Map("north" -> "putTransaction",
-                                       "action" -> "obp.putTransaction",
-                                       "version" -> formatVersion,
-                                       "userId" -> AuthUser.getCurrentResourceUserUserId,
-                                       "username" -> AuthUser.getCurrentUserUsername,
-                                       "name" -> "put",
-                                       "target" -> "transaction",
-                                       "description" -> description,
-                                       "transactionRequestType" -> transactionRequestType.value,
-                                       "toCurrency" -> currency, //Now, http request currency must equal fromAccount.currency
-                                       "toAmount" -> amount.toString,
-                                       "chargePolicy" -> chargePolicy,
-                                       //fromAccount
-                                       "fromBankId" -> fromAccount.bankId.value,
-                                       "fromAccountId" -> fromAccount.accountId.value,
-                                       //toAccount
-                                       "toBankId" -> toAccount.bankId.value,
-                                       "toAccountId" -> toAccount.accountId.value,
-                                       //toCounterty
-                                       "toCounterpartyId" -> toCounterparty.counterpartyId,
-                                       "toCounterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                       "toCounterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                       "type" -> "obp.mar.2017")
-
-
-    // Since result is single account, we need only first list entry
-    val r = process(req)
-
-    r.extract[KafkaInboundTransactionId] match {
-      case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
-      case _ => Full(TransactionId("0"))
-    }
-
+  
+    val toCounterpartyAccountRoutingAddress =
+      if (transactionRequestType.value == "SANDBOX_TAN")
+        toAccount.accountId.value
+      else
+        toCounterparty.otherAccountRoutingAddress
+  
+    val toCounterpartyBankRoutingAddress =
+      if (transactionRequestType.value == "SANDBOX_TAN")
+        toAccount.bankId.value
+      else
+        toCounterparty.otherBankRoutingAddress
+    
+    val toCounterpartyName =
+      if (transactionRequestType.value == "SANDBOX_TAN")
+        AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
+          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
+          case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
+        }
+      else
+        toCounterparty.name
+  
+    val req = TransactionQuery(
+      fields = PaymentFields(
+        //from Account
+        fromAccountName = AuthUser.getCurrentUserUsername, //"1000203891", //need fill 1
+        fromAccountId = fromAccount.accountId.value,//"1f5587fa-8ad8-3c6b-8fac-ac3db5bdc3db", //need fill 2 --> 1000203891(account 05010616953) 
+        fromAccountBankId = fromAccount.bankId.value , //"00100", //need fill 3
+        fromAccountCurrency = fromAccount.currency,//"XAF", //need fill 4
+        //transaction detail
+        transactionId = UUID.randomUUID().toString.take(35), //need fill 5
+        transactionRequestType = transactionRequestType.value,
+        transactionCurrency = "XAF", //need fill 6
+        transactionAmount = amount.toString(), //"3001", //need fill 7
+        transactionChargePolicy = "No3",
+        transactionChargeAmount = "10.0000", //need fill 8
+        transactionChargeCurrency = "XAF",
+        transactionDescription = description,
+        transactionPostedDate = "2016-01-21T18:46:19.056Z", //TODO, this is fixed for now. because of Bank server need it.
+        // to Counterparty
+        toCounterpartyId = "not used 2",
+        toCounterpartyName = toCounterpartyName, //toCounterparty.name, //"1000203892", // need fill 9, DEBTOR_NAME
+        toCounterpartyCurrency = "XAF", //need fill 10
+        toCounterpartyAccountRoutingAddress = toCounterpartyAccountRoutingAddress, //TODO fix the name  //"410ad4eb-9f63-300f-8cb9-12f0ab677521", //need fill 11 1000203893(account 06010616954)
+        toCounterpartyAccountRoutingScheme = "not used 3",
+        toCounterpartyBankRoutingAddress = toCounterpartyBankRoutingAddress,//"00100", //need fill 12
+        toCounterpartyBankRoutingScheme = "not used 4"
+      )
+    )
+  
+    val requestToMap= anyToMap(req)
+    
+    try{
+      // Since result is single account, we need only first list entry
+      val r = process(requestToMap)
+      
+      r.extract[KafkaInboundTransactionId] match {
+//        case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
+        // for now, we need just send the empty transaction-id, because the payments stuff is handling by SOPRA server.
+        // need some time to create the transaction, and get the id .  
+        case r: KafkaInboundTransactionId => Full(TransactionId(""))
+        case _ => Full(TransactionId(""))
+      }
+      
+     } catch {
+        case m: MappingException =>
+          logger.error("getBankAccount-MappingException",m)
+          Failure(AdapterOrCoreBankingSystemException)
+        case m: TimeoutException =>
+          logger.error("getBankAccount-TimeoutException",m)
+          Failure(FutureTimeoutException)
+        case m: ClassCastException =>
+          logger.error("getBankAccount-ClassCastException",m)
+          Failure(KafkaMessageClassCastException)
+        case m: RuntimeException =>
+          logger.error("getBankAccount-AccountID-UserId-Mapping",m)
+          Failure(m.getMessage)
+        case m: Throwable =>
+          logger.error("getBankAccount-Unexpected",m)
+          Failure(UnknownError)
+      }
+    
   }
 
   /*
@@ -1114,8 +1280,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
+
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   
   //TODO need to fix in obpjvm, just mocked result as Mapper
@@ -1149,27 +1315,21 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] =
     LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
   
-  override def getEmptyBankAccount(): Box[AccountType] = Empty
-  // {
-//    Full(
-//      new KafkaBankAccount(
-//        KafkaInboundAccount(
-//          accountId = "",
-//          bankId = "",
-//          label = "",
-//          number = "",
-//          `type` = "",
-//          balanceAmount = "",
-//          balanceCurrency = "",
-//          iban = "",
-//          owners = Nil,
-//          generate_public_view = true,
-//          generate_accountants_view = true,
-//          generate_auditors_view = true
-//        )
-//      )
-//    )
-//  }
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(
+      new KafkaBankAccount(
+        KafkaInboundAccount(
+          accountId = "",
+          bankId = "",
+          number = "",
+          `type` = "",
+          balanceAmount = "",
+          balanceCurrency = "",
+          iban = ""
+        )
+      )
+    )
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 

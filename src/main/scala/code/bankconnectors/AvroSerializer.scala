@@ -1,6 +1,6 @@
 package code.bankconnectors
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, InputStream}
 
 import com.sksamuel.avro4s._
 
@@ -28,9 +28,23 @@ trait AvroSerializer {
     Future(deserialize[T](data))
 
   def deserialize[T >: Null : SchemaFor : FromRecord](data: String)(implicit executionContext: ExecutionContext): Option[T] = {
-    val input = AvroInputStream.json[T](data)
+
+    val input = AvroInputStream.json[T](new StringInputStream(data))
     val result: Try[T] = input.singleEntity
     result.toOption
   }
 
+  class StringInputStream(s: String) extends InputStream {
+    private val bytes = s.getBytes
+
+    private var pos = 0
+
+    override def read(): Int = if (pos >= bytes.length) {
+      -1
+    } else {
+      val r = bytes(pos)
+      pos += 1
+      r.toInt
+    }
+  }
 }

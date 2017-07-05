@@ -5,6 +5,8 @@ import code.actorsystem.{ObpActorInit, ObpLookupSystem}
 import code.util.Helper.MdcLoggable
 import net.liftweb.json.JValue
 
+import scala.concurrent.Await
+
 object KafkaHelper extends KafkaHelper
 
 trait KafkaHelper extends ObpActorInit with MdcLoggable {
@@ -34,4 +36,9 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
   def process (request: Map[String, String]): JValue ={
     extractFuture(actor ? request)
   }
+
+  def process[T] (request: T): JValue ={
+    extractFuture(actor ? request)
+  }
+
 }

@@ -35,10 +35,11 @@ package code.api.util
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
+
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
-import code.api.v1_2.{ErrorMessage, SuccessMessage}
+import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
@@ -46,53 +47,73 @@ import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnMetrics}
 import code.model._
 import code.sanitycheck.SanityCheck
+import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
 import net.liftweb.common.{Empty, _}
+import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.http._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props, SecurityHelpers}
-import scala.xml.{Elem, XML}
-import scala.collection.mutable.ArrayBuffer
+import net.liftweb.util.Props
+
 import scala.collection.JavaConverters._
-import code.util.Helper.SILENCE_IS_GOLDEN
-import code.util.Helper.MdcLoggable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.xml.{Elem, XML}
 
 object ErrorMessages {
 import code.api.util.APIUtil._
 
-  // Infrastructure / config messages
+
+  // Notes to developers. Please:
+  // 1) Follow (the existing) grouping of messages
+  // 2) Stick to existing terminology e.g. use "invalid" or "incorrect" rather than "wrong"
+  // 3) Before adding a new message, check that you can't use one that already exists.
+  // 4) Use Proper Names for OBP Resources.
+  // 5) Don't use abbreviations.
+
+  // Infrastructure / config level messages (OBP-00XXX)
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
   val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
   val TransactionDisabled = "OBP-00003: Transaction Requests is disabled in this API instance."
-  val ServerAddDataError = "OBP-00004: Server error: could not add message"
-  val AllowPublicViewsNotSpecified = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
 
-  // General messages
+  @deprecated("This is too generic","25-06-2017")
+  val ServerAddDataError = "OBP-00004: Server error: could not add message" // Do not use this
+
+  val PublicViewsNotAllowedOnThisInstance = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
+
+
+  val RemoteDataSecretMatchError = "OBP-00006: Remote data secret cannot be matched!" // (was OBP-20021)
+  val RemoteDataSecretObtainError = "OBP-00007: Remote data secret cannot be obtained!" // (was OBP-20022)
+
+
+
+  // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
-  val WrongInputJsonFormat = "OBP-10006: wrong format JSON "
-  val WrongRoleName = "OBP-10007: wrong role name "
+  val InvalidInputJsonFormat = "OBP-10006: Invalid input JSON format." // Why do we need this as well as InvalidJsonFormat?
+  val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
 
-  // Authentication / Authorisation / User messages
+  // General Sort and Paging
+  val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
+  val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
+  val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
+  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
+
+
+
+  // Authentication / Authorisation / User messages (OBP-20XXX)
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
-
-
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
-
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
-
   val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
-  val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
+  val UserHasMissingRoles = "OBP-20006: User is missing one or more roles: "
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
@@ -113,20 +134,17 @@ import code.api.util.APIUtil._
 
   val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
 
-  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
-  
-  val InsufficientAuthorisationToCreateBranch  = "OBP-20019: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
-  val InsufficientAuthorisationToCreateBank  = "OBP-20020: Insufficient authorisation to Create Bank. The Request could not be created because you don't have access to CanCreateBank."
 
-  val RemoteDataSecretMatchError = "OBP-20021: Remote data secret cannot be matched!"
-  val RemoteDataSecretObtainError = "OBP-20022: Remote data secret cannot be obtained!"
-  
-  val FilterSortDirectionError = "OBP-20023: obp_sort_direction parameter can only take two values: DESC or ASC!"
-  val FilterOffersetError = "OBP-20024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!"
-  val FilterLimitError = "OBP-20025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!"
-  val FilterDateFormatError = s"OBP-20026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!"
-  
-  // Resource related messages
+  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+
+
+
+  val UserNotFoundByUsername = "OBP-20027: User not found by username."
+
+
+
+
+  // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
   val CustomerNotFoundByCustomerId = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_ID."
@@ -158,8 +176,10 @@ import code.api.util.APIUtil._
   val CreateConsumerError = "OBP-30024: Could not create customer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
+  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server. "
   
 
+  // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
@@ -176,21 +196,23 @@ import code.api.util.APIUtil._
   val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
   val InvalidAccountInitialBalance = "OBP-30112: Invalid Number. Initial balance must be a number, e.g 1000.00"
 
-  val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
-  val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
-  val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
-  val InvalidGetTransactionConnectorResponse = "OBP-30203: Connector did not return the transaction we requested."
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
 
-  val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
   val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
-  val AccountIdHasExsited = "OBP-30208: Account_ID already exists at the Bank."
+  val AccountIdAlreadyExsits = "OBP-30208: Account_ID already exists at the Bank."
 
-  // Transaction related messages:
+
+  val InsufficientAuthorisationToCreateBranch  = "OBP-30009: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
+  val InsufficientAuthorisationToCreateBank  = "OBP-30010: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
+
+  // General Resource related messages above here
+
+
+  // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account or you don't have access to canCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
@@ -206,9 +228,27 @@ import code.api.util.APIUtil._
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
-  
-  val UnKnownError = "OBP-50000: Unknown Error."
-  
+
+
+
+  // Exceptions (OBP-50XXX)
+  val UnknownError = "OBP-50000: Unknown Error."
+  val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
+  val KafkaMessageClassCastException = "OBP-50002: Kafka Response Message Class Cast Exception."
+  val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
+
+
+  // Connector Data Exceptions (OBP-502XX)
+  val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
+  val InvalidConnectorResponseForGetBankAccounts = "OBP-50201: Connector did not return the set of accounts we requested."  // was OBP-30201
+  val InvalidConnectorResponseForGetBankAccount = "OBP-50202: Connector did not return the account we requested."  // was OBP-30202
+  val InvalidConnectorResponseForGetTransaction = "OBP-50203: Connector did not return the transaction we requested."  // was OBP-30203
+  val InvalidConnectorResponseForGetTransactions = "OBP-50204: Connector did not return the set of transactions we requested."  // was OBP-30204
+
+
+
+
+
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
   //   -->(InvalidUserId, "OBP-30107: Invalid User Id.")
@@ -259,6 +299,16 @@ object APIUtil extends MdcLoggable {
     S.request match {
       case Full(a) =>  a.header("Authorization") match {
         case Full(parameters) => parameters.contains("DirectLogin")
+        case _ => false
+      }
+      case _ => false
+    }
+  }
+
+  def isThereGatewayHeader : Boolean = {
+    S.request match {
+      case Full(a) =>  a.header("Authorization") match {
+        case Full(parameters) => parameters.contains("Gateway")
         case _ => false
       }
       case _ => false
@@ -332,22 +382,25 @@ object APIUtil extends MdcLoggable {
       val implementedInVersion = S.request.get.view
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
-  
+      val url = S.uriAndQueryString.getOrElse("")
+
+      //execute saveMetric in future, as we do not need to know result of operation
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
         APIMetrics.apiMetrics.vend.saveMetric(
           userId,
-          S.uriAndQueryString.getOrElse(""), 
-          date, 
-          duration: Long, 
+          url,
+          date,
+          duration: Long,
           userName,
-          appName, 
-          developerEmail, 
-          consumerId, 
+          appName,
+          developerEmail,
+          consumerId,
           implementedByPartialFunction,
           implementedInVersion, verb
         )
-      }  
+      }
+
     }
   }
 
@@ -371,23 +424,53 @@ object APIUtil extends MdcLoggable {
     }
     commit
   }
-
-  //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
+  
+//  https://httpstatuses.com/ the introduction for all http-codes
+  
+  /**
+    * 204 NO CONTENT
+    * The server has successfully fulfilled the request and that there is no additional content to send in the response payload body.
+    */
   def noContentJsonResponse : JsonResponse =
     JsonResponse(JsRaw(""), headers, Nil, 204)
-
+  
+  /**
+    * 200 OK
+    * The request has succeeded.
+    */
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
-
+  
+  /**
+    * 201 CREATED
+    * The request has been fulfilled and has resulted in one or more new resources being created.
+    */
   def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
 
+  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
+    JsonResponse(Extraction.decompose(cc), headers, Nil, httpCode)
+  
+  /**
+    * 202 ACCEPTED
+    * The request has been accepted for processing, but the processing has not been completed.
+    * The request might or might not eventually be acted upon, as it might be disallowed when processing actually takes place.
+    */
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
-
+  
+  /**
+    * 400 BAD REQUEST
+    * The server cannot or will not process the request due to something that is perceived to be a client error
+    * (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+    */
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
-
+  
+  /**
+    * 501 NOT IMPLEMENTED
+    * The server does not support the functionality required to fulfill the request.
+    */
   def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 
@@ -627,7 +710,6 @@ object APIUtil extends MdcLoggable {
     import javax.crypto
 
     import dispatch.{Req => Request}
-    import net.liftweb.util.Helpers
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
@@ -1088,6 +1170,7 @@ Returns a string showed to the developer
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
+  // TODO Should we accept Option[BankId] for bankId  instead of String ?
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
     val list: List[Boolean] = for (role <- roles) yield {
       !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
@@ -1131,7 +1214,7 @@ Returns a string showed to the developer
     if (Props.getBool("write_metrics", false)){
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
-        ConnMetrics.metrics.vend.saveMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
       }
     }
     result
