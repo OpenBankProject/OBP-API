@@ -560,11 +560,15 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     accountId: AccountId
   ): Box[KafkaBankAccount] = saveConnectorMetric{
     try {
-      val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+
+      def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
+        val accountHolder: String = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+          case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+        }
+        accountHolder
       }
-      
+
       def getBankAccountCached(
         bankId: BankId, 
         accountId: AccountId, 
@@ -584,7 +588,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         logger.debug(s"getBankAccount says ! account.isPresent and userId is ${userId}")
         Full(new KafkaBankAccount(r))
       }
-      getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)
+      getBankAccountCached(bankId: BankId, accountId: AccountId, getAccountHolderCached(bankId, accountId), AuthUser.getCurrentUserUsername)
     } catch {
       case m: MappingException =>
         logger.error("getBankAccount-MappingException",m)
