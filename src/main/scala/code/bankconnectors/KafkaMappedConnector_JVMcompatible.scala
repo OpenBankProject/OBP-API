@@ -476,9 +476,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     saveConnectorMetric 
     {
       try {
-        val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-          case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+
+        def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
+          val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
+            case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+            case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+          }
+          accountHolder
         }
         
         //TODO this is a quick solution for cache, because of (queryParams: OBPQueryParam*)
@@ -535,7 +539,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Full(res)
           //TODO is this needed updateAccountTransactions(bankId, accountId)
           }
-        getTransactionsCached(bankId,accountId, accountHolder, AuthUser.getCurrentUserUsername)
+        getTransactionsCached(bankId,accountId, getAccountHolderCached(bankId, accountId), AuthUser.getCurrentUserUsername)
       } catch {
         case m: MappingException =>
           logger.error("getTransactions-MappingException",m)
@@ -824,13 +828,17 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         toAccount.bankId.value
       else
         toCounterparty.otherBankRoutingAddress
-    
+
+    def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
+      AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
+        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
+        case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
+      }
+    }
+
     val toCounterpartyName =
       if (transactionRequestType.value == "SANDBOX_TAN")
-        AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
-          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
-          case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
-        }
+        getAccountHolderCached(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress))
       else
         toCounterparty.name
   
