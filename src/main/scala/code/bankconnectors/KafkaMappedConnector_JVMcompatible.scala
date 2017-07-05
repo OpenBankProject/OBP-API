@@ -270,7 +270,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
         val bankId = bank.bankId.value
         val username = user.name
-        logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+        logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
         for {
           req <- tryo { Map[String, String](
             "version" -> formatVersion,
