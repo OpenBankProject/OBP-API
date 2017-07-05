@@ -282,6 +282,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createAccount ::
                           Implementations2_2_0.createBranch ::
                           Implementations2_2_0.createAtm ::
+                          Implementations2_2_0.createProduct ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
                           Nil

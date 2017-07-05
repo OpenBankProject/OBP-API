@@ -4,7 +4,7 @@ import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.{AtmId, Atm}
+import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -36,6 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
 import code.api.util.APIUtil.saveConnectorMetric
+import code.api.v2_2_0.ProductJsonV220
 
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -903,17 +904,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     result.getOrElse(false)
   }
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = {
+  override def getProducts(bankId: BankId): Box[List[MappedProduct]] = {
     Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
   }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[MappedProduct] = {
     MappedProduct.find(
       By(MappedProduct.mBankId, bankId.value),
       By(MappedProduct.mCode, productCode.value)
     )
   }
 
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
   override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
 
     //check the branch existence and update or insert data
@@ -940,7 +942,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchUpdateError
+        } ?~! ErrorMessages.UpdateBranchError
       case _ =>
         tryo {
           MappedBranch.create
@@ -963,11 +965,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchInsertError
+        } ?~! ErrorMessages.CreateBranchError
     }
   }
 
 
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
   override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
 
     //check the atm existence and update or insert data
@@ -987,7 +990,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(atm.meta.license.id)
             .mLicenseName(atm.meta.license.name)
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchUpdateError
+        } ?~! ErrorMessages.UpdateAtmError
       case _ =>
         tryo {
           MappedAtm.create
@@ -1006,13 +1009,62 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(atm.meta.license.id)
             .mLicenseName(atm.meta.license.name)
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchInsertError
+        } ?~! ErrorMessages.CreateAtmError
     }
   }
 
 
 
+  override def createOrUpdateProduct(bankId : String,
+                                     code : String,
+                                     name : String,
+                                     category : String,
+                                     family : String,
+                                     superFamily : String,
+                                     moreInfoUrl : String,
+                                     details : String,
+                                     description : String,
+                                     metaLicenceId : String,
+                                     metaLicenceName : String): Box[Product] = {
 
+    //check the product existence and update or insert data
+    getProduct(BankId(bankId), ProductCode(code)) match {
+      case Full(mappedProduct) =>
+        tryo {
+          mappedProduct.mName(name)
+          .mCode (code)
+          .mBankId(bankId)
+          .mName(name)
+          .mCategory(category)
+          .mFamily(family)
+          .mSuperFamily(superFamily)
+          .mMoreInfoUrl(moreInfoUrl)
+          .mDetails(details)
+          .mDescription(description)
+          .mLicenseId(metaLicenceId)
+          .mLicenseName(metaLicenceName)
+          .saveMe()
+        } ?~! ErrorMessages.UpdateProductError
+      case _ =>
+        tryo {
+          MappedProduct.create
+            .mName(name)
+            .mCode (code)
+            .mBankId(bankId)
+            .mName(name)
+            .mCategory(category)
+            .mFamily(family)
+            .mSuperFamily(superFamily)
+            .mMoreInfoUrl(moreInfoUrl)
+            .mDetails(details)
+            .mDescription(description)
+            .mLicenseId(metaLicenceId)
+            .mLicenseName(metaLicenceName)
+            .saveMe()
+        } ?~! ErrorMessages.CreateProductError
+    }
+
+  }
 
 
 
@@ -1125,7 +1177,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankInsertError
+             } ?~! ErrorMessages.CreateBankError
       case _ =>
         tryo {
                MappedBank.create
@@ -1139,6 +1191,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankUpdateError
+             } ?~! ErrorMessages.UpdateBankError
     }
 }

@@ -283,6 +283,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
                           Implementations2_2_0.createConsumer ::
+                          Implementations2_2_0.createProduct ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

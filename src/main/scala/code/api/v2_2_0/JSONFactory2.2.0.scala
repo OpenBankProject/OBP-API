@@ -39,6 +39,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
+import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.{APIMetric, ConnectorMetric}
@@ -201,7 +202,19 @@ case class AtmJsonV220(
                          )
 
 
+//Copied from V210
+case class ProductJsonV220(bank_id: String,
+                           code : String,
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJson)
 
+case class ProductsJsonV220 (products : List[ProductJsonV220])
 
 
 
@@ -412,13 +425,34 @@ object JSONFactory220{
   def createAtmJson(atm: Atm): AtmJsonV220 = {
     AtmJsonV220(
       id= atm.atmId.value,
-      bank_id= "lalala",
+      bank_id= atm.bankId.value,
       name= atm.name,
       address= createAddressJson(atm.address),
       location= createLocationJson(atm.location),
       meta= createMetaJson(atm.meta)
     )
   }
+
+
+  def createProductJson(product: Product) : ProductJsonV220 = {
+    ProductJsonV220(
+      product.bankId.toString,
+      product.code.value,
+      product.name,
+      product.category,
+      product.family,
+      product.superFamily,
+      product.moreInfoUrl,
+      product.details,
+      product.description,
+      createMetaJson(product.meta))
+  }
+
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV220 = {
+    ProductsJsonV220(productsList.map(createProductJson))
+  }
+
+
 
 
 

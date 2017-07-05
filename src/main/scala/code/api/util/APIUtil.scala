@@ -163,20 +163,28 @@ import code.api.util.APIUtil._
   val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. Please specify a valid value for IBAN."
   val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty. Please set the Counterparty 'isBeneficiary' true first"
   val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
-  val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
-  val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
+  val CreateBranchError = "OBP-30015: Could not insert the Branch"
+  val UpdateBranchError = "OBP-30016: Could not update the Branch"
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
   val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
   
-  val CreateBankInsertError = "OBP-30020: Could not create the Bank"
-  val CreateBankUpdateError = "OBP-30021: Could not update the Bank"
+  val CreateBankError = "OBP-30020: Could not create the Bank"
+  val UpdateBankError = "OBP-30021: Could not update the Bank"
   val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
-  val CreateConsumerError = "OBP-30024: Could not create customer "
+  val CreateConsumerError = "OBP-30024: Could not create Consumer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
-  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server. "
+  val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"
+
+
+  val CreateAtmError = "OBP-30028: Could not insert the ATM"
+  val UpdateAtmError = "OBP-30029: Could not update the ATM"
+
+  val CreateProductError = "OBP-30030: Could not insert the Product"
+  val UpdateProductError = "OBP-30031: Could not update the Product"
+
   
 
   // Meetings

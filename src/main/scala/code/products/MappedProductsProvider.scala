@@ -13,6 +13,7 @@ import code.products.Products.Product
 object MappedProductsProvider extends ProductsProvider {
 
   override protected def getProductFromProvider(bankId: BankId, productCode: ProductCode): Option[Product] =
+  // Does this implicit cast from MappedProduct to Product?
   MappedProduct.find(
     By(MappedProduct.mBankId, bankId.value),
     By(MappedProduct.mCode, productCode.value)

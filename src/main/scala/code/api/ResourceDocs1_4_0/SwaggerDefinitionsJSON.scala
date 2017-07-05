@@ -5,11 +5,10 @@ import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
 
 /**
-  * Created by zhanghongwei on 07/04/2017.
   * This object prepare all the JSON case classes for Swagger .
   * For now, just support all the endpoints for V220.
   * Because different versions, has different case classes.
-  * It is hard to mapping all these case class dynamicly for now.
+  * It is hard to mapping all these case class dynamicaly for now.
   * May be it can be fixed later.
   *
   */
@@ -44,7 +43,8 @@ object SwaggerDefinitionsJSON {
       "can_see_transaction_finish_date",
       "can_see_transaction_balance",
       "can_see_comments",
-      "can_see_narrative", "can_see_tags",
+      "can_see_narrative",
+      "can_see_tags",
       "can_see_images",
       "can_see_bank_account_owners",
       "can_see_bank_account_type",
@@ -1429,17 +1429,18 @@ object SwaggerDefinitionsJSON {
   )
   
   val productJsonV210 = ProductJsonV210(
-    code = "123",
-    name = "Good",
-    category = "OBP",
-    family = "Mother",
-    super_family = "GOOD",
-    more_info_url = "www.openbankproject.com",
-    details = "good ides",
-    description = "Good boy",
+    bank_id = "bankid123",
+    code = "prod1",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
     meta = metaJson
   )
-  
+
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
   
   val postCounterpartyJSON = PostCounterpartyJSON(
@@ -1616,6 +1617,19 @@ object SwaggerDefinitionsJSON {
     name = "OBP",
     address = addressJson,
     location = locationJson,
+    meta = metaJson
+  )
+
+  val productJsonV220 = ProductJsonV220(
+    bank_id = "bankid123",
+    code = "prod1",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
     meta = metaJson
   )
   
