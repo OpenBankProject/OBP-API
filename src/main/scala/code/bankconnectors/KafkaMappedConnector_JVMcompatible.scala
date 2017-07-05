@@ -478,9 +478,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       try {
 
         def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-          val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-            case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-            case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+          val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
+            case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+            case head :: _ => head.name
           }
           accountHolder
         }
@@ -566,9 +566,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     try {
 
       def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-        val accountHolder: String = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-          case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-          case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
+        val accountHolder: String = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
+          case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+          case head :: _ => head.name
         }
         accountHolder
       }
@@ -830,9 +830,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         toCounterparty.otherBankRoutingAddress
 
     def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-      AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList.length match {
-        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
-        case _ => MapperAccountHolders.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList(0).name
+      AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList match {
+        case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
+        case head :: _ => head.name
       }
     }
 
