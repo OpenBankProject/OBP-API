@@ -45,7 +45,9 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
     val results = MapperAccountHolders.findAll(
       By(MapperAccountHolders.accountBankPermalink, bankId.value),
-      By(MapperAccountHolders.accountPermalink, accountId.value))
+      By(MapperAccountHolders.accountPermalink, accountId.value),
+      PreCache(MapperAccountHolders.user)
+    )
 
     results.flatMap { accHolder =>
       ResourceUser.find(By(ResourceUser.id, accHolder.user))
