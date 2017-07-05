@@ -16,7 +16,9 @@ class ImportBranches(ImportCSV):
 
     def get_data(self, row_number, row):
         data = {
-            'id': row_number,
+            'id':
+                '{}{}{}'.format(  # noqa
+                    row[0], '-' , row_number),
             'bank_id': self.bank_id,
             'name': row[1],
             'address': {
