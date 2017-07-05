@@ -654,7 +654,7 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+//              registeredUserHelper(user.username)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
