@@ -34,8 +34,8 @@ class ImportBranches(ImportCSV):
             },
             'meta': {
                 'license': {
-                    'id': '5',
-                    'name': 'TESOBE',
+                    'id': 'copyright',
+                    'name': 'Copyright 2017',
                 }
             },
             'lobby': {
