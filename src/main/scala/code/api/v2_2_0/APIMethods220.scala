@@ -391,9 +391,9 @@ trait APIMethods220 {
 
 
     // Create Branch
-    val createBranchEntitlementsRequiredForSpecificBank = CanCreateUserCustomerLink :: Nil
-    //val createBranchEntitlementsRequiredForAnyBank = CanCreateUserCustomerLinkAtAnyBank :: Nil
-    val createBranchEntitlementsRequiredText = createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required."
+    val createBranchEntitlementsRequiredForSpecificBank = CanCreateBranch :: Nil
+    val createBranchEntitlementsRequiredForAnyBank = CanCreateBranchAtAnyBank :: Nil
+    val createBranchEntitlementsRequiredText = UserHasMissingRoles + createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required OR " + createBranchEntitlementsRequiredForAnyBank.mkString(" and ")
 
 
     // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
@@ -429,7 +429,10 @@ trait APIMethods220 {
           for {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, ErrorMessages.InsufficientAuthorisationToCreateBranch)
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
+              ||
+              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
+              , createBranchEntitlementsRequiredText)
             branch <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateBranch(
               BranchJsonPost(
