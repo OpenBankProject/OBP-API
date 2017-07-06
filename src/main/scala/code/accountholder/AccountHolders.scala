@@ -2,9 +2,10 @@ package code.accountholder
 
 
 
-import code.model.{AccountId, BankId, User}
-import net.liftweb.util.SimpleInjector
-import code.remotedata.RemotedataAccountHolders
+import code.consumer.ConsumersProvider
+import code.model.{AccountId, BankId, MappedConsumersProvider, User}
+import net.liftweb.util.{Props, SimpleInjector}
+import code.remotedata.{RemotedataAccountHolders, RemotedataConsumers}
 import net.liftweb.common.Box
 
 
@@ -12,8 +13,11 @@ object AccountHolders extends SimpleInjector {
 
   val accountHolders = new Inject(buildOne _) {}
 
-  //def buildOne: AccountHolders = MapperAccountHolders
-  def buildOne: AccountHolders = RemotedataAccountHolders
+  def buildOne: AccountHolders =
+    Props.getBool("skip_akka", true) match {
+      case true  => MapperAccountHolders
+      case false => RemotedataAccountHolders     // We will use Akka as a middleware
+    }
 
 }
 

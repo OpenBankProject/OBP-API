@@ -2,17 +2,20 @@ package code.usercustomerlinks
 
 import java.util.Date
 
-import net.liftweb.common.Box
 import code.remotedata.RemotedataUserCustomerLinks
-import net.liftweb.util.SimpleInjector
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 
 object UserCustomerLink extends SimpleInjector {
 
   val userCustomerLink = new Inject(buildOne _) {}
 
-  //def buildOne: UserCustomerLinkProvider = MappedUserCustomerLinkProvider
-  def buildOne: UserCustomerLinkProvider = RemotedataUserCustomerLinks
+  def buildOne: UserCustomerLinkProvider =
+    Props.getBool("skip_akka", true) match {
+      case true  => MappedUserCustomerLinkProvider
+      case false => RemotedataUserCustomerLinks     // We will use Akka as a middleware
+    }
 
 }
 

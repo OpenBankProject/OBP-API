@@ -4,13 +4,17 @@ import java.util.{Calendar, Date}
 
 import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataConnectorMetrics
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 object ConnMetrics extends SimpleInjector {
 
   val metrics = new Inject(buildOne _) {}
 
-  def buildOne: ConnMetrics = RemotedataConnectorMetrics
+  def buildOne: ConnMetrics =
+    Props.getBool("skip_akka", true) match {
+      case true  => ConnectorMetrics
+      case false => RemotedataConnectorMetrics     // We will use Akka as a middleware
+    }
 
   /**
    * Returns a Date which is at the start of the day of the date

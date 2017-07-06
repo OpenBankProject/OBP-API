@@ -1,18 +1,21 @@
 package code.metadata.comments
 
-import net.liftweb.util.SimpleInjector
-import net.liftweb.common.Box
-import code.model._
 import java.util.Date
 
+import code.model._
 import code.remotedata.RemotedataComments
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Comments extends SimpleInjector {
 
   val comments = new Inject(buildOne _) {}
-  
-  //def buildOne: Comments = MappedComments
-  def buildOne: Comments = RemotedataComments
+
+  def buildOne: Comments =
+    Props.getBool("skip_akka", true) match {
+      case true  => MappedComments
+      case false => RemotedataComments     // We will use Akka as a middleware
+    }
   
 }
 

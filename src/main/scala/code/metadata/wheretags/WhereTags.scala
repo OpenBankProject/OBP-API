@@ -1,18 +1,21 @@
 package code.metadata.wheretags
 
-import net.liftweb.util.SimpleInjector
 import java.util.Date
 
 import code.model._
 import code.remotedata.RemotedataWhereTags
 import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object WhereTags  extends SimpleInjector {
 
   val whereTags = new Inject(buildOne _) {}
 
-  //def buildOne: WhereTags = MapperWhereTags
-  def buildOne: WhereTags = RemotedataWhereTags
+  def buildOne: WhereTags =
+    Props.getBool("skip_akka", true) match {
+      case true  => MapperWhereTags
+      case false => RemotedataWhereTags     // We will use Akka as a middleware
+    }
 
 }
 

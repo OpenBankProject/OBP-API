@@ -2,17 +2,20 @@ package code.metadata.counterparties
 
 import java.util.Date
 
-import net.liftweb.common.Box
-import net.liftweb.util.SimpleInjector
 import code.model._
 import code.remotedata.RemotedataCounterparties
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Counterparties extends SimpleInjector {
 
   val counterparties = new Inject(buildOne _) {}
 
-//  def buildOne: Counterparties = MapperCounterparties
-  def buildOne: Counterparties = RemotedataCounterparties
+  def buildOne: Counterparties =
+    Props.getBool("skip_akka", true) match {
+      case true  => MapperCounterparties
+      case false => RemotedataCounterparties     // We will use Akka as a middleware
+    }
 
 }
 

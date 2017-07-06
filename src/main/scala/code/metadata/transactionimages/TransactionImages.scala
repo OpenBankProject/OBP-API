@@ -1,18 +1,21 @@
 package code.metadata.transactionimages
 
-import net.liftweb.util.SimpleInjector
 import java.util.Date
 
-import net.liftweb.common.Box
 import code.model._
 import code.remotedata.RemotedataTransactionImages
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object TransactionImages  extends SimpleInjector {
 
   val transactionImages = new Inject(buildOne _) {}
-  
-  //def buildOne: TransactionImages = MapperTransactionImages
-  def buildOne: TransactionImages = RemotedataTransactionImages
+
+  def buildOne: TransactionImages =
+    Props.getBool("skip_akka", true) match {
+      case true  => MapperTransactionImages
+      case false => RemotedataTransactionImages     // We will use Akka as a middleware
+    }
   
 }
 

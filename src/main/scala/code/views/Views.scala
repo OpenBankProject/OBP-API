@@ -1,19 +1,20 @@
 package code.views
 
-import net.liftweb.common.Box
-import code.model._
-import net.liftweb.util.SimpleInjector
-import code.model.Permission
-import code.model.CreateViewJson
+import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Views  extends SimpleInjector {
 
   val views = new Inject(buildOne _) {}
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
-  //def buildOne: Views = MapperViews
-  def buildOne: Views = RemotedataViews
+  def buildOne: Views =
+    Props.getBool("skip_akka", true) match {
+      case true  => MapperViews
+      case false => RemotedataViews     // We will use Akka as a middleware
+    }
   
 }
 

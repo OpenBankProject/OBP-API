@@ -2,14 +2,17 @@ package code.metadata.narrative
 
 import code.model.{AccountId, BankId, TransactionId}
 import code.remotedata.RemotedataNarratives
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Narrative extends SimpleInjector {
 
   val narrative = new Inject(buildOne _) {}
 
-  //def buildOne: Narrative = MappedNarratives
-  def buildOne: Narrative = RemotedataNarratives
+  def buildOne: Narrative =
+    Props.getBool("skip_akka", true) match {
+      case true  => MappedNarratives
+      case false => RemotedataNarratives     // We will use Akka as a middleware
+    }
 
 }
 

@@ -1,16 +1,21 @@
 package code.consumer
 
-import code.model.{AppType, Consumer}
-import code.remotedata.RemotedataConsumers
+import code.metrics.ElasticsearchMetrics
+import code.model.{AppType, Consumer, MappedConsumersProvider}
+import code.remotedata.{RemotedataConsumers, RemotedataMetrics}
 import net.liftweb.common.Box
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 
 object Consumers extends SimpleInjector {
 
   val consumers = new Inject(buildOne _) {}
 
-  def buildOne: ConsumersProvider = RemotedataConsumers
+  def buildOne: ConsumersProvider =
+    Props.getBool("skip_akka", true) match {
+    case true  => MappedConsumersProvider
+    case false => RemotedataConsumers     // We will use Akka as a middleware
+  }
 
 }
 

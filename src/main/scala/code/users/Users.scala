@@ -1,17 +1,20 @@
 package code.users
 
-import net.liftweb.util.SimpleInjector
-import net.liftweb.common.Box
 import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.remotedata.RemotedataUsers
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Users  extends SimpleInjector {
 
   val users = new Inject(buildOne _) {}
-  
-  //def buildOne: Users = LiftUsers
-  def buildOne: Users = RemotedataUsers
+
+  def buildOne: Users =
+    Props.getBool("skip_akka", true) match {
+      case true  => LiftUsers
+      case false => RemotedataUsers     // We will use Akka as a middleware
+    }
   
 }
 
