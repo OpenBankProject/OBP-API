@@ -13,9 +13,9 @@ object Nonces extends SimpleInjector {
   val nonces = new Inject(buildOne _) {}
 
   def buildOne: NoncesProvider =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedNonceProvider
-      case false => RemotedataNonces     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedNonceProvider
+      case true => RemotedataNonces     // We will use Akka as a middleware
     }
 
 }

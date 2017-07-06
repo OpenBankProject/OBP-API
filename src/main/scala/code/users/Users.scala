@@ -11,9 +11,9 @@ object Users  extends SimpleInjector {
   val users = new Inject(buildOne _) {}
 
   def buildOne: Users =
-    Props.getBool("skip_akka", true) match {
-      case true  => LiftUsers
-      case false => RemotedataUsers     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => LiftUsers
+      case true => RemotedataUsers     // We will use Akka as a middleware
     }
   
 }

@@ -12,9 +12,9 @@ object WhereTags  extends SimpleInjector {
   val whereTags = new Inject(buildOne _) {}
 
   def buildOne: WhereTags =
-    Props.getBool("skip_akka", true) match {
-      case true  => MapperWhereTags
-      case false => RemotedataWhereTags     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MapperWhereTags
+      case true => RemotedataWhereTags     // We will use Akka as a middleware
     }
 
 }

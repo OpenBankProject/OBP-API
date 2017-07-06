@@ -12,9 +12,9 @@ object Tags  extends SimpleInjector {
   val tags = new Inject(buildOne _) {}
 
   def buildOne: Tags =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedTags
-      case false => RemotedataTags     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedTags
+      case true => RemotedataTags     // We will use Akka as a middleware
     }
   
 }

@@ -12,9 +12,9 @@ object Counterparties extends SimpleInjector {
   val counterparties = new Inject(buildOne _) {}
 
   def buildOne: Counterparties =
-    Props.getBool("skip_akka", true) match {
-      case true  => MapperCounterparties
-      case false => RemotedataCounterparties     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MapperCounterparties
+      case true => RemotedataCounterparties     // We will use Akka as a middleware
     }
 
 }

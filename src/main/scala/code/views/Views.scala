@@ -11,9 +11,9 @@ object Views  extends SimpleInjector {
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
   def buildOne: Views =
-    Props.getBool("skip_akka", true) match {
-      case true  => MapperViews
-      case false => RemotedataViews     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MapperViews
+      case true => RemotedataViews     // We will use Akka as a middleware
     }
   
 }

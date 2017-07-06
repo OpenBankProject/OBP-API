@@ -9,9 +9,9 @@ object Narrative extends SimpleInjector {
   val narrative = new Inject(buildOne _) {}
 
   def buildOne: Narrative =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedNarratives
-      case false => RemotedataNarratives     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedNarratives
+      case true => RemotedataNarratives     // We will use Akka as a middleware
     }
 
 }

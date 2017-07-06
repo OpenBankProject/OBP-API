@@ -12,9 +12,9 @@ object UserCustomerLink extends SimpleInjector {
   val userCustomerLink = new Inject(buildOne _) {}
 
   def buildOne: UserCustomerLinkProvider =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedUserCustomerLinkProvider
-      case false => RemotedataUserCustomerLinks     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedUserCustomerLinkProvider
+      case true => RemotedataUserCustomerLinks     // We will use Akka as a middleware
     }
 
 }

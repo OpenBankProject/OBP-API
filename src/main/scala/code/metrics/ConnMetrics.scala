@@ -11,9 +11,9 @@ object ConnMetrics extends SimpleInjector {
   val metrics = new Inject(buildOne _) {}
 
   def buildOne: ConnMetrics =
-    Props.getBool("skip_akka", true) match {
-      case true  => ConnectorMetrics
-      case false => RemotedataConnectorMetrics     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => ConnectorMetrics
+      case true => RemotedataConnectorMetrics     // We will use Akka as a middleware
     }
 
   /**

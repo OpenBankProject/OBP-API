@@ -2,18 +2,22 @@ package code.token
 
 import java.util.Date
 
-import code.model.Token
 import code.model.TokenType.TokenType
+import code.model.{MappedTokenProvider, Token}
 import code.remotedata.RemotedataTokens
 import net.liftweb.common.Box
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 
 object Tokens extends SimpleInjector {
 
   val tokens = new Inject(buildOne _) {}
 
-  def buildOne: TokensProvider = RemotedataTokens
+  def buildOne: TokensProvider =
+    Props.getBool("use_akka", false) match {
+      case false  => MappedTokenProvider
+      case true => RemotedataTokens     // We will use Akka as a middleware
+    }
 
 }
 

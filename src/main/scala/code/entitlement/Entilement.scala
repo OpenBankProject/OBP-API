@@ -11,9 +11,9 @@ object Entitlement extends SimpleInjector {
   val entitlement = new Inject(buildOne _) {}
 
   def buildOne: EntitlementProvider =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedEntitlementsProvider
-      case false => RemotedataEntitlements     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedEntitlementsProvider
+      case true => RemotedataEntitlements     // We will use Akka as a middleware
     }
 }
 

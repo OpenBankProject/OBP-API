@@ -12,9 +12,9 @@ object TransactionImages  extends SimpleInjector {
   val transactionImages = new Inject(buildOne _) {}
 
   def buildOne: TransactionImages =
-    Props.getBool("skip_akka", true) match {
-      case true  => MapperTransactionImages
-      case false => RemotedataTransactionImages     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MapperTransactionImages
+      case true => RemotedataTransactionImages     // We will use Akka as a middleware
     }
   
 }

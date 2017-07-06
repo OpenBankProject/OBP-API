@@ -12,9 +12,9 @@ object Customer extends SimpleInjector {
   val customerProvider = new Inject(buildOne _) {}
 
   def buildOne: CustomerProvider =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedCustomerProvider
-      case false => RemotedataCustomers     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedCustomerProvider
+      case true => RemotedataCustomers     // We will use Akka as a middleware
     }
 
 }

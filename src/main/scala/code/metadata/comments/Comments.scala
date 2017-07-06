@@ -12,9 +12,9 @@ object Comments extends SimpleInjector {
   val comments = new Inject(buildOne _) {}
 
   def buildOne: Comments =
-    Props.getBool("skip_akka", true) match {
-      case true  => MappedComments
-      case false => RemotedataComments     // We will use Akka as a middleware
+    Props.getBool("use_akka", false) match {
+      case false  => MappedComments
+      case true => RemotedataComments     // We will use Akka as a middleware
     }
   
 }
