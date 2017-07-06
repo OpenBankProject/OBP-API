@@ -382,7 +382,7 @@ object MapperViews extends Views with MdcLoggable {
         //we remove duplicates here, because some accounts, has both public views and non-public views
         (publicViewBankAndAccounts ++ nonPublicViewBankAndAccounts).distinct
       }
-      case _ => getAllPublicAccounts()
+      case _ => getPublicBankAccounts(bank)
     }
   }
 
