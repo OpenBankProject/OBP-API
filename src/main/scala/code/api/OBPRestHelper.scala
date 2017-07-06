@@ -94,11 +94,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.info("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.debug("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case Failure(msg, _, _) => {
-        logger.info("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
+        logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
@@ -123,7 +123,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        //logger.info("failIfBadJSON says: Cool, content-type is json")
+        //logger.debug("failIfBadJSON says: Cool, content-type is json")
         r.json match {
           case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)

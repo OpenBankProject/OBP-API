@@ -57,7 +57,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // Return a different list of resource docs depending on the version being called.
       // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
 
-      logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
+      logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
         case "3.0.0" => Implementations3_0_0.resourceDocs ++ Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
@@ -69,7 +69,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case "1.2.1" => Implementations1_2_1.resourceDocs
       }
 
-      logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
+      logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
         case "3.0.0" => OBPAPI3_0_0.routes
@@ -81,7 +81,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case "1.2.1" => OBPAPI1_2_1.routes
       }
 
-      logger.info(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
+      logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
 
 
       // We only want the resource docs for which a API route exists else users will see 404s
@@ -91,7 +91,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // Only return the resource docs that have available routes
       val activeResourceDocs = resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
 
-      logger.info(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
+      logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
 
 
 // This code was copied from API Explorer
@@ -110,21 +110,21 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //        y <- stringToOptBoolean(x)
 //      } yield y
 //
-//      logger.info(s"showCore is $showCoreParam")
+//      logger.debug(s"showCore is $showCoreParam")
 //
 //      val showPSD2Param: Option[Boolean] = for {
 //        x <- S.param("psd2")
 //        y <- stringToOptBoolean(x)
 //      } yield y
 //
-//      logger.info(s"showPSD2 is $showPSD2Param")
+//      logger.debug(s"showPSD2 is $showPSD2Param")
 //
 //      val showOBWGParam: Option[Boolean] = for {
 //        x <- S.param("obwg")
 //        y <- stringToOptBoolean(x)
 //      } yield y
 //
-//      logger.info(s"showOBWG is $showOBWGParam")
+//      logger.debug(s"showOBWG is $showOBWGParam")
 //
 //
 //      val rawTagsParam = S.param("tags")
@@ -142,7 +142,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //
 //        }
 //      }
-//      logger.info(s"tags are $tagsParam")
+//      logger.debug(s"tags are $tagsParam")
 
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
       Some(activeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
@@ -221,21 +221,21 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
       y <- stringToOptBoolean(x)
     } yield y
 
-    logger.info(s"showCore is $showCoreParam")
+    logger.debug(s"showCore is $showCoreParam")
 
     val showPSD2Param: Option[Boolean] = for {
       x <- S.param("psd2")
       y <- stringToOptBoolean(x)
     } yield y
 
-    logger.info(s"showPSD2 is $showPSD2Param")
+    logger.debug(s"showPSD2 is $showPSD2Param")
 
     val showOBWGParam: Option[Boolean] = for {
       x <- S.param("obwg")
       y <- stringToOptBoolean(x)
     } yield y
 
-    logger.info(s"showOBWG is $showOBWGParam")
+    logger.debug(s"showOBWG is $showOBWGParam")
 
 
     val showCore = showCoreParam

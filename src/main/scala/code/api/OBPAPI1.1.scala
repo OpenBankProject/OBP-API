@@ -112,15 +112,15 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
   private def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
   if(httpCode==200)
   {
-    logger.info("OAuth header correct ")
+    logger.debug("OAuth header correct ")
     Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
       case Full(token) => {
-        logger.info("access token: "+ token + " found")
+        logger.debug("access token: "+ token + " found")
         val user = User.findByResourceUserId(token.userForeignKey.get)
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")
-          case _ => logger.info("no user was found for the oauth token")
+          case Full(u) => logger.debug("user " + u.emailAddress + " was found from the oauth token")
+          case _ => logger.debug("no user was found for the oauth token")
         }
         user
       }
@@ -346,8 +346,8 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
       def accountToJson(acc : BankAccount, user : Box[User]) : JObject = {
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.emailAddress + " was found")
-          case _ => logger.info("no user was found")
+          case Full(u) => logger.debug("user " + u.emailAddress + " was found")
+          case _ => logger.debug("no user was found")
         }
 
         val views = acc permittedViews user

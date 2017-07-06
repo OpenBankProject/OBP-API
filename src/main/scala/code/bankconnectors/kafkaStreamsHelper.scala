@@ -88,7 +88,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.info("kafka-response:" + r)
+    logger.debug("kafka-response:" + r)
     Future(extractResult(r))
   }
 
@@ -138,20 +138,20 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   def receive = {
     case value: String =>
-      logger.info("kafka_request[value]: " + value)
+      logger.debug("kafka_request[value]: " + value)
       for {
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
         jv <- paseStringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
-        logger.info("South Side recognises version info")
+        logger.debug("South Side recognises version info")
         any
       }
 
     // This is for KafkaMappedConnector_vJun2017, the request is TopicCaseClass  
     case request: TopicCaseClass =>
-      logger.info("kafka_request[TopicCaseClass]: " + request)
+      logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
         d <- anyToJValueF(request)
@@ -166,7 +166,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
     // This is for KafkaMappedConnector_JVMcompatible, KafkaMappedConnector_vMar2017 and KafkaMappedConnector, the request is Map[String, String]  
     case request: Map[String, String] =>
-      logger.info("kafka_request[Map[String, String]]: " + request)
+      logger.debug("kafka_request[Map[String, String]]: " + request)
       val orgSender = sender
       val f = for {
         t <- Future(Topics.topicPairFromProps) // Just have two Topics: Request and Response
