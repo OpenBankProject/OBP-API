@@ -654,7 +654,7 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+//              registeredUserHelper(user.username)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
@@ -827,7 +827,9 @@ import net.liftweb.util.Helpers._
       for {
        u <- Users.users.vend.getUserByUserName(username)
        //TODO need more error handle here, I need the exception to debug
-       v <- Full(Connector.connector.vend.updateUserAccountViews(u))
+       // just tryo it, for perfermace for now. It is no problem to get error 
+       // for this case, we need move the  updateUserAccountViews to somewhere else. 
+       v <- tryo (Connector.connector.vend.updateUserAccountViews(u))
       } yield v
     }
   }

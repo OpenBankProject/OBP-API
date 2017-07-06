@@ -12,14 +12,14 @@ object LoginAttempt extends MdcLoggable {
   
   def incrementBadLoginAttempts(username: String): Unit = {
 
-    logger.info(s"Hello from incrementBadLoginAttempts with $username")
+    logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
     // Find badLoginAttempt record if one exists for a user
     MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
       // If it exits update the date and increment
       case Full(loginAttempt) =>
 
-        logger.info(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
+        logger.debug(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
 
         loginAttempt
           .mLastFailureDate(now)
@@ -33,7 +33,7 @@ object LoginAttempt extends MdcLoggable {
           .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
           .save()
 
-        logger.info(s"incrementBadLoginAttempts created loginAttempt")
+        logger.debug(s"incrementBadLoginAttempts created loginAttempt")
 
 
     }
@@ -53,7 +53,7 @@ object LoginAttempt extends MdcLoggable {
       case _ => false
     }
 
-    logger.info(s"userIsLocked result for $username is $result")
+    logger.debug(s"userIsLocked result for $username is $result")
     result
 
   }

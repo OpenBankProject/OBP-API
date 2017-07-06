@@ -98,6 +98,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
   val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
   val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
+  val getAccountHolderTTL                   = Props.get("connector.cache.ttl.seconds.getAccountHolderTTL", "0").toInt * 1000 // Miliseconds
   val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
   val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
   val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
@@ -155,7 +156,19 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       case m: MappingException => Empty
     }
   }
-
+  
+  def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = saveConnectorMetric {
+    memoizeSync(getAccountHolderTTL millisecond) {
+      val accountHolderList = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList
+    
+      val accountHolder = accountHolderList.length match {
+        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
+        case _ => accountHolderList.toList(0).name
+      }
+      accountHolder
+    }
+  }("getAccountHolder")
+  
   // TODO Create and use a case class for each Map so we can document each structure.
   
   //gets banks handled by this connector
@@ -265,57 +278,58 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("getUser")
 
-  def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
-    memoizeSync(updateUserAccountViewsTTL millisecond){
-      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
-        val bankId = bank.bankId.value
-        val username = user.name
-        logger.info(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
-        for {
-          req <- tryo { Map[String, String](
-            "version" -> formatVersion,
-            "name" -> "get",
-            "target" -> "accounts",
-            "userId" -> username,
-            "bankId" -> bankId)}
-          } yield {
-            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
-              case Full(a) => a
-              case Empty => List.empty
-            }
-            logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
-            res
-          }
-        }
-      }.flatten
-  
-      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
-  
-      val views = for {
-        acc <- accounts
-        username <- tryo {user.name}
-        views <- tryo {createViews( BankId(acc.bankId),
-          AccountId(acc.accountId),
-          true,
-          true,
-          true,
-          true
-        )}
-        setAccountLinktoUser<-Full(setAccountHolder(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)),user))
-        existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
-      } yield {
-        setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
-        views.foreach(v => {
-          Views.views.vend.addPermission(v.uid, user)
-          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
-        })
-        existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
-          Views.views.vend.addPermission(v.uid, user)
-          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
-        })
-      }
-    }
-  } ("updateUserAccountViews")
+  def updateUserAccountViews( user: ResourceUser ) = Empty 
+//  def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
+//    memoizeSync(updateUserAccountViewsTTL millisecond){
+//      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
+//        val bankId = bank.bankId.value
+//        val username = user.name
+//        logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+//        for {
+//          req <- tryo { Map[String, String](
+//            "version" -> formatVersion,
+//            "name" -> "get",
+//            "target" -> "accounts",
+//            "userId" -> username,
+//            "bankId" -> bankId)}
+//          } yield {
+//            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
+//              case Full(a) => a
+//              case Empty => List.empty
+//            }
+//            logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
+//            res
+//          }
+//        }
+//      }.flatten
+//  
+//      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
+//  
+//      val views = for {
+//        acc <- accounts
+//        username <- tryo {user.name}
+//        views <- tryo {createViews( BankId(acc.bankId),
+//          AccountId(acc.accountId),
+//          true,
+//          true,
+//          true,
+//          true
+//        )}
+//        setAccountLinktoUser<-Full(setAccountHolder(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)),user))
+//        existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
+//      } yield {
+//        setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
+//        views.foreach(v => {
+//          Views.views.vend.addPermission(v.uid, user)
+//          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
+//        })
+//        existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
+//          Views.views.vend.addPermission(v.uid, user)
+//          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
+//        })
+//      }
+//    }
+//  } ("updateUserAccountViews")
 
   // Gets current challenge level for transaction request
   // TODO, not implement in Adapter, just fake the response 
@@ -476,14 +490,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     saveConnectorMetric 
     {
       try {
-
-        def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-          val accountHolder = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
-            case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-            case head :: _ => head.name
-          }
-          accountHolder
-        }
+        val accountHolder = getAccountHolderCached(bankId,accountId)
         
         //TODO this is a quick solution for cache, because of (queryParams: OBPQueryParam*)
         def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  memoizeSync(getTransactionsTTL millisecond) {
@@ -539,7 +546,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           Full(res)
           //TODO is this needed updateAccountTransactions(bankId, accountId)
           }
-        getTransactionsCached(bankId,accountId, getAccountHolderCached(bankId, accountId), AuthUser.getCurrentUserUsername)
+        getTransactionsCached(bankId,accountId,accountHolder , AuthUser.getCurrentUserUsername)
       } catch {
         case m: MappingException =>
           logger.error("getTransactions-MappingException",m)
@@ -564,21 +571,15 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     accountId: AccountId
   ): Box[KafkaBankAccount] = saveConnectorMetric{
     try {
-
-      def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-        val accountHolder: String = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
-          case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-          case head :: _ => head.name
-        }
-        accountHolder
-      }
-
+      val accountHolder = getAccountHolderCached(bankId,accountId)
+      
       def getBankAccountCached(
         bankId: BankId, 
         accountId: AccountId, 
         userId : String, 
         loginUser: String // added the login user here ,is just for cache 
       ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
+
         // Generate random uuid to be used as request-response match id
         val req = Map(
           "version" -> formatVersion,
@@ -592,7 +593,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         logger.debug(s"getBankAccount says ! account.isPresent and userId is ${userId}")
         Full(new KafkaBankAccount(r))
       }
-      getBankAccountCached(bankId: BankId, accountId: AccountId, getAccountHolderCached(bankId, accountId), AuthUser.getCurrentUserUsername)
+      getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)
     } catch {
       case m: MappingException =>
         logger.error("getBankAccount-MappingException",m)
@@ -620,10 +621,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //    val r:List[KafkaInboundAccount] = accts.flatMap { a => {
 //      val bankId= BankId(a._1.value)
 //      val accountId =AccountId(a._2.value)
-//      val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList.length match {
-//        case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-//        case _ => MapperAccountHolders.getAccountHolders(bankId, accountId).toList(0).name
-//      }
+//      val accountHolder = getAccountHolderCached(bankId,accountId)
 //      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
 //      
 //        val req = Map(
@@ -632,7 +630,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //          "target" -> "account",
 //          "bankId" -> bankId.value,
 //          "accountId" -> accountId.value,
-//          "userId" -> primaryUserIdentifier
+//          "userId" -> accountHolder
 //        )
 //        implicit val formats = net.liftweb.json.DefaultFormats
 //        val r = {process(req).extract[List[KafkaInboundAccount]]}
@@ -653,10 +651,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = Empty
   // memoizeSync(getAccountTTL millisecond) {
-//    val primaryUserIdentifier = AccountHolders.accountHolders.vend.getAccountHolders(bankId, AccountId(number)).toList.length match {                                                                                                                             // Generate random uuid to be used as request-respose match id
-//      case 0 => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + bankId + " and AcoountId = "+ accountId )
-//      case _ => MapperAccountHolders.getAccountHolders(bankId, AccountId(number)).toList(0).name
-//    }
+//    val accountHolder = getAccountHolderCached(bankId,accountId)
 //    val req = Map(
 //      "version" -> formatVersion,
 //      "name" -> "get",
@@ -828,14 +823,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         toAccount.bankId.value
       else
         toCounterparty.otherBankRoutingAddress
-
-    def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = memoizeSync(getAccountTTL millisecond) {
-      AccountHolders.accountHolders.vend.getAccountHolders(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress)).toList match {
-        case Nil => throw new RuntimeException(NoExistingAccountHolders + "BankId= " + toCounterpartyAccountRoutingAddress + " and AcoountId = "+ toCounterpartyBankRoutingAddress )
-        case head :: _ => head.name
-      }
-    }
-
+    
     val toCounterpartyName =
       if (transactionRequestType.value == "SANDBOX_TAN")
         getAccountHolderCached(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress))

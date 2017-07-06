@@ -27,7 +27,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
   override def updateAllPendingTransactionRequests: Box[Option[Unit]] = {
     val transactionRequests = MappedTransactionRequest.find(By(MappedTransactionRequest.mStatus, TransactionRequests.STATUS_PENDING))
-    logger.info("Updating status of all pending transactions: ")
+    logger.debug("Updating status of all pending transactions: ")
     val statuses = Connector.connector.vend.getTransactionRequestStatuses
     transactionRequests.map{ tr =>
       for {
@@ -35,7 +35,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
         if (statuses.exists(_ == transactionRequest.id -> "APVD"))
       } yield {
         tr.updateStatus(TransactionRequests.STATUS_COMPLETED)
-        logger.info(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
+        logger.debug(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
       }
     }
   }
