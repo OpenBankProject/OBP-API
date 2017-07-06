@@ -214,8 +214,8 @@ import code.api.util.APIUtil._
   val AccountIdAlreadyExsits = "OBP-30208: Account_ID already exists at the Bank."
 
 
-  val InsufficientAuthorisationToCreateBranch  = "OBP-30009: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
-  val InsufficientAuthorisationToCreateBank  = "OBP-30010: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
+  val InsufficientAuthorisationToCreateBranch  = "OBP-30209: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
+  val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
   // General Resource related messages above here
 
