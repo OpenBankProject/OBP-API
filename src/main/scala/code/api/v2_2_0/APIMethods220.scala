@@ -22,7 +22,7 @@ import code.api.v2_2_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
 import code.consumer.Consumers
-import code.metrics.{ConnectorMetric, ConnMetrics}
+import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper._
@@ -783,7 +783,7 @@ trait APIMethods220 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
 
-            metrics <- Full(ConnMetrics.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
+            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
 
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.

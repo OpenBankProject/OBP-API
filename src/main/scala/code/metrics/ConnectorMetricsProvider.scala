@@ -6,11 +6,11 @@ import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataConnectorMetrics
 import net.liftweb.util.{Props, SimpleInjector}
 
-object ConnMetrics extends SimpleInjector {
+object ConnectorMetricsProvider extends SimpleInjector {
 
   val metrics = new Inject(buildOne _) {}
 
-  def buildOne: ConnMetrics =
+  def buildOne: ConnectorMetricsProvider =
     Props.getBool("use_akka", false) match {
       case false  => ConnectorMetrics
       case true => RemotedataConnectorMetrics     // We will use Akka as a middleware
@@ -34,7 +34,7 @@ object ConnMetrics extends SimpleInjector {
 
 }
 
-trait ConnMetrics {
+trait ConnectorMetricsProvider {
 
   def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit
   def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[ConnectorMetric]
