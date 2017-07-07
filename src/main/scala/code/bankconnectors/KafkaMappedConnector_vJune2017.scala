@@ -1211,13 +1211,15 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
+        bankId = "bankid54",
         fromCurrencyCode = "1234",
         toCurrencyCode = ""
       )
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundFXRate(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-XXX: .... ",
+        bankId = "bankid54",
         fromCurrencyCode = "1234",
         toCurrencyCode = "1234",
         conversionValue = 123.44,
@@ -1228,13 +1230,14 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
 
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = OutboundCurrentFxRateBase(
       messageFormat = messageFormat,
       action = "obp.get.CurrentFxRate",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
+      bankId = bankId.value,
       fromCurrencyCode = fromCurrencyCode,
       toCurrencyCode = toCurrencyCode)
 

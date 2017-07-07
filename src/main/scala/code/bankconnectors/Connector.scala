@@ -976,6 +976,15 @@ trait Connector {
                        ): Box[Product] = Empty
 
 
+  def createOrUpdateFXRate(
+  bankId : String,
+  fromCurrencyCode: String,
+  toCurrencyCode: String,
+  conversionValue: Double,
+  inverseConversionValue: Double,
+  effectiveDate: Date): Box[FXRate] = Empty
+
+
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
 
@@ -1053,7 +1062,7 @@ trait Connector {
 //  def resetBadLoginAttempts(username:String):Unit
 
 
-  def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
+  def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
 
   /**
     * get transaction request type charge specified by: bankId, accountId, viewId, transactionRequestType. 

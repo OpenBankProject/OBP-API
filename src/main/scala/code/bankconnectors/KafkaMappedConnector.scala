@@ -1070,12 +1070,13 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
     // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = Map(
       "north" -> "getCurrentFxRate",
       "version" -> formatVersion,
       "name" -> AuthUser.getCurrentUserUsername,
+      "bankId" -> bankId.value,
       "fromCurrencyCode" -> fromCurrencyCode,
       "toCurrencyCode" -> toCurrencyCode
       )
@@ -1234,6 +1235,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
+    def bankId: BankId = kafkaInboundFxRate.bank_id
     def fromCurrencyCode : String= kafkaInboundFxRate.from_currency_code
     def toCurrencyCode : String= kafkaInboundFxRate.to_currency_code
     def conversionValue : Double= kafkaInboundFxRate.conversion_value
@@ -1462,6 +1464,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                                     )
 
   case class KafkaInboundFXRate(
+                                 bank_id: BankId,
                                  from_currency_code: String,
                                  to_currency_code: String,
                                  conversion_value: Double,

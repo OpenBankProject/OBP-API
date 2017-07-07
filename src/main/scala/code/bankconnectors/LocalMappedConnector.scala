@@ -1101,11 +1101,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
     */
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
     /**
       * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
       */
     val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
     )
@@ -1113,6 +1114,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
       */
     val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
     )

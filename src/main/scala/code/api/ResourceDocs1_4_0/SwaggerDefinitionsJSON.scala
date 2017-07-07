@@ -1556,7 +1556,8 @@ object SwaggerDefinitionsJSON {
     views = List(viewJSONV220)
   )
   
-  val fXRateJSON = FXRateJSON(
+  val fXRateJSON = FXRateJsonV220(
+    bank_id = "bankid434",
     from_currency_code = "EUR",
     to_currency_code = "GBP",
     conversion_value = 1.001,
@@ -1632,7 +1633,24 @@ object SwaggerDefinitionsJSON {
     description = "Description",
     meta = metaJson
   )
-  
+
+
+
+
+
+
+
+  val fxJsonV220 = FXRateJsonV220(
+    bank_id = "bankid123",
+    from_currency_code = "EUR",
+    to_currency_code = "USD",
+    conversion_value = 1,
+    inverse_conversion_value = 1,
+    effective_date = exampleDate
+  )
+
+
+
   val createAccountJSONV220 = CreateAccountJSONV220(
     user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
     label = "Label",

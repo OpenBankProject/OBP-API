@@ -110,9 +110,15 @@ object ApiRole {
   case object CanCreateProductAtAnyBank extends ApiRole{
     val requiresBankId = false
   }
+  case object CanCreateFxRate extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateFxRateAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateBank extends ApiRole{
     val requiresBankId = false
-  }  
+  }
   case object CanReadMetrics extends ApiRole{
     val requiresBankId = false
   }
@@ -156,6 +162,8 @@ object ApiRole {
     case "CanCreateAtmAtAnyBank" => CanCreateAtmAtAnyBank
     case "CanCreateProduct" => CanCreateProduct
     case "CanCreateProductAtAnyBank" => CanCreateProductAtAnyBank
+    case "CanCreateFxRate" => CanCreateFxRate
+    case "CanCreateFxRateAtAnyBank" => CanCreateFxRateAtAnyBank
     case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
     case "CanGetConfig" => CanGetConfig
@@ -195,6 +203,8 @@ object ApiRole {
                       "CanCreateAtmAtAnyBank" ::
                       "CanCreateProduct" ::
                       "CanCreateProductAtAnyBank" ::
+                      "CanCreateFxRate" ::
+                      "CanCreateFxRateAtAnyBank" ::
                       "CanCreateBank" ::
                       "CanReadMetrics" ::
                       "CanGetConfig" ::
