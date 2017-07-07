@@ -1,18 +1,21 @@
 package code.metadata.tags
 
-import net.liftweb.util.SimpleInjector
 import java.util.Date
 
-import net.liftweb.common.Box
 import code.model._
 import code.remotedata.RemotedataTags
+import net.liftweb.common.Box
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Tags  extends SimpleInjector {
 
   val tags = new Inject(buildOne _) {}
-  
-  //def buildOne: Tags = MappedTags
-  def buildOne: Tags = RemotedataTags
+
+  def buildOne: Tags =
+    Props.getBool("use_akka", false) match {
+      case false  => MappedTags
+      case true => RemotedataTags     // We will use Akka as a middleware
+    }
   
 }
 
