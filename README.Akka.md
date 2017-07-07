@@ -22,6 +22,9 @@ Not all models have been ported yet to be retrieved via Akka. See `modelsRemoted
 - Configure `src/main/resources/default.props`: 
 
 ```ini
+# Define is Akka transport layer used by OBP-API
+# In case that property is not defined default value is set to false
+use_akka=false
 # Remote end gets data 'locally'
 remotedata.enable=false
 # Your remote's external IP address
