@@ -44,7 +44,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, ConnMetrics}
+import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
@@ -1200,9 +1200,10 @@ Returns a string showed to the developer
     // call-by-name
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
+      val correlationId = S.containerSession.map(_.sessionId).openOr("")
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
-        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+        ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
       }
     }
     result

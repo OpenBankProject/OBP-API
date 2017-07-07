@@ -14,7 +14,11 @@ object APIMetrics extends SimpleInjector {
     Props.getBool("allow_elasticsearch", false) &&
       Props.getBool("allow_elasticsearch_metrics", false) match {
         // case false => MappedMetrics
-        case false => RemotedataMetrics
+        case false =>
+          Props.getBool("use_akka", false) match {
+            case false  => MappedMetrics
+            case true => RemotedataMetrics     // We will use Akka as a middleware
+          }
         case true => ElasticsearchMetrics
     }
 
