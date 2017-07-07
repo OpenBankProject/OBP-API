@@ -1193,9 +1193,10 @@ Returns a string showed to the developer
     // call-by-name
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
+      val correlationId = S.containerSession.map(_.sessionId).openOr("")
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
-        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
       }
     }
     result
