@@ -14,7 +14,7 @@ object ConnectorMetrics extends ConnMetrics {
       .functionName(functionName)
       .date(date)
       .duration(duration)
-      //.correlationId(correlationId)
+      .correlationId(correlationId)
       .save
   }
 
