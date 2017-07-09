@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import java.util.UUID
 
-import code.api.util.APIUtil.isValidStrongPassword
+import code.api.util.APIUtil.{isThereAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundUser}
@@ -47,7 +47,6 @@ import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
-import net.liftweb.util
 
 
 /**
@@ -286,7 +285,10 @@ import net.liftweb.util.Helpers._
     }
 
     for {
-      current <- OAuthHandshake.getUser
+      current <- if(isThereAnOAuthHeader) 
+        OAuthHandshake.getUser 
+    else
+      Full(new ResourceUser())
       username <- tryo{current.name}
       if (username.nonEmpty)
     } yield {
@@ -294,7 +296,10 @@ import net.liftweb.util.Helpers._
     }
 
     for {
-      current <- DirectLogin.getUser
+      current <- if (isThereDirectLoginHeader)
+        DirectLogin.getUser
+      else
+        Full(new ResourceUser())
       username <- tryo{current.name}
       if (username.nonEmpty)
     } yield {
