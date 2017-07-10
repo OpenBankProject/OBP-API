@@ -16,9 +16,9 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
 
   def receive = {
 
-    case cc.saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) =>
+    case cc.saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String) =>
       logger.debug("saveMetric()")
-      sender ! extractResult(mapper.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
+      sender ! extractResult(mapper.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, correlationId))
 
 //    case cc.getAllGroupedByUrl() =>
 //      logger.debug("getAllGroupedByUrl()")

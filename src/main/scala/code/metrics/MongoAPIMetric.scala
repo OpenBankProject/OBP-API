@@ -56,6 +56,7 @@ import net.liftweb.record.field.{LongField, StringField}
    object implementedInVersion  extends StringField(this,255)
    //(GET, POST etc.) --S.request.get.requestType
    object verb extends StringField(this,255)
+   object correlationId extends StringField(this,255)
 
 
    def getUrl() = url.get
@@ -69,11 +70,12 @@ import net.liftweb.record.field.{LongField, StringField}
    override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
    override def getImplementedInVersion(): String = implementedInVersion.get
    override def getVerb(): String = verb.get
+   override def getCorrelationId(): String = correlationId.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String): Unit = {
     MongoAPIMetric.createRecord.
       userId(userId).
       url(url).
@@ -85,7 +87,8 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       consumerId(consumerId).
       implementedByPartialFunction(implementedByPartialFunction).
       implementedInVersion(implementedInVersion).
-      verb(verb)
+      verb(verb).
+      correlationId(correlationId)
       save
   }
 

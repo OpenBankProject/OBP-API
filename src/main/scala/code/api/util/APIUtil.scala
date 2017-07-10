@@ -398,6 +398,7 @@ object APIUtil extends MdcLoggable {
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
       val url = S.uriAndQueryString.getOrElse("")
+      val correlationId = S.containerSession.map(_.sessionId).openOr("")
 
       //execute saveMetric in future, as we do not need to know result of operation
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -412,7 +413,8 @@ object APIUtil extends MdcLoggable {
           developerEmail,
           consumerId,
           implementedByPartialFunction,
-          implementedInVersion, verb
+          implementedInVersion, verb,
+          correlationId
         )
       }
 
