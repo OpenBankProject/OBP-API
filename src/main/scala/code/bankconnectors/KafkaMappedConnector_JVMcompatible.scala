@@ -1310,7 +1310,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getAtm(bankId, atmId)
   }
 
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+  override def getCurrentFxRate(bankId : BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   
   //TODO need to fix in obpjvm, just mocked result as Mapper
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
@@ -1461,6 +1461,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
   case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
+    def bankId: BankId = BankId(kafkaInboundFxRate.bank_id)
     def fromCurrencyCode : String= kafkaInboundFxRate.from_currency_code
     def toCurrencyCode : String= kafkaInboundFxRate.to_currency_code
     def conversionValue : Double= kafkaInboundFxRate.conversion_value
@@ -1690,7 +1691,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                       amount: String
                                     )
 
-  case class KafkaInboundFXRate(
+  case class KafkaInboundFXRate( bank_id: String,
                                  from_currency_code: String,
                                  to_currency_code: String,
                                  conversion_value: Double,

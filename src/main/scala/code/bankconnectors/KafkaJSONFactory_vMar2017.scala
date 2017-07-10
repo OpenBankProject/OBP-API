@@ -240,6 +240,7 @@ case class OutboundCurrentFxRateBase(
   action: String,
   userId: String,
   username: String,
+  bankId: String,
   fromCurrencyCode: String,
   toCurrencyCode: String
 ) extends OutboundMessageBase
@@ -378,6 +379,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
 
 case class InboundFXRate(
   errorCode: String,
+  bankId: String,
   fromCurrencyCode: String,
   toCurrencyCode: String,
   conversionValue: Double,
@@ -386,7 +388,8 @@ case class InboundFXRate(
 )extends InboundMessageBase
 
 case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
-  
+
+  def bankId: BankId = BankId(inboundFxRate.bankId)
   def fromCurrencyCode: String = inboundFxRate.fromCurrencyCode
   def toCurrencyCode: String = inboundFxRate.toCurrencyCode
   def conversionValue: Double = inboundFxRate.conversionValue

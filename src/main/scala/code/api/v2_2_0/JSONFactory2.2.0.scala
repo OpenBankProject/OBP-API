@@ -133,7 +133,8 @@ case class AccountJSONV220(
                         bank_id : String
                       )
 
-case class FXRateJSON(
+case class FXRateJsonV220(
+                       bank_id: String,
                        from_currency_code: String,
                        to_currency_code: String,
                        conversion_value: Double,
@@ -165,7 +166,7 @@ case class CounterpartiesJsonV220(
 
 
 // used for Create Bank in V220
-// keep it similar as "case class BankJSON" in V121  
+// keep it similar as "case class BankJSON" in V121
 case class BankJSONV220(
   id: String,
   full_name: String,
@@ -213,6 +214,7 @@ case class ProductJsonV220(bank_id: String,
                            details: String,
                            description: String,
                            meta : MetaJson)
+
 
 case class ProductsJsonV220 (products : List[ProductJsonV220])
 
@@ -355,8 +357,10 @@ object JSONFactory220{
     )
   }
 
-  def createFXRateJSON(fxRate: FXRate): FXRateJSON = {
-    FXRateJSON(from_currency_code = fxRate.fromCurrencyCode,
+  def createFXRateJSON(fxRate: FXRate): FXRateJsonV220 = {
+    FXRateJsonV220(
+      bank_id = fxRate.bankId.value,
+      from_currency_code = fxRate.fromCurrencyCode,
       to_currency_code = fxRate.toCurrencyCode,
       conversion_value = fxRate.conversionValue,
       inverse_conversion_value = fxRate.inverseConversionValue,

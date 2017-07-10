@@ -254,6 +254,13 @@ import code.api.util.APIUtil._
   val InvalidConnectorResponseForGetTransactions = "OBP-50204: Connector did not return the set of transactions we requested."  // was OBP-30204
 
 
+  // Adapter Exceptions (OBP-6XXXX)
+  // Reserved for adapter (south of Kafka) messages
+
+
+
+
+  ///////////
 
 
 

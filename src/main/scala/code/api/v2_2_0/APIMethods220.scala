@@ -13,10 +13,6 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
 
 
 
-
-
-
-//import code.api.v2_2_0.JSONFactory220.AtmJsonV220
 import code.api.v2_1_0._
 import code.api.v2_2_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
@@ -242,9 +238,9 @@ trait APIMethods220 {
       apiVersion,
       "getCurrentFxRate",
       "GET",
-      "/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
+      "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
       "Get Current FxRate",
-      """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
+      """Get the latest FXRate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
@@ -252,13 +248,14 @@ trait APIMethods220 {
       Nil)
 
     lazy val getCurrentFxRate: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
+      case "banks" :: BankId(bankid) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
         user =>
           for {
+            bank <- Bank(bankId)?~! BankNotFound
             isValidCurrencyISOCodeFrom <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             isValidCurrencyISOCodeTo <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             u <- user ?~! UserNotLoggedIn
-            fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(fromCurrencyCode, toCurrencyCode).get) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
+            fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode).get) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
             successJsonResponse(Extraction.decompose(viewJSON))
@@ -580,6 +577,68 @@ trait APIMethods220 {
           }
       }
     }
+
+
+
+    val createFxEntitlementsRequiredForSpecificBank = CanCreateFxRate ::  Nil
+    val createFxEntitlementsRequiredForAnyBank = CanCreateFxRateAtAnyBank ::  Nil
+
+    val createFxEntitlementsRequiredText = UserHasMissingRoles + createFxEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createFxEntitlementsRequiredForAnyBank.mkString(" and ")
+
+    resourceDocs += ResourceDoc(
+      createFx,
+      apiVersion,
+      "createFx",
+      "PUT",
+      "/banks/BANK_ID/fx",
+      "Create Fx",
+      s"""Create or Update Fx for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createFxEntitlementsRequiredText
+          |""",
+      fxJsonV220,
+      fxJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+
+
+    lazy val createFx: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "fx" ::  Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            canCreateFx <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank) == true
+              ||
+              hasAllEntitlements("", u.userId, createFxEntitlementsRequiredForAnyBank),
+              createFxEntitlementsRequiredText)
+            fx <- tryo {json.extract[FXRateJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            success <- Connector.connector.vend.createOrUpdateFXRate(
+              bankId = fx.bank_id,
+              fromCurrencyCode = fx.from_currency_code,
+              toCurrencyCode = fx.to_currency_code,
+              conversionValue = fx.conversion_value,
+              inverseConversionValue = fx.inverse_conversion_value,
+              effectiveDate = fx.effective_date
+            )
+          } yield {
+            val json = JSONFactory220.createFXRateJSON(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
 
 
 
