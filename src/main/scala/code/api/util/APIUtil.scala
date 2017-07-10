@@ -398,7 +398,7 @@ object APIUtil extends MdcLoggable {
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
       val url = S.uriAndQueryString.getOrElse("")
-      val correlationId = S.containerSession.map(_.sessionId).openOr("")
+      val correlationId = getCorrelationId()
 
       //execute saveMetric in future, as we do not need to know result of operation
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -442,31 +442,33 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
+  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId()))
+
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
   def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), headers, Nil, 204)
+    JsonResponse(JsRaw(""), getHeaders(), Nil, 204)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
+    JsonResponse(json, getHeaders(), Nil, httpCode)
 
   def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
+    JsonResponse(json, getHeaders(), Nil, httpCode)
 
   def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(Extraction.decompose(cc), headers, Nil, httpCode)
+    JsonResponse(Extraction.decompose(cc), getHeaders(), Nil, httpCode)
 
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
+    JsonResponse(json, getHeaders(), Nil, httpCode)
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders(), Nil, httpCode)
 
   def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders(), Nil, httpCode)
 
 
   def oauthHeaderRequiredJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
+    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders(), Nil, 400)
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
@@ -1202,7 +1204,7 @@ Returns a string showed to the developer
     // call-by-name
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
-      val correlationId = S.containerSession.map(_.sessionId).openOr("")
+      val correlationId = getCorrelationId()
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
@@ -1221,5 +1223,7 @@ Returns a string showed to the developer
     SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
 
   }
+
+  def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
 
 }
