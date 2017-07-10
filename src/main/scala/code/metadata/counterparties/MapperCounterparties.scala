@@ -368,7 +368,6 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
   override def dbIndexes =
     UniqueIndex(counterpartyId) ::
-    Index(thisBankId, thisAccountId, holder, accountNumber) ::
     super.dbIndexes
 }
 
