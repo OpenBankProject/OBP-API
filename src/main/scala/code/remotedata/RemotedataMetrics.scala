@@ -13,8 +13,8 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
 
   val cc = RemotedataMetricsCaseClasses
 
-  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String) : Unit =
-    extractFuture(actor ? cc.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb))
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String) : Unit =
+    extractFuture(actor ? cc.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, correlationId))
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] =
 //    extractFuture(actor ? cc.getAllGroupedByUrl())

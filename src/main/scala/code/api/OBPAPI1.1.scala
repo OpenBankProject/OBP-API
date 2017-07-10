@@ -143,8 +143,10 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
     }
   }
 
-  private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
+  private def logAPICall = {
+    val correlationId = S.containerSession.map(_.sessionId).openOr("")
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L, correlationId)
+  }
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)
