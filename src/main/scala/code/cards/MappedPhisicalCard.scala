@@ -82,10 +82,10 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
 class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPhysicalCard] with IdPK with OneToMany[Long, MappedPhysicalCard] {
   def getSingleton = MappedPhysicalCard
 
-  object mBankCardNumber extends MappedString(this, 255)
-  object mNameOnCard extends MappedString(this, 255)
-  object mIssueNumber extends MappedString(this, 255)
-  object mSerialNumber extends MappedString(this, 255)
+  object mBankCardNumber extends MappedString(this, 50)
+  object mNameOnCard extends MappedString(this, 128)
+  object mIssueNumber extends MappedString(this, 10)
+  object mSerialNumber extends MappedString(this, 50)
   object mValidFrom extends MappedDateTime(this)
   object mExpires extends MappedDateTime(this)
   object mEnabled extends MappedBoolean(this)

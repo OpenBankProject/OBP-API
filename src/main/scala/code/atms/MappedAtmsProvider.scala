@@ -3,7 +3,7 @@ package code.atms
 import code.atms.Atms._
 import code.common.{Address, License, Location, Meta}
 import code.model.BankId
-import code.util.DefaultStringField
+import code.util.{MediumString, UUIDString, DefaultStringField}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
@@ -22,10 +22,10 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
 
   override def getSingleton = MappedAtm
 
-  object mBankId extends DefaultStringField(this)
+  object mBankId extends UUIDString(this)
   object mName extends DefaultStringField(this)
 
-  object mAtmId extends DefaultStringField(this)
+  object mAtmId extends UUIDString(this)
 
   // Exposed inside address. See below
   object mLine1 extends DefaultStringField(this)
@@ -41,8 +41,8 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   object mlocationLongitude extends MappedDouble(this)
 
   // Exposed inside meta.license See below
-  object mLicenseId extends DefaultStringField(this)
-  object mLicenseName extends DefaultStringField(this)
+  object mLicenseId extends MediumString(this)
+  object mLicenseName extends MappedString(this, 255)
 
 
 

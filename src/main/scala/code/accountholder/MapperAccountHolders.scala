@@ -4,6 +4,7 @@ import code.model.{AccountId, BankId, User}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.util.UUIDString
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.common.Box
@@ -18,8 +19,8 @@ class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with Id
 
   object user extends MappedLongForeignKey(this, ResourceUser)
 
-  object accountBankPermalink extends MappedString(this, 255)
-  object accountPermalink extends MappedString(this, 255)
+  object accountBankPermalink extends UUIDString(this)
+  object accountPermalink extends UUIDString(this)
 
 }
 

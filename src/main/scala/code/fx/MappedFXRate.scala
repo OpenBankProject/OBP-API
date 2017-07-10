@@ -3,13 +3,13 @@ package code.fx
 import java.util.Date
 
 import code.model.BankId
-import code.util.DefaultStringField
+import code.util.{UUIDString, DefaultStringField}
 import net.liftweb.mapper.{MappedStringForeignKey, _}
 
 class MappedFXRate extends FXRate with LongKeyedMapper[MappedFXRate] with IdPK {
   def getSingleton = MappedFXRate
 
-  object mBankId extends DefaultStringField(this)
+  object mBankId extends UUIDString(this)
 
   object mFromCurrencyCode extends MappedStringForeignKey(this, MappedCurrency, 3) {
     override def foreignMeta = MappedCurrency

@@ -5,6 +5,7 @@ import java.util.Date
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
+import code.util.UUIDString
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -65,10 +66,10 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
 
   def getSingleton = MappedWhereTag
 
-  object bank extends MappedString(this, 255)
-  object account extends MappedString(this, 255)
-  object transaction extends MappedString(this, 255)
-  object view extends MappedString(this, 255)
+  object bank extends UUIDString(this)
+  object account extends UUIDString(this)
+  object transaction extends UUIDString(this)
+  object view extends UUIDString(this)
 
   object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
