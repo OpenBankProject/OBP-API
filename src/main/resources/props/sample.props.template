@@ -79,6 +79,10 @@ write_metrics=true
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
+# If you want to use MySQL
+#db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
+
+
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port
 ## of remote machine
