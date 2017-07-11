@@ -7,7 +7,7 @@ import net.liftweb.mapper._
 class MappedBadLoginAttempt extends BadLoginAttempt with LongKeyedMapper[MappedBadLoginAttempt] with IdPK {
   def getSingleton = MappedBadLoginAttempt
 
-  object mUsername extends MappedString(this, 255)
+  object mUsername extends MappedString(this, 100)
   object mBadAttemptsSinceLastSuccessOrReset extends MappedInt(this)
   object mLastFailureDate extends MappedDateTime(this)
 

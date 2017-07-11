@@ -3,15 +3,15 @@ package code.model.dataAccess
 import java.util.Date
 
 import code.model._
-import code.util.{Helper, MappedAccountNumber}
+import code.util.{UUIDString, Helper, MappedAccountNumber}
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
 
   override def getSingleton = MappedBankAccount
 
-  object bank extends MappedString(this, 255)
-  object theAccountId extends MappedString(this, 255)
+  object bank extends UUIDString(this)
+  object theAccountId extends UUIDString(this)
   object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
   object accountSwiftBic extends MappedString(this, 50)
@@ -33,9 +33,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   //the last time this account was updated via hbci
   object accountLastUpdate extends MappedDateTime(this)
   
-  object mAccountRoutingScheme extends MappedString(this, 255)
-  object mAccountRoutingAddress extends MappedString(this, 255)
-  object mBranchId extends MappedString(this, 255)
+  object mAccountRoutingScheme extends MappedString(this, 32)
+  object mAccountRoutingAddress extends MappedString(this, 128)
+  object mBranchId extends UUIDString(this)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {

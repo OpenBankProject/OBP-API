@@ -37,6 +37,7 @@ import java.util.Date
 import _root_.net.liftweb.util.Helpers._
 import code.token.Tokens
 import code.api.OAuthHandshake._
+import code.api.util.APIUtil.getCorrelationId
 import code.metrics.APIMetrics
 import code.model._
 import net.liftweb.common._
@@ -143,8 +144,10 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
     }
   }
 
-  private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
+  private def logAPICall = {
+    val correlationId = getCorrelationId()
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L, correlationId)
+  }
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)

@@ -163,7 +163,8 @@ class elasticsearchMetrics extends elasticsearch {
           dateField("date"),
           textField("userName"),
           textField("appName"),
-          textField("developerEmail")
+          textField("developerEmail"),
+          textField("correlationId")
           )
         )
       }
@@ -173,7 +174,7 @@ class elasticsearchMetrics extends elasticsearch {
     }
   }
 
-  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String) {
+  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String) {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
       try {
         client.execute {
@@ -184,7 +185,8 @@ class elasticsearchMetrics extends elasticsearch {
             "duration" -> duration,
             "userName" -> userName,
             "appName" -> appName,
-            "developerEmail" -> developerEmail
+            "developerEmail" -> developerEmail,
+            "correlationId" -> correlationId
             )
         }
       }

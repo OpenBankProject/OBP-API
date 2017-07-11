@@ -2,7 +2,7 @@ package code.kycchecks
 
 import java.util.Date
 import code.model.dataAccess.ResourceUser
-import code.util.DefaultStringField
+import code.util.{UUIDString, DefaultStringField}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
@@ -52,11 +52,11 @@ with LongKeyedMapper[MappedKycCheck] with IdPK with CreatedUpdated {
   def getSingleton = MappedKycCheck
 
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object mBankId extends MappedString(this, 255)
-  object mCustomerId extends MappedString(this, 255)
+  object mBankId extends UUIDString(this)
+  object mCustomerId extends UUIDString(this)
 
-  object mId extends DefaultStringField(this)
-  object mCustomerNumber extends DefaultStringField(this)
+  object mId extends UUIDString(this)
+  object mCustomerNumber extends MappedString(this, 50)
   object mDate extends MappedDateTime(this)
   object mHow extends DefaultStringField(this)
   object mStaffUserId extends DefaultStringField(this)

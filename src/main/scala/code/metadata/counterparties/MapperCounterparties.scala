@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{DefaultStringField, MappedAccountNumber, MappedUUID}
+import code.util.{UUIDString, DefaultStringField, MappedAccountNumber, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.{By, _}
@@ -269,11 +269,11 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   object counterpartyId extends MappedUUID(this)
 
   //these define the obp account to which this counterparty belongs
-  object thisBankId extends MappedString(this, 255)
-  object thisAccountId extends MappedString(this, 255)
+  object thisBankId extends UUIDString(this)
+  object thisAccountId extends UUIDString(this)
 
   //these define the counterparty
-  object holder extends MappedString(this, 255)
+  object holder extends MappedString(this, 255) // Is this the name of the counterparty?
   object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
@@ -368,7 +368,6 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
   override def dbIndexes =
     UniqueIndex(counterpartyId) ::
-    Index(thisBankId, thisAccountId, holder, accountNumber) ::
     super.dbIndexes
 }
 

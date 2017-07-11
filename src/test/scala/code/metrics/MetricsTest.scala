@@ -3,6 +3,7 @@ package code.metrics
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.util.APIUtil.getCorrelationId
 import code.bankconnectors.OBPLimit
 import code.setup.ServerSetup
 
@@ -47,7 +48,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   feature("API Metrics") {
 
     scenario("We save a new API metric") {
-      metrics.saveMetric(testUrl1, day1, -1L)
+      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
@@ -62,10 +63,10 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by url") {
-      metrics.saveMetric(testUrl1, day1, -1L)
-      metrics.saveMetric(testUrl1, day1, -1L)
-      metrics.saveMetric(testUrl1, day2, -1L)
-      metrics.saveMetric(testUrl2, day2, -1L)
+      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl1, day2, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl2, day2, -1L, getCorrelationId())
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
@@ -83,10 +84,10 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by day") {
-      metrics.saveMetric(testUrl1, day1, -1L)
-      metrics.saveMetric(testUrl1, day1, -1L)
-      metrics.saveMetric(testUrl1, day2, -1L)
-      metrics.saveMetric(testUrl2, day2, -1L)
+      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl1, day2, -1L, getCorrelationId())
+      metrics.saveMetric(testUrl2, day2, -1L, getCorrelationId())
 
       val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))
