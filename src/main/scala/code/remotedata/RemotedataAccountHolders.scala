@@ -11,8 +11,8 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
 
   val cc = RemotedataAccountHoldersCaseClasses
 
-  override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean =
-    extractFuture(actor ? cc.createAccountHolder(userId, bankId, accountId, source))
+  override def createAccountHolder(userId: Long, bankId: String, accountId: String): Boolean =
+    extractFuture(actor ? cc.createAccountHolder(userId, bankId, accountId))
 
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     extractFuture(actor ? cc.getAccountHolders(bankId, accountId))

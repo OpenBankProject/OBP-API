@@ -914,6 +914,32 @@ trait Connector {
   def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
+  
+  /**
+    * sets a user as an account owner/holder, this maybe duplicated with 
+    * @ setAccountHolder(bankAccountUID: BankAccountUID, user: User)
+    *                  
+    * @param owner
+    * @param bankId
+    * @param accountId
+    * @param account_owners
+    */
+  def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
+    if (account_owners.contains(owner)) {
+      val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
+      resourceUserOwner match {
+        case Full(owner) => {
+          if ( ! accountOwnerExists(owner, bankId, accountId)) {
+            AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
+          }
+        }
+        case Empty => {
+          //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
+          //logger.error(s"api user(s) $owner not found.")
+        }
+      }
+    }
+  }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Boolean
@@ -990,6 +1016,7 @@ trait Connector {
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 
+  //This method is only existing in mapper
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =
       MapperAccountHolders.findAll(
@@ -1001,31 +1028,6 @@ trait Connector {
     res.nonEmpty
   }
   
-  /**
-    *  This method will create the accounHolder for owner views.
-    *  TODO It is confused for now, need to be clear later.
-    * @param owner
-    * @param bankId
-    * @param accountId
-    * @param account_owners
-    */
-  //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
-  def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
-    if (account_owners.contains(owner)) {
-      val resourceUserOwner = Users.users.vend.getAllUsers().getOrElse(List()).find(user => owner == user.name)
-      resourceUserOwner match {
-        case Some(o) => {
-          if ( ! accountOwnerExists(o, bankId, accountId)) {
-            MapperAccountHolders.createAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
-          }
-       }
-        case None => {
-          //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
-          //logger.error(s"api user(s) $owner not found.")
-       }
-      }
-    }
-  }
 
   def createViews(bankId: BankId, accountId: AccountId, owner_view: Boolean = false,
                   public_view: Boolean = false,

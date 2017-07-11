@@ -30,13 +30,12 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   override def dbIndexes = Index(accountBankPermalink, accountPermalink) :: Nil
 
-  def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
+  def createAccountHolder(userId: Long, bankId: String, accountId: String): Boolean = {
     val holder = MapperAccountHolders.create
       .accountBankPermalink(bankId)
       .accountPermalink(accountId)
       .user(userId)
       .saveMe
-    //if(source != "MappedAccountHolder") logger.info(s"------------> created mappedUserHolder ${holder} at ${source}")
     if(holder.saved_?)
       true
     else

@@ -169,7 +169,7 @@ trait OBPDataImport extends MdcLoggable {
 
     resourceUserOwner match {
       case Some(o) => {
-        AccountHolders.accountHolders.vend.createAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
+        AccountHolders.accountHolders.vend.createAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value)
       }
       case None => {
         //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
