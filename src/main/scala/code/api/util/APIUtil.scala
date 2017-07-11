@@ -1223,7 +1223,21 @@ Returns a string showed to the developer
     SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
 
   }
-
+  /**
+    * @return - the HTTP session ID
+    */
   def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
+  /**
+    * @return - the remote address of the client or the last seen proxy.
+    */
+  def getRemoteIpAddress(): String = S.containerRequest.map(_.remoteAddress).openOr("Unknown")
+  /**
+    * @return - the fully qualified name of the client host or last seen proxy
+    */
+  def getRemoteHost(): String = S.containerRequest.map(_.remoteHost).openOr("Unknown")
+  /**
+    * @return - the source port of the client or last seen proxy.
+    */
+  def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
 
 }
