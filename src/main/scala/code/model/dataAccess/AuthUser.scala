@@ -328,7 +328,10 @@ import net.liftweb.util.Helpers._
     }
 
     for {
-      current <- OAuthHandshake.getUser
+      current <- if (isThereAnOAuthHeader)
+        OAuthHandshake.getUser
+      else
+        Full(new ResourceUser())
       userId <- tryo{current.userId}
       if (userId.nonEmpty)
     } yield {
@@ -336,7 +339,10 @@ import net.liftweb.util.Helpers._
     }
 
     for {
-      current <- DirectLogin.getUser
+      current <- if (isThereDirectLoginHeader)
+        DirectLogin.getUser
+      else
+        Full(new ResourceUser())
       userId <- tryo{current.userId}
       if (userId.nonEmpty)
     } yield {
