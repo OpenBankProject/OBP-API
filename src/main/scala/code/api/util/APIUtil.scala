@@ -244,7 +244,8 @@ import code.api.util.APIUtil._
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
   val KafkaMessageClassCastException = "OBP-50002: Kafka Response Message Class Cast Exception."
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
-
+  // This error may not be shown to user, just for debugging.
+  val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
