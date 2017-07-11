@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.APIFailure
+import code.util.UUIDString
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
@@ -58,14 +59,14 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def primaryKeyField = id_
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
-  object bankPermalink extends MappedString(this, 255)
-  object accountPermalink extends MappedString(this, 255)
+  object bankPermalink extends UUIDString(this)
+  object accountPermalink extends UUIDString(this)
 
 
   object id_ extends MappedLongIndex(this)
-  object name_ extends MappedString(this, 255)
+  object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
-  object permalink_ extends MappedString(this, 255)
+  object permalink_ extends UUIDString(this)
 
   def users : List[User] =  users_.toList
 
