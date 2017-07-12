@@ -32,14 +32,11 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import scala.xml
-import net.liftweb.common.Logger
+import code.api.util.APIUtil.getRemoteIpAddress
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
-import net.liftweb.util.{CssSel, Props}
-
-import net.liftweb.util._
-import Helpers._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{CssSel, Props, _}
 
 
 
@@ -65,10 +62,10 @@ class WebUI extends MdcLoggable{
 
   //get the IP Address when the user first open the webpage.
   if (firstKnownIPAddress.isEmpty)
-    firstKnownIPAddress(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+    firstKnownIPAddress(getRemoteIpAddress())
 
   def concurrentLoginsCookiesCheck = {
-    updateIPaddressEachtime(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+    updateIPaddressEachtime(getRemoteIpAddress())
 
     if(!firstKnownIPAddress.isEmpty & !firstKnownIPAddress.get.equals(updateIPaddressEachtime.get)) {
       log.warn("Warning! The Session ID is used in another IP address, it maybe be stolen or you change the network. Please check it first ! ")
