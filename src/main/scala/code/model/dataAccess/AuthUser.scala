@@ -45,6 +45,7 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
+import code.model.User
 import code.users.Users
 import code.util.Helper
 
@@ -271,86 +272,59 @@ import net.liftweb.util.Helpers._
 
     <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
-
+  
   /**
-   * Find current user
-   */
-  def getCurrentUserUsername: String = {
-    for {
-      current <- AuthUser.currentUser
-      username <- tryo{current.username.get}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- if(isThereAnOAuthHeader) 
-        OAuthHandshake.getUser 
-    else
-      Full(new ResourceUser())
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- if (isThereDirectLoginHeader)
-        DirectLogin.getUser
-      else
-        Full(new ResourceUser())
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    return ""
-  }
-  /**
-    * Find current ResourceUser_UserId from AuthUser, reference the @getCurrentUserUsername
+    * Find current ResourceUser from the server. 
     * This method has no parameters, it depends on different login types:
     *  AuthUser:  AuthUser.currentUser
     *  OAuthHandshake: OAuthHandshake.getUser
     *  DirectLogin: DirectLogin.getUser
-    * to get the current Resourceuser.userId feild.
-    * 
-    * Note: resourceuser has two ids: id(Long) and userid_(String),
-    * This method return userid_(String).
+    * to get the current Resourceuser .
+    *
     */
-  def getCurrentResourceUserUserId: String = {
+  def getCurrentUser: Box[User] = {
     for {
-      current <- AuthUser.currentUser
-      user <- Users.users.vend.getUserByResourceUserId(current.user.get)
-    } yield {
-      return user.userId
-    }
-
-    for {
-      current <- if (isThereAnOAuthHeader)
-        OAuthHandshake.getUser
-      else
-        Full(new ResourceUser())
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
-    } yield {
-      return userId
-    }
-
-    for {
-      current <- if (isThereDirectLoginHeader)
+      resourceUser <- if (AuthUser.currentUser.isDefined)
+        AuthUser.currentUser.get.user.foreign
+      else if (isThereDirectLoginHeader)
         DirectLogin.getUser
-      else
-        Full(new ResourceUser())
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
+      else if (isThereAnOAuthHeader) {
+        OAuthHandshake.getUser
+      } else {
+        debug(ErrorMessages.CurrentUserNotFoundException)
+        Failure(ErrorMessages.CurrentUserNotFoundException)
+        //This is a big problem, if there is no current user from here.
+        //throw new RuntimeException(ErrorMessages.CurrentUserNotFoundException)
+      }
     } yield {
-      return userId
+      resourceUser
     }
-
-     return ""
-   }
+  }
+  /**
+   * get current user.
+    * Note: 1. it will call getCurrentUser method, 
+    *          
+   */
+  def getCurrentUserUsername: String = {
+     getCurrentUser match{
+       case Full(user) => user.name
+       case _ => "" //TODO need more error handling for different user cases
+     }
+  }
+  
+  /**
+    *  get current user.userId
+    *  Note: 1.resourceuser has two ids: id(Long) and userid_(String),
+    *        
+    * @return return userid_(String).
+    */
+  
+  def getCurrentResourceUserUserId: String = {
+    getCurrentUser match{
+      case Full(user) => user.userId
+      case _ => "" //TODO need more error handling for different user cases
+    }
+  }
 
   /**
     * The string that's generated when the user name is not found.  By
