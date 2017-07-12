@@ -102,7 +102,7 @@ case class InboundUser(
   displayName: String
 )
 
-trait Connector {
+trait Connector extends MdcLoggable{
 
   //We have the Connector define its BankAccount implementation here so that it can
   //have access to the implementation details (e.g. the ability to set the balance) in
@@ -160,9 +160,16 @@ trait Connector {
   def getUser(name: String, password: String): Box[InboundUser]
   
   /**
-    * for remote ResourceUser to update the views for OBP
-    * will call createViews and setAccountOwner for the resource user.
-    * @param user
+    * This is a helper method 
+    * for remote user(means the user will get from kafka) to update the views, accountHolders for OBP side
+    * It depends different use cases, normally (also see it in KafkaMappedConnector_vJun2017.scala)
+    * 
+    * 1 createAccountViewIfNotExisting
+    * 2 CreateViewPrivilege
+    * 3 createAccountHolder
+    * 
+    *
+    * @param user the user is from remote side
     */
   def updateUserAccountViews(user: ResourceUser)
 
@@ -925,19 +932,20 @@ trait Connector {
     * @param account_owners
     */
   def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
-    if (account_owners.contains(owner)) {
+//    if (account_owners.contains(owner)) { // No need for now, fix it later
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
           if ( ! accountOwnerExists(owner, bankId, accountId)) {
-            AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
+            val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
+            logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
         }
         case Empty => {
-          //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
-          //logger.error(s"api user(s) $owner not found.")
+//          This shouldn't happen as AuthUser should generate the ResourceUsers when saved
+          logger.error(s"resource user(s) $owner not found.")
         }
-      }
+//      }
     }
   }
 
@@ -1036,22 +1044,22 @@ trait Connector {
 
     val ownerView: Box[View] =
       if(owner_view)
-        Views.views.vend.createOwnerView(bankId, accountId, "Owner View")
+        Views.views.vend.createOwnerViewIfNotExisting(bankId, accountId, "Owner View")
       else Empty
 
     val publicView: Box[View]  =
       if(public_view)
-        Views.views.vend.createPublicView(bankId, accountId, "Public View")
+        Views.views.vend.createPublicViewIfNotExisting(bankId, accountId, "Public View")
       else Empty
 
     val accountantsView: Box[View]  =
       if(accountants_view)
-        Views.views.vend.createAccountantsView(bankId, accountId, "Accountants View")
+        Views.views.vend.createAccountantsViewIfNotExisting(bankId, accountId, "Accountants View")
       else Empty
 
     val auditorsView: Box[View] =
       if(auditors_view)
-        Views.views.vend.createAuditorsView(bankId, accountId, "Auditors View")
+        Views.views.vend.createAuditorsViewIfNotExisting(bankId, accountId, "Auditors View")
       else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten

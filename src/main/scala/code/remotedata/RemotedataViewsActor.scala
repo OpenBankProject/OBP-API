@@ -104,19 +104,19 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.createOwnerView(bankId, accountId, description) =>
       logger.debug("createOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.createOwnerView(bankId, accountId, description))
+      sender ! extractResult(mapper.createOwnerViewIfNotExisting(bankId, accountId, description))
 
     case cc.createPublicView(bankId, accountId, description) =>
       logger.debug("createPublicView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.createPublicView(bankId, accountId, description))
+      sender ! extractResult(mapper.createPublicViewIfNotExisting(bankId, accountId, description))
 
     case cc.createAccountantsView(bankId, accountId, description) =>
       logger.debug("createAccountantsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.createAccountantsView(bankId, accountId, description))
+      sender ! extractResult(mapper.createAccountantsViewIfNotExisting(bankId, accountId, description))
 
     case cc.createAuditorsView(bankId, accountId, description) =>
       logger.debug("createAuditorsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.createAuditorsView(bankId, accountId, description))
+      sender ! extractResult(mapper.createAuditorsViewIfNotExisting(bankId, accountId, description))
 
     case cc.createRandomView(bankId, accountId) =>
       logger.debug("createRandomView(" + bankId +", "+ accountId +")")

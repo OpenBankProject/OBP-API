@@ -44,10 +44,10 @@ trait Views {
   def getNonPublicBankAccounts(user : User) : List[BankAccountUID]
   def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankAccountUID]
 
-  def createOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def createOwnerViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def createPublicViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def createAccountantsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def createAuditorsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]

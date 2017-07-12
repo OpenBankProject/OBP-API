@@ -88,16 +88,16 @@ object RemotedataViews extends ObpActorInit with Views {
   def getOwners(view: View) : Set[User] =
     extractFuture(actor ? cc.getOwners(view))
 
-  def createOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+  def createOwnerViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.createOwnerView(bankId, accountId, description))
 
-  def createPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+  def createPublicViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.createPublicView(bankId, accountId, description))
 
-  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+  def createAccountantsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
    extractFutureToBox(actor ? cc.createAccountantsView(bankId, accountId, description))
 
-  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+  def createAuditorsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
    extractFutureToBox(actor ? cc.createAuditorsView(bankId, accountId, description))
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] =
