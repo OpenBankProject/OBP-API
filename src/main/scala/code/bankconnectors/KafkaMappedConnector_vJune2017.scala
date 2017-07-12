@@ -812,7 +812,19 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       ) :: Nil
     )
   )
+  //New getBankAccounts
+  def getBankAccounts(): Box[List[BankAccountJune2017]] = saveConnectorMetric {{
+    val req = GetAccounts(
+      AuthInfo(userId = currentResourceUserId,username = AuthUser.getCurrentUserUsername))
 
+    logger.debug(s"Kafka getBankAccounts says: req is: $req")
+    val rList = cachedAccounts.getOrElseUpdate(req.toString, () => process[GetAccounts](req).extract[List[InboundAccountJune2017]])
+    val res = rList map (new BankAccountJune2017(_))
+    logger.debug(s"Kafka getBankAccounts says res is $res")
+    Full(res)
+  }}("getBankAccounts")
+  
+  //Legacy(?) getBankAccounts
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccountJune2017] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
