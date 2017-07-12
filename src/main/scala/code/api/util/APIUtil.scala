@@ -454,7 +454,7 @@ object APIUtil extends MdcLoggable {
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
   def createdJsonResponse(json: JsExp, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(json, getHeaders(), Nil, httpCode)
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
   def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(cc), getHeaders() ::: headers.list, Nil, httpCode)
