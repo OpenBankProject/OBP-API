@@ -783,11 +783,11 @@ trait APIMethods220 {
         |
         |2 end_date (defaults to current date) eg:end_date=2017-03-05
         |
-        |3 limit (for pagination: defaults to 200)  eg:limit=200
+        |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+        |eg: /management/connector/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=100&offset=300
         |
         |Other filters:
         |
@@ -795,7 +795,7 @@ trait APIMethods220 {
         |
         |6 function_name (if null ignore)
         |
-        |7 obp_api_request_id (if null ignore)
+        |7 correlation_id (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,
@@ -874,14 +874,14 @@ trait APIMethods220 {
             // verb (if null ignore)
             connectorName <- Full(S.param("connector_name")) //(if null ignore)
             functionName <- Full(S.param("function_name")) //(if null ignore)
-            obpApiRequestId <- Full(S.param("obp_api_request_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
+            correlationId <- Full(S.param("correlation_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
 
 
             filterByFields: List[ConnectorMetric] = metrics
-              .filter(rd => (if (!connectorName.isEmpty) rd.getConnectorName().equals(connectorName.get) else true))
-              .filter(rd => (if (!functionName.isEmpty) rd.getFunctionName().equals(functionName.get) else true))
+              .filter(i => (if (!connectorName.isEmpty) i.getConnectorName().equals(connectorName.get) else true))
+              .filter(i => (if (!functionName.isEmpty) i.getFunctionName().equals(functionName.get) else true))
               //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
-              .filter(i => (if (!obpApiRequestId.isEmpty) i.getCorrelationId().equals(obpApiRequestId.get) else true))
+              .filter(i => (if (!correlationId.isEmpty) i.getCorrelationId().equals(correlationId.get) else true))
           } yield {
             val json = JSONFactory220.createConnectorMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
