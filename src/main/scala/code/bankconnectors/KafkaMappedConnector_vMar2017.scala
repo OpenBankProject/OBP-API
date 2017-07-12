@@ -228,7 +228,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       )}
       existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
-      setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
+      setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
@@ -1204,13 +1204,15 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
+        bankId = "bankid543",
         fromCurrencyCode = "1234",
         toCurrencyCode = ""
       )
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundFXRate(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6XXXX: .... ",
+        bankId = "bankid654",
         fromCurrencyCode = "1234",
         toCurrencyCode = "1234",
         conversionValue = 123.44,
@@ -1220,13 +1222,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = OutboundCurrentFxRateBase(
       messageFormat = messageFormat,
       action = "obp.get.CurrentFxRate",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
+      bankId = bankId.value,
       fromCurrencyCode = fromCurrencyCode,
       toCurrencyCode = toCurrencyCode)
     

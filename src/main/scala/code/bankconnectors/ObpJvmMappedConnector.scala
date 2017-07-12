@@ -174,7 +174,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       )}
       existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bank), AccountId(acc.id)))}
     } yield {
-      setAccountOwner(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
+      setAccountHolder(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
@@ -1431,7 +1431,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
   //TODO need to fix in obpjvm, just mocked result as Mapper
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {

@@ -68,15 +68,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
-    logger.info(s"threshold is $threshold")
+    logger.debug(s"threshold is $threshold")
 
     // TODO constrain this to supported currencies.
     val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
-    logger.info(s"thresholdCurrency is $thresholdCurrency")
+    logger.debug(s"thresholdCurrency is $thresholdCurrency")
 
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
-    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     AmountOfMoney(currency, convertedThreshold.toString())
   }
 
@@ -125,14 +125,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               currency: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
     val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
-    logger.info(s"transactionRequests_charge_level is $chargeLevel")
+    logger.debug(s"transactionRequests_charge_level is $chargeLevel")
 
     // TODO constrain this to supported currencies.
     //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
-    //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    logger.debug(s"chargeLevelCurrency is $chargeLevelCurrency")
     //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
     //    val convertedThreshold = fx.convert(chargeLevel, rate)
-    //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    //    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
 
     Full(AmountOfMoney(currency, chargeLevel.toString))
   }
@@ -615,10 +615,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
-        logger.info(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
+        logger.debug(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
       case _ =>
-        logger.info(s"creating bank with national identifier $bankNationalIdentifier")
+        logger.debug(s"creating bank with national identifier $bankNationalIdentifier")
         //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
         MappedBank.create
           .permalink(Helper.generatePermalink(bankName))
@@ -745,7 +745,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
-        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ =>
         MappedBankAccount.create
@@ -1101,11 +1101,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
     */
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
     /**
       * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
       */
     val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
     )
@@ -1113,6 +1114,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
       */
     val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
     )

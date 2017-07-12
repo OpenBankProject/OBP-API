@@ -3,12 +3,12 @@ package code.metrics
 import java.util.Date
 
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
-import code.util.DefaultStringField
+import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.mapper._
 
 object MappedMetrics extends APIMetrics {
 
-  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,correlationId: String): Unit = {
     MappedMetric.create
       .userId(userId)
       .url(url)
@@ -21,6 +21,7 @@ object MappedMetrics extends APIMetrics {
       .implementedByPartialFunction(implementedByPartialFunction)
       .implementedInVersion(implementedInVersion)
       .verb(verb)
+      .correlationId(correlationId)
       .save
   }
 
@@ -104,6 +105,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object implementedInVersion  extends DefaultStringField(this)
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends DefaultStringField(this)
+  object correlationId extends MappedUUID(this)
 
 
   override def getUrl(): String = url.get
@@ -117,6 +119,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
   override def getImplementedInVersion(): String = implementedInVersion.get
   override def getVerb(): String = verb.get
+  override def getCorrelationId(): String = correlationId.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {

@@ -5,8 +5,9 @@ import java.util.Date
 
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
+import code.metadata.wheretags.{MapperWhereTags, WhereTags}
 import code.model._
-import code.remotedata.RemotedataTransactionRequests
+import code.remotedata.{RemotedataTransactionRequests, RemotedataWhereTags}
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
@@ -77,7 +78,10 @@ object TransactionRequests extends SimpleInjector {
 
   def buildOne: TransactionRequestProvider  =
     Props.get("transactionRequests_connector", "mapped") match {
-      case "mapped" => RemotedataTransactionRequests
+      case "mapped" => Props.getBool("use_akka", false) match {
+        case false  => MappedTransactionRequestProvider
+        case true => RemotedataTransactionRequests     // We will use Akka as a middleware
+      }
       case tc: String => throw new IllegalArgumentException("No such connector for Transaction Requests: " + tc)
     }
 

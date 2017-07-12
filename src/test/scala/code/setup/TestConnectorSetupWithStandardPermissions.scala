@@ -17,7 +17,7 @@ import net.liftweb.util.Props
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
   override protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value, "TestConnectorSetupWithStandardPermissions")
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value)
   }
 
   override protected def grantAccessToAllExistingViews(user : User) = {

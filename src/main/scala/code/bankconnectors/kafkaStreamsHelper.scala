@@ -71,46 +71,33 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     //producer will publish the message to broker
     val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
     producer.send(message)
-    logger.debug(s"sendRequestAndGetResponse-SendToKafka ~~$topic with $message")
     
     //consumer will wait for the message from broker
     consumer(responseTopic, specifiedPartition)
       .filter(_.key() == key) // double check the key 
-      .map {
-      msg =>
-        logger.debug(s"sendRequestAndGetResponse-GetFromKafka ~~$topic with $msg")
+      .map { msg => 
+        logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
         msg.value
-    }
+      }
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
   }
 
-  //TODO, there need more error handling, 
-  // eg : json.parse(r) return JObject(List())
-  // The \\ data will also return data, without the error here.
   private val paseStringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
-    logger.debug("paseStringToJValueF-before:" + r)
-    val eventualValue = Future(json.parse(r) \\ "data")
-    eventualValue
+    Future(json.parse(r) \\ "data")
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.debug("extractJValueToAnyF-before:" + r)
-    val future = Future(extractResult(r))
-    future
-    
+    logger.debug("kafka-response:" + r)
+    Future(extractResult(r))
   }
 
   val anyToJValueF: (Any => Future[json.JValue]) = { m =>
-    logger.debug("anyToJValueF-before:" + m)
-    val eventualValue = Future(Extraction.decompose(m))
-    eventualValue
+    Future(Extraction.decompose(m))
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
-    logger.debug("serializeF-before:" + m)
-    val eventualString = Future(json.compactRender(m))
-    eventualString
+    Future(json.compactRender(m))
   }
 
   //private val RESP: String = "{\"count\": \"\", \"data\": [], \"state\": \"\", \"pager\": \"\", \"target\": \"banks\"}"
@@ -137,30 +124,34 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   def pipeToSender(sender: ActorRef, future: Future[Any]) = future recover {
     case e: InterruptedException => json.parse(s"""{"error":"sending message to kafka interrupted"}""")
       logger.error(s"""{"error":"sending message to kafka interrupted,"${e}"}""")
+      throw new RuntimeException("Kafka_InterruptedException"+e.toString)
     case e: ExecutionException => json.parse(s"""{"error":"could not send message to kafka"}""")
       logger.error(s"""{"error":"could not send message to kafka, "${e}"}""")
+      throw new RuntimeException("Kafka_ExecutionException"+e.toString)
     case e: TimeoutException => json.parse(s"""{"error":"receiving message from kafka timed out"}""")
       logger.error(s"""{"error":"receiving message from kafka timed out", "${e}" "}""")
+      throw new RuntimeException("Kafka_TimeoutException"+e.toString)
     case e: Throwable => json.parse(s"""{"error":"unexpected error sending message to kafka"}""")
       logger.error(s"""{"error":"unexpected error sending message to kafka , "${e}"}""")
+      throw new RuntimeException("Kafka_Throwable"+e.toString)
   } pipeTo sender
 
   def receive = {
     case value: String =>
-      logger.info("kafka_request[value]: " + value)
+      logger.debug("kafka_request[value]: " + value)
       for {
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
         jv <- paseStringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
-        logger.info("South Side recognises version info")
+        logger.debug("South Side recognises version info")
         any
       }
 
     // This is for KafkaMappedConnector_vJun2017, the request is TopicCaseClass  
     case request: TopicCaseClass =>
-      logger.info("kafka_request[TopicCaseClass]: " + request)
+      logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
         d <- anyToJValueF(request)
@@ -175,7 +166,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
     // This is for KafkaMappedConnector_JVMcompatible, KafkaMappedConnector_vMar2017 and KafkaMappedConnector, the request is Map[String, String]  
     case request: Map[String, String] =>
-      logger.info("kafka_request[Map[String, String]]: " + request)
+      logger.debug("kafka_request[Map[String, String]]: " + request)
       val orgSender = sender
       val f = for {
         t <- Future(Topics.topicPairFromProps) // Just have two Topics: Request and Response

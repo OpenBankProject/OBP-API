@@ -4,6 +4,7 @@ import code.model.{AccountId, BankId, User}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.util.UUIDString
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.common.Box
@@ -18,8 +19,8 @@ class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with Id
 
   object user extends MappedLongForeignKey(this, ResourceUser)
 
-  object accountBankPermalink extends MappedString(this, 255)
-  object accountPermalink extends MappedString(this, 255)
+  object accountBankPermalink extends UUIDString(this)
+  object accountPermalink extends UUIDString(this)
 
 }
 
@@ -29,13 +30,12 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   override def dbIndexes = Index(accountBankPermalink, accountPermalink) :: Nil
 
-  def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
+  def createAccountHolder(userId: Long, bankId: String, accountId: String): Boolean = {
     val holder = MapperAccountHolders.create
       .accountBankPermalink(bankId)
       .accountPermalink(accountId)
       .user(userId)
       .saveMe
-    //if(source != "MappedAccountHolder") logger.info(s"------------> created mappedUserHolder ${holder} at ${source}")
     if(holder.saved_?)
       true
     else
@@ -45,7 +45,9 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
     val results = MapperAccountHolders.findAll(
       By(MapperAccountHolders.accountBankPermalink, bankId.value),
-      By(MapperAccountHolders.accountPermalink, accountId.value))
+      By(MapperAccountHolders.accountPermalink, accountId.value),
+      PreCache(MapperAccountHolders.user)
+    )
 
     results.flatMap { accHolder =>
       ResourceUser.find(By(ResourceUser.id, accHolder.user))

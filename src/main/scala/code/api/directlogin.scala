@@ -336,15 +336,15 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
 
   def getUserFromToken(tokenID : Box[String]) : Box[User] = {
-    logger.info("DirectLogin header correct ")
+    logger.debug("DirectLogin header correct ")
     Tokens.tokens.vend.getTokenByKey(tokenID.getOrElse("")) match {
       case Full(token) => {
-        logger.info("access token: " + token + " found")
+        logger.debug("access token: " + token + " found")
         val user = token.user
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.name + " was found from the DirectLogin token")
-          case _ => logger.info("no user was found for the DirectLogin token")
+          case Full(u) => logger.debug("user " + u.name + " was found from the DirectLogin token")
+          case _ => logger.debug("no user was found for the DirectLogin token")
         }
         user
       }
@@ -356,7 +356,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
   }
 
   def getConsumer: Box[Consumer] = {
-    logger.info("DirectLogin header correct ")
+    logger.debug("DirectLogin header correct ")
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"

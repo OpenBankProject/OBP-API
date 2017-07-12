@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import java.util.UUID
 
-import code.api.util.APIUtil.isValidStrongPassword
+import code.api.util.APIUtil.{isThereAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundUser}
@@ -45,9 +45,9 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
+import code.model.User
 import code.users.Users
 import code.util.Helper
-import net.liftweb.util
 
 
 /**
@@ -272,74 +272,59 @@ import net.liftweb.util.Helpers._
 
     <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
-
+  
   /**
-   * Find current user
-   */
-  def getCurrentUserUsername: String = {
-    for {
-      current <- AuthUser.currentUser
-      username <- tryo{current.username.get}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- OAuthHandshake.getUser
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- DirectLogin.getUser
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    return ""
-  }
-  /**
-    * Find current ResourceUser_UserId from AuthUser, reference the @getCurrentUserUsername
+    * Find current ResourceUser from the server. 
     * This method has no parameters, it depends on different login types:
     *  AuthUser:  AuthUser.currentUser
     *  OAuthHandshake: OAuthHandshake.getUser
     *  DirectLogin: DirectLogin.getUser
-    * to get the current Resourceuser.userId feild.
-    * 
-    * Note: resourceuser has two ids: id(Long) and userid_(String),
-    * This method return userid_(String).
+    * to get the current Resourceuser .
+    *
     */
+  def getCurrentUser: Box[User] = {
+    for {
+      resourceUser <- if (AuthUser.currentUser.isDefined)
+        AuthUser.currentUser.get.user.foreign
+      else if (isThereDirectLoginHeader)
+        DirectLogin.getUser
+      else if (isThereAnOAuthHeader) {
+        OAuthHandshake.getUser
+      } else {
+        debug(ErrorMessages.CurrentUserNotFoundException)
+        Failure(ErrorMessages.CurrentUserNotFoundException)
+        //This is a big problem, if there is no current user from here.
+        //throw new RuntimeException(ErrorMessages.CurrentUserNotFoundException)
+      }
+    } yield {
+      resourceUser
+    }
+  }
+  /**
+   * get current user.
+    * Note: 1. it will call getCurrentUser method, 
+    *          
+   */
+  def getCurrentUserUsername: String = {
+     getCurrentUser match{
+       case Full(user) => user.name
+       case _ => "" //TODO need more error handling for different user cases
+     }
+  }
+  
+  /**
+    *  get current user.userId
+    *  Note: 1.resourceuser has two ids: id(Long) and userid_(String),
+    *        
+    * @return return userid_(String).
+    */
+  
   def getCurrentResourceUserUserId: String = {
-    for {
-      current <- AuthUser.currentUser
-      user <- Users.users.vend.getUserByResourceUserId(current.user.get)
-    } yield {
-      return user.userId
+    getCurrentUser match{
+      case Full(user) => user.userId
+      case _ => "" //TODO need more error handling for different user cases
     }
-
-    for {
-      current <- OAuthHandshake.getUser
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
-    } yield {
-      return userId
-    }
-
-    for {
-      current <- DirectLogin.getUser
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
-    } yield {
-      return userId
-    }
-
-     return ""
-   }
+  }
 
   /**
     * The string that's generated when the user name is not found.  By
@@ -654,7 +639,7 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+//              registeredUserHelper(user.username)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
@@ -827,7 +812,9 @@ import net.liftweb.util.Helpers._
       for {
        u <- Users.users.vend.getUserByUserName(username)
        //TODO need more error handle here, I need the exception to debug
-       v <- Full(Connector.connector.vend.updateUserAccountViews(u))
+       // just tryo it, for perfermace for now. It is no problem to get error 
+       // for this case, we need move the  updateUserAccountViews to somewhere else. 
+       v <- tryo (Connector.connector.vend.updateUserAccountViews(u))
       } yield v
     }
   }

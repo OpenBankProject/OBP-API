@@ -5,7 +5,7 @@ import code.model.BankId
 
 import code.common.{Address, License, Location, Meta}
 
-import code.util.DefaultStringField
+import code.util.{UUIDString, DefaultStringField}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import org.joda.time.Hours
@@ -34,10 +34,10 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def getSingleton = MappedBranch
 
-  object mBankId extends DefaultStringField(this)
-  object mName extends DefaultStringField(this)
+  object mBankId extends UUIDString(this)
+  object mName extends MappedString(this, 255)
 
-  object mBranchId extends DefaultStringField(this)
+  object mBranchId extends UUIDString(this)
 
   // Exposed inside address. See below
   object mLine1 extends DefaultStringField(this)
@@ -53,8 +53,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mlocationLongitude extends MappedDouble(this)
 
   // Exposed inside meta.license See below
-  object mLicenseId extends DefaultStringField(this)
-  object mLicenseName extends DefaultStringField(this)
+  object mLicenseId extends UUIDString(this)
+  object mLicenseName extends MappedString(this, 255)
 
   object mLobbyHours extends DefaultStringField(this)
   object mDriveUpHours extends DefaultStringField(this)

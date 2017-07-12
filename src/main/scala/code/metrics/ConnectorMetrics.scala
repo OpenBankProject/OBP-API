@@ -6,7 +6,7 @@ import code.bankconnectors._
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.mapper._
 
-object ConnectorMetrics extends ConnMetrics {
+object ConnectorMetrics extends ConnectorMetricsProvider {
 
   override def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit = {
     MappedConnectorMetric.create
@@ -14,7 +14,7 @@ object ConnectorMetrics extends ConnMetrics {
       .functionName(functionName)
       .date(date)
       .duration(duration)
-      //.correlationId(correlationId)
+      .correlationId(correlationId)
       .save
   }
 

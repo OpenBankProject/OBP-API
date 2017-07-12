@@ -24,6 +24,11 @@ def error(msg):
     sys.exit(1)
 
 
+class APIError(Exception):
+    """Exception class for API errors"""
+    pass
+
+
 class API(object):
     """OBP API Helper class"""
     def __init__(self, base_url, api_version):
@@ -41,25 +46,22 @@ class API(object):
         debug('Login as {0} to {1}'.format(headers, url))
         response = requests.post(url, headers=headers)
         if (response.status_code != 200):
-            error('Could not login: {}'.format(response.text))
-            return False
+            raise APIError('Could not login: {}'.format(response.text))
         self.token = response.json()['token']
-        debug("Received token: {0}".format(self.token))
+        debug('Received token: {0}'.format(self.token))
         return self.token
 
     def handle_response(self, response):
         """Handle the response, e.g. errors or conversion to JSON"""
         if response.status_code in [404, 500]:
             msg = '{}: {}'.format(response.status_code, response.text)
-            error(msg)
-            return False
+            raise APIError(msg)
         elif response.status_code in [204]:
             return response.text
         else:
             data = response.json()
             if 'error' in data:
-                error(data['error'])
-                return False
+                raise APIError(data['error'])
             return data
 
     def call(self, method='GET', urlpath='', data=None):
@@ -89,6 +91,11 @@ class API(object):
         return self.get('/users/current')
 
 
+class ImportCSVError(Exception):
+    """Exception class for Importer errors"""
+    pass
+
+
 class ImportCSV(object):
     """
     Convert a CSV file into a format to be posted to the OBP API
@@ -98,8 +105,8 @@ class ImportCSV(object):
 
     def __init__(self, args):
         if len(args) < 3:
-            log('Usage: {} <csv file> <bank id>'.format(args[0]))
-            sys.exit(1)
+            msg = 'Usage: {} <csv file> <bank id>'.format(args[0])
+            raise ImportCSVError(msg)
         self.filename = args[1]
         self.bank_id = args[2]
 

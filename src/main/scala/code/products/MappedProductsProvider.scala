@@ -4,7 +4,7 @@ import code.products.Products._
 import code.common.{License, Meta}
 import code.model.BankId
 import code.products.Products.ProductCode
-import code.util.DefaultStringField
+import code.util.{UUIDString, DefaultStringField}
 import net.liftweb.mapper._
 
 import code.products.Products.Product
@@ -30,17 +30,17 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   override def getSingleton = MappedProduct
 
-  object mBankId extends DefaultStringField(this) // combination of this
-  object mCode extends DefaultStringField(this)   // and this is unique
+  object mBankId extends UUIDString(this) // combination of this
+  object mCode extends MappedString(this, 50)   // and this is unique
 
-  object mName extends DefaultStringField(this)
+  object mName extends MappedString(this, 125)
 
   // Note we have an database pk called id but don't expose it
 
   // Exposed inside address. See below
-  object mCategory extends DefaultStringField(this)
-  object mFamily extends DefaultStringField(this)
-  object mSuperFamily extends DefaultStringField(this)
+  object mCategory extends MappedString(this, 50)
+  object mFamily extends MappedString(this, 50)
+  object mSuperFamily extends MappedString(this, 50)
   object mMoreInfoUrl extends DefaultStringField(this) // use URL field?
   object mDetails extends DefaultStringField(this)
   object mDescription extends DefaultStringField(this)

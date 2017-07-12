@@ -343,7 +343,7 @@ trait BankAccount extends MdcLoggable {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
-        //logger.info("No user was passed to permittedViews")
+        //logger.debug("No user was passed to permittedViews")
         publicViews
       }
     }
@@ -486,7 +486,7 @@ trait BankAccount extends MdcLoggable {
       val view = Views.views.vend.createView(BankAccountUID(this.bankId,this.accountId), v)
 
       //if(view.isDefined) {
-      //  logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
+      //  logger.debug("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
       //      " for account " + accountId + "at bank " + bankId)
       //}
 
@@ -501,7 +501,7 @@ trait BankAccount extends MdcLoggable {
       val view = Views.views.vend.updateView(BankAccountUID(this.bankId,this.accountId), viewId, v)
 
       //if(view.isDefined) {
-      //  logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
+      //  logger.debug("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
       //      " for account " + accountId + "at bank " + bankId)
       //}
 
@@ -516,7 +516,7 @@ trait BankAccount extends MdcLoggable {
       val deleted = Views.views.vend.removeView(viewId, BankAccountUID(this.bankId,this.accountId))
 
       //if (deleted.isDefined) {
-      //    logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+      //    logger.debug("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
       //    " for account " + accountId + "at bank " + bankId)
       //}
 

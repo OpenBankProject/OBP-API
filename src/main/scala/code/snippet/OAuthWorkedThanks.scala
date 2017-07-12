@@ -29,6 +29,7 @@ package code.snippet
 import code.api.OAuthHandshake
 import code.model.Consumer
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.common.Full
@@ -40,7 +41,7 @@ import net.liftweb.sitemap.Menu
  * their browser. By coming through this page before redirecting to the url specified by the app,
  * we at least make sure that the dangling page says something nice on it.
  */
-class OAuthWorkedThanks {
+class OAuthWorkedThanks extends MdcLoggable {
 
   def thanks = {
     val redirectUrl = S.param("redirectUrl").map(urlDecode(_))
@@ -55,9 +56,11 @@ class OAuthWorkedThanks {
     redirectUrl match {
       case Full(url) =>
         //this redirect url is checked by following, no open redirect issue.
+        // TODO maybe handle case of extra trailing / on the url ?
         if(validRedirectURL.equals(requestedRedirectURL)) {
           "#redirect-link [href]" #> url
         }else{
+          logger.info(s"Note: The validRedirectURL was $validRedirectURL but the requestedRedirectURL was $requestedRedirectURL")
           "#oauth-done-thanks *" #> "Sorry, the App requested a redirect to a URL that is not registered. Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
         }
       case _ => {

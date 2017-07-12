@@ -115,14 +115,14 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
       existingOwnerView match {
         case Full(v) => {
-          logger.info(s"account $accountId at bank $bankId has already an owner view")
+          logger.debug(s"account $accountId at bank $bankId has already an owner view")
           v.users.toList.find(_.resourceUserId == user.resourceUserId) match {
             case Some(u) => {
-              logger.info(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
+              logger.debug(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }
             case _ =>{
               //TODO: When can this case occur?
-              logger.info(s"creating owner view access to user ${user.emailAddress}")
+              logger.debug(s"creating owner view access to user ${user.emailAddress}")
               Views.views.vend.addPermission(ownerViewUID, user)
             }
           }
@@ -130,10 +130,10 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
         case _ => {
           {
             //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
-            logger.info(s"creating owner view on account account $accountId at bank $bankId")
+            logger.debug(s"creating owner view on account account $accountId at bank $bankId")
             val view = Views.views.vend.createOwnerView(bankId, accountId, "Owner View")
 
-            logger.info(s"creating owner view access to user ${user.emailAddress}")
+            logger.debug(s"creating owner view access to user ${user.emailAddress}")
             Views.views.vend.addPermission(ownerViewUID, user)
           }
         }
@@ -157,7 +157,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
     val createBankAccountListener = new LiftActor {
       protected def messageHandler = {
         case msg@AMQPMessage(message: CreateBankAccount) => {
-          logger.info(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
+          logger.debug(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
           //TODO: Revise those dummy values
           val accountType = "AMPQ"
@@ -177,13 +177,13 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
               currency, user.name,
               "","","" //added field in V220
               )
-            logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
+            logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
             BankAccountCreation.setAsOwner(bankAccount.bankId, bankAccount.accountId, user)
           }
 
           result match {
             case Full(_) =>
-              logger.info(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
+              logger.debug(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
             case _ => logger.warn(s"account creation failed")
@@ -193,7 +193,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
       }
     }
     def startListen = {
-      logger.info("started to listen for bank account creation messages")
+      logger.debug("started to listen for bank account creation messages")
       amqp ! AMQPAddListener(createBankAccountListener)
     }
   }

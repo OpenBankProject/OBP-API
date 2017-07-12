@@ -215,7 +215,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  def updateUserAccountViews(user: ResourceUser) = {
+  def updateUserAccountViews(user: ResourceUser): Unit = {
+    //1 get all accounts from Kafka
     val accounts: List[InboundAccountJune2017] = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
@@ -231,15 +232,16 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       }
     }
     }.flatten
-
-    val views = for {
+  
+    //2 set up the views for accounts
+    for {
       acc <- accounts
-      username <- tryo {
-        user.name
-      }
+      username <- tryo {user.name}
     
-      views <- tryo {
-        createViews(BankId(acc.bankId),
+      //2.1 create views(default, we have three: Public, Accountant and Auditor) for the new account
+      createdNewViewsForTheUser <- tryo {
+        createViews(
+          BankId(acc.bankId),
           AccountId(acc.accountId),
           acc.owners.contains(username),
           acc.generateViews.contains("Public"),
@@ -247,18 +249,28 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
           acc.generateViews.contains("Auditor")
         )
       }
-      existing_views <- tryo {
-        Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))
+      //2.2 get all existing views for the BankAccountUUID, there has been existing some views for the account. not for this user
+      existingViewsNotBelongtoTheUser <- tryo {
+        Views.views.vend.views(
+          BankAccountUID(
+            BankId(acc.bankId), 
+            AccountId(acc.accountId)
+          )
+        ).filterNot(_.users.contains(user.resourceUserId))
       }
+      
     } yield {
-      setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
-      views.foreach(v => {
+      //2.3 set the user <--> account (over accountHolder)
+      setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
+      //2.4 Added the permissions to the new 
+      createdNewViewsForTheUser.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
+        logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach(v => {
+      //2.5 Update the existing views for the user 
+      existingViewsNotBelongtoTheUser.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
+        logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
   }
@@ -1208,13 +1220,15 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
+        bankId = "bankid54",
         fromCurrencyCode = "1234",
         toCurrencyCode = ""
       )
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundFXRate(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-XXX: .... ",
+        bankId = "bankid54",
         fromCurrencyCode = "1234",
         toCurrencyCode = "1234",
         conversionValue = 123.44,
@@ -1225,13 +1239,14 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
 
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = OutboundCurrentFxRateBase(
       messageFormat = messageFormat,
       action = "obp.get.CurrentFxRate",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
+      bankId = bankId.value,
       fromCurrencyCode = fromCurrencyCode,
       toCurrencyCode = toCurrencyCode)
 

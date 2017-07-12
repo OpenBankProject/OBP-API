@@ -44,7 +44,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, ConnMetrics}
+import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
@@ -214,8 +214,8 @@ import code.api.util.APIUtil._
   val AccountIdAlreadyExsits = "OBP-30208: Account_ID already exists at the Bank."
 
 
-  val InsufficientAuthorisationToCreateBranch  = "OBP-30009: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
-  val InsufficientAuthorisationToCreateBank  = "OBP-30010: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
+  val InsufficientAuthorisationToCreateBranch  = "OBP-30209: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
+  val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
   // General Resource related messages above here
 
@@ -244,7 +244,8 @@ import code.api.util.APIUtil._
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
   val KafkaMessageClassCastException = "OBP-50002: Kafka Response Message Class Cast Exception."
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
-
+  // This error may not be shown to user, just for debugging.
+  val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
@@ -254,6 +255,13 @@ import code.api.util.APIUtil._
   val InvalidConnectorResponseForGetTransactions = "OBP-50204: Connector did not return the set of transactions we requested."  // was OBP-30204
 
 
+  // Adapter Exceptions (OBP-6XXXX)
+  // Reserved for adapter (south of Kafka) messages
+
+
+
+
+  ///////////
 
 
 
@@ -391,6 +399,7 @@ object APIUtil extends MdcLoggable {
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.get.requestType.method
       val url = S.uriAndQueryString.getOrElse("")
+      val correlationId = getCorrelationId()
 
       //execute saveMetric in future, as we do not need to know result of operation
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -405,7 +414,8 @@ object APIUtil extends MdcLoggable {
           developerEmail,
           consumerId,
           implementedByPartialFunction,
-          implementedInVersion, verb
+          implementedInVersion, verb,
+          correlationId
         )
       }
 
@@ -432,59 +442,36 @@ object APIUtil extends MdcLoggable {
     }
     commit
   }
-  
-//  https://httpstatuses.com/ the introduction for all http-codes
-  
-  /**
-    * 204 NO CONTENT
-    * The server has successfully fulfilled the request and that there is no additional content to send in the response payload body.
-    */
-  def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), headers, Nil, 204)
-  
-  /**
-    * 200 OK
-    * The request has succeeded.
-    */
-  def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
-  
-  /**
-    * 201 CREATED
-    * The request has been fulfilled and has resulted in one or more new resources being created.
-    */
-  def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
 
-  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(Extraction.decompose(cc), headers, Nil, httpCode)
-  
-  /**
-    * 202 ACCEPTED
-    * The request has been accepted for processing, but the processing has not been completed.
-    * The request might or might not eventually be acted upon, as it might be disallowed when processing actually takes place.
-    */
-  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
-  
-  /**
-    * 400 BAD REQUEST
-    * The server cannot or will not process the request due to something that is perceived to be a client error
-    * (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-    */
-  def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
-  
-  /**
-    * 501 NOT IMPLEMENTED
-    * The server does not support the functionality required to fulfill the request.
-    */
-  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
+  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId()))
+
+  case class CustomResponseHeaders(list: List[(String, String)])
+
+  //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
+  def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
+
+  def successJsonResponse(json: JsExp, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
+
+  def createdJsonResponse(json: JsExp, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
+
+  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(cc), getHeaders() ::: headers.list, Nil, httpCode)
+
+  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
+
+  def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
+
+  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
 
-  def oauthHeaderRequiredJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
+  def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders() ::: headers.list, Nil, 400)
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
@@ -1220,9 +1207,10 @@ Returns a string showed to the developer
     // call-by-name
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
+      val correlationId = getCorrelationId()
       import scala.concurrent.ExecutionContext.Implicits.global
       Future {
-        ConnMetrics.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, "", now, t1 - t0)
+        ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
       }
     }
     result
@@ -1238,5 +1226,21 @@ Returns a string showed to the developer
     SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
 
   }
+  /**
+    * @return - the HTTP session ID
+    */
+  def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
+  /**
+    * @return - the remote address of the client or the last seen proxy.
+    */
+  def getRemoteIpAddress(): String = S.containerRequest.map(_.remoteAddress).openOr("Unknown")
+  /**
+    * @return - the fully qualified name of the client host or last seen proxy
+    */
+  def getRemoteHost(): String = S.containerRequest.map(_.remoteHost).openOr("Unknown")
+  /**
+    * @return - the source port of the client or last seen proxy.
+    */
+  def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
 
 }

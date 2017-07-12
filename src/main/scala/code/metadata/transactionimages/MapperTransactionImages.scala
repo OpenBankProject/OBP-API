@@ -52,10 +52,10 @@ object MapperTransactionImages extends TransactionImages {
 class MappedTransactionImage extends TransactionImage with LongKeyedMapper[MappedTransactionImage] with IdPK with CreatedUpdated {
   def getSingleton = MappedTransactionImage
 
-  object bank extends MappedString(this, 255)
-  object account extends MappedString(this, 255)
-  object transaction extends MappedString(this, 255)
-  object view extends MappedString(this, 255)
+  object bank extends MappedString(this, 50)
+  object account extends MappedString(this, 50)
+  object transaction extends MappedString(this, 50)
+  object view extends MappedString(this, 50)
 
   object imageId extends MappedUUID(this)
   object user extends MappedLongForeignKey(this, ResourceUser)
