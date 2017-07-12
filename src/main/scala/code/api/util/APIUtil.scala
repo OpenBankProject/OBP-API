@@ -444,31 +444,33 @@ object APIUtil extends MdcLoggable {
 
   def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId()))
 
+  case class CustomResponseHeaders(list: List[(String, String)])
+
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
-  def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), getHeaders(), Nil, 204)
+  def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
-  def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
+  def successJsonResponse(json: JsExp, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
+
+  def createdJsonResponse(json: JsExp, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders(), Nil, httpCode)
 
-  def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
-    JsonResponse(json, getHeaders(), Nil, httpCode)
+  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(cc), getHeaders() ::: headers.list, Nil, httpCode)
 
-  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(Extraction.decompose(cc), getHeaders(), Nil, httpCode)
+  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
-  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
-    JsonResponse(json, getHeaders(), Nil, httpCode)
+  def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
-  def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders(), Nil, httpCode)
-
-  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders(), Nil, httpCode)
+  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
 
-  def oauthHeaderRequiredJsonResponse : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders(), Nil, 400)
+  def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders() ::: headers.list, Nil, 400)
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
