@@ -159,121 +159,6 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       recUsername <- tryo(u.displayName)
     } yield if (username == u.displayName) new InboundUser(recUsername, password, recUsername) else null
 
-
-//  messageDocs += MessageDoc(
-//    process = "obp.get.Accounts",
-//    messageFormat = messageFormat,
-//    description = "updateUserAccountViews from kafka ",
-//    exampleOutboundMessage = Extraction.decompose(
-//      OutboundUserAccountViewsBase(
-//        action = "obp.get.Accounts",
-//        messageFormat = messageFormat,
-//        username = "susan.uk.29@example.com",
-//        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-//        bankId = "gh.29.uk"
-//      )
-//    ),
-//    exampleInboundMessage = Extraction.decompose(
-//      InboundAccountJune2017(
-//        errorCode = "OBPS-001: .... ",
-//        bankId = "gh.29.uk",
-//        branchId = "222",
-//        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-//        number = "123",
-//        accountType = "AC",
-//        balanceAmount = "50",
-//        balanceCurrency = "EUR",
-//        owners = "Susan" :: " Frank" :: Nil,
-//        generateViews = "Public" :: "Accountant" :: "Auditor" ::Nil,
-//        bankRoutingScheme = "iban",
-//        bankRoutingAddress = "bankRoutingAddress",
-//        branchRoutingScheme = "branchRoutingScheme",
-//        branchRoutingAddress = " branchRoutingAddress",
-//        accountRoutingScheme = "accountRoutingScheme",
-//        accountRoutingAddress = "accountRoutingAddress"
-//      )
-//        :: InboundAccountJune2017(
-//        errorCode = "OBPS-001: .... ",
-//        bankId = "gh.29.uk",
-//        branchId = "222",
-//        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-//        number = "123",
-//        accountType = "AC",
-//        balanceAmount = "50",
-//        balanceCurrency = "EUR",
-//        owners = "Susan" :: " Frank" :: Nil,
-//        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
-//        bankRoutingScheme = "iban",
-//        bankRoutingAddress = "bankRoutingAddress",
-//        branchRoutingScheme = "branchRoutingScheme",
-//        branchRoutingAddress = " branchRoutingAddress",
-//        accountRoutingScheme = "accountRoutingScheme",
-//        accountRoutingAddress = "accountRoutingAddress"
-//      )
-//        :: Nil
-//    )
-//  )
-
-//  def updateUserAccountViews(user: ResourceUser): Unit = {
-//    //1 get all accounts from Kafka
-//    val accounts: List[InboundAccountJune2017] = getBanks.get.flatMap { bank => {
-//      val bankId = bank.bankId.value
-//      logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
-//      for {
-//        username <- tryo(user.name)
-//        req <- Full(UpdateUserAccountViews(
-//          username = user.name,
-//          password = ""))
-//
-//      // Generate random uuid to be used as request-response match id
-//      } yield {
-//        cachedUserAccounts.getOrElseUpdate(req.toString, () => process[UpdateUserAccountViews](req).extract[List[InboundAccountJune2017]])
-//      }
-//    }
-//    }.flatten
-//  
-//    //2 set up the views for accounts
-//    for {
-//      acc <- accounts
-//      username <- tryo {user.name}
-//    
-//      //2.1 create views(default, we have three: Public, Accountant and Auditor) for the new account
-//      createdNewViewsForTheUser <- tryo {
-//        createViews(
-//          BankId(acc.bankId),
-//          AccountId(acc.accountId),
-//          acc.owners.contains(username),
-//          acc.generateViews.contains("Public"),
-//          acc.generateViews.contains("Accountant"),
-//          acc.generateViews.contains("Auditor")
-//        )
-//      }
-//      //2.2 get all existing views for the BankAccountUUID, there has been existing some views for the account. not for this user
-//      existingViewsNotBelongtoTheUser <- tryo {
-//        Views.views.vend.views(
-//          BankAccountUID(
-//            BankId(acc.bankId), 
-//            AccountId(acc.accountId)
-//          )
-//        ).filterNot(_.users.contains(user.resourceUserId))
-//      }
-//      
-//    } yield {
-//      //2.3 set the user <--> account (over accountHolder)
-//      setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
-//      //2.4 Added the permissions to the new 
-//      createdNewViewsForTheUser.foreach(v => {
-//        Views.views.vend.addPermission(v.uid, user)
-//        logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
-//      })
-//      //2.5 Update the existing views for the user 
-//      existingViewsNotBelongtoTheUser.foreach(v => {
-//        Views.views.vend.addPermission(v.uid, user)
-//        logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
-//      })
-//    }
-//  }
-  
   
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
@@ -330,62 +215,6 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
   
   /**
-    * @param account the IncomingAccount from Kafka
-    * @param viewName This field should be selected one from Owner/Public/Accountant/Auditor, only support 
-    *                 these four values. 
-    * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
-    * Note: 
-    * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
-    * We should cache this function because the available views on an account will change rarely.
-    * 
-    */
-  def getOrCreateAccountView(account: InboundAccountJune2017, viewName: String): Box[View] = {
-  
-    val bankId = BankId(account.bankId)
-    val accountId = AccountId(account.accountId)
-    val ownerView = "Owner".equals(viewName)
-    val publicView = "Public".equals(viewName)
-    val accountantsView = "Accountant".equals(viewName)
-    val auditorsView = "Auditor".equals(viewName)
-  
-    val newView = 
-      if (ownerView) 
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
-      else if (publicView)
-        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
-      else if (accountantsView)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
-      else if (auditorsView)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
-      else Empty
-  
-    logger.debug(s"-->createAccountViewIfNotExisting.${viewName} : ${newView} ")
-    
-    newView
-  }
-    
-  
-  /**
-    * This gives the user access to the view on the account.
-    */
-  def CreateViewPrivilege(account: InboundAccountJune2017,view: View, user: ResourceUser): Unit = {
-    if(account.accountId == view.accountId.value){
-      Views.views.vend.addPermission(view.uid, user)
-      logger.debug(s"-->CreateViewPrivilege: update the View ${view.uid} for resourceuser ${user} and account ${view.accountId.value} ")
-    }
-    else
-      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${view.accountId})is not the same as account.id(${account.accountId})")
-  }
-  
-  /**
-    *  This makes the user an owner / holder of the account. 
-    *  They need this if they want to create other views (and currently also create transaciton requests)
-    */
-  def createAccountHolder(user: ResourceUser,account: InboundAccountJune2017): Unit = {
-    setAccountHolder(user.name, BankId(account.bankId), AccountId(account.accountId), account.owners)
-  }
-  
-  /**
     *  Update accounts, views, account holder when sign up new remote user 
     */
   def updateUserAccountViews(user: ResourceUser): Unit = {
@@ -396,11 +225,14 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     for {
       account <- accounts // many accounts
       viewName <- account.generateViews
-      view <- getOrCreateAccountView(account, viewName) 
+      bankId <- Full(BankId(account.bankId))
+      accountId <- Full(AccountId(account.accountId))
+      bankAccountUID <- Full(BankAccountUID(bankId, accountId))
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewName)
+      viewUID <-Full(ViewUID(view.viewId,view.bankId, view.accountId))
     } yield {
-      CreateViewPrivilege(account, view, user)
-      createAccountHolder(user,account)
-      //TODO, later, we need map the user<--> customer here
+      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewUID, user)
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
 

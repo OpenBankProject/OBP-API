@@ -1,6 +1,6 @@
 package code.accountholder
 
-import code.model.{AccountId, BankId, User}
+import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -41,6 +41,38 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
     else
       false
   }
+  
+  
+  def getOrCreateAccountHolder(user: User, bankAccountUID :BankAccountUID): Box[MapperAccountHolders] ={
+  
+    val mapperAccountHolder = MapperAccountHolders.find(
+      By(MapperAccountHolders.user, user.resourceUserId.value),
+      By(MapperAccountHolders.accountBankPermalink, bankAccountUID.bankId.value),
+      By(MapperAccountHolders.accountPermalink, bankAccountUID.accountId.value)
+    )
+  
+    mapperAccountHolder match {
+      case Full(vImpl) => {
+        logger.debug(
+          s"getOrCreateAccountHolder --> the accountHolder has been existing in server !"
+        )
+        mapperAccountHolder
+      }
+      case Empty => {
+        val holder: MapperAccountHolders = MapperAccountHolders.create
+          .accountBankPermalink(bankAccountUID.bankId.value)
+          .accountPermalink(bankAccountUID.accountId.value)
+          .user(user.resourceUserId.value)
+          .saveMe
+        logger.debug(
+          s"getOrCreateAccountHolder--> create account holder: $holder"
+        )
+        Full(holder)
+      }
+    }
+      
+  }
+  
 
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
     val results = MapperAccountHolders.findAll(

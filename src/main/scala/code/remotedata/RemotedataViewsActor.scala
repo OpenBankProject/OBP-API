@@ -22,6 +22,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("addPermission(" + viewUID +"," + user +")")
       sender ! extractResult(mapper.addPermission(viewUID, user))
 
+    case cc.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User) =>
+      logger.debug("getOrCreateViewPrivilege(" + account +"," +viewUID +"," + user +")")
+      sender ! extractResult(mapper.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User))
+  
     case cc.permission(account : BankAccountUID, user: User) =>
       logger.debug("permission(" + account +"," + user +")")
       sender ! extractResult(mapper.permission(account, user))
@@ -102,6 +106,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getNonPublicBankAccounts(" + user +")")
       sender ! extractResult(mapper.getNonPublicBankAccounts(user))
 
+    case cc.getOrCreateAccountView(account: BankAccountUID, viewName: String) =>
+      logger.debug("getOrCreateAccountView(" + account +", "+ viewName +")")
+      sender ! extractResult(mapper.getOrCreateAccountView(account: BankAccountUID, viewName: String))
+    
     case cc.getOrCreateOwnerView(bankId, accountId, description) =>
       logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
       sender ! extractResult(mapper.getOrCreateOwnerView(bankId, accountId, description))

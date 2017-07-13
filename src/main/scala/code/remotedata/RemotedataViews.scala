@@ -20,6 +20,9 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def addPermission(viewUID: ViewUID, user: User): Box[View] =
     extractFutureToBox(actor ? cc.addPermission(viewUID, user))
+  
+  def getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User)=
+    extractFutureToBox(actor ? cc.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User))
 
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] =
     extractFutureToBox(actor ? cc.revokePermission(viewUID, user))
@@ -87,7 +90,10 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def getOwners(view: View) : Set[User] =
     extractFuture(actor ? cc.getOwners(view))
-
+  
+  def getOrCreateAccountView(account: BankAccountUID, viewName: String): Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateAccountView(account: BankAccountUID, viewName: String))
+  
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
 

@@ -59,6 +59,24 @@ object MapperViews extends Views with MdcLoggable {
     )
     Full(Permission(user, views))
   }
+  
+  /**
+    * This gives the user access to the view on the account. 
+    * Note: This method is a little different with addPermission, 
+    * it will check the view is belong to the account or not firstly.
+    */
+  def getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User): Box[View] = {
+    if(account.accountId.value == viewUID.accountId.value){
+      val newView = Views.views.vend.addPermission(viewUID, user)
+      logger.debug(s"-->CreateViewPrivilege: update the View ${viewUID} for resourceuser ${user} and account ${viewUID.accountId.value} ")
+      newView
+    }
+    else{
+      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewUID.accountId})is not the same as account.id(${account.accountId})")
+      Empty
+    }
+  }
+  
 
   def addPermission(viewUID: ViewUID, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewUID user is $user")
@@ -407,7 +425,42 @@ object MapperViews extends Views with MdcLoggable {
       .map(v => { BankAccountUID(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
-
+  
+  /**
+    * @param account the IncomingAccount from Kafka
+    * @param viewName This field should be selected one from Owner/Public/Accountant/Auditor, only support 
+    *                 these four values. 
+    * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
+    * Note: 
+    * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
+    * We should cache this function because the available views on an account will change rarely.
+    *
+    */
+  def getOrCreateAccountView(account: BankAccountUID, viewName: String): Box[View] = {
+    
+    val bankId = account.bankId
+    val accountId = account.accountId
+    val ownerView = "Owner".equals(viewName)
+    val publicView = "Public".equals(viewName)
+    val accountantsView = "Accountant".equals(viewName)
+    val auditorsView = "Auditor".equals(viewName)
+    
+    val newView =
+      if (ownerView)
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+      else if (publicView)
+        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+      else if (accountantsView)
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+      else if (auditorsView)
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+      else Empty
+    
+    logger.debug(s"-->getOrCreateAccountView.${viewName} : ${newView} ")
+    
+    newView
+  }
+  
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
     getExistingView(bankId, accountId, "Owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
