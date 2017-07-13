@@ -794,7 +794,8 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- Users.users.vend.getUserByUserName(username)
+//       u <- Users.users.vend.getUserByUserName(username)
+       u <- user.user.foreign // up statement will return empty, because of the database transaction commit stuff.  
        //TODO need more error handle here, I need the exception to debug
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
