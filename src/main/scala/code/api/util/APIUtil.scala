@@ -140,6 +140,7 @@ import code.api.util.APIUtil._
 
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
+  val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
 
 
 
@@ -310,30 +311,16 @@ object APIUtil extends MdcLoggable {
       case _ => "GET"
     }
 
-  def isThereDirectLoginHeader : Boolean = {
-    S.request match {
-      case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("DirectLogin")
-        case _ => false
-      }
-      case _ => false
-    }
-  }
+  def isThereDirectLoginHeader : Boolean = isThereHeader("DirectLogin")
 
-  def isThereGatewayHeader : Boolean = {
-    S.request match {
-      case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("Gateway")
-        case _ => false
-      }
-      case _ => false
-    }
-  }
+  def isThereAnOAuthHeader : Boolean = isThereHeader("OAuth")
 
-  def isThereAnOAuthHeader : Boolean = {
+  def isThereGatewayHeader() = isThereHeader("GatewayLogin")
+
+  def isThereHeader(`type`: String) : Boolean = {
     S.request match {
       case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("OAuth")
+        case Full(parameters) => parameters.contains(`type`)
         case _ => false
       }
       case _ => false
