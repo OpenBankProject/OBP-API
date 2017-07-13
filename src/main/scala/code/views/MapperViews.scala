@@ -59,6 +59,24 @@ object MapperViews extends Views with MdcLoggable {
     )
     Full(Permission(user, views))
   }
+  
+  /**
+    * This gives the user access to the view on the account. 
+    * Note: This method is a little different with addPermission, 
+    * it will check the view is belong to the account or not firstly.
+    */
+  def getOrCreateViewPrivilege(bankAccountUID: BankAccountUID, viewBankAccountUID: ViewUID, user: User): Box[View] = {
+    if(bankAccountUID.accountId.value == viewBankAccountUID.accountId.value){
+      val newView = Views.views.vend.addPermission(viewBankAccountUID, user)
+      logger.debug(s"-->CreateViewPrivilege: update the View ${viewBankAccountUID } for resourceuser ${user} and account ${viewBankAccountUID.accountId.value} ")
+      newView
+    }
+    else{
+      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewBankAccountUID.accountId})is not the same as account.id(${bankAccountUID.accountId})")
+      Empty
+    }
+  }
+  
 
   def addPermission(viewUID: ViewUID, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewUID user is $user")
@@ -407,8 +425,43 @@ object MapperViews extends Views with MdcLoggable {
       .map(v => { BankAccountUID(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
-
-  def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
+  
+  /**
+    * @param bankAccountUID the IncomingAccount from Kafka
+    * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support 
+    * these four values. 
+    * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
+    * Note: 
+    * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
+    * We should cache this function because the available views on an account will change rarely.
+    *
+    */
+  def getOrCreateAccountView(bankAccountUID: BankAccountUID, viewId: String): Box[View] = {
+    
+    val bankId = bankAccountUID.bankId
+    val accountId = bankAccountUID.accountId
+    val ownerView = "Owner".equals(viewId)
+    val publicView = "Public".equals(viewId)
+    val accountantsView = "Accountant".equals(viewId)
+    val auditorsView = "Auditor".equals(viewId)
+    
+    val newView =
+      if (ownerView)
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+      else if (publicView)
+        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+      else if (accountantsView)
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+      else if (auditorsView)
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+      else Empty
+    
+    logger.debug(s"-->getOrCreateAccountView.${viewId } : ${newView} ")
+    
+    newView
+  }
+  
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
     getExistingView(bankId, accountId, "Owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
@@ -422,21 +475,21 @@ object MapperViews extends Views with MdcLoggable {
     users.toSet
   }
 
-  def createPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingView(bankId, accountId, "Public") match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
     }
   }
 
-  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
     getExistingView(bankId, accountId, "Accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
     }
   }
 
-  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
     getExistingView(bankId, accountId, "Auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)

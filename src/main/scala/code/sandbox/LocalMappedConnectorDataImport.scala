@@ -261,19 +261,19 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   }
 
   protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.createOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }
 
   protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.createPublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+    Views.views.vend.getOrCreatePublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }
 
   protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.createAccountantsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+    Views.views.vend.getOrCreateAccountantsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }
 
   protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.createAuditorsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+    Views.views.vend.getOrCreateAuditorsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }
 
 }
