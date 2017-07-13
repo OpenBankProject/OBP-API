@@ -65,14 +65,14 @@ object MapperViews extends Views with MdcLoggable {
     * Note: This method is a little different with addPermission, 
     * it will check the view is belong to the account or not firstly.
     */
-  def getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User): Box[View] = {
-    if(account.accountId.value == viewUID.accountId.value){
-      val newView = Views.views.vend.addPermission(viewUID, user)
-      logger.debug(s"-->CreateViewPrivilege: update the View ${viewUID} for resourceuser ${user} and account ${viewUID.accountId.value} ")
+  def getOrCreateViewPrivilege(bankAccountUID: BankAccountUID, viewBankAccountUID: ViewUID, user: User): Box[View] = {
+    if(bankAccountUID.accountId.value == viewBankAccountUID.accountId.value){
+      val newView = Views.views.vend.addPermission(viewBankAccountUID, user)
+      logger.debug(s"-->CreateViewPrivilege: update the View ${viewBankAccountUID } for resourceuser ${user} and account ${viewBankAccountUID.accountId.value} ")
       newView
     }
     else{
-      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewUID.accountId})is not the same as account.id(${account.accountId})")
+      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewBankAccountUID.accountId})is not the same as account.id(${bankAccountUID.accountId})")
       Empty
     }
   }
@@ -427,23 +427,23 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   /**
-    * @param account the IncomingAccount from Kafka
-    * @param viewName This field should be selected one from Owner/Public/Accountant/Auditor, only support 
-    *                 these four values. 
+    * @param bankAccountUID the IncomingAccount from Kafka
+    * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support 
+    * these four values. 
     * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
     * Note: 
     * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
     * We should cache this function because the available views on an account will change rarely.
     *
     */
-  def getOrCreateAccountView(account: BankAccountUID, viewName: String): Box[View] = {
+  def getOrCreateAccountView(bankAccountUID: BankAccountUID, viewId: String): Box[View] = {
     
-    val bankId = account.bankId
-    val accountId = account.accountId
-    val ownerView = "Owner".equals(viewName)
-    val publicView = "Public".equals(viewName)
-    val accountantsView = "Accountant".equals(viewName)
-    val auditorsView = "Auditor".equals(viewName)
+    val bankId = bankAccountUID.bankId
+    val accountId = bankAccountUID.accountId
+    val ownerView = "Owner".equals(viewId)
+    val publicView = "Public".equals(viewId)
+    val accountantsView = "Accountant".equals(viewId)
+    val auditorsView = "Auditor".equals(viewId)
     
     val newView =
       if (ownerView)
@@ -456,7 +456,7 @@ object MapperViews extends Views with MdcLoggable {
         Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else Empty
     
-    logger.debug(s"-->getOrCreateAccountView.${viewName} : ${newView} ")
+    logger.debug(s"-->getOrCreateAccountView.${viewId } : ${newView} ")
     
     newView
   }

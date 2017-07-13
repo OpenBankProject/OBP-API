@@ -33,6 +33,7 @@ package code.model.dataAccess
 
 import java.util.UUID
 
+import code.accountholder.AccountHolders
 import code.api.util.APIUtil.{isThereAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
@@ -45,9 +46,10 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
-import code.model.User
+import code.model._
 import code.users.Users
 import code.util.Helper
+import code.views.Views
 
 
 /**
@@ -819,7 +821,36 @@ import net.liftweb.util.Helpers._
       } yield v
     }
   }
- 
+  
+  /**
+    *  Update accounts, views, accountholders when sign up new remote user 
+    *  This method will be called in AuthUser, so keep it here.
+    */
+  def updateUserAccountViews2(user: ResourceUser): Unit = {
+    
+    //these accounts will be got from remote, over Kafka
+    val accounts = Connector.connector.vend.getBankAccounts(user).get
+    debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
+    
+    //As to performance issue : this for loop run: (number of account * number of views) times 
+    // each round will run 2+3+2 = 7 sql queries(3 writing + 4 reading ) 
+    for {
+      account <- accounts // many accounts
+      viewId <- account.viewsToGenerate // many views 
+      bankId <- Full(BankId(account.bankId))
+      accountId <- Full(AccountId(account.accountId))
+      bankAccountUID <- Full(BankAccountUID(bankId, accountId))
+      //As to performance issue : following contains 2 SQL queries: ViewImpl.find + ViewImpl.create
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
+      viewBankAccountUID <-Full(ViewUID(view.viewId,view.bankId, view.accountId))
+    } yield {
+      //As to performance issue : following contains 3 SQL queries: ViewImpl.find + ViewPrivileges.count(By + ViewPrivileges.create
+      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewBankAccountUID, user)
+  
+      //As to performance issue : following contains 2 SQL queries: MapperAccountHolders.find + MapperAccountHolders.create
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
+    }
+  }
   /**
     * Find the authUser by author user name(authUser and resourceUser are the same).
     * Only search for the local database. 

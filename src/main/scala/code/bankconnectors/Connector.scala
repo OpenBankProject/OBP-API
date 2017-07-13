@@ -101,6 +101,25 @@ case class InboundUser(
   password: String,
   displayName: String
 )
+// This is the common InboundAccount from all Kafka/remote, not finished yet. 
+trait InboundAccountCommon{
+  def errorCode: String
+  def bankId: String
+  def branchId: String
+  def accountId: String
+  def number: String
+  def accountType: String
+  def balanceAmount: String
+  def balanceCurrency: String
+  def owners: List[String]
+  def viewsToGenerate: List[String]
+  def bankRoutingScheme:String
+  def bankRoutingAddress:String
+  def branchRoutingScheme:String
+  def branchRoutingAddress:String
+  def accountRoutingScheme:String
+  def accountRoutingAddress:String
+}
 
 trait Connector extends MdcLoggable{
 
@@ -149,6 +168,10 @@ trait Connector extends MdcLoggable{
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
+  
+  //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
+  //when it is stable, will call this method. 
+  def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = Empty
   
   /**
     * This method is for get User from external, eg kafka/obpjvm... 

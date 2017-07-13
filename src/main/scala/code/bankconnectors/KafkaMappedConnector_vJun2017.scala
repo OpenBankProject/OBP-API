@@ -184,7 +184,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" ::Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" ::Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -202,7 +202,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -224,11 +224,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     
     for {
       account <- accounts // many accounts
-      viewName <- account.generateViews
+      viewId <- account.viewsToGenerate
       bankId <- Full(BankId(account.bankId))
       accountId <- Full(AccountId(account.accountId))
       bankAccountUID <- Full(BankAccountUID(bankId, accountId))
-      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewName)
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
       viewUID <-Full(ViewUID(view.viewId,view.bankId, view.accountId))
     } yield {
       Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewUID, user)
@@ -701,7 +701,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -763,7 +763,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -847,7 +847,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -1772,7 +1772,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",

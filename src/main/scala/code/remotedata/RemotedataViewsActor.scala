@@ -24,7 +24,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User) =>
       logger.debug("getOrCreateViewPrivilege(" + account +"," +viewUID +"," + user +")")
-      sender ! extractResult(mapper.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User))
+      sender ! extractResult(mapper.getOrCreateViewPrivilege(account: BankAccountUID, viewUID: ViewUID, user: User))
   
     case cc.permission(account : BankAccountUID, user: User) =>
       logger.debug("permission(" + account +"," + user +")")

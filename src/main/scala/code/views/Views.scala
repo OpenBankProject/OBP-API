@@ -22,7 +22,7 @@ trait Views {
   
   def permissions(account : BankAccountUID) : List[Permission]
   def permission(account : BankAccountUID, user: User) : Box[Permission]
-  def getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User): Box[View]
+  def getOrCreateViewPrivilege(bankAccountUID: BankAccountUID, viewBankAccountUID: ViewUID, user: User): Box[View]
   def addPermission(viewUID : ViewUID, user : User) : Box[View]
   def addPermissions(views : List[ViewUID], user : User) : Box[List[View]]
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean]
@@ -45,7 +45,7 @@ trait Views {
   def getNonPublicBankAccounts(user : User) : List[BankAccountUID]
   def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankAccountUID]
 
-  def getOrCreateAccountView(account: BankAccountUID, viewName: String): Box[View]
+  def getOrCreateAccountView(bankAccountUID: BankAccountUID, viewId: String): Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
