@@ -339,7 +339,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     * We should cache this function because the available views on an account will change rarely.
     * 
     */
-  def createAccountViewIfNotExisting(account: InboundAccountJune2017, viewName: String): Box[View] = {
+  def getOrCreateAccountView(account: InboundAccountJune2017, viewName: String): Box[View] = {
   
     val bankId = BankId(account.bankId)
     val accountId = AccountId(account.accountId)
@@ -350,13 +350,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   
     val newView = 
       if (ownerView) 
-        Views.views.vend.createOwnerViewIfNotExisting(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
       else if (publicView)
-        Views.views.vend.createPublicViewIfNotExisting(bankId, accountId, "Public View")
+        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
       else if (accountantsView)
-        Views.views.vend.createAccountantsViewIfNotExisting(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else if (auditorsView)
-        Views.views.vend.createAuditorsViewIfNotExisting(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else Empty
   
     logger.debug(s"-->createAccountViewIfNotExisting.${viewName} : ${newView} ")
@@ -396,7 +396,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     for {
       account <- accounts // many accounts
       viewName <- account.generateViews
-      view <- createAccountViewIfNotExisting(account, viewName) 
+      view <- getOrCreateAccountView(account, viewName) 
     } yield {
       CreateViewPrivilege(account, view, user)
       createAccountHolder(user,account)

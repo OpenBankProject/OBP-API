@@ -88,17 +88,17 @@ object RemotedataViews extends ObpActorInit with Views {
   def getOwners(view: View) : Set[User] =
     extractFuture(actor ? cc.getOwners(view))
 
-  def createOwnerViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.createOwnerView(bankId, accountId, description))
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
 
-  def createPublicViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.createPublicView(bankId, accountId, description))
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId, description))
 
-  def createAccountantsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.createAccountantsView(bankId, accountId, description))
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+   extractFutureToBox(actor ? cc.getOrCreateAccountantsView(bankId, accountId, description))
 
-  def createAuditorsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.createAuditorsView(bankId, accountId, description))
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+   extractFutureToBox(actor ? cc.getOrCreateAuditorsView(bankId, accountId, description))
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] =
     extractFutureToBox(actor ? cc.createRandomView(bankId, accountId))

@@ -408,7 +408,7 @@ object MapperViews extends Views with MdcLoggable {
       .distinct//we remove duplicates here
   }
 
-  def createOwnerViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
     getExistingView(bankId, accountId, "Owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
@@ -422,21 +422,21 @@ object MapperViews extends Views with MdcLoggable {
     users.toSet
   }
 
-  def createPublicViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingView(bankId, accountId, "Public") match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
     }
   }
 
-  def createAccountantsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
     getExistingView(bankId, accountId, "Accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
     }
   }
 
-  def createAuditorsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
     getExistingView(bankId, accountId, "Auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)

@@ -44,10 +44,10 @@ trait Views {
   def getNonPublicBankAccounts(user : User) : List[BankAccountUID]
   def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankAccountUID]
 
-  def createOwnerViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createPublicViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAccountantsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAuditorsViewIfNotExisting(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]
@@ -92,10 +92,10 @@ class RemotedataViewsCaseClasses {
     def apply(viewUID: ViewUID): Box[View] = this (viewUID)
     def apply(viewId: ViewId, bankAccountId: BankAccountUID): Box[View] = this (viewId, bankAccountId)
   }
-  case class createOwnerView(bankId: BankId, accountId: AccountId, description: String)
-  case class createPublicView(bankId: BankId, accountId: AccountId, description: String)
-  case class createAccountantsView(bankId: BankId, accountId: AccountId, description: String)
-  case class createAuditorsView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)
   case class createRandomView(bankId: BankId, accountId: AccountId)
 
   case class getOwners(view: View)

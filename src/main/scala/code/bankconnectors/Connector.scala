@@ -1044,22 +1044,22 @@ trait Connector extends MdcLoggable{
 
     val ownerView: Box[View] =
       if(owner_view)
-        Views.views.vend.createOwnerViewIfNotExisting(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
       else Empty
 
     val publicView: Box[View]  =
       if(public_view)
-        Views.views.vend.createPublicViewIfNotExisting(bankId, accountId, "Public View")
+        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
       else Empty
 
     val accountantsView: Box[View]  =
       if(accountants_view)
-        Views.views.vend.createAccountantsViewIfNotExisting(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else Empty
 
     val auditorsView: Box[View] =
       if(auditors_view)
-        Views.views.vend.createAuditorsViewIfNotExisting(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten
