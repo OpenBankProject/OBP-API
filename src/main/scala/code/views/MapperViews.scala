@@ -80,13 +80,15 @@ object MapperViews extends Views with MdcLoggable {
 
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
-    val viewImpl = ViewImpl.find(viewIdBankIdAccountId)
+    val viewImpl = ViewImpl.find(viewIdBankIdAccountId) // SQL Select View where
 
     viewImpl match {
       case Full(vImpl) => {
         if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        // SQL Select Count ViewPrivileges where
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
           //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
+          // SQL Insert ViewPrivileges
           val saved = ViewPrivileges.create.
             user(user.resourceUserId.value).
             view(vImpl.id).
