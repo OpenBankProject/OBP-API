@@ -17,7 +17,7 @@ import net.liftweb.util.Props
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
   override protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value, "TestConnectorSetupWithStandardPermissions")
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value)
   }
 
   override protected def grantAccessToAllExistingViews(user : User) = {
@@ -29,11 +29,11 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.createOwnerView(bankId, accountId, randomString(3)).get
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).get
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createPublicView(bankId, accountId, randomString(3)).get
+    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).get
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {

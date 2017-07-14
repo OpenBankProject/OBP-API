@@ -281,6 +281,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   def updateUserAccountViews( user: ResourceUser ) = Empty 
 //  def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
 //    memoizeSync(updateUserAccountViewsTTL millisecond){
+//      //1 getAccounts from Kafka
 //      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
 //        val bankId = bank.bankId.value
 //        val username = user.name
@@ -302,28 +303,33 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //          }
 //        }
 //      }.flatten
-//  
+//
 //      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
-//  
-//      val views = for {
+//
+//      //2 CreatViews for each account
+//      for {
 //        acc <- accounts
 //        username <- tryo {user.name}
-//        views <- tryo {createViews( BankId(acc.bankId),
+//        createdNewViewsForTheUser <- tryo {createViews( BankId(acc.bankId),
 //          AccountId(acc.accountId),
 //          true,
 //          true,
 //          true,
 //          true
 //        )}
-//        setAccountLinktoUser<-Full(setAccountHolder(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)),user))
-//        existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
+//      //3 get all the existing views.
+//        existingViewsNotBelongtoTheUser <- tryo {
+//          Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))
+//          .filterNot(_.users.contains(user.resourceUserId))
+//        }
 //      } yield {
-//        setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
-//        views.foreach(v => {
+//        //4 set Account link to User
+//        setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
+//        createdNewViewsForTheUser.foreach(v => {
 //          Views.views.vend.addPermission(v.uid, user)
 //          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
 //        })
-//        existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
+//        existingViewsNotBelongtoTheUser.foreach (v => {
 //          Views.views.vend.addPermission(v.uid, user)
 //          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
 //        })
@@ -1089,11 +1095,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
-  }
-
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
