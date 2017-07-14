@@ -823,32 +823,21 @@ import net.liftweb.util.Helpers._
   }
   
   /**
-    *  Update accounts, views, accountholders when sign up new remote user 
-    *  This method will be called in AuthUser, so keep it here.
+    *  Update accounts, views, account holder when sign up new remote user 
     */
   def updateUserAccountViews2(user: ResourceUser): Unit = {
-    
-    //these accounts will be got from remote, over Kafka
+    //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccounts(user).get
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
     
-    //As to performance issue : this for loop run: (number of account * number of views) times 
-    // each round will run 2+3+2 = 7 sql queries(3 writing + 4 reading ) 
     for {
-      account <- accounts // many accounts
-      viewId <- account.viewsToGenerate // many views 
-      bankId <- Full(BankId(account.bankId))
-      accountId <- Full(AccountId(account.accountId))
-      bankIdAccountId <- Full(BankIdAccountId(bankId, accountId))
-      //As to performance issue : following contains 2 SQL queries: ViewImpl.find + ViewImpl.create
-      view <- Views.views.vend.getOrCreateAccountView(bankIdAccountId, viewId)
-      viewIdBankIdAccountId <-Full(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
+      account <- accounts //TODO throw error message if there is no account.
+      viewId <- account.viewsToGenerate //TODO throw error message if there is no view.
+      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) //TODO throw error message if there is no ids
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
     } yield {
-      //As to performance issue : following contains 3 SQL queries: ViewImpl.find + ViewPrivileges.count(By + ViewPrivileges.create
-      Views.views.vend.getOrCreateViewPrivilege(bankIdAccountId, viewIdBankIdAccountId, user)
-  
-      //As to performance issue : following contains 2 SQL queries: MapperAccountHolders.find + MapperAccountHolders.create
-      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user, bankIdAccountId)
+      Views.views.vend.getOrCreateViewPrivilege(view,user)
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
   /**

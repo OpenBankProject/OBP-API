@@ -61,24 +61,36 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   /**
-    * This gives the user access to the view on the account.
+    * This gives the user access to the view.
     * Note: This method is a little different with addPermission,
-    * it will check the view is belong to the account or not firstly.
+    * The parameter is the view object
     */
-  // TODO Why do we accept duplicated bankId and accountId - don't need bankIdAccountId: BankIdAccountId
-  def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
-    if(bankIdAccountId.accountId.value == viewIdBankIdAccountId.accountId.value){
-      val newView = Views.views.vend.addPermission(viewIdBankIdAccountId, user)
-      logger.debug(s"-->CreateViewPrivilege: update the View ${viewIdBankIdAccountId } for resourceuser ${user} and account ${viewIdBankIdAccountId.accountId.value} ")
-      newView
-    }
-    else{
-      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewIdBankIdAccountId.accountId})is not the same as account.id(${bankIdAccountId.accountId})")
-      Empty
-    }
+  def getOrCreateViewPrivilege(view: View, user: User): Box[View] = {
+    
+    val viewImpl = view.asInstanceOf[ViewImpl]
+
+    if(viewImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    // SQL Select Count ViewPrivileges where
+    getOrCreateViewPrivilege(user, viewImpl)
   }
-
-
+  
+  private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl) = {
+    if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
+      //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
+      // SQL Insert ViewPrivileges
+      val saved = ViewPrivileges.create.
+        user(user.resourceUserId.value).
+        view(viewImpl.id).
+        save
+      if (saved) {
+        //logger.debug("saved ViewPrivileges")
+        Full(viewImpl)
+      } else {
+        //logger.debug("failed to save ViewPrivileges")
+        Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
+      }
+    } else Full(viewImpl) //privilege already exists, no need to create one
+  }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
@@ -88,22 +100,7 @@ object MapperViews extends Views with MdcLoggable {
       case Full(vImpl) => {
         if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count ViewPrivileges where
-        if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
-          //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
-          // SQL Insert ViewPrivileges
-          val saved = ViewPrivileges.create.
-            user(user.resourceUserId.value).
-            view(vImpl.id).
-            save
-
-          if (saved) {
-            //logger.debug("saved ViewPrivileges")
-            Full(vImpl)
-          } else {
-            //logger.debug("failed to save ViewPrivileges")
-            Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
-          }
-        } else Full(vImpl) //privilege already exists, no need to create one
+        getOrCreateViewPrivilege(user, vImpl) //privilege already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
