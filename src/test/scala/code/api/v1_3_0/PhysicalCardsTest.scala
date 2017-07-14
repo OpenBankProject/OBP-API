@@ -165,7 +165,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     ): (Bank, BankAccount) = ???
 
     //sets a user as an account owner/holder
-    override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+    override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = ???
 
     //for sandbox use -> allows us to check if we can generate a new test account with the given number
     override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???

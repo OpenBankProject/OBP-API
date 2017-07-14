@@ -839,16 +839,16 @@ import net.liftweb.util.Helpers._
       viewId <- account.viewsToGenerate // many views 
       bankId <- Full(BankId(account.bankId))
       accountId <- Full(AccountId(account.accountId))
-      bankAccountUID <- Full(BankAccountUID(bankId, accountId))
+      bankIdAccountId <- Full(BankIdAccountId(bankId, accountId))
       //As to performance issue : following contains 2 SQL queries: ViewImpl.find + ViewImpl.create
-      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
-      viewBankAccountUID <-Full(ViewUID(view.viewId,view.bankId, view.accountId))
+      view <- Views.views.vend.getOrCreateAccountView(bankIdAccountId, viewId)
+      viewIdBankIdAccountId <-Full(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
     } yield {
       //As to performance issue : following contains 3 SQL queries: ViewImpl.find + ViewPrivileges.count(By + ViewPrivileges.create
-      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewBankAccountUID, user)
+      Views.views.vend.getOrCreateViewPrivilege(bankIdAccountId, viewIdBankIdAccountId, user)
   
       //As to performance issue : following contains 2 SQL queries: MapperAccountHolders.find + MapperAccountHolders.create
-      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user, bankIdAccountId)
     }
   }
   /**

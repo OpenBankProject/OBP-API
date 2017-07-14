@@ -301,7 +301,7 @@ trait Connector extends MdcLoggable{
    * @param amt The amount of money to send ( > 0 )
    * @return The id of the sender's new transaction,
    */
-  def makePayment(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
+  def makePayment(initiator : User, fromAccountUID : BankIdAccountId, toAccountUID : BankIdAccountId,
                   amt : BigDecimal, description : String) : Box[TransactionId] = {
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
@@ -335,8 +335,8 @@ trait Connector extends MdcLoggable{
     * @return The id of the sender's new transaction,
     */
   def makePaymentv200(initiator: User,
-                      fromAccountUID: BankAccountUID,
-                      toAccountUID: BankAccountUID,
+                      fromAccountUID: BankIdAccountId,
+                      toAccountUID: BankIdAccountId,
                       toCounterparty: CounterpartyTrait,
                       amount: BigDecimal,
                       description: String,
@@ -402,8 +402,8 @@ trait Connector extends MdcLoggable{
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
-      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
+      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+        BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
       //set challenge to null
       result = result.copy(challenge = null)
@@ -467,8 +467,8 @@ trait Connector extends MdcLoggable{
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                          BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-                                                                          BankAccountUID(toAccount.bankId, toAccount.accountId),
+                                                                          BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+                                                                          BankIdAccountId(toAccount.bankId, toAccount.accountId),
                                                                           new MappedCounterparty(),
                                                                           BigDecimal(body.value.amount),
                                                                           body.description,
@@ -589,8 +589,8 @@ trait Connector extends MdcLoggable{
     status match {
       case TransactionRequests.STATUS_COMPLETED =>
         val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                            BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-                                                                            BankAccountUID(toAccount.bankId, toAccount.accountId),
+                                                                            BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+                                                                            BankIdAccountId(toAccount.bankId, toAccount.accountId),
                                                                             toCounterparty,
                                                                             BigDecimal(transactionRequestCommonBody.value.amount),
                                                                             transactionRequestCommonBody.description,
@@ -777,8 +777,8 @@ trait Connector extends MdcLoggable{
   def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
-      transId <- makePayment(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-          BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
+      transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
       //get transaction request again now with updated values
@@ -794,8 +794,8 @@ trait Connector extends MdcLoggable{
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
+      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
                                  new MappedCounterparty(),  //Note MappedCounterparty only support in V210
                                  BigDecimal (tr.body.value.amount),
                                  tr.body.description, transactionRequestType,
@@ -843,8 +843,8 @@ trait Connector extends MdcLoggable{
           Full(new MappedCounterparty())
       }
 
-      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankAccountUID(BankId(toBankId), AccountId(toAccountId)),
+      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankIdAccountId(BankId(toBankId), AccountId(toAccountId)),
                                  toCounterparty,
                                  BigDecimal(valueAmount), description,
                                  transactionRequestType,
@@ -941,7 +941,7 @@ trait Connector extends MdcLoggable{
   ): Box[BankAccount]
 
   //sets a user as an account owner/holder
-  def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+  def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
   

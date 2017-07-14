@@ -201,7 +201,7 @@ trait View {
   def bankId : BankId
 
   //and here is the unique identifier
-  def uid : ViewUID = ViewUID(viewId, bankId, accountId)
+  def uid : ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
 
   def name: String
   def description : String
@@ -457,7 +457,7 @@ trait View {
 
   def moderateTransactionsWithSameAccount(transactions : List[Transaction]) : Box[List[ModeratedTransaction]] = {
 
-    val accountUids = transactions.map(t => BankAccountUID(t.bankId, t.accountId))
+    val accountUids = transactions.map(t => BankIdAccountId(t.bankId, t.accountId))
 
     if(accountUids.toSet.size > 1) {
       viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
@@ -650,9 +650,9 @@ trait View {
 
 object View {
   def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewId, BankAccountUID(account.bankId, account.accountId))
+    Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
   def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
-    Views.views.vend.view(ViewUID(viewId, bankId, accountId))
+    Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId))
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {

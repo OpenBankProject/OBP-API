@@ -96,7 +96,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
       */
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
-      Connector.connector.vend.setAccountHolder(BankAccountUID(bankId, accountId), user)
+      Connector.connector.vend.setAccountHolder(BankIdAccountId(bankId, accountId), user)
     }
   
     /**
@@ -110,7 +110,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
       */
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
-      val ownerViewUID = ViewUID(ViewId("owner"), bankId, accountId)
+      val ownerViewUID = ViewIdBankIdAccountId(ViewId("owner"), bankId, accountId)
       val existingOwnerView = Views.views.vend.view(ownerViewUID)
 
       existingOwnerView match {
