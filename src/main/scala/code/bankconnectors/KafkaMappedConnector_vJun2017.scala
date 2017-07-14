@@ -229,9 +229,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       accountId <- Full(AccountId(account.accountId))
       bankAccountUID <- Full(BankIdAccountId(bankId, accountId))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
-      viewUID <-Full(ViewIdBankIdAccountId(view.viewId,view.bankId, view.accountId))
+      viewIdBankidAccountId <-Full(ViewIdBankIdAccountId(view.viewId,view.bankId, view.accountId))
     } yield {
-      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewUID, user)
+      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewIdBankidAccountId, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
