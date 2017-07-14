@@ -728,7 +728,7 @@ trait APIMethods121 {
             u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), providerId, userId)
+            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), providerId, userId)
           } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -768,7 +768,7 @@ trait APIMethods121 {
             u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
-            addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
+            addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -807,7 +807,7 @@ trait APIMethods121 {
           for {
             u <- user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
+            isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
       }
@@ -2839,8 +2839,8 @@ Authentication via OAuth is required. The user must either have owner privileges
               u <- user ?~ UserNotLoggedIn
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
-              toAccountUID = BankAccountUID(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
-              createdPaymentId <- Connector.connector.vend.makePayment(u, BankAccountUID(bankId, accountId), toAccountUID, rawAmt, "")
+              toAccountUID = BankIdAccountId(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
+              createdPaymentId <- Connector.connector.vend.makePayment(u, BankIdAccountId(bankId, accountId), toAccountUID, rawAmt, "")
             } yield {
               val successJson = Extraction.decompose(TransactionIdJson(createdPaymentId.value))
               successJsonResponse(successJson)

@@ -227,11 +227,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       viewId <- account.viewsToGenerate
       bankId <- Full(BankId(account.bankId))
       accountId <- Full(AccountId(account.accountId))
-      bankAccountUID <- Full(BankAccountUID(bankId, accountId))
+      bankAccountUID <- Full(BankIdAccountId(bankId, accountId))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
-      viewUID <-Full(ViewUID(view.viewId,view.bankId, view.accountId))
+      viewIdBankidAccountId <-Full(ViewIdBankIdAccountId(view.viewId,view.bankId, view.accountId))
     } yield {
-      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewUID, user)
+      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewIdBankidAccountId, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
@@ -1560,7 +1560,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   }
 
   //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+  override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 

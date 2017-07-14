@@ -43,7 +43,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   }
   
   
-  def getOrCreateAccountHolder(user: User, bankAccountUID :BankAccountUID): Box[MapperAccountHolders] ={
+  def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] ={
   
     val mapperAccountHolder = MapperAccountHolders.find(
       By(MapperAccountHolders.user, user.resourceUserId.value),

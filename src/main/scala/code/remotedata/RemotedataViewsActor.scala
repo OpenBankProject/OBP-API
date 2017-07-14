@@ -14,63 +14,64 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   def receive = {
 
-    case cc.addPermissions(views : List[ViewUID], user : User) =>
+    case cc.addPermissions(views : List[ViewIdBankIdAccountId], user : User) =>
       logger.debug("addPermissions(" + views +"," + user +")")
       sender ! extractResult(mapper.addPermissions(views, user))
 
-    case cc.addPermission(viewUID : ViewUID, user : User) =>
-      logger.debug("addPermission(" + viewUID +"," + user +")")
-      sender ! extractResult(mapper.addPermission(viewUID, user))
+    case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
+      logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
+      sender ! extractResult(mapper.addPermission(viewIdBankIdAccountId, user))
 
-    case cc.getOrCreateViewPrivilege(account: BankAccountUID,viewUID: ViewUID, user: User) =>
-      logger.debug("getOrCreateViewPrivilege(" + account +"," +viewUID +"," + user +")")
-      sender ! extractResult(mapper.getOrCreateViewPrivilege(account: BankAccountUID, viewUID: ViewUID, user: User))
+    // TODO Remove duplicate bankId accountId inputs here.
+    case cc.getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User) =>
+      logger.debug("getOrCreateViewPrivilege(" + bankIdAccountId +"," +viewIdBankIdAccountId +"," + user +")")
+      sender ! extractResult(mapper.getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User))
   
-    case cc.permission(account : BankAccountUID, user: User) =>
+    case cc.permission(account : BankIdAccountId, user: User) =>
       logger.debug("permission(" + account +"," + user +")")
       sender ! extractResult(mapper.permission(account, user))
 
-    case cc.revokePermission(viewUID : ViewUID, user : User) =>
-      logger.debug("revokePermission(" + viewUID +"," + user +")")
-      sender ! extractResult(mapper.revokePermission(viewUID, user))
+    case cc.revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
+      logger.debug("revokePermission(" + viewIdBankIdAccountId +"," + user +")")
+      sender ! extractResult(mapper.revokePermission(viewIdBankIdAccountId, user))
 
     case cc.revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAllPermissions(" + bankId +"," + accountId +","+ user +")")
       sender ! extractResult(mapper.revokeAllPermissions(bankId, accountId, user))
 
-    case cc.view(viewUID : ViewUID) =>
-      logger.debug("view(" + viewUID +")")
-      sender ! extractResult(mapper.view(viewUID))
+    case cc.view(viewIdBankIdAccountId : ViewIdBankIdAccountId) =>
+      logger.debug("view(" + viewIdBankIdAccountId +")")
+      sender ! extractResult(mapper.view(viewIdBankIdAccountId))
 
-    case cc.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
+    case cc.view(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("view(" + viewId +", "+ bankAccountId + ")")
       sender ! extractResult(mapper.view(viewId, bankAccountId))
 
-    case cc.createView(bankAccountId : BankAccountUID, view: CreateViewJson) =>
+    case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")
       sender ! extractResult(mapper.createView(bankAccountId, view))
 
-    case cc.updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+    case cc.updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.debug("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
       sender ! extractResult(mapper.updateView(bankAccountId, viewId, viewUpdateJson))
 
-    case cc.removeView(viewId : ViewId, bankAccountId: BankAccountUID) =>
+    case cc.removeView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("removeView(" + viewId +","+ bankAccountId +")")
       sender ! extractResult(mapper.removeView(viewId, bankAccountId))
 
-    case cc.permissions(bankAccountId : BankAccountUID) =>
+    case cc.permissions(bankAccountId : BankIdAccountId) =>
       logger.debug("premissions(" + bankAccountId +")")
       sender ! extractResult(mapper.permissions(bankAccountId))
 
-    case cc.views(bankAccountId : BankAccountUID) =>
+    case cc.views(bankAccountId : BankIdAccountId) =>
       logger.debug("views(" + bankAccountId +")")
       sender ! extractResult(mapper.views(bankAccountId))
 
-    case cc.permittedViews(user: User, bankAccountId: BankAccountUID) =>
+    case cc.permittedViews(user: User, bankAccountId: BankIdAccountId) =>
       logger.debug("permittedViews(" + user +", " + bankAccountId +")")
       sender ! extractResult(mapper.permittedViews(user, bankAccountId))
 
-    case cc.publicViews(bankAccountId : BankAccountUID) =>
+    case cc.publicViews(bankAccountId : BankIdAccountId) =>
       logger.debug("publicViews(" + bankAccountId +")")
       sender ! extractResult(mapper.publicViews(bankAccountId))
 
@@ -106,9 +107,9 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getNonPublicBankAccounts(" + user +")")
       sender ! extractResult(mapper.getNonPublicBankAccounts(user))
 
-    case cc.getOrCreateAccountView(account: BankAccountUID, viewName: String) =>
+    case cc.getOrCreateAccountView(account: BankIdAccountId, viewName: String) =>
       logger.debug("getOrCreateAccountView(" + account +", "+ viewName +")")
-      sender ! extractResult(mapper.getOrCreateAccountView(account: BankAccountUID, viewName: String))
+      sender ! extractResult(mapper.getOrCreateAccountView(account: BankIdAccountId, viewName: String))
     
     case cc.getOrCreateOwnerView(bankId, accountId, description) =>
       logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
