@@ -65,14 +65,14 @@ object MapperViews extends Views with MdcLoggable {
     * Note: This method is a little different with addPermission,
     * it will check the view is belong to the account or not firstly.
     */
-  def getOrCreateViewPrivilege(bankAccountUID: BankIdAccountId, viewBankAccountUID: ViewIdBankIdAccountId, user: User): Box[View] = {
-    if(bankAccountUID.accountId.value == viewBankAccountUID.accountId.value){
-      val newView = Views.views.vend.addPermission(viewBankAccountUID, user)
-      logger.debug(s"-->CreateViewPrivilege: update the View ${viewBankAccountUID } for resourceuser ${user} and account ${viewBankAccountUID.accountId.value} ")
+  def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
+    if(bankIdAccountId.accountId.value == viewIdBankIdAccountId.accountId.value){
+      val newView = Views.views.vend.addPermission(viewIdBankIdAccountId, user)
+      logger.debug(s"-->CreateViewPrivilege: update the View ${viewIdBankIdAccountId } for resourceuser ${user} and account ${viewIdBankIdAccountId.accountId.value} ")
       newView
     }
     else{
-      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewBankAccountUID.accountId})is not the same as account.id(${bankAccountUID.accountId})")
+      logger.debug(s"-->CreateViewPrivilege: update the View.account.id(${viewIdBankIdAccountId.accountId})is not the same as account.id(${bankIdAccountId.accountId})")
       Empty
     }
   }

@@ -23,9 +23,9 @@ trait Views {
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
   def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View]
-  def addPermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[View]
+  def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
-  def revokePermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
