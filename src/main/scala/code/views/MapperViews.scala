@@ -65,6 +65,7 @@ object MapperViews extends Views with MdcLoggable {
     * Note: This method is a little different with addPermission,
     * it will check the view is belong to the account or not firstly.
     */
+  // TODO Why do we accept duplicated bankId and accountId - don't need bankIdAccountId: BankIdAccountId
   def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     if(bankIdAccountId.accountId.value == viewIdBankIdAccountId.accountId.value){
       val newView = Views.views.vend.addPermission(viewIdBankIdAccountId, user)
@@ -78,6 +79,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
 
+  // TODO Accept the whole view as a parameter so we don't have to select it here.
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
     val viewImpl = ViewImpl.find(viewIdBankIdAccountId) // SQL Select View where
