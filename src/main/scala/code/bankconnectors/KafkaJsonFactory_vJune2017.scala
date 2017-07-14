@@ -18,14 +18,14 @@ case class InboundAccountJune2017(
                                    balanceAmount: String,
                                    balanceCurrency: String,
                                    owners: List[String],
-                                   generateViews: List[String],
+                                   viewsToGenerate: List[String],
                                    bankRoutingScheme:String,
                                    bankRoutingAddress:String,
                                    branchRoutingScheme:String,
                                    branchRoutingAddress:String,
                                    accountRoutingScheme:String,
                                    accountRoutingAddress:String
-                                 ) extends InboundMessageBase
+                                 ) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 

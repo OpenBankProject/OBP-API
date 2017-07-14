@@ -1956,7 +1956,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(Views.views.vend.getOwners(view).toList.length == 0){
         val userId = resourceUser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
@@ -2000,7 +2000,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ViewUID(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
 
@@ -2082,7 +2082,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       val userId = resourceUser1.idGivenByProvider
 
       Views.views.vend.getOwners(view).toList.length should equal(1)
@@ -2116,7 +2116,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view(ViewUID(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
   }

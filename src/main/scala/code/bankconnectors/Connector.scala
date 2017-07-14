@@ -101,8 +101,27 @@ case class InboundUser(
   password: String,
   displayName: String
 )
+// This is the common InboundAccount from all Kafka/remote, not finished yet. 
+trait InboundAccountCommon{
+  def errorCode: String
+  def bankId: String
+  def branchId: String
+  def accountId: String
+  def number: String
+  def accountType: String
+  def balanceAmount: String
+  def balanceCurrency: String
+  def owners: List[String]
+  def viewsToGenerate: List[String]
+  def bankRoutingScheme:String
+  def bankRoutingAddress:String
+  def branchRoutingScheme:String
+  def branchRoutingAddress:String
+  def accountRoutingScheme:String
+  def accountRoutingAddress:String
+}
 
-trait Connector {
+trait Connector extends MdcLoggable{
 
   //We have the Connector define its BankAccount implementation here so that it can
   //have access to the implementation details (e.g. the ability to set the balance) in
@@ -150,6 +169,10 @@ trait Connector {
     } yield a
   }
   
+  //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
+  //when it is stable, will call this method. 
+  def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = Empty
+  
   /**
     * This method is for get User from external, eg kafka/obpjvm... 
     *  getUserId  --> externalUserHelper--> getUserFromConnector --> getUser
@@ -160,9 +183,16 @@ trait Connector {
   def getUser(name: String, password: String): Box[InboundUser]
   
   /**
-    * for remote ResourceUser to update the views for OBP
-    * will call createViews and setAccountOwner for the resource user.
-    * @param user
+    * This is a helper method 
+    * for remote user(means the user will get from kafka) to update the views, accountHolders for OBP side
+    * It depends different use cases, normally (also see it in KafkaMappedConnector_vJun2017.scala)
+    * 
+    * 1 createAccountViewIfNotExisting
+    * 2 CreateViewPrivilege
+    * 3 createAccountHolder
+    * 
+    *
+    * @param user the user is from remote side
     */
   def updateUserAccountViews(user: ResourceUser)
 
@@ -271,7 +301,7 @@ trait Connector {
    * @param amt The amount of money to send ( > 0 )
    * @return The id of the sender's new transaction,
    */
-  def makePayment(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
+  def makePayment(initiator : User, fromAccountUID : BankIdAccountId, toAccountUID : BankIdAccountId,
                   amt : BigDecimal, description : String) : Box[TransactionId] = {
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
@@ -305,8 +335,8 @@ trait Connector {
     * @return The id of the sender's new transaction,
     */
   def makePaymentv200(initiator: User,
-                      fromAccountUID: BankAccountUID,
-                      toAccountUID: BankAccountUID,
+                      fromAccountUID: BankIdAccountId,
+                      toAccountUID: BankIdAccountId,
                       toCounterparty: CounterpartyTrait,
                       amount: BigDecimal,
                       description: String,
@@ -372,8 +402,8 @@ trait Connector {
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
-      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
+      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+        BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
       //set challenge to null
       result = result.copy(challenge = null)
@@ -437,8 +467,8 @@ trait Connector {
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                          BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-                                                                          BankAccountUID(toAccount.bankId, toAccount.accountId),
+                                                                          BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+                                                                          BankIdAccountId(toAccount.bankId, toAccount.accountId),
                                                                           new MappedCounterparty(),
                                                                           BigDecimal(body.value.amount),
                                                                           body.description,
@@ -559,8 +589,8 @@ trait Connector {
     status match {
       case TransactionRequests.STATUS_COMPLETED =>
         val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                            BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-                                                                            BankAccountUID(toAccount.bankId, toAccount.accountId),
+                                                                            BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
+                                                                            BankIdAccountId(toAccount.bankId, toAccount.accountId),
                                                                             toCounterparty,
                                                                             BigDecimal(transactionRequestCommonBody.value.amount),
                                                                             transactionRequestCommonBody.description,
@@ -747,8 +777,8 @@ trait Connector {
   def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
-      transId <- makePayment(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-          BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
+      transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
       //get transaction request again now with updated values
@@ -764,8 +794,8 @@ trait Connector {
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
+      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
                                  new MappedCounterparty(),  //Note MappedCounterparty only support in V210
                                  BigDecimal (tr.body.value.amount),
                                  tr.body.description, transactionRequestType,
@@ -813,8 +843,8 @@ trait Connector {
           Full(new MappedCounterparty())
       }
 
-      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankAccountUID(BankId(toBankId), AccountId(toAccountId)),
+      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankIdAccountId(BankId(toBankId), AccountId(toAccountId)),
                                  toCounterparty,
                                  BigDecimal(valueAmount), description,
                                  transactionRequestType,
@@ -911,8 +941,35 @@ trait Connector {
   ): Box[BankAccount]
 
   //sets a user as an account owner/holder
-  def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+  def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+  }
+  
+  /**
+    * sets a user as an account owner/holder, this maybe duplicated with 
+    * @ setAccountHolder(bankAccountUID: BankAccountUID, user: User)
+    *                  
+    * @param owner
+    * @param bankId
+    * @param accountId
+    * @param account_owners
+    */
+  def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
+//    if (account_owners.contains(owner)) { // No need for now, fix it later
+      val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
+      resourceUserOwner match {
+        case Full(owner) => {
+          if ( ! accountOwnerExists(owner, bankId, accountId)) {
+            val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
+            logger.debug(s"Connector.setAccountHolder create account holder: $holder")
+          }
+        }
+        case Empty => {
+//          This shouldn't happen as AuthUser should generate the ResourceUsers when saved
+          logger.error(s"resource user(s) $owner not found.")
+        }
+//      }
+    }
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
@@ -990,6 +1047,7 @@ trait Connector {
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 
+  //This method is only existing in mapper
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =
       MapperAccountHolders.findAll(
@@ -1001,31 +1059,6 @@ trait Connector {
     res.nonEmpty
   }
   
-  /**
-    *  This method will create the accounHolder for owner views.
-    *  TODO It is confused for now, need to be clear later.
-    * @param owner
-    * @param bankId
-    * @param accountId
-    * @param account_owners
-    */
-  //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
-  def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
-    if (account_owners.contains(owner)) {
-      val resourceUserOwner = Users.users.vend.getAllUsers().getOrElse(List()).find(user => owner == user.name)
-      resourceUserOwner match {
-        case Some(o) => {
-          if ( ! accountOwnerExists(o, bankId, accountId)) {
-            MapperAccountHolders.createAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
-          }
-       }
-        case None => {
-          //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
-          //logger.error(s"api user(s) $owner not found.")
-       }
-      }
-    }
-  }
 
   def createViews(bankId: BankId, accountId: AccountId, owner_view: Boolean = false,
                   public_view: Boolean = false,
@@ -1034,22 +1067,22 @@ trait Connector {
 
     val ownerView: Box[View] =
       if(owner_view)
-        Views.views.vend.createOwnerView(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
       else Empty
 
     val publicView: Box[View]  =
       if(public_view)
-        Views.views.vend.createPublicView(bankId, accountId, "Public View")
+        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
       else Empty
 
     val accountantsView: Box[View]  =
       if(accountants_view)
-        Views.views.vend.createAccountantsView(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else Empty
 
     val auditorsView: Box[View] =
       if(auditors_view)
-        Views.views.vend.createAuditorsView(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten

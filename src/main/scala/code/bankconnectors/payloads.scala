@@ -1,7 +1,5 @@
 package code.bankconnectors
 
-import java.util.Date
-
 /**
   * Created by slavisa on 6/5/17.
   */
@@ -16,6 +14,7 @@ case class GetBank(authInfo: AuthInfo, bankId: String) extends TopicCaseClass
 case class GetUserByUsernamePassword(username: String, password: String) extends TopicCaseClass
 case class UpdateUserAccountViews(username: String, password: String) extends TopicCaseClass
 case class GetAdapterInfo(date: String) extends TopicCaseClass
+case class GetAccounts(authInfo: AuthInfo) extends TopicCaseClass
 
 
 /**

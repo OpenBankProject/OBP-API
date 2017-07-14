@@ -85,8 +85,8 @@ import code.api.util.APIUtil._
   val PublicViewsNotAllowedOnThisInstance = "OBP-00005: Public views not allowed on this instance. Please set allow_public_views = true in props files. "
 
 
-  val RemoteDataSecretMatchError = "OBP-00006: Remote data secret cannot be matched!" // (was OBP-20021)
-  val RemoteDataSecretObtainError = "OBP-00007: Remote data secret cannot be obtained!" // (was OBP-20022)
+  val RemoteDataSecretMatchError = "OBP-00006: Remote data secret cannot be matched! Check OBP-API and OBP-Storage Props values for remotedata.hostname, remotedata.port and remotedata.secret." // (was OBP-20021)
+  val RemoteDataSecretObtainError = "OBP-00007: Remote data secret cannot be obtained! Check OBP-API and OBP-Storage Props values for remotedata.hostname, remotedata.port and remotedata.secret." // (was OBP-20022)
 
 
 
@@ -244,7 +244,8 @@ import code.api.util.APIUtil._
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
   val KafkaMessageClassCastException = "OBP-50002: Kafka Response Message Class Cast Exception."
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
-
+  // This error may not be shown to user, just for debugging.
+  val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200

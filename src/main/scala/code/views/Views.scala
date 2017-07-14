@@ -20,34 +20,36 @@ object Views  extends SimpleInjector {
 
 trait Views {
   
-  def permissions(account : BankAccountUID) : List[Permission]
-  def permission(account : BankAccountUID, user: User) : Box[Permission]
-  def addPermission(viewUID : ViewUID, user : User) : Box[View]
-  def addPermissions(views : List[ViewUID], user : User) : Box[List[View]]
-  def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean]
+  def permissions(account : BankIdAccountId) : List[Permission]
+  def permission(account : BankIdAccountId, user: User) : Box[Permission]
+  def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View]
+  def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
+  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
-  def view(viewId : ViewId, bankAccountId: BankAccountUID) : Box[View]
-  def view(viewUID : ViewUID) : Box[View]
+  def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def view(viewUID : ViewIdBankIdAccountId) : Box[View]
 
-  def createView(bankAccountId: BankAccountUID, view: CreateViewJson): Box[View]
-  def removeView(viewId: ViewId, bankAccountId: BankAccountUID): Box[Unit]
-  def updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
-  def views(bankAccountId : BankAccountUID) : List[View]
-  def permittedViews(user: User, bankAccountId: BankAccountUID): List[View]
-  def publicViews(bankAccountId : BankAccountUID) : List[View]
+  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
+  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
+  def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
+  def views(bankAccountId : BankIdAccountId) : List[View]
+  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
+  def publicViews(bankAccountId : BankIdAccountId) : List[View]
 
-  def getAllPublicAccounts : List[BankAccountUID]
-  def getPublicBankAccounts(bank : Bank) : List[BankAccountUID]
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccountUID]
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccountUID]
-  def getNonPublicBankAccounts(user : User) : List[BankAccountUID]
-  def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankAccountUID]
+  def getAllPublicAccounts : List[BankIdAccountId]
+  def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
+  def getNonPublicBankAccounts(user : User) : List[BankIdAccountId]
+  def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
-  def createOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]
@@ -66,18 +68,19 @@ trait Views {
 
 class RemotedataViewsCaseClasses {
 
-  case class permissions(account: BankAccountUID)
-  case class permission(account: BankAccountUID, user: User)
-  case class addPermission(viewUID: ViewUID, user: User)
-  case class addPermissions(views: List[ViewUID], user: User)
-  case class revokePermission(viewUID: ViewUID, user: User)
+  case class permissions(account: BankIdAccountId)
+  case class permission(account: BankIdAccountId, user: User)
+  case class getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User)
+  case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
+  case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
-  case class createView(bankAccountId: BankAccountUID, view: CreateViewJson)
-  case class removeView(viewId: ViewId, bankAccountId: BankAccountUID)
-  case class updateView(bankAccountId: BankAccountUID, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
-  case class views(bankAccountId: BankAccountUID)
-  case class permittedViews(user: User, bankAccountId: BankAccountUID)
-  case class publicViews(bankAccountId: BankAccountUID)
+  case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
+  case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
+  case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
+  case class views(bankAccountId: BankIdAccountId)
+  case class permittedViews(user: User, bankAccountId: BankIdAccountId)
+  case class publicViews(bankAccountId: BankIdAccountId)
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
   case class getAllAccountsUserCanSee(pars: Any*) {
@@ -89,13 +92,14 @@ class RemotedataViewsCaseClasses {
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
   }
   case class view(pars: Any*) {
-    def apply(viewUID: ViewUID): Box[View] = this (viewUID)
-    def apply(viewId: ViewId, bankAccountId: BankAccountUID): Box[View] = this (viewId, bankAccountId)
+    def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
+    def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
-  case class createOwnerView(bankId: BankId, accountId: AccountId, description: String)
-  case class createPublicView(bankId: BankId, accountId: AccountId, description: String)
-  case class createAccountantsView(bankId: BankId, accountId: AccountId, description: String)
-  case class createAuditorsView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
+  case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)
   case class createRandomView(bankId: BankId, accountId: AccountId)
 
   case class getOwners(view: View)

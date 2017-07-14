@@ -58,7 +58,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -159,8 +159,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       recUsername <- tryo(u.displayName)
     } yield if (username == u.displayName) new InboundUser(recUsername, password, recUsername) else null
 
-
-  // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.get.Accounts'
+  
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
@@ -185,7 +184,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" ::Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" ::Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -203,7 +202,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -214,55 +213,26 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         :: Nil
     )
   )
-
-  def updateUserAccountViews(user: ResourceUser) = {
-    val accounts: List[InboundAccountJune2017] = getBanks.get.flatMap { bank => {
-      val bankId = bank.bankId.value
-      logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
-      for {
-        username <- tryo(user.name)
-        req <- Full(OutboundUserAccountViewsBase(
-          messageFormat = messageFormat,
-          action = "obp.get.Accounts",
-          username = user.name,
-          userId = user.name,
-          bankId = bankId))
-
-      // Generate random uuid to be used as request-response match id
-      } yield {
-        cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccountJune2017]])
-      }
-    }
-    }.flatten
-
-    val views = for {
-      acc <- accounts
-      username <- tryo {
-        user.name
-      }
+  
+  /**
+    *  Update accounts, views, account holder when sign up new remote user 
+    */
+  def updateUserAccountViews(user: ResourceUser): Unit = {
+    //1 get all accounts from Kafka, just fake the response
+    val accounts: List[InboundAccountJune2017] = getBankAccounts().get
+    logger.debug(s"-->updateUserAccountViewsHelper.accounts : ${accounts} ")
     
-      views <- tryo {
-        createViews(BankId(acc.bankId),
-          AccountId(acc.accountId),
-          acc.owners.contains(username),
-          acc.generateViews.contains("Public"),
-          acc.generateViews.contains("Accountant"),
-          acc.generateViews.contains("Auditor")
-        )
-      }
-      existing_views <- tryo {
-        Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))
-      }
+    for {
+      account <- accounts // many accounts
+      viewId <- account.viewsToGenerate
+      bankId <- Full(BankId(account.bankId))
+      accountId <- Full(AccountId(account.accountId))
+      bankAccountUID <- Full(BankIdAccountId(bankId, accountId))
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
+      viewIdBankidAccountId <-Full(ViewIdBankIdAccountId(view.viewId,view.bankId, view.accountId))
     } yield {
-      setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
-      views.foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
-      })
-      existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
-      })
+      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewIdBankidAccountId, user)
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
 
@@ -731,7 +701,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -793,7 +763,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -803,7 +773,19 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       ) :: Nil
     )
   )
+  //New getBankAccounts
+  def getBankAccounts(): Box[List[InboundAccountJune2017]] = saveConnectorMetric {{
+    val req = GetAccounts(
+      AuthInfo(userId = currentResourceUserId,username = AuthUser.getCurrentUserUsername))
 
+    logger.debug(s"Kafka getBankAccounts says: req is: $req")
+    val rList = cachedAccounts.getOrElseUpdate(req.toString, () => process[GetAccounts](req).extract[List[InboundAccountJune2017]])
+    val res = rList //map (new BankAccountJune2017(_))
+    logger.debug(s"Kafka getBankAccounts says res is $res")
+    Full(res)
+  }}("getBankAccounts")
+  
+  //Legacy(?) getBankAccounts
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccountJune2017] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -865,7 +847,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
@@ -1578,7 +1560,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   }
 
   //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+  override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
@@ -1790,7 +1772,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = "Susan" :: " Frank" :: Nil,
-        generateViews = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
         bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",

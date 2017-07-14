@@ -172,9 +172,9 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         acc.generate_accountants_view,
         acc.generate_auditors_view
       )}
-      existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bank), AccountId(acc.id)))}
+      existing_views <- tryo {Views.views.vend.views(BankIdAccountId(BankId(acc.bank), AccountId(acc.id)))}
     } yield {
-      setAccountOwner(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
+      setAccountHolder(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
