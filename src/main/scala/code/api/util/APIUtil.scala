@@ -184,6 +184,8 @@ import code.api.util.APIUtil._
 
   val CreateProductError = "OBP-30030: Could not insert the Product"
   val UpdateProductError = "OBP-30031: Could not update the Product"
+  
+  val ViewIdNotSupported = "OBP-30032: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
   
 

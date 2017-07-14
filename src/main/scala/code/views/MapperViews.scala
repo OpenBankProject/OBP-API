@@ -63,7 +63,7 @@ object MapperViews extends Views with MdcLoggable {
   /**
     * This gives the user access to the view.
     * Note: This method is a little different with addPermission,
-    * The parameter is the view object
+    * The parameter is the view object, and this view can be changed to ViewImpl
     */
   def getOrCreateViewPrivilege(view: View, user: User): Box[View] = {
     
@@ -74,7 +74,7 @@ object MapperViews extends Views with MdcLoggable {
     getOrCreateViewPrivilege(user, viewImpl)
   }
   
-  private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl) = {
+  private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
     if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
       // SQL Insert ViewPrivileges
@@ -455,7 +455,8 @@ object MapperViews extends Views with MdcLoggable {
         Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else if (auditorsView)
         Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
-      else Empty
+      else 
+        Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
     
     logger.debug(s"-->getOrCreateAccountView.${viewId } : ${theView} ")
     
