@@ -219,7 +219,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     */
   def updateUserAccountViews(user: ResourceUser): Unit = {
     //1 get all accounts from Kafka, just fake the response
-    val accounts: List[InboundAccountJune2017] = getBankAccounts().get
+    val accounts: List[InboundAccountCommon] = Connector.connector.vend.getBankAccounts(user).get
     logger.debug(s"-->updateUserAccountViewsHelper.accounts : ${accounts} ")
     
     for {
@@ -771,7 +771,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     )
   )
   //New getBankAccounts
-  def getBankAccounts(): Box[List[InboundAccountJune2017]] = saveConnectorMetric {{
+  override def getBankAccounts(user: User): Box[List[InboundAccountJune2017]] = saveConnectorMetric {{
     val req = GetAccounts(
       AuthInfo(userId = currentResourceUserId,username = AuthUser.getCurrentUserUsername))
 
