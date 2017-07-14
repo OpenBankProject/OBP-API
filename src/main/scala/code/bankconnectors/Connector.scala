@@ -106,7 +106,7 @@ trait InboundAccountCommon{
   def bankId: String
   def branchId: String
   def accountId: String
-  def accountNr: String
+  def accountNumber: String
   def accountType: String
   def balanceAmount: String
   def balanceCurrency: String
