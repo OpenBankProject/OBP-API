@@ -13,7 +13,7 @@ case class InboundAccountJune2017(
                                    bankId: String,
                                    branchId: String,
                                    accountId: String,
-                                   accountNr: String,
+                                   accountNumber: String,
                                    accountType: String,
                                    balanceAmount: String,
                                    balanceCurrency: String,
@@ -38,7 +38,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def swift_bic: Option[String] = Some("swift_bic")
   // Note: deprecated, extends from BankAccount
   def iban: Option[String] = Some("iban")
-  def number: String = r.accountNr
+  def number: String = r.accountNumber
   def bankId: BankId = BankId(r.bankId)
   def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
@@ -48,7 +48,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
     d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, r.accountId))
   } yield {
     d.getLabel
-  }).getOrElse(r.accountNr)
+  }).getOrElse(r.accountNumber)
 
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
