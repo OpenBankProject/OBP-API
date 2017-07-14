@@ -7,24 +7,23 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.api.v2_2_0.ProductJsonV220
-import code.atms.Atms.{AtmId, Atm}
+import code.atms.Atms.{Atm, AtmId}
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.{Transaction, TransactionRequestType, User, _}
 import code.model.dataAccess.ResourceUser
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.model.{Transaction, TransactionRequestType, User, _}
+import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequests._
+import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.users.Users
 import code.util.Helper._
+import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
-import code.products.Products.{Product, ProductCode}
-import code.users.Users
-import code.views.Views
-import net.liftweb.mapper.By
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
@@ -107,7 +106,7 @@ trait InboundAccountCommon{
   def bankId: String
   def branchId: String
   def accountId: String
-  def number: String
+  def accountNumber: String
   def accountType: String
   def balanceAmount: String
   def balanceCurrency: String
