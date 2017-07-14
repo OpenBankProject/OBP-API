@@ -78,9 +78,9 @@ object MapperViews extends Views with MdcLoggable {
   }
 
 
-  def addPermission(viewUID: ViewIdBankIdAccountId, user: User): Box[View] = {
-    logger.debug(s"addPermission says viewUID is $viewUID user is $user")
-    val viewImpl = ViewImpl.find(viewUID)
+  def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
+    logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
+    val viewImpl = ViewImpl.find(viewIdBankIdAccountId)
 
     viewImpl match {
       case Full(vImpl) => {
@@ -102,7 +102,7 @@ object MapperViews extends Views with MdcLoggable {
         } else Full(vImpl) //privilege already exists, no need to create one
       }
       case _ => {
-        Empty ~> APIFailure(s"View $viewUID. not found", 404) //TODO: move message + code logic to api level
+        Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
       }
     }
   }
