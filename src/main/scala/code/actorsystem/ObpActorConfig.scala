@@ -57,7 +57,7 @@ object ObpActorConfig {
         "code.model.dataAccess.ViewImpl" = kryo,
         "code.model.User" = kryo,
         "code.model.ViewId" = kryo,
-        "code.model.ViewUID" = kryo,
+        "code.model.ViewIdBankIdAccountId" = kryo,
         "code.model.Permission" = kryo,
         "scala.Unit" = kryo,
         "scala.Boolean" = kryo,
