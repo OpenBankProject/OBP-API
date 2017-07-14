@@ -28,10 +28,12 @@ package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.ErrorMessages
+import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
@@ -56,7 +58,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     validateJwtToken(jwt) match {
       case true => {
         jwt match {
-          case JsonWebToken(header, payload, signature) => payload.asJsonString
+          case JsonWebToken(header, payload, signature) =>
+            logger.debug("payload" + payload)
+            payload.asJsonString
           case _ => "Cannot extract token!"
         }
       }
@@ -80,26 +84,33 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
     parameters.get("error") match {
       case Some(m) => {
-        logger.info("GatewayLogin error message : " + m)
+        logger.error("GatewayLogin error message : " + m)
         (400, m, emptyMap)
       }
       case _ => {
         // Are all the necessary GatewayLogin parameters present?
         val missingParams: Set[String] = missingGatewayLoginParameters(parameters)
-        logger.info("missingParams : " + missingParams)
+        logger.error("missingParams : " + missingParams)
         missingParams.nonEmpty match {
           case true => {
             val message = ErrorMessages.GatewayLoginMissingParameters + missingParams.mkString(", ")
-            logger.info("GatewayLogin error message : " + message)
+            logger.error("GatewayLogin error message : " + message)
             (400, message, emptyMap)
           }
           case false => {
-            logger.info("GatewayLogin parameters : " + parameters)
+            logger.debug("GatewayLogin parameters : " + parameters)
             (200, "", parameters)
           }
         }
       }
     }
+  }
+
+  def getUser(jwt: String) : Box[User] = {
+    val jwtJson = parse(jwt) // Transform Json string to JsonAST
+    val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
+    logger.debug("username: " + username)
+    Empty
   }
 
   // Return a Map containing the GatewayLogin parameter : token -> value
