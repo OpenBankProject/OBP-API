@@ -789,7 +789,7 @@ trait APIMethods210 {
             u <- user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers)
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
-            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong)
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong)
           } yield {
             val json = createConsumerJSON(consumer)
             // Return
@@ -866,7 +866,7 @@ trait APIMethods210 {
               case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
             }
-            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerId.toLong)
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.toLong)
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
           } yield {
             // Format the data as json
@@ -1611,7 +1611,7 @@ trait APIMethods210 {
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), UserHasMissingRoles + CanUpdateConsumerRedirectUrl )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
-            consumer <- Consumers.consumers.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
             isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table

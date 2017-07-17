@@ -13,9 +13,9 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
 
   def receive = {
 
-    case cc.getConsumerByConsumerId(consumerId: Long) =>
-      logger.debug("getConsumerByConsumerId(" + consumerId +")")
-      sender ! extractResult(mapper.getConsumerByConsumerId(consumerId))
+    case cc.getConsumerByPrimaryId(id: Long) =>
+      logger.debug("getConsumerByPrimaryId(" + id +")")
+      sender ! extractResult(mapper.getConsumerByPrimaryId(id))
 
     case cc.getConsumerByConsumerKey(consumerKey: String) =>
       logger.debug("getConsumerByConsumerKey(" + consumerKey +")")

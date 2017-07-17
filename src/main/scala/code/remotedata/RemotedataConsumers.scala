@@ -23,8 +23,8 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
 
   val cc = RemotedataConsumersCaseClasses
 
-  def getConsumerByConsumerId(consumerId: Long): Box[Consumer] =
-    extractFutureToBox(actor ? cc.getConsumerByConsumerId(consumerId))
+  def getConsumerByPrimaryId(id: Long): Box[Consumer] =
+    extractFutureToBox(actor ? cc.getConsumerByPrimaryId(id))
 
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
 

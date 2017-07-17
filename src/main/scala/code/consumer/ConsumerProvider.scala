@@ -22,7 +22,7 @@ object Consumers extends SimpleInjector {
 
 // Question: This should never be the entry point?
 trait ConsumersProvider {
-  def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
+  def getConsumerByPrimaryId(id: Long): Box[Consumer]
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer]
   def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer]
   def updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer]
@@ -31,7 +31,7 @@ trait ConsumersProvider {
 
 // Question: This should always be the entry point?
 class RemotedataConsumersCaseClasses {
-  case class getConsumerByConsumerId(consumerId: Long)
+  case class getConsumerByPrimaryId(id: Long)
   case class getConsumerByConsumerKey(consumerKey: String)
   case class createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String])
   case class updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String])

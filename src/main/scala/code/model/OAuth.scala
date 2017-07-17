@@ -57,8 +57,8 @@ object TokenType extends Enumeration {
 
 
 object MappedConsumersProvider extends ConsumersProvider {
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
+  override def getConsumerByPrimaryId(id: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, id))
   }
 
   override def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
@@ -244,7 +244,7 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
 
   //show more than the default of 20
   override def rowsPerPage = 100
-  
+
   def getRedirectURLByConsumerKey(consumerKey: String): String = {
     logger.debug("hello from getRedirectURLByConsumerKey")
     val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
@@ -465,7 +465,7 @@ class Token extends LongKeyedMapper[Token]{
   object insertDate extends MappedDateTime(this)
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
-  def consumer = Consumers.consumers.vend.getConsumerByConsumerId(consumerId.get)
+  def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){
