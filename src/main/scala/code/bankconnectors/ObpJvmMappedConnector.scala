@@ -131,7 +131,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   }
 
-  def updateUserAccountViews( user: ResourceUser ) = {
+  override def updateUserAccountViewsOld( user: ResourceUser ) = {
 
     val accounts = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value

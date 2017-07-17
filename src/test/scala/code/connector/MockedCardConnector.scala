@@ -35,7 +35,6 @@ object MockedCardConnector extends ServerSetup
   
   override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
   override def getUser(name: String, password: String): Box[InboundUser] = ???
-  def updateUserAccountViews(user: ResourceUser): Unit = ???
   
   //these methods aren't required by our test
   // override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
