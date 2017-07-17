@@ -278,64 +278,63 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("getUser")
 
-  def updateUserAccountViews( user: ResourceUser ) = Empty 
-//  def updateUserAccountViews( user: ResourceUser ) = saveConnectorMetric {
-//    memoizeSync(updateUserAccountViewsTTL millisecond){
-//      //1 getAccounts from Kafka
-//      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
-//        val bankId = bank.bankId.value
-//        val username = user.name
-//        logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
-//        for {
-//          req <- tryo { Map[String, String](
-//            "version" -> formatVersion,
-//            "name" -> "get",
-//            "target" -> "accounts",
-//            "userId" -> username,
-//            "bankId" -> bankId)}
-//          } yield {
-//            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
-//              case Full(a) => a
-//              case Empty => List.empty
-//            }
-//            logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
-//            res
-//          }
-//        }
-//      }.flatten
-//
-//      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
-//
-//      //2 CreatViews for each account
-//      for {
-//        acc <- accounts
-//        username <- tryo {user.name}
-//        createdNewViewsForTheUser <- tryo {createViews( BankId(acc.bankId),
-//          AccountId(acc.accountId),
-//          true,
-//          true,
-//          true,
-//          true
-//        )}
-//      //3 get all the existing views.
-//        existingViewsNotBelongtoTheUser <- tryo {
-//          Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))
-//          .filterNot(_.users.contains(user.resourceUserId))
-//        }
-//      } yield {
-//        //4 set Account link to User
-//        setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
-//        createdNewViewsForTheUser.foreach(v => {
-//          Views.views.vend.addPermission(v.uid, user)
-//          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
-//        })
-//        existingViewsNotBelongtoTheUser.foreach (v => {
-//          Views.views.vend.addPermission(v.uid, user)
-//          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
-//        })
-//      }
-//    }
-//  } ("updateUserAccountViews")
+  override def updateUserAccountViewsOld( user: ResourceUser ) = saveConnectorMetric {
+    memoizeSync(updateUserAccountViewsTTL millisecond){
+      //1 getAccounts from Kafka
+      val accounts: List[KafkaInboundAccount] = getBanks.getOrElse(List.empty).flatMap { bank => {
+        val bankId = bank.bankId.value
+        val username = user.name
+        logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+        for {
+          req <- tryo { Map[String, String](
+            "version" -> formatVersion,
+            "name" -> "get",
+            "target" -> "accounts",
+            "userId" -> username,
+            "bankId" -> bankId)}
+          } yield {
+            val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
+              case Full(a) => a
+              case Empty => List.empty
+            }
+            logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
+            res
+          }
+        }
+      }.flatten
+
+      logger.debug(s"JVMCompatible getAccounts says res is $accounts")
+
+      //2 CreatViews for each account
+      for {
+        acc <- accounts
+        username <- tryo {user.name}
+        createdNewViewsForTheUser <- tryo {createViews( BankId(acc.bankId),
+          AccountId(acc.accountId),
+          true,
+          true,
+          true,
+          true
+        )}
+      //3 get all the existing views.
+        existingViewsNotBelongtoTheUser <- tryo {
+          Views.views.vend.views(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))
+          .filterNot(_.users.contains(user.resourceUserId))
+        }
+      } yield {
+        //4 set Account link to User
+        setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
+        createdNewViewsForTheUser.foreach(v => {
+          Views.views.vend.addPermission(v.uid, user)
+          logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
+        })
+        existingViewsNotBelongtoTheUser.foreach (v => {
+          Views.views.vend.addPermission(v.uid, user)
+          logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
+        })
+      }
+    }
+  } ("updateUserAccountViews")
 
   // Gets current challenge level for transaction request
   // TODO, not implement in Adapter, just fake the response 

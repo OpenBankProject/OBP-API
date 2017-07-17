@@ -139,8 +139,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
 
-  def updateUserAccountViews(user: ResourceUser): Unit = ???
-
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
     getMappedBank(bankId)

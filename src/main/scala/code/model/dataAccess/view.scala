@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.APIFailure
-import code.util.UUIDString
+import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
@@ -60,7 +60,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
   object bankPermalink extends UUIDString(this)
-  object accountPermalink extends UUIDString(this)
+  object accountPermalink extends AccountIdString(this)
 
 
   object id_ extends MappedLongIndex(this)

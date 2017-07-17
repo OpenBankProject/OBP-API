@@ -798,8 +798,7 @@ import net.liftweb.util.Helpers._
        user <- getUserFromConnector(name, password)
 //       u <- Users.users.vend.getUserByUserName(username)
        u <- user.user.foreign // up statement will return empty, because of the database transaction commit stuff.  
-       //TODO need more error handle here, I need the exception to debug
-       v <- tryo (Connector.connector.vend.updateUserAccountViews(u))
+       v <- Full (updateUserAccountViews(u))
       } yield {
         user
       }
@@ -814,26 +813,25 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       //TODO need more error handle here, I need the exception to debug
-       // just tryo it, for perfermace for now. It is no problem to get error 
-       // for this case, we need move the  updateUserAccountViews to somewhere else. 
-       v <- tryo (Connector.connector.vend.updateUserAccountViews(u))
+       v <- Full (updateUserAccountViews(u))
       } yield v
     }
   }
   
   /**
-    *  Update accounts, views, account holder when sign up new remote user 
+    * This is a helper method 
+    * update the views, accountHolders for OBP side when sign up new remote user
+    * 
     */
-  def updateUserAccountViews2(user: ResourceUser): Unit = {
+  def updateUserAccountViews(user: ResourceUser): Unit = {
     //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccounts(user).get
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
     
     for {
-      account <- accounts //TODO throw error message if there is no account.
-      viewId <- account.viewsToGenerate //TODO throw error message if there is no view.
-      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) //TODO throw error message if there is no ids
+      account <- accounts
+      viewId <- account.viewsToGenerate 
+      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) 
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
     } yield {
       Views.views.vend.getOrCreateViewPrivilege(view,user)

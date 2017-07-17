@@ -3,7 +3,7 @@ package code.model.dataAccess
 import java.util.Date
 
 import code.model._
-import code.util.{UUIDString, Helper, MappedAccountNumber}
+import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
@@ -11,7 +11,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def getSingleton = MappedBankAccount
 
   object bank extends UUIDString(this)
-  object theAccountId extends UUIDString(this)
+  object theAccountId extends AccountIdString(this)
   object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
   object accountSwiftBic extends MappedString(this, 50)

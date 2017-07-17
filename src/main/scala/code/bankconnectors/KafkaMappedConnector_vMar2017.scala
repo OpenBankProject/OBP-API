@@ -196,7 +196,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  def updateUserAccountViews( user: ResourceUser ) = {
+  override def updateUserAccountViewsOld( user: ResourceUser ) = {
     val accounts: List[InboundAccount] = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")

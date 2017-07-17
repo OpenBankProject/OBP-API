@@ -2,10 +2,11 @@ package code.metadata.transactionimages
 
 import java.net.URL
 import java.util.Date
+
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{AccountIdString, DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -53,7 +54,7 @@ class MappedTransactionImage extends TransactionImage with LongKeyedMapper[Mappe
   def getSingleton = MappedTransactionImage
 
   object bank extends MappedString(this, 50)
-  object account extends MappedString(this, 50)
+  object account extends AccountIdString(this)
   object transaction extends MappedString(this, 50)
   object view extends MappedString(this, 50)
 

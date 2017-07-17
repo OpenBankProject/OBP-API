@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{UUIDString, DefaultStringField, MappedAccountNumber, MappedUUID}
+import code.util._
 import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.{By, _}
@@ -270,7 +270,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 
   //these define the obp account to which this counterparty belongs
   object thisBankId extends UUIDString(this)
-  object thisAccountId extends UUIDString(this)
+  object thisAccountId extends AccountIdString(this)
 
   //these define the counterparty
   object holder extends MappedString(this, 255) // Is this the name of the counterparty?
@@ -397,7 +397,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mCreatedByUserId extends MappedString(this, 36)
   object mName extends MappedString(this, 36)
   object mThisBankId extends MappedString(this, 36)
-  object mThisAccountId extends MappedString(this, 255)
+  object mThisAccountId extends AccountIdString(this)
   object mThisViewId extends MappedString(this, 36)
   object mCounterPartyId extends MappedString(this, 36)
   object mOtherAccountRoutingScheme extends MappedString(this, 255)

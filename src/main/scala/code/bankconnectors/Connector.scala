@@ -186,14 +186,10 @@ trait Connector extends MdcLoggable{
     * for remote user(means the user will get from kafka) to update the views, accountHolders for OBP side
     * It depends different use cases, normally (also see it in KafkaMappedConnector_vJun2017.scala)
     * 
-    * 1 createAccountViewIfNotExisting
-    * 2 CreateViewPrivilege
-    * 3 createAccountHolder
-    * 
-    *
     * @param user the user is from remote side
     */
-  def updateUserAccountViews(user: ResourceUser)
+  @deprecated("Now move it to AuthUser.updateUserAccountViews","17-07-2017")
+  def updateUserAccountViewsOld(user: ResourceUser) = {}
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 

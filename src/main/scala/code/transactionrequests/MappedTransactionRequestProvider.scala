@@ -5,7 +5,7 @@ import code.bankconnectors.Connector
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
-import code.util.DefaultStringField
+import code.util.{AccountIdString, DefaultStringField, UUIDString}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
 import net.liftweb.mapper._
@@ -189,17 +189,17 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mDetails extends DefaultStringField(this)
 
   //fromAccount fields
-  object mFrom_BankId extends DefaultStringField(this)
-  object mFrom_AccountId extends DefaultStringField(this)
+  object mFrom_BankId extends UUIDString(this)
+  object mFrom_AccountId extends AccountIdString(this)
 
   //toAccount fields
-  object mTo_BankId extends DefaultStringField(this)
-  object mTo_AccountId extends DefaultStringField(this)
+  object mTo_BankId extends UUIDString(this)
+  object mTo_AccountId extends AccountIdString(this)
 
   //toCounterparty fields
   object mName extends DefaultStringField(this)
-  object mThisBankId extends DefaultStringField(this)
-  object mThisAccountId extends DefaultStringField(this)
+  object mThisBankId extends UUIDString(this)
+  object mThisAccountId extends AccountIdString(this)
   object mThisViewId extends DefaultStringField(this)
   object mCounterpartyId extends DefaultStringField(this)
   object mOtherAccountRoutingScheme extends DefaultStringField(this)
