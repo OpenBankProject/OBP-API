@@ -43,12 +43,14 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   }
   
   
-  def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] ={
+  //Note, this method, will not check the existing of bankAccount, any value of BankIdAccountId
+  //Can create the MapperAccountHolders.
+  def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId): Box[MapperAccountHolders] ={
   
     val mapperAccountHolder = MapperAccountHolders.find(
       By(MapperAccountHolders.user, user.resourceUserId.value),
-      By(MapperAccountHolders.accountBankPermalink, bankAccountUID.bankId.value),
-      By(MapperAccountHolders.accountPermalink, bankAccountUID.accountId.value)
+      By(MapperAccountHolders.accountBankPermalink, bankIdAccountId.bankId.value),
+      By(MapperAccountHolders.accountPermalink, bankIdAccountId.accountId.value)
     )
   
     mapperAccountHolder match {
@@ -60,8 +62,8 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
       }
       case Empty => {
         val holder: MapperAccountHolders = MapperAccountHolders.create
-          .accountBankPermalink(bankAccountUID.bankId.value)
-          .accountPermalink(bankAccountUID.accountId.value)
+          .accountBankPermalink(bankIdAccountId.bankId.value)
+          .accountPermalink(bankIdAccountId.accountId.value)
           .user(user.resourceUserId.value)
           .saveMe
         logger.debug(
@@ -75,13 +77,14 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   
 
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
-    val results = MapperAccountHolders.findAll(
+    val accountHolders = MapperAccountHolders.findAll(
       By(MapperAccountHolders.accountBankPermalink, bankId.value),
       By(MapperAccountHolders.accountPermalink, accountId.value),
       PreCache(MapperAccountHolders.user)
     )
 
-    results.flatMap { accHolder =>
+    //accountHolders --> user
+    accountHolders.flatMap { accHolder =>
       ResourceUser.find(By(ResourceUser.id, accHolder.user))
     }.toSet
   }
