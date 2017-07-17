@@ -131,14 +131,14 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
-    if (isThereAnOAuthHeader) {
+    if (hasAnOAuthHeader) {
       getUser match {
         case Full(u) => fn(Full(u))
         case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
       DirectLogin.getUser match {
         case Full(u) => fn(Full(u))
         case _ => {
@@ -146,7 +146,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           errorJsonResponse(message, httpCode)
         }
       }
-    } else if (Props.getBool("allow_gateway_login", false) && isThereGatewayHeader) {
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
@@ -161,10 +161,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             case _ => errorJsonResponse(message, httpCode)
           }
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
-          errorJsonResponse("Gateway login can be done only from allowed addresses!")
-        case Empty => errorJsonResponse("Property gateway.host is not defined!") // There is no gateway.host in props file
+          errorJsonResponse(ErrorMessages.GatewayLoginWhiteListAddresses)
+        case Empty => errorJsonResponse(ErrorMessages.GatewayLoginHostPropertyMissing) // There is no gateway.host in props file
         case Failure(msg, _, _) => errorJsonResponse(msg)
-        case _ => errorJsonResponse("Unknown Gateway login error!")
+        case _ => errorJsonResponse(ErrorMessages.GatewayLoginUnknownError)
       }
     } else {
       fn(Empty)
