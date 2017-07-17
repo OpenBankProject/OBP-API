@@ -5,7 +5,7 @@ import java.util.Date
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{MediumString, UUIDString, DefaultStringField, MappedUUID}
+import code.util._
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.mapper._
@@ -47,7 +47,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
   def getSingleton = MappedTag
 
   object bank extends UUIDString(this)
-  object account extends UUIDString(this)
+  object account extends AccountIdString(this)
   object transaction extends UUIDString(this)
   object view extends MediumString(this)
 
