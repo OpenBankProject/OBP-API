@@ -140,6 +140,10 @@ import code.api.util.APIUtil._
 
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
+  val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
+  val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
+  val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
+  val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
 
 
 
@@ -313,30 +317,16 @@ object APIUtil extends MdcLoggable {
       case _ => "GET"
     }
 
-  def isThereDirectLoginHeader : Boolean = {
-    S.request match {
-      case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("DirectLogin")
-        case _ => false
-      }
-      case _ => false
-    }
-  }
+  def hasDirectLoginHeader : Boolean = hasHeader("DirectLogin")
 
-  def isThereGatewayHeader : Boolean = {
-    S.request match {
-      case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("Gateway")
-        case _ => false
-      }
-      case _ => false
-    }
-  }
+  def hasAnOAuthHeader : Boolean = hasHeader("OAuth")
 
-  def isThereAnOAuthHeader : Boolean = {
+  def hasGatewayHeader() = hasHeader("GatewayLogin")
+
+  def hasHeader(`type`: String) : Boolean = {
     S.request match {
       case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains("OAuth")
+        case Full(parameters) => parameters.contains(`type`)
         case _ => false
       }
       case _ => false
@@ -353,12 +343,12 @@ object APIUtil extends MdcLoggable {
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     if(Props.getBool("write_metrics", false)) {
       val user =
-        if (isThereAnOAuthHeader) {
+        if (hasAnOAuthHeader) {
           getUser match {
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -368,12 +358,12 @@ object APIUtil extends MdcLoggable {
         }
 
       val consumer =
-        if (isThereAnOAuthHeader) {
+        if (hasAnOAuthHeader) {
           getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty

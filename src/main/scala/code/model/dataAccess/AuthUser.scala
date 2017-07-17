@@ -34,7 +34,7 @@ package code.model.dataAccess
 import java.util.UUID
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.{isThereAnOAuthHeader, isValidStrongPassword, _}
+import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundUser}
@@ -288,9 +288,9 @@ import net.liftweb.util.Helpers._
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
         AuthUser.currentUser.get.user.foreign
-      else if (isThereDirectLoginHeader)
+      else if (hasDirectLoginHeader)
         DirectLogin.getUser
-      else if (isThereAnOAuthHeader) {
+      else if (hasAnOAuthHeader) {
         OAuthHandshake.getUser
       } else {
         debug(ErrorMessages.CurrentUserNotFoundException)
