@@ -219,19 +219,16 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     */
   def updateUserAccountViews(user: ResourceUser): Unit = {
     //1 get all accounts from Kafka, just fake the response
-    val accounts: List[InboundAccountJune2017] = getBankAccounts().get
+    val accounts: List[InboundAccountCommon] = Connector.connector.vend.getBankAccounts(user).get
     logger.debug(s"-->updateUserAccountViewsHelper.accounts : ${accounts} ")
     
     for {
-      account <- accounts // many accounts
-      viewId <- account.viewsToGenerate
-      bankId <- Full(BankId(account.bankId))
-      accountId <- Full(AccountId(account.accountId))
-      bankAccountUID <- Full(BankIdAccountId(bankId, accountId))
+      account <- accounts //TODO throw error message if there is no account.
+      viewId <- account.viewsToGenerate //TODO throw error message if there is no view.
+      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) //TODO throw error message if there is no ids
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
-      viewIdBankidAccountId <-Full(ViewIdBankIdAccountId(view.viewId,view.bankId, view.accountId))
     } yield {
-      Views.views.vend.getOrCreateViewPrivilege(bankAccountUID, viewIdBankidAccountId, user)
+      Views.views.vend.getOrCreateViewPrivilege(view,user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
@@ -774,7 +771,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     )
   )
   //New getBankAccounts
-  def getBankAccounts(): Box[List[InboundAccountJune2017]] = saveConnectorMetric {{
+  override def getBankAccounts(user: User): Box[List[InboundAccountJune2017]] = saveConnectorMetric {{
     val req = GetAccounts(
       AuthInfo(userId = currentResourceUserId,username = AuthUser.getCurrentUserUsername))
 

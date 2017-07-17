@@ -22,7 +22,7 @@ trait Views {
   
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
-  def getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View]
+  def getOrCreateViewPrivilege(view: View, user: User): Box[View]
   def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
@@ -70,7 +70,7 @@ class RemotedataViewsCaseClasses {
 
   case class permissions(account: BankIdAccountId)
   case class permission(account: BankIdAccountId, user: User)
-  case class getOrCreateViewPrivilege(bankIdAccountId: BankIdAccountId, viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User)
+  case class getOrCreateViewPrivilege(view: View, user: User)
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
