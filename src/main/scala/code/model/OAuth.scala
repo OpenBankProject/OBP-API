@@ -57,15 +57,23 @@ object TokenType extends Enumeration {
 
 
 object MappedConsumersProvider extends ConsumersProvider {
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
+  override def getConsumerByPrimaryId(id: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, id))
   }
 
   override def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
     Consumer.find(By(Consumer.key, consumerKey))
   }
 
-  override def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+  override def createConsumer(key: Option[String],
+                              secret: Option[String],
+                              isActive: Option[Boolean],
+                              name: Option[String],
+                              appType: Option[AppType.AppType],
+                              description: Option[String],
+                              developerEmail: Option[String],
+                              redirectURL: Option[String],
+                              createdByUserId: Option[String]): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -108,7 +116,16 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
-  override def updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+  override def updateConsumer(consumerId: Long,
+                              key: Option[String],
+                              secret: Option[String],
+                              isActive: Option[Boolean],
+                              name: Option[String],
+                              appType: Option[AppType.AppType],
+                              description: Option[String],
+                              developerEmail: Option[String],
+                              redirectURL: Option[String],
+                              createdByUserId: Option[String]): Box[Consumer] = {
     val consumer = Consumer.find(By(Consumer.id, consumerId))
     consumer match {
       case Full(c) => tryo {
@@ -154,6 +171,33 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
+  override def getOrCreateConsumer(consumerId: Option[String],
+                                   key: Option[String],
+                                   secret: Option[String],
+                                   isActive: Option[Boolean],
+                                   name: Option[String],
+                                   appType: Option[AppType.AppType],
+                                   description: Option[String],
+                                   developerEmail: Option[String],
+                                   redirectURL: Option[String],
+                                   createdByUserId: Option[String]): Box[Consumer] = {
+    consumerId match {
+      case Some(id) =>
+        Consumer.find(By(Consumer.consumerId, id))
+      case None =>
+        createConsumer(key = key,
+          secret = secret,
+          isActive = isActive,
+          name = name,
+          appType = appType,
+          description = description,
+          developerEmail = developerEmail,
+          redirectURL = redirectURL,
+          createdByUserId = createdByUserId
+        )
+    }
+  }
+
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
@@ -178,6 +222,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  object consumerId extends MappedString(this, 250) // Introduced to cover gateway login functionality
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object isActive extends MappedBoolean(this){
@@ -244,7 +289,7 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
 
   //show more than the default of 20
   override def rowsPerPage = 100
-  
+
   def getRedirectURLByConsumerKey(consumerKey: String): String = {
     logger.debug("hello from getRedirectURLByConsumerKey")
     val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
@@ -465,7 +510,7 @@ class Token extends LongKeyedMapper[Token]{
   object insertDate extends MappedDateTime(this)
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
-  def consumer = Consumers.consumers.vend.getConsumerByConsumerId(consumerId.get)
+  def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){
