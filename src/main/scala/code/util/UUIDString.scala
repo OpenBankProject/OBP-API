@@ -19,7 +19,7 @@ object MediumString {
   val MaxLength = Props.getInt("medium_string.length", 20)
 }
 
-class AccountIdString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, MediumString.MaxLength)
+class AccountIdString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, AccountIdString.MaxLength)
 
 object AccountIdString {
   val MaxLength = Props.getInt("account_id.length", 64)

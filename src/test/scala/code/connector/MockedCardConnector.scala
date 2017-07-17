@@ -195,8 +195,9 @@ object MockedCardConnector extends ServerSetup
   
   override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = Nil
   
-  val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("account1"))
-  val bankIdAccountId2 = BankIdAccountId(BankId("1"),AccountId("account2"))
+  //These bank id and account ids are real data over adapter  
+  val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
+  val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
   override def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = {
     Full(InboundAccountJune2017(
