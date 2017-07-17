@@ -65,7 +65,15 @@ object MappedConsumersProvider extends ConsumersProvider {
     Consumer.find(By(Consumer.key, consumerKey))
   }
 
-  override def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+  override def createConsumer(key: Option[String],
+                              secret: Option[String],
+                              isActive: Option[Boolean],
+                              name: Option[String],
+                              appType: Option[AppType.AppType],
+                              description: Option[String],
+                              developerEmail: Option[String],
+                              redirectURL: Option[String],
+                              createdByUserId: Option[String]): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -108,7 +116,16 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
-  override def updateConsumer(consumerId: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType.AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = {
+  override def updateConsumer(consumerId: Long,
+                              key: Option[String],
+                              secret: Option[String],
+                              isActive: Option[Boolean],
+                              name: Option[String],
+                              appType: Option[AppType.AppType],
+                              description: Option[String],
+                              developerEmail: Option[String],
+                              redirectURL: Option[String],
+                              createdByUserId: Option[String]): Box[Consumer] = {
     val consumer = Consumer.find(By(Consumer.id, consumerId))
     consumer match {
       case Full(c) => tryo {
@@ -154,6 +171,33 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
+  override def getOrCreateConsumer(consumerId: Option[String],
+                                   key: Option[String],
+                                   secret: Option[String],
+                                   isActive: Option[Boolean],
+                                   name: Option[String],
+                                   appType: Option[AppType.AppType],
+                                   description: Option[String],
+                                   developerEmail: Option[String],
+                                   redirectURL: Option[String],
+                                   createdByUserId: Option[String]): Box[Consumer] = {
+    consumerId match {
+      case Some(id) =>
+        Consumer.find(By(Consumer.consumerId, id))
+      case None =>
+        createConsumer(key = key,
+          secret = secret,
+          isActive = isActive,
+          name = name,
+          appType = appType,
+          description = description,
+          developerEmail = developerEmail,
+          redirectURL = redirectURL,
+          createdByUserId = createdByUserId
+        )
+    }
+  }
+
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
@@ -178,6 +222,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  object consumerId extends MappedString(this, 250) // Introduced to cover gateway login functionality
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object isActive extends MappedBoolean(this){
