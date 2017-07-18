@@ -384,7 +384,10 @@ class Boot extends MdcLoggable {
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
       case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
-      case Empty => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
+      case Empty =>  Props.getBool("use_akka", false) match {
+        case true => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
+        case false => logger.info("Akka middleware layer is disabled.")
+      }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
