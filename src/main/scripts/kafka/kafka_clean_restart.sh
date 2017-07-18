@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PARTITIONS=1
+PARTITIONS=10
 
 DIR=$(dirname $(readlink -f $0))
 cd $DIR
