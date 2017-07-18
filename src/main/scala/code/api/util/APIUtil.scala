@@ -1208,14 +1208,14 @@ Returns a string showed to the developer
     result
   }
 
-  val localRemotedataSecret = UUID.randomUUID.toString
-
   def akkaSanityCheck (): Box[Boolean] = {
-    val remotedataSecret = Props.getBool("remotedata.enable", false) match {
-      case true => Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
-      case false => localRemotedataSecret
+    Props.getBool("use_akka", false) match {
+      case true =>
+        val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+        SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
+      case false => Empty
     }
-    SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
+
 
   }
   /**
