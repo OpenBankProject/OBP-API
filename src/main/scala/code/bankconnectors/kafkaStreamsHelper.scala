@@ -83,20 +83,23 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .runWith(Sink.head)
   }
 
-  private val paseStringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
+  private val stringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
+    logger.debug("kafka-response-stringToJValueF:" + r)
     Future(json.parse(r) \\ "data")
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.debug("kafka-response:" + r)
+    logger.debug("kafka-response-extractJValueToAnyF:" + r)
     Future(extractResult(r))
   }
 
   val anyToJValueF: (Any => Future[json.JValue]) = { m =>
+    logger.debug("kafka-response-anyToJValueF:" + m)
     Future(Extraction.decompose(m))
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
+    logger.debug("kafka-response-serializeF:" + m)
     Future(json.compactRender(m))
   }
 
@@ -142,7 +145,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       for {
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
-        jv <- paseStringToJValueF(r)
+        jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
         logger.debug("South Side recognises version info")
@@ -157,7 +160,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         d <- anyToJValueF(request)
         s <- serializeF(d)
         r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s)
-        jv <- paseStringToJValueF(r)
+        jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
         any
@@ -173,7 +176,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         d <- anyToJValueF(request)
         v <- serializeF(d)
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, v)
-        jv <- paseStringToJValueF(r)
+        jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
         any
