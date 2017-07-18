@@ -84,19 +84,22 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   }
 
   private val paseStringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
+    logger.debug("kafka-response-paseStringToJValueF:" + r)
     Future(json.parse(r) \\ "data")
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.debug("kafka-response:" + r)
+    logger.debug("kafka-response-extractJValueToAnyF:" + r)
     Future(extractResult(r))
   }
 
   val anyToJValueF: (Any => Future[json.JValue]) = { m =>
+    logger.debug("kafka-response-anyToJValueF:" + m)
     Future(Extraction.decompose(m))
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
+    logger.debug("kafka-response-serializeF:" + m)
     Future(json.compactRender(m))
   }
 
