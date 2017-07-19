@@ -1239,7 +1239,7 @@ Returns a string showed to the developer
   /**
     * Defines Gateway Custom Response Header.
     */
-  val gatewayResponseHeaderName = "Gateway-Response-Token"
+  val gatewayResponseHeaderName = "GatewayLogin"
   /**
     * Set value of Gateway Custom Response Header.
     */
