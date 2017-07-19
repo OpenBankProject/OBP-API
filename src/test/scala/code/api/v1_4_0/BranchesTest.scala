@@ -115,7 +115,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     branch.address.line3 should equal(branchJson.address.line_3)
     branch.address.city should equal(branchJson.address.city)
     branch.address.state should equal(branchJson.address.state)
-    branch.address.county should equal(branchJson.address.country)
+    branch.address.countryCode should equal(branchJson.address.country)
     branch.address.postCode should equal(branchJson.address.postcode)
     branch.location.latitude should equal(branchJson.location.latitude)
     branch.location.longitude should equal(branchJson.location.longitude)
