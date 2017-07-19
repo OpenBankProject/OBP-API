@@ -17,7 +17,8 @@ case class GetAdapterInfo(date: String) extends TopicCaseClass
 case class GetAccounts(authInfo: AuthInfo) extends TopicCaseClass
 case class GetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicCaseClass
 case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, accountNumber: String)extends TopicCaseClass
-case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, queryParams: String)extends TopicCaseClass
+case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, queryParams: String) extends TopicCaseClass
+case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicCaseClass
 /**
   * case classes used as payloads
   */
@@ -27,3 +28,4 @@ case class AdapterInfo(data: InboundAdapterInfo)
 case class InboundBankAccounts(data: List[InboundAccountJune2017])
 case class InboundBankAccount(data: InboundAccountJune2017)
 case class InboundTransactions(data: List[InternalTransaction])
+case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
