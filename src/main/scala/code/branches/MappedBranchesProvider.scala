@@ -56,10 +56,10 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mLicenseId extends UUIDString(this)
   object mLicenseName extends MappedString(this, 255)
 
-  object mLobbyHours extends DefaultStringField(this)
-  object mDriveUpHours extends DefaultStringField(this)
-  object mBranchRoutingScheme extends DefaultStringField(this)
-  object mBranchRoutingAddress extends DefaultStringField(this)
+  object mLobbyHours extends MappedString(this, 2000)
+  object mDriveUpHours extends MappedString(this, 2000)
+  object mBranchRoutingScheme extends MappedString(this, 32)
+  object mBranchRoutingAddress extends MappedString(this, 64)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
