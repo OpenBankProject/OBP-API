@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.snippet
 
+import code.api.util.ErrorMessages
 import code.model._
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.{Empty, Full}
@@ -113,12 +114,8 @@ class ConsumerRegistration extends MdcLoggable {
       ".post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl
     }
 
-    def saveAndShowResults(consumer : Consumer) = {
-      val c = Consumers.consumers.vend.updateConsumer(consumer.id, Some(Helpers.randomString(40).toLowerCase), Some(Helpers.randomString(40).toLowerCase), Some(true), None, None, None, None, None, None)
-      val result = c match {
-        case Full(x) => x
-        case _       => consumer
-      }
+    def showRegistrationResults(result : Consumer) = {
+
       notifyRegistrationOccurred(result)
       sendEmailToDeveloper(result)
 
@@ -134,6 +131,16 @@ class ConsumerRegistration extends MdcLoggable {
             ".errorContent *" #> e
         })
       }
+    }
+
+    def showUnknownErrors(errors : List[String]) = {
+      register &
+        "#registration-errors *" #> {
+          ".error *" #>
+            errors.map({ e=>
+              ".errorContent *" #> e
+            })
+        }
     }
 
     //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
@@ -152,10 +159,6 @@ class ConsumerRegistration extends MdcLoggable {
       def withNameOpt(s: String): Option[Consumer.appType.enum.AppType] = Consumer.appType.enum.values.find(_.toString == s)
 
       val appTypeSelected = withNameOpt(appType.is)
-
-      val consumer = Consumers.consumers.vend.createConsumer(None, None, None, Some(nameVar.is), Some(appTypeSelected.get), Some(descriptionVar.is), Some(devEmailVar.is), Some(redirectionURLVar.is), Some(AuthUser.getCurrentResourceUserUserId))
-
-      val errors = consumer.get.validate
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
@@ -166,10 +169,23 @@ class ConsumerRegistration extends MdcLoggable {
         showErrorsForDescription("The 'Send' button random name has been modified !")
       else if(descriptionVar.isEmpty)
         showErrorsForDescription("Description of the application can not be empty !")
-      else if(errors.isEmpty)
-        saveAndShowResults(consumer.get)
-      else
-        showErrors(errors)
+      else{
+        val consumer = Consumers.consumers.vend.createConsumer(
+          Some(Helpers.randomString(40).toLowerCase),
+          Some(Helpers.randomString(40).toLowerCase),
+          Some(true),
+          Some(nameVar.is),
+          Some(appTypeSelected.get),
+          Some(descriptionVar.is),
+          Some(devEmailVar.is),
+          Some(redirectionURLVar.is),
+          Some(AuthUser.getCurrentResourceUserUserId))
+        consumer match {
+          case Full(x) if x.validate.isEmpty => showRegistrationResults(x)
+          case Full(x) if !x.validate.isEmpty => showErrors(x.validate)
+          case _ => showUnknownErrors(List(ErrorMessages.UnknownError))
+        }
+      }
     }
 
     if(S.post_?) analyseResult

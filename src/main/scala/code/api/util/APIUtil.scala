@@ -435,7 +435,7 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
-  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId()))
+  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId())) ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
 
@@ -1234,5 +1234,25 @@ Returns a string showed to the developer
     * @return - the source port of the client or last seen proxy.
     */
   def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
+
+
+  /**
+    * Defines Gateway Custom Response Header.
+    */
+  val gatewayResponseHeader = "Gateway-Response-Token"
+  /**
+    * Set value of Gateway Custom Response Header.
+    */
+  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeader, value)
+  /**
+    * @return - Gateway Custom Response Header.
+    */
+  def getGatewayResponseHeader() = {
+    S.getSessionAttribute(gatewayResponseHeader) match {
+      case Full(h) => List((gatewayResponseHeader, h))
+      case _ => Nil
+    }
+  }
+
 
 }

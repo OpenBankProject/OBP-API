@@ -170,7 +170,7 @@ object JSONFactory1_4_0 {
 
   // Accept an address object and return its json representation
   def createAddressJson(address : Address) : AddressJson = {
-    AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
+    AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.county)
   }
 
   // Branches
