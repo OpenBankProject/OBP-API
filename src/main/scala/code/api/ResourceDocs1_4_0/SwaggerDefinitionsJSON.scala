@@ -751,7 +751,6 @@ object SwaggerDefinitionsJSON {
     city = "Berlin",
     state = "Berlin Brandenburg",
     postcode = "13359",
-    county = "",
     country = "Germany"
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(

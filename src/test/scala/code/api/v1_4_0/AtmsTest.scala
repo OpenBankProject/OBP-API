@@ -90,7 +90,6 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     atm.address.city should equal(atmJson.address.city)
     atm.address.state should equal(atmJson.address.state)
     atm.address.countryCode should equal(atmJson.address.country)
-    atm.address.county should equal(atmJson.address.county)
     atm.address.postCode should equal(atmJson.address.postcode)
     atm.location.latitude should equal(atmJson.location.latitude)
     atm.location.longitude should equal(atmJson.location.longitude)

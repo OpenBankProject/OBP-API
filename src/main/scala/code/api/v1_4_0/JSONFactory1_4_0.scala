@@ -99,7 +99,7 @@ object JSONFactory1_4_0 {
   case class AtmsJson (atms : List[AtmJson])
 
 
-  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, county : String,country : String)
+  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
 
 
@@ -170,7 +170,7 @@ object JSONFactory1_4_0 {
 
   // Accept an address object and return its json representation
   def createAddressJson(address : Address) : AddressJson = {
-    AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.county, address.countryCode)
+    AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
   }
 
   // Branches
