@@ -1239,17 +1239,17 @@ Returns a string showed to the developer
   /**
     * Defines Gateway Custom Response Header.
     */
-  val gatewayResponseHeader = "Gateway-Response-Token"
+  val gatewayResponseHeaderName = "Gateway-Response-Token"
   /**
     * Set value of Gateway Custom Response Header.
     */
-  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeader, value)
+  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeaderName, value)
   /**
     * @return - Gateway Custom Response Header.
     */
   def getGatewayResponseHeader() = {
-    S.getSessionAttribute(gatewayResponseHeader) match {
-      case Full(h) => List((gatewayResponseHeader, h))
+    S.getSessionAttribute(gatewayResponseHeaderName) match {
+      case Full(h) => List((gatewayResponseHeaderName, h))
       case _ => Nil
     }
   }
