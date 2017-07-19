@@ -23,7 +23,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
     val customerPutJSON = BranchJsonPut(
       "gh.29.fi", "OBP",
-      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "",  "37800"),
       LocationJson(1.2, 2.1),
       MetaJson(LicenseJson("", "")),
       LobbyJson(""),
@@ -90,7 +90,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
   feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
 
     val customerPostJSON = BranchJsonPost("123","gh.29.fi", "OBP",
-      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "", "37800"),
       LocationJson(1.2, 2.1),
       MetaJson(LicenseJson("", "")),
       LobbyJson(""),
