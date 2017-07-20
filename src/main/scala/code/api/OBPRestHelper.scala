@@ -133,14 +133,14 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   def failIfBadAuthorizationHeader(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
     if (hasAnOAuthHeader) {
       getUser match {
-        case Full(u) => fn(Full(u))
+        case Full(u) => fn(Full(u)) // Authentication is successful
         case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
       DirectLogin.getUser match {
-        case Full(u) => fn(Full(u))
+        case Full(u) => fn(Full(u)) // Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           errorJsonResponse(message, httpCode)
@@ -152,11 +152,15 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
           httpCode match {
             case 200 =>
-              val jwt = GatewayLogin.parseJwt(parameters)
-              GatewayLogin.getUser(jwt: String) match {
-                case Full(u) => fn(Full(u))
+              val payload = GatewayLogin.parseJwt(parameters)
+              GatewayLogin.getOrCreateResourceUser(payload: String) match {
+                case Full(u) => // Authentication is successful
+                  GatewayLogin.getOrCreateConsumer(payload, u)
+                  val jwtResponse = GatewayLogin.createJwt(payload)
+                  setGatewayResponseHeader(jwtResponse)
+                  fn(Full(u))
                 case Failure(msg, _, _) => errorJsonResponse(msg)
-                case _ => errorJsonResponse(jwt, httpCode)
+                case _ => errorJsonResponse(payload, httpCode)
               }
             case _ => errorJsonResponse(message, httpCode)
           }
