@@ -435,7 +435,7 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
-  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId()))
+  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId())) ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
 
@@ -1208,14 +1208,14 @@ Returns a string showed to the developer
     result
   }
 
-  val localRemotedataSecret = UUID.randomUUID.toString
-
   def akkaSanityCheck (): Box[Boolean] = {
-    val remotedataSecret = Props.getBool("remotedata.enable", false) match {
-      case true => Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
-      case false => localRemotedataSecret
+    Props.getBool("use_akka", false) match {
+      case true =>
+        val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+        SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
+      case false => Empty
     }
-    SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
+
 
   }
   /**
@@ -1234,5 +1234,25 @@ Returns a string showed to the developer
     * @return - the source port of the client or last seen proxy.
     */
   def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
+
+
+  /**
+    * Defines Gateway Custom Response Header.
+    */
+  val gatewayResponseHeaderName = "GatewayLogin"
+  /**
+    * Set value of Gateway Custom Response Header.
+    */
+  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeaderName, value)
+  /**
+    * @return - Gateway Custom Response Header.
+    */
+  def getGatewayResponseHeader() = {
+    S.getSessionAttribute(gatewayResponseHeaderName) match {
+      case Full(h) => List((gatewayResponseHeaderName, h))
+      case _ => Nil
+    }
+  }
+
 
 }

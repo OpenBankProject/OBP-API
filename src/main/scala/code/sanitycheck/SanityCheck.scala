@@ -27,13 +27,9 @@ object RemotedataSanityCheckCaseClasses extends RemotedataSanityCheckCaseClasses
 
 object SanityChecksImpl extends SanityChecks {
   override def remoteAkkaSanityCheck(remoteDataSecret: String): Box[Boolean] = {
-    Props.getBool("remotedata.enable", false) match {
-      case true =>
-        Props.get("remotedata.secret") match {
-          case Full(x) => Full(remoteDataSecret == x)
-          case _       => Empty
-        }
-      case false => Full(remoteDataSecret == APIUtil.localRemotedataSecret)
+    Props.get("remotedata.secret") match {
+      case Full(x) => Full(remoteDataSecret == x)
+      case _       => Empty
     }
   }
 }

@@ -40,14 +40,14 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mBranchId extends UUIDString(this)
 
   // Exposed inside address. See below
-  object mLine1 extends DefaultStringField(this)
-  object mLine2 extends DefaultStringField(this)
-  object mLine3 extends DefaultStringField(this)
-  object mCity extends DefaultStringField(this)
-  object mCounty extends DefaultStringField(this)
-  object mState extends DefaultStringField(this)
+  object mLine1 extends MappedString(this, 255)
+  object mLine2 extends MappedString(this, 255)
+  object mLine3 extends MappedString(this, 255)
+  object mCity extends MappedString(this, 255)
+  object mCounty extends MappedString(this, 255)
+  object mState extends MappedString(this, 255)
   object mCountryCode extends MappedString(this, 2)
-  object mPostCode extends DefaultStringField(this)
+  object mPostCode extends MappedString(this, 20)
 
   object mlocationLatitude extends MappedDouble(this)
   object mlocationLongitude extends MappedDouble(this)
@@ -56,10 +56,10 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mLicenseId extends UUIDString(this)
   object mLicenseName extends MappedString(this, 255)
 
-  object mLobbyHours extends DefaultStringField(this)
-  object mDriveUpHours extends DefaultStringField(this)
-  object mBranchRoutingScheme extends DefaultStringField(this)
-  object mBranchRoutingAddress extends DefaultStringField(this)
+  object mLobbyHours extends MappedString(this, 2000)
+  object mDriveUpHours extends MappedString(this, 2000)
+  object mBranchRoutingScheme extends MappedString(this, 32)
+  object mBranchRoutingAddress extends MappedString(this, 64)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
