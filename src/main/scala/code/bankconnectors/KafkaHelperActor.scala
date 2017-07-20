@@ -20,6 +20,7 @@ import scala.concurrent.{Await, ExecutionException, Future}
 /**
   * Created by petar on 5/8/17.
   */
+@deprecated("use KafkaStreamsHelperActor instead. ","20/07/2017")
 class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable {
 
   implicit val formats = DefaultFormats
