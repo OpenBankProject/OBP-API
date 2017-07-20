@@ -349,6 +349,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       accountId = accountId.value
     )
     logger.debug(s"Kafka getBankAccount says: req is: $req")
+      // 1 there is error in Adapter code,
+      // 2 there is no account in Adapter code,
+      // 3 there is error in Kafka
+      // 4 there is error in Akka
+      // 5 there is error in Future
     val res = process[GetAccountbyAccountID](req).extract[InboundAccountJune2017]
     
     logger.debug(s"Kafka getBankAccount says res is $res")
@@ -501,6 +506,29 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
     
+  }
+  
+  
+  messageDocs += MessageDoc(
+    process = "obp.create.CBSAuthToken",
+    messageFormat = messageFormat,
+    description = "create CBSAuthToken from kafka ",
+    exampleOutboundMessage = Extraction.decompose(
+      CreateCBSAuthToken(authInfo= AuthInfo("userId","username"))
+    ),
+    exampleInboundMessage = Extraction.decompose(
+      InboundCBSAuthToken(
+        errorCode = "OBPS-001: .... ",
+        token = "1234"
+      )
+    )
+  )
+  def createCBSAuthToken(user: User): Box[InboundCBSAuthToken] = {
+    val req = CreateCBSAuthToken(authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername))
+    
+    // Since result is single account, we need only first list entry
+    val r = process[CreateCBSAuthToken](req).extractOpt[InboundCBSAuthToken]
+    r 
   }
   
   //////////////////////////////////////////////////////////////////////////////// 

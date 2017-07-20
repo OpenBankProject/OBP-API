@@ -11,9 +11,10 @@ object KafkaHelper extends KafkaHelper
 
 trait KafkaHelper extends ObpActorInit with MdcLoggable {
 
-  override val actorName = "kafkaHelper" //CreateActorNameFromClassName(this.getClass.getName)
-  override val actor = ObpLookupSystem.getRemotedataActor(actorName)
-
+  override val actorName = "KafkaStreamsHelperActor" //CreateActorNameFromClassName(this.getClass.getName)
+  override val actor = ObpLookupSystem.getKafkaActor(actorName)
+  
+  
   /**
     * Have this function just to keep compatibility for KafkaMappedConnector_vMar2017 and  KafkaMappedConnector.scala
     * In KafkaMappedConnector.scala, we use Map[String, String]. Now we change to case class

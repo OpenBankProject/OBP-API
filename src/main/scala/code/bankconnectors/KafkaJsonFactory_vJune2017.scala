@@ -8,6 +8,12 @@ import java.util.{Date, Locale}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
+
+case class InboundCBSAuthToken(
+  errorCode: String,
+  token: String
+) extends InboundMessageBase 
+
 case class InboundAccountJune2017(
                                    errorCode: String,
                                    bankId: String,

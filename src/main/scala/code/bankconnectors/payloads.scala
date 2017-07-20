@@ -19,6 +19,7 @@ case class GetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: 
 case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, accountNumber: String)extends TopicCaseClass
 case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, queryParams: String) extends TopicCaseClass
 case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicCaseClass
+case class CreateCBSAuthToken(authInfo: AuthInfo) extends TopicCaseClass
 /**
   * case classes used as payloads
   */
