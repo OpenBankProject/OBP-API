@@ -1,7 +1,7 @@
 package code.entitlement
 
 
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{UUIDString, DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -69,9 +69,9 @@ class MappedEntitlement extends Entitlement
   def getSingleton = MappedEntitlement
 
   object mEntitlementId extends MappedUUID(this)
-  object mBankId extends DefaultStringField(this)
-  object mUserId extends DefaultStringField(this)
-  object mRoleName extends DefaultStringField(this)
+  object mBankId extends UUIDString(this)
+  object mUserId extends UUIDString(this)
+  object mRoleName extends MappedString(this, 64)
 
   override def entitlementId: String = mEntitlementId.get.toString
   override def bankId: String = mBankId.get
