@@ -287,7 +287,8 @@ import net.liftweb.util.Helpers._
   def getCurrentUser: Box[User] = {
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
-        AuthUser.currentUser.get.user.foreign
+        //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
+        Users.users.vend.getUserByUserName(AuthUser.currentUser.get.username)
       else if (hasDirectLoginHeader)
         DirectLogin.getUser
       else if (hasAnOAuthHeader) {
@@ -796,8 +797,8 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-//       u <- Users.users.vend.getUserByUserName(username)
-       u <- user.user.foreign // up statement will return empty, because of the database transaction commit stuff.  
+       //u <- user.user.foreign  // this will be issue when the resource user is in remote side
+       u <- Users.users.vend.getUserByUserName(name)
        v <- Full (updateUserAccountViews(u))
       } yield {
         user
