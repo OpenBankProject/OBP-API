@@ -28,14 +28,16 @@ package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.ErrorMessages
-import code.model.User
+import code.consumer.Consumers
+import code.model.{Consumer, User}
+import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{Helpers, Props}
 
 /**
 * This object provides the API calls necessary to
@@ -43,11 +45,38 @@ import net.liftweb.util.Props
 */
 
 
+object JSONFactoryGateway {
+  case class TokenJSON(
+                        username: String,
+                        is_first: Option[Boolean],
+                        CBS_auth_token: Option[String],
+                        timestamp: String,
+                        consumer_id: String,
+                        consumer_name: String
+                      )
+}
+
 object GatewayLogin extends RestHelper with MdcLoggable {
 
+  val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
+
   def createJwt(payloadAsJsonString: String) : String = {
+    val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
+    val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
+    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field username and remove quotation
+    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field username and remove quotation
+    val isFirst = compact(render(jwtJson.\\("is_first"))).replace("\"", "") // Extract value from field username and remove quotation
+    val timestamp = compact(render(jwtJson.\\("timestamp"))).replace("\"", "") // Extract value from field username and remove quotation
+    val json = JSONFactoryGateway.TokenJSON(
+      username = username,
+      is_first = None,
+      CBS_auth_token = None,
+      timestamp = timestamp,
+      consumer_id = consumerId,
+      consumer_name = consumerName
+    )
     val header = JwtHeader("HS256")
-    val claimsSet = JwtClaimsSet(payloadAsJsonString)
+    val claimsSet = JwtClaimsSet(compact(render(Extraction.decompose(json))))
     val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
     val jwt: String = JsonWebToken(header, claimsSet, secretKey)
     jwt
@@ -106,11 +135,39 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def getUser(jwt: String) : Box[User] = {
+  def getOrCreateResourceUser(jwt: String) : Box[User] = {
     val jwtJson = parse(jwt) // Transform Json string to JsonAST
     val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
     logger.debug("username: " + username)
-    Empty
+    Users.users.vend.getUserByProviderId(provider = "Gateway", idGivenByProvider = username).or {
+      Users.users.vend.createResourceUser(
+        provider = gateway,
+        providerId = Some(username),
+        name = Some(username),
+        email = None,
+        userId = None
+      )
+    }
+  }
+
+  def getOrCreateConsumer(jwt: String, u: User) : Box[Consumer] = {
+    val jwtJson = parse(jwt) // Transform Json string to JsonAST
+    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field username and remove quotation
+    logger.debug("consumer_id: " + consumerId)
+    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field username and remove quotation
+    logger.debug("consumerName: " + consumerName)
+    Consumers.consumers.vend.getOrCreateConsumer(
+      consumerId=Some(consumerId),
+      Some(Helpers.randomString(40).toLowerCase),
+      Some(Helpers.randomString(40).toLowerCase),
+      Some(true),
+      name = Some(consumerName),
+      appType = None,
+      description = Some(gateway),
+      developerEmail = None,
+      redirectURL = None,
+      createdByUserId = Some(u.userId)
+    )
   }
 
   // Return a Map containing the GatewayLogin parameter : token -> value
