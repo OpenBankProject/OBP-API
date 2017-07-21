@@ -9,29 +9,26 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 
-case class InboundCBSAuthToken(
-  errorCode: String,
-  token: String
-) extends InboundMessageBase 
 
 case class InboundAccountJun2017(
-                                   errorCode: String,
-                                   bankId: String,
-                                   branchId: String,
-                                   accountId: String,
-                                   accountNumber: String,
-                                   accountType: String,
-                                   balanceAmount: String,
-                                   balanceCurrency: String,
-                                   owners: List[String],
-                                   viewsToGenerate: List[String],
-                                   bankRoutingScheme:String,
-                                   bankRoutingAddress:String,
-                                   branchRoutingScheme:String,
-                                   branchRoutingAddress:String,
-                                   accountRoutingScheme:String,
-                                   accountRoutingAddress:String
-                                 ) extends InboundMessageBase with InboundAccountCommon
+  errorCode: String,
+  cbsAuthToken: String,
+  bankId: String,
+  branchId: String,
+  accountId: String,
+  accountNumber: String,
+  accountType: String,
+  balanceAmount: String,
+  balanceCurrency: String,
+  owners: List[String],
+  viewsToGenerate: List[String],
+  bankRoutingScheme: String,
+  bankRoutingAddress: String,
+  branchRoutingScheme: String,
+  branchRoutingAddress: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String
+) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJun2017(r: InboundAccountJun2017) extends BankAccount {
 

@@ -62,13 +62,12 @@ import scalacache.memoization.memoizeSync
 
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
-import scalacache.guava
-import scalacache._
 import concurrent.duration._
 import language.postfixOps
 import com.google.common.cache.CacheBuilder
 import code.util.Helper.MdcLoggable
 import net.liftweb.json.JsonAST.{JValue}
+import net.liftweb.json.Extraction._
 
 
 object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -102,14 +101,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDateString: String = "22/08/2013"
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
-  val emptyObjectJson: JValue = Extraction.decompose(Nil)
+  val exampleDate = simpleDateFormat.parse("22/08/2013")
+  val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
   def currentResourceUsername = AuthUser.getCurrentUserUsername
 
-  
-  
   
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
@@ -117,14 +113,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "getAdapterInfo from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundAdapterInfo(
-        messageFormat = messageFormat,
-        action = "obp.get.getAdapterInfo",
-        date = (new Date()).toString
-      )
-    ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(GetAdapterInfo(date = (new Date()).toString)),
+    exampleInboundMessage = decompose(
       InboundAdapterInfo(
         errorCode = "OBP-6001: ...",
         name = "Obp-Kafka-South",
@@ -136,7 +126,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
   override def getAdapterInfo: Box[InboundAdapterInfo] = {
     val req = code.bankconnectors.GetAdapterInfo((new Date()).toString)
-    val rr = process[code.bankconnectors.GetAdapterInfo](req)
+    val rr = process[GetAdapterInfo](req)
     val r = rr.extract[InboundAdapterInfo]
     Full(r)
   }
@@ -146,15 +136,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.User",
     messageFormat = messageFormat,
     description = "getUser from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundUserByUsernamePasswordBase(
-        messageFormat = messageFormat,
-        action = "obp.get.User",
-        username = "susan.uk.29@example.com",
+    exampleOutboundMessage = decompose(
+      GetUserByUsernamePassword(
+        AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken"),
         password = "2b78e8"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundValidatedUser(
         errorCode = "OBP-6001: ...",
         email = "susan.uk.29@example.com",
@@ -166,7 +154,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     memoizeSync(getUserTTL millisecond) {
       for {
         req <- Full(
-          GetUserByUsernamePassword(username = username, password = password)
+          GetUserByUsernamePassword(AuthInfo(currentResourceUserId, username,"cbsToken"), password = password)
         )
         u <- Full(process[GetUserByUsernamePassword](req).extract[InboundValidatedUser])
         recUsername <- tryo(u.displayName)
@@ -180,38 +168,29 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Banks",
     messageFormat = messageFormat,
     description = "getBanks",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundBanksBase(
-        action = "obp.get.Banks",
-        messageFormat = messageFormat,
-        username = "susan.uk.29@example.com",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a"
-      )
+    exampleOutboundMessage = decompose(
+      GetBanks(AuthInfo("userId", "username", "cbsToken"),"")
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
-      )
-        :: InboundBank(
+      ) :: InboundBank(
         errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
-      )
-        :: Nil
+      ) :: Nil
     )
   )
   //gets banks handled by this connector
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond){
-    val req = GetBanks(
-      AuthInfo(username = currentResourceUserId, userId = currentResourceUsername),
-      "")
+    val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
     logger.debug(s"Kafka getBanks says: req is: $req")
     val rList = process[GetBanks](req).extract[List[InboundBank]]
     val res = rList map (new Bank2(_))
@@ -224,18 +203,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "getBank from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
-      OUTTBank(
-        action = "obp.get.Bank",
-        messageFormat = messageFormat,
-        bankId = "gh.29.uk",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com"
-      )
+    exampleOutboundMessage = decompose(
+      GetBank(AuthInfo("userId", "username", "cbsToken"),"bankId")
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundBank(
-        
         errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
@@ -247,7 +219,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(getBankTTL millisecond){
     val req = GetBank(
-      authInfo = AuthInfo(username = currentResourceUserId, userId = currentResourceUsername),
+      authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, "cbsToken"),
       bankId = bankId.toString)
     
     val r =  process[GetBank](req).extract[InboundBank]
@@ -261,29 +233,23 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundBankAccountsBase(
-        messageFormat = messageFormat,
-        action = "obp.get.Accounts",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
-      )
+    exampleOutboundMessage = decompose(
+      GetAccounts(AuthInfo("userId", "username","cbsToken"))
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
+        cbsAuthToken = "cbsAuthToken",
         bankId = "gh.29.uk",
-        branchId = "222",
+        branchId = "222", 
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
+        accountNumber = "123", 
+        accountType = "AC", 
         balanceAmount = "50",
-        balanceCurrency = "EUR",
+        balanceCurrency = "EUR", 
         owners = "Susan" :: " Frank" :: Nil,
         viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
+        bankRoutingScheme = "iban", 
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
         branchRoutingAddress = " branchRoutingAddress",
@@ -295,7 +261,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   override def getBankAccounts(user: User): Box[List[InboundAccountJun2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
     val req = GetAccounts(
-      AuthInfo(userId = currentResourceUserId,username = currentResourceUsername))
+      AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"))
     
     logger.debug(s"Kafka getBankAccounts says: req is: $req")
     val rList = process[GetAccounts](req).extract[List[InboundAccountJun2017]]
@@ -309,29 +275,27 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "getBankAccount from kafka",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundBankAccountBase(
-        action = "obp.get.Account",
-        messageFormat = messageFormat,
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
+    exampleOutboundMessage = decompose(
+      GetAccountbyAccountID(
+        AuthInfo("userId", "username", "cbsToken"),
+        "bankId",
+        "accountId"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
+        cbsAuthToken = "cbsAuthToken", 
+        bankId = "gh.29.uk", 
         branchId = "222",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
+        accountNumber = "123", 
+        accountType = "AC", 
         balanceAmount = "50",
-        balanceCurrency = "EUR",
+        balanceCurrency = "EUR", 
         owners = "Susan" :: " Frank" :: Nil,
         viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
+        bankRoutingScheme = "iban", 
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
         branchRoutingAddress = " branchRoutingAddress",
@@ -344,7 +308,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     memoizeSync(getAccountTTL millisecond){
     // Generate random uuid to be used as request-response match id
     val req = GetAccountbyAccountID(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername),
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
       bankId = bankId.toString,
       accountId = accountId.value
     )
@@ -366,18 +330,15 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "getTransactions from kafka",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundTransactionsQueryWithParamsBase(
-        messageFormat = messageFormat,
-        action = "obp.get.Transactions",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        queryParams = ""
+    exampleOutboundMessage = decompose(
+      GetTransactions(
+        authInfo = AuthInfo("userId", "username", "cbsToken" ),
+        bankId = "bankId",
+        accountId = "accountId",
+        queryParams = "mapperParams"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InternalTransaction(
         errorCode = "OBP-6001: ...",
         transactionId = "1234",
@@ -431,7 +392,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
     
     val req = GetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername),
+      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = "cbsToken" ),
       bankId = bankId.toString,
       accountId = accountId.value,
       queryParams = mapperParams.toString()
@@ -459,18 +420,15 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "getTransaction from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
-      OutboundTransactionQueryBase(
-        action = "obp.get.Transaction",
-        messageFormat = messageFormat,
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        transactionId = ""
+    exampleOutboundMessage = decompose(
+      GetTransaction(
+        AuthInfo("userId","usename","cbsToken"),
+        "bankId",
+        "accountId",
+        "transactionId"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InternalTransaction(
         errorCode = "OBP-6001: ...",
         transactionId = "1234",
@@ -492,7 +450,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   )
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = GetTransaction(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername),
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
       bankId = bankId.toString,
       accountId = accountId.value,
       transactionId = transactionId.toString)
@@ -509,35 +467,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   }
   
   
-  messageDocs += MessageDoc(
-    process = "obp.create.CBSAuthToken",
-    messageFormat = messageFormat,
-    description = "create CBSAuthToken from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
-      CreateCBSAuthToken(authInfo= AuthInfo("userId","username"))
-    ),
-    exampleInboundMessage = Extraction.decompose(
-      InboundCBSAuthToken(
-        errorCode = "OBP-6001: ...",
-        token = "1234"
-      )
-    )
-  )
-  def createCBSAuthToken(user: User): Box[InboundCBSAuthToken] = {
-    val req = CreateCBSAuthToken(authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername))
-    
-    // Since result is single account, we need only first list entry
-    val r = process[CreateCBSAuthToken](req).extractOpt[InboundCBSAuthToken]
-    r 
-  }
-  
   //////////////////////////////////////////////////////////////////////////////// 
   // the following methods do not implement in new Adapter code
   messageDocs += MessageDoc(
     process = "obp.get.ChallengeThreshold",
     messageFormat = messageFormat,
     description = "getChallengeThreshold from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundChallengeThresholdBase(
         messageFormat = messageFormat,
         action = "obp.get.ChallengeThreshold",
@@ -550,7 +486,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         username = "susan.uk.29@example.com"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundChallengeLevel(
         errorCode = "OBP-6001: ...",
         limit = "1000",
@@ -590,7 +526,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.ChargeLevel",
     messageFormat = messageFormat,
     description = "ChargeLevel from kafka ",
-    exampleOutboundMessage = Extraction.decompose(OutboundChargeLevelBase(
+    exampleOutboundMessage = decompose(OutboundChargeLevelBase(
       action = "obp.get.ChargeLevel",
       messageFormat = messageFormat,
       bankId = "gh.29.uk",
@@ -602,7 +538,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       currency = "EUR"
     )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundChargeLevel(
         errorCode = "OBP-6001: ...",
         currency = "EUR",
@@ -649,7 +585,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.create.Challenge",
     messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundChallengeBase(
         action = "obp.create.Challenge",
         messageFormat = messageFormat,
@@ -661,7 +597,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         transactionRequestId = "1234567"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundCreateChallange(
         errorCode = "OBP-6001: ...",
         challengeId = "1234567"
@@ -702,7 +638,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.validate.ChallengeAnswer",
     messageFormat = messageFormat,
     description = "validateChallengeAnswer from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundChallengeAnswerBase(
         messageFormat = messageFormat,
         action = "obp.validate.ChallengeAnswer",
@@ -712,7 +648,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         hashOfSuppliedAnswer = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundValidateChallangeAnswer(
         errorCode = "OBP-6001: ...",
         answer = ""
@@ -749,7 +685,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "getAccountByNumber from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundAccountByNumberBase(
         action = "obp.get.Account",
         messageFormat = messageFormat,
@@ -759,19 +695,20 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         number = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundAccountJun2017(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
+        errorCode = "OBP-6001: ...", 
+        cbsAuthToken = "xysgh1234",
+        bankId = "gh.29.uk", 
         branchId = "222",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
+        accountNumber = "123", 
+        accountType = "AC", 
         balanceAmount = "50",
-        balanceCurrency = "EUR",
+        balanceCurrency = "EUR", 
         owners = "Susan" :: " Frank" :: Nil,
         viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
+        bankRoutingScheme = "iban", 
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
         branchRoutingAddress = " branchRoutingAddress",
@@ -820,7 +757,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.CounterpartyByCounterpartyId",
     messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundCounterpartyByCounterpartyIdBase(
         messageFormat = messageFormat,
         action = "obp.get.CounterpartyByCounterpartyId",
@@ -829,7 +766,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         counterpartyId = "12344"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundCounterparty(
         errorCode = "OBP-6001: ...",
         name = "sushan",
@@ -871,7 +808,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.CounterpartyByIban",
     messageFormat = messageFormat,
     description = "getCounterpartyByIban from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundCounterpartyByIbanBase(
         messageFormat = messageFormat,
         action = "obp.get.CounterpartyByIban",
@@ -881,7 +818,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         otherAccountRoutingScheme = "1234"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       CounterpartyTrait2(
         InboundCounterparty(
           errorCode = "OBP-6001: ...",
@@ -924,7 +861,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.put.Transaction",
     messageFormat = messageFormat,
     description = "saveTransaction from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundSaveTransactionBase(
         action = "obp.put.Transaction",
         messageFormat = messageFormat,
@@ -957,7 +894,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         toCounterpartyBankRoutingScheme = "OBP"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundTransactionId(
 
         errorCode = "OBP-6001: ...",
@@ -1064,13 +1001,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.TransactionRequestStatusesImpl",
     messageFormat = messageFormat,
     description = "getTransactionRequestStatusesImpl from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundTransactionRequestStatusesBase(
         messageFormat = messageFormat,
         action = "obp.get.TransactionRequestStatusesImpl"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundTransactionRequestStatus(
         transactionRequestId = "123",
         bulkTransactionsStatus = InboundTransactionStatus(
@@ -1108,7 +1045,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.CurrentFxRate",
     messageFormat = messageFormat,
     description = "getCurrentFxRate from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundCurrentFxRateBase(
         action = "obp.get.CurrentFxRate",
         messageFormat = messageFormat,
@@ -1119,7 +1056,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         toCurrencyCode = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundFXRate(
         errorCode = "OBP-XXX: .... ",
         bankId = "bankid54",
@@ -1154,7 +1091,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.TransactionRequestTypeCharge",
     messageFormat = messageFormat,
     description = "getTransactionRequestTypeCharge from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = decompose(
       OutboundTransactionRequestTypeChargeBase(
         action = "obp.get.TransactionRequestTypeCharge",
         messageFormat = messageFormat,
@@ -1166,7 +1103,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         transactionRequestType = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = decompose(
       InboundTransactionRequestTypeCharge(
         errorCode = "OBP-6001: ...",
         transactionRequestType = "",
@@ -1682,6 +1619,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     Full(new BankAccountJun2017(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
+        cbsAuthToken = "xysgh1234",
         bankId = "gh.29.uk",
         branchId = "222",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",

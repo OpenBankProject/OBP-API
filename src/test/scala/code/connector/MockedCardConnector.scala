@@ -200,41 +200,45 @@ object MockedCardConnector extends ServerSetup
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
   override def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = {
-    Full(InboundAccountJun2017(
-      errorCode = "OBP-6001: ...",
-      bankId = bankIdAccountId.bankId.value,
-      branchId = "222",
-      accountId = bankIdAccountId.accountId.value,
-      accountNumber = "123",
-      accountType = "AC",
-      balanceAmount = "50",
-      balanceCurrency = "EUR",
-      owners =  Nil,
-      viewsToGenerate = "Owner"::"Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = "iban",
-      bankRoutingAddress = "bankRoutingAddress",
-      branchRoutingScheme = "branchRoutingScheme",
-      branchRoutingAddress = " branchRoutingAddress",
-      accountRoutingScheme = "accountRoutingScheme",
-      accountRoutingAddress = "accountRoutingAddress"
-    ) :: InboundAccountJun2017(
-      errorCode = "OBP-6001: ...",
-      bankId = bankIdAccountId2.bankId.value,
-      branchId = "222",
-      accountId = bankIdAccountId2.accountId.value,
-      accountNumber = "123",
-      accountType = "AC",
-      balanceAmount = "50",
-      balanceCurrency = "EUR",
-      owners = Nil,
-      viewsToGenerate = "Owner"::"Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = "iban",
-      bankRoutingAddress = "bankRoutingAddress",
-      branchRoutingScheme = "branchRoutingScheme",
-      branchRoutingAddress = " branchRoutingAddress",
-      accountRoutingScheme = "accountRoutingScheme",
-      accountRoutingAddress = "accountRoutingAddress"
-    ) :: Nil)
+    Full(
+      InboundAccountJun2017(
+        errorCode = "OBP-6001: ...",
+        cbsAuthToken = "xysgh1234", 
+        bankId = bankIdAccountId.bankId.value,
+        branchId = "222", 
+        accountId = bankIdAccountId.accountId.value,
+        accountNumber = "123", 
+        accountType = "AC", 
+        balanceAmount = "50",
+        balanceCurrency = "EUR", 
+        owners = Nil,
+        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban", 
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
+      ) :: InboundAccountJun2017(
+        errorCode = "OBP-6001: ...",
+        cbsAuthToken = "xysgh1235",
+        bankId = bankIdAccountId2.bankId.value, 
+        branchId = "222",
+        accountId = bankIdAccountId2.accountId.value, 
+        accountNumber = "123",
+        accountType = "AC", 
+        balanceAmount = "50", 
+        balanceCurrency = "EUR",
+        owners = Nil,
+        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban", 
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
+      ) :: Nil
+    )
   }
 }
 
