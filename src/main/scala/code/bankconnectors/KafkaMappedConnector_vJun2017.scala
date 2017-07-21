@@ -260,9 +260,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       ) :: Nil)
     )
   )
-  override def getBankAccounts(user: User): Box[List[InboundAccountJun2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String): Box[List[InboundAccountJun2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
-    val req = GetAccounts(AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"))
+    val req = GetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"))
     
     logger.debug(s"Kafka getBankAccounts says: req is: $req")
     val rList = process[GetAccounts](req).extract[InboundBankAccounts].data

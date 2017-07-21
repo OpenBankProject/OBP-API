@@ -199,7 +199,7 @@ object MockedCardConnector extends ServerSetup
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
-  override def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = {
+  override def getBankAccounts(username: String): Box[List[InboundAccountJun2017]] = {
     Full(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
