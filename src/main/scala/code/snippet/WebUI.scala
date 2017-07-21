@@ -52,7 +52,7 @@ class WebUI extends MdcLoggable{
   // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
   def cookieConsent = {
     var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
-    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
+    val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
     val button  = scala.xml.Unparsed(s"""$buttonString""")
     "#clickMe" #> button
   }
@@ -82,7 +82,6 @@ class WebUI extends MdcLoggable{
     "img [src]" #> Props.get("webui_header_logo_right_url", "")
   }
 
-
   def footer2LogoLeft = {
     "img [src]" #> Props.get("webui_footer2_logo_left_url", "")
   }
@@ -90,7 +89,6 @@ class WebUI extends MdcLoggable{
   def footer2MiddleText: CssSel = {
     "#footer2-middle-text *" #> scala.xml.Unparsed(Props.get("webui_footer2_middle_text", ""))
   }
-
 
   def aboutBackground: CssSel = {
     "#main-about [style]" #> ("background-image: url(" + Props.get("webui_index_page_about_section_background_image_url", "") + ");")

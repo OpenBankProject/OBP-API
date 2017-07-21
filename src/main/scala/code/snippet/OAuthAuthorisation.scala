@@ -81,7 +81,7 @@ object OAuthAuthorisation {
 
     def error(msg: String): CssSel = {
       ErrorMessageSel #> S.?(msg) &
-        "#userAccess" #> NodeSeq.Empty &
+        "#authorise-token-success" #> NodeSeq.Empty &
         VerifierBlocSel #> NodeSeq.Empty
     }
 

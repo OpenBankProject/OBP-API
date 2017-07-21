@@ -24,191 +24,121 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
   by
   Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+  Sebastian Henschel : sebastian AT tesobe DOT com
 -->
+<div id="register-consumer" data-lift="surround?with=default;at=content">
+	<div data-lift="ConsumerRegistration.registerForm">
+		<h1>Register your consumer</h1>
 
-<div id="main" class="lift:surround?with=default;at=content">
-	<div id="registerAppSection" class="lift:ConsumerRegistration.registerForm">
-		<div class="registration account-in-content">
-		    <h1 class="register-header">Register your application</h1>
-			<div id="registration-errors">
+		<div id="register-consumer-input">
+			<div id="register-consumer-explanation">Please complete the information about your application below, so we can create your OAuth consumer key and secret.</div>
+
+			<div id="register-consumer-errors" class="alert alert-danger">
 				<div class="error">
 					<span class="errorContent"></span>
 				</div>
 			</div>
-			<form class="register" method="post">
-        Please complete the information below so we can create your OAuth token and secret key.
-        <div class="form-column">
-            <div>
-            <label for="appType">Application Type</label>
-            <select name="app-type" id="appType" class="appTypeClass">
-                <option class="app-type-option"></option>
-            </select>
-            </div>
-            <div>
-            <label for="appName">Application Name</label>
-            <input type="text" name="app-name" id="appName" class="appNameClass">
-            </div>
-            <div>
-                <label for="appRedirectUrl">Redirect URL</label>
-                <input type="text" name="app-redirect-url" id="appRedirectUrl" class="appRedirectUrlClass">
-            </div>
-            <!--Note for the commented div : 719aa7fd 04/10/15 Stefan. Hongwei just reformatted the code -->
-             <!--<div>-->
-            <!--<label for="appUserAuthenticationUrl">Authentication URL</label>-->
-            <!--<input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl" class="appUserAuthenticationUrlClass" >-->
-            <!--<img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page."-->
-                 <!--alt="more info" class="moreInfoIcon"/>-->
-            <!--</div>-->
-            <div>
-            <label for="appDev">Developer Email</label>
-            <input type="text" name="app-developer" id="appDev" class="appDevClass">
-            </div>
-        </div>
-        <div class="form-column">
-            <div>
-                <label for="appDesc">Description of the application</label>
-                <textarea rows="4" name="app-description" id="appDesc" class="appDescClass"></textarea>
-            </div>
-            <div class="submit">
-                <input type="submit" value="Send" />
-            </div>
-        </div>
+
+			<form method="post">
+				<div class="row">
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="appType">Application Type</label>
+							<select name="app-type" id="appType" class="form-control">
+								<option class="app-type-option"></option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="appName">Application Name</label>
+							<input type="text" name="app-name" id="appName" class="form-control">
+						</div>
+						<div class="form-group">
+							<label for="appRedirectUrl">Redirect URL</label>
+							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control">
+						</div>
+						<!--Note for the commented div : 719aa7fd 04/10/15 Stefan. Hongwei just reformatted the code -->
+						 <!--<div class="form-group">-->
+						<!--<label for="appUserAuthenticationUrl">Authentication URL</label>-->
+						<!--<input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl" class="form-control" >-->
+						<!--<img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page." alt="more info" class="more-info-icon"/>-->
+						<!--</div>-->
+						<div class="form-group">
+							<label for="appDev">Developer Email</label>
+							<input type="text" name="app-developer" id="appDev" class="form-control">
+						</div>
+					</div>
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="appDesc">Description of the application</label>
+							<textarea rows="4" name="app-description" id="appDesc" class="form-control"></textarea>
+						</div>
+					</div>
+				</div>
+				<input type="submit" value="Register consumer" class="btn btn-default" />
 			</form>
-	    </div>
-        <div class="success">
-            <h1 class="success-message"></h1>
-            <table>
-                <tbody>
-                    <tr>
-                        <td colspan="2" >
-                            Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Consumer ID</label>
-                        </td>
-                        <td>
-                            <span class="app-consumer_id">123</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Application Type</label>
-                        </td>
-                        <td>
-                            <span class="app-type">web</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Application Name
-                        </td>
-                        <td>
-                            <span class="app-name">ABC</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            User redirect URL
-                        </td>
-                        <td>
-                            <span class="app-redirect-url">ABC</span>
-                        </td>
-                    </tr>
-                    <!-- <tr>
-                        <td>
-                            User authentication URL
-                        </td>
-                        <td>
-                            <span class="app-user-authentication-url">ABC</span>
-                        </td>
-                    </tr>
-                    -->
-                    <tr>
-                        <td>
-                            Developer Email
-                        </td>
-                        <td>
-                            <span class="app-developer">abc@example.com</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            App Description
-                        </td>
-                        <td>
-                            <span class="app-description">ABCDEF</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Consumer Key
-                        </td>
-                        <td>
-                            <span class="auth-key">23432432432432</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Consumer Secret
-                        </td>
-                        <td>
-                            <span class="secret-key">3334543543543</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            OAuth Endpoint
-                        </td>
-                        <td>
-							<span class="oauth-endpoint"><a href="#">endpoint</a></span><br />
-                        </td>
-                    </tr>
+		</div>
 
-                    <tr>
-                        <td>
-                            OAuth Documentation
-                        </td>
-                        <td>
-                            <a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">How to use OAuth for OpenBankProject</a>
-                        </td>
-                    </tr>
-
-
-
-                    <tr>
-                        <td>
-                            Direct Login Endpoint
-                        </td>
-                        <td>
-                            <span class="directlogin-endpoint"><a href="#">endpoint</a></span><br />
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <td>
-                            Direct Login Documentation
-                        </td>
-                        <td>
-                            <a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">How to use Direct Login</a>
-                        </td>
-                    </tr>
-                    <tr>
-
-                        <td>
-                            &nbsp;
-                        </td>
-
-                        <td>
-                            <span class="post-consumer-registration-more-info-link"><a href="#"></a></span><br />
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+		<div id="register-consumer-success">
+			<p>Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.</p>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Consumer ID</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-consumer_id">123</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Application Type</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-type">web</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Application Name</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-name">ABC</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">User redirect URL</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-redirect-url">ABC</span></div>
+			</div>
+			<!--
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">User authentication URL</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-user-authentication-url">ABC</span></div>
+			</div>
+			-->
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Developer Email</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-developer">abc@example.com</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">App Description</div>
+				<div class="col-xs-12 col-sm-8"><span id="app-description">ABCDEF</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Consumer Key</div>
+				<div class="col-xs-12 col-sm-8"><span id="auth-key">23432432432432</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Consumer Secret</div>
+				<div class="col-xs-12 col-sm-8"><span id="secret-key">3334543543543</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">OAuth Endpoint</div>
+				<div class="col-xs-12 col-sm-8"><span id="oauth-endpoint"><a href="#">endpoint</a></span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">OAuth Documentation</div>
+				<div class="col-xs-12 col-sm-8"><a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">How to use OAuth for OpenBankProject</a></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Direct Login Endpoint</div>
+				<div class="col-xs-12 col-sm-8"><span id="directlogin-endpoint"><a href="#">endpoint</a></span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Direct Login Documentation</div>
+				<div class="col-xs-12 col-sm-8"><a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">How to use Direct Login</a>
+</div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4"></div>
+				<div class="col-xs-12 col-sm-8"><span id="post-consumer-registration-more-info-link"><a href="#"></a></span></div>
+			</div>
+		</div><!-- success -->
+	</div>
 </div>

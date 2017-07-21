@@ -1,50 +1,40 @@
-<div id="main" class="lift:surround?with=default;at=content">
-    <!-- Valid Token -->
-    <div class="lift:OAuthAuthorisation.tokenCheck" id="authorizeSection">
-        <div id="userAccess">
-            <div class="account account-in-content">
-                <div class="login-error">Incorrect username or password</div>
+<div id="authorise" data-lift="surround?with=default;at=content">
+	<div data-lift="OAuthAuthorisation.tokenCheck">
+		<div class="authorise-token-success">
+			<div class="login-error">Incorrect username or password</div>
+			<div data-lift="Login.customiseLogin">
+				<div id="login-special-instructions">Special Instructions</div>
 
-                The application <span id="applicationName"> web app </span> is
-                asking for access to your account data.
-                <!-- LOGGED OUT -->
-                <div data-lift="Login.customiseLogin">
-                    <link href="/media/css/responsive_login.css" rel="stylesheet" property="stylesheet" type="text/css" />
-                    <form class="login" action="/user_mgt/login" method="post">
-                        <div data-lift="Login.openIdConnectScripts" class="openid_scripts" id="openid_scripts"></div>
-                        <div class="login_special_instructions" id="login_special_instructions">Special Instructions</div>
-                        <div class="field username">
-                            <input class="username" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
-                        </div>
-                        <div class="field password">
-                            <input class="password" type="password" placeholder="Password"  name="password" tabindex=2 autocomplete="off"/>
-                        </div>
-                        <div id="recoverPasswordLink" class="field password" style="height: 1em;">
-                            <a href="/user_mgt/lost_password" class="forgot" tabindex=3>Forgot your password?</a>
-                        </div>
-                        <div class="field buttons">
-                            <div class="button button-field">
-                                <input class="submit" type="submit" value="Login" tabindex=4 name="submitButton"/>
-                            </div>
-                            <div id="SignUpLink" class="button button-field" style="margin-left: auto;">
-                                <a href="/user_mgt/sign_up" class="signup" tabindex=6>Register</a>
-                            </div>
-                        </div>
-                    </form>
-                    <div data-lift="Login.openIdConnectButton">
-                        <div class="field buttons">
-                            <div class="button button-field">
-                                <div class="openid_button" id="openid_button"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="verifierBloc">
-            <div>Please go back to the application where you come from and enter the following code: </div>
-            <div id="verifier">123123213</div>
-        </div>
-        <div id="errorMessage">Error message</div>
-    </div>
+				<h1>The application <span id="applicationName">app</span> is asking for access to your data.</h1>
+
+				<form class="login" action="/user_mgt/login" method="post">
+					<div data-lift="Login.openIdConnectScripts" id="openid_scripts"></div>
+					<div class="form-group">
+						<input class="form-control" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
+					</div>
+					<div class="form-group">
+						<input class="form-control" type="password" placeholder="Password"	name="password" tabindex=2 autocomplete="off"/>
+					</div>
+					<div class="row">
+						<div class="col-xs-6">
+							<input class="btn btn-default" type="submit" value="Login" tabindex="3" />
+						</div>
+						<div class="col-xs-6">
+							<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="4">Sign up</a>
+						</div>
+					</div>
+					<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
+				</form>
+				<div data-lift="Login.openIdConnectButton">
+					<div id="openid_button"></div>
+				</div>
+			</div>
+
+			<div id="verifierBloc">
+				<div>Please go back to the application where you come from and enter the following code: </div>
+				<div id="verifier">123123213</div>
+			</div>
+		</div>
+		<div id="errorMessage">Error message</div>
+	</div>
 </div>

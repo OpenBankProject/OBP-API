@@ -50,21 +50,22 @@ object CreateTestAccountForm{
   def showSuccess(createdAccount : BankAccount) : JsCmd = {
     hideErrorMessage &
     showSuccessMessage &
-    SetHtml("created-account-id", <span>{createdAccount.accountId.value}</span>) &
-    SetHtml("created-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
-    SetHtml("created-account-initial-balance", <span>{createdAccount.balance}</span>) &
-    SetHtml("created-account-currency", <span>{createdAccount.currency}</span>)
+    SetHtml("create-account-id", <span>{createdAccount.accountId.value}</span>) &
+    SetHtml("create-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
+    SetHtml("create-account-initial-balance", <span>{createdAccount.balance}</span>) &
+    SetHtml("create-account-currency", <span>{createdAccount.currency}</span>)
   }
 
   def showError(msg : String) : JsCmd = {
     hideSuccessMessage &
-    showErrorMessage(msg)
+    showErrorMessage &
+    SetHtml("create-account-error", <span>{msg}</span>)
   }
 
-  private val hideErrorMessage = SetHtml("create-account-error-message", NodeSeq.Empty)
-  private val showSuccessMessage = Show("account-created-successfully")
-  private val hideSuccessMessage = Hide("account-created-successfully")
-  private def showErrorMessage(msg : String) = SetHtml("create-account-error-message", <span>{msg}</span>)
+  private val showSuccessMessage = Show("create-account-success")
+  private val hideSuccessMessage = Hide("create-account-success")
+  private def showErrorMessage = Show("create-account-error")
+  private val hideErrorMessage = Hide("create-account-error")
 
   /**
    * Attempts to create a new account, based on form params
