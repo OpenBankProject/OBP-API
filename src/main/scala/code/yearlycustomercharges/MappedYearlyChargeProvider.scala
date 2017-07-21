@@ -3,7 +3,7 @@ package code.yearlycustomercharges
 import code.model.{CustomerId, BankId}
 
 
-import code.util.DefaultStringField
+import code.util.{UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -23,8 +23,8 @@ class MappedYearlyCharge extends YearlyCharge with LongKeyedMapper[MappedYearlyC
 
   override def getSingleton = MappedYearlyCharge
 
-  object bankId_ extends DefaultStringField(this)
-  object customerId_ extends DefaultStringField(this)
+  object bankId_ extends UUIDString(this)
+  object customerId_ extends UUIDString(this)
 
   object year_ extends MappedInt(this)
 
@@ -37,18 +37,18 @@ class MappedYearlyCharge extends YearlyCharge with LongKeyedMapper[MappedYearlyC
   //  override def getSingleton = MappedYearlyCustomerCharge
   //
  // WIP
-  //  object mCustomerNumber extends DefaultStringField(this)
+  //  object mCustomerNumber extends MappedString(this,123)
   //
   //  object mYear extends MappedInt(this)
   //
-  //  object mCategoryId extends DefaultStringField(this)
-  //  object mForcastIndictor extends DefaultStringField(this)
-  //  object mTypeId extends DefaultStringField(this)
-  //  object mNatureId extends DefaultStringField(this)
+  //  object mCategoryId extends UUIDString(this)
+  //  object mForcastIndictor extends MappedString(this,123)
+  //  object mTypeId extends MappedString(this,123)
+  //  object mNatureId extends UUIDString(this)
   //
   //
-  //  object mCharge_Currency extends DefaultStringField(this)
-  //  object mCharge_Amount extends DefaultStringField(this)
+  //  object mCharge_Currency extends MappedString(this,3)
+  //  object mCharge_Amount extends MappedString(this,32)
   //
   //  object mUpdateDate extends MappedDateTime(this)
   //

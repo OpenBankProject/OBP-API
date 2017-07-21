@@ -277,12 +277,12 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
-  object publicAlias extends DefaultStringField(this)
-  object privateAlias extends DefaultStringField(this)
-  object moreInfo extends DefaultStringField(this)
-  object url extends DefaultStringField(this)
-  object imageUrl extends DefaultStringField(this)
-  object openCorporatesUrl extends DefaultStringField(this)
+  object publicAlias extends MappedString(this, 64)
+  object privateAlias extends MappedString(this, 64)
+  object moreInfo extends MappedString(this, 255)
+  object url extends MappedString(this, 2000)
+  object imageUrl extends MappedString(this, 2000)
+  object openCorporatesUrl extends MappedString(this, 2000)
 
   object physicalLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)
   object corporateLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)

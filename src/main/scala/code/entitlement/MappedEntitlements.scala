@@ -1,7 +1,7 @@
 package code.entitlement
 
 
-import code.util.{UUIDString, DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 

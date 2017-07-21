@@ -3,7 +3,7 @@ package code.atms
 import code.atms.Atms._
 import code.common.{Address, License, Location, Meta}
 import code.model.BankId
-import code.util.{MediumString, UUIDString, DefaultStringField}
+import code.util.{MediumString, UUIDString}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {

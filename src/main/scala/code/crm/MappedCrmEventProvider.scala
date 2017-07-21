@@ -9,7 +9,7 @@ import code.model.BankId
 import code.common.{Address, License, Location, Meta}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{UUIDString, DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import org.joda.time.Hours

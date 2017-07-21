@@ -5,7 +5,7 @@ import code.model.BankId
 
 import code.common.{Address, License, Location, Meta}
 
-import code.util.{TwentyFourHourClockString, TwentyFourHourClockString$, UUIDString, DefaultStringField}
+import code.util.{TwentyFourHourClockString, UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import org.joda.time.Hours
@@ -224,9 +224,9 @@ Else could store a link to this with each open data record - or via config for e
 //class MappedLicense extends License with LongKeyedMapper[MappedLicense] with IdPK {
 //  override def getSingleton = MappedLicense
 //
-//  object mBankId extends DefaultStringField(this)
-//  object mName extends DefaultStringField(this)
-//  object mUrl extends DefaultStringField(this)
+//  object mBankId extends UUIDString(this)
+//  object mName extends MappedString(this, 123)
+//  object mUrl extends MappedString(this, 2000)
 //
 //  override def name: String = mName.get
 //  override def url: String = mUrl.get

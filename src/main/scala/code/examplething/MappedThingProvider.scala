@@ -4,7 +4,7 @@ package code.examplething
 import code.model.BankId
 
 
-import code.util.DefaultStringField
+import code.util.{UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -24,13 +24,13 @@ class MappedThing extends Thing with LongKeyedMapper[MappedThing] with IdPK {
 
   override def getSingleton = MappedThing
 
-  object bankId_ extends DefaultStringField(this)
-  object name_ extends DefaultStringField(this)
+  object bankId_ extends UUIDString(this)
+  object name_ extends MappedString(this, 255)
 
-  object thingId_ extends DefaultStringField(this)
+  object thingId_ extends MappedString(this, 255)
 
-  object fooSomething_ extends DefaultStringField(this)
-  object barSomething_ extends DefaultStringField(this)
+  object fooSomething_ extends MappedString(this, 255)
+  object barSomething_ extends MappedString(this, 255)
 
   override def thingId: ThingId = ThingId(thingId_.get)
   override def something: String = name_.get

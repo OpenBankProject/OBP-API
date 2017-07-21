@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.ResourceUser
-import code.util.{UUIDString, DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.mapper._
 
 object MappedCustomerMessageProvider extends CustomerMessageProvider {

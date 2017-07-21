@@ -3,7 +3,7 @@ package code.metrics
 import java.util.Date
 
 import code.bankconnectors._
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{MappedUUID}
 import net.liftweb.mapper._
 
 object ConnectorMetrics extends ConnectorMetricsProvider {
@@ -45,8 +45,8 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
 class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedConnectorMetric] with IdPK {
   override def getSingleton = MappedConnectorMetric
 
-  object connectorName extends DefaultStringField(this)
-  object functionName extends DefaultStringField(this)
+  object connectorName extends MappedString(this, 64) // TODO Enforce max lenght of this when we get the Props connector
+  object functionName extends MappedString(this, 64)
   object correlationId extends MappedUUID(this)
   object date extends MappedDateTime(this)
   object duration extends MappedLong(this)

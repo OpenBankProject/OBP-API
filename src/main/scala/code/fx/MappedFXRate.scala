@@ -3,7 +3,7 @@ package code.fx
 import java.util.Date
 
 import code.model.BankId
-import code.util.{UUIDString, DefaultStringField}
+import code.util.{UUIDString}
 import net.liftweb.mapper.{MappedStringForeignKey, _}
 
 class MappedFXRate extends FXRate with LongKeyedMapper[MappedFXRate] with IdPK {
