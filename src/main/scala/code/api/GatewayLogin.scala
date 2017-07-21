@@ -69,7 +69,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val json = JSONFactoryGateway.TokenJSON(
       username = username,
       is_first = None,
-      CBS_auth_token = None,
+      CBS_auth_token = Some("Not implemented"),
       timestamp = timestamp,
       consumer_id = consumerId,
       consumer_name = consumerName
@@ -151,13 +151,22 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwt, "username")
     logger.debug("username: " + username)
     communicateWithCbs(jwt) match {
-      case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") =>
+      case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
         logger.debug("There is no need to call CBS")
-        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username)
-      case Full(s) if getErrors(s).length == 0 =>
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
+          case Full(u) => // Only valid case because we expect to find a user
+            Full(u)
+          case Empty =>
+            Failure("User cannot be found. Please initiate CBS communication in order to crete it.")
+          case Failure(msg, _, _) =>
+            Failure(msg)
+          case _ =>
+            Failure(ErrorMessages.GatewayLoginUnknownError)
+        }
+      case Full(s) if getErrors(s).length == 0 => // CBS returned response without any error
         logger.debug("CBS returned proper response")
-        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or {
-          Users.users.vend.createResourceUser(
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
+          Users.users.vend.createResourceUser( // Otherwise create a new one
             provider = gateway,
             providerId = Some(username),
             name = Some(username),
