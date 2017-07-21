@@ -14,7 +14,7 @@ case class InboundCBSAuthToken(
   token: String
 ) extends InboundMessageBase 
 
-case class InboundAccountJune2017(
+case class InboundAccountJun2017(
                                    errorCode: String,
                                    bankId: String,
                                    branchId: String,
@@ -33,7 +33,7 @@ case class InboundAccountJune2017(
                                    accountRoutingAddress:String
                                  ) extends InboundMessageBase with InboundAccountCommon
 
-case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
+case class BankAccountJun2017(r: InboundAccountJun2017) extends BankAccount {
 
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.accountType

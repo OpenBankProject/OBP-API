@@ -200,8 +200,8 @@ object MockedCardConnector extends ServerSetup
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
   override def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = {
-    Full(InboundAccountJune2017(
-      errorCode = "OBPS-001: .... ",
+    Full(InboundAccountJun2017(
+      errorCode = "OBP-6001: ...",
       bankId = bankIdAccountId.bankId.value,
       branchId = "222",
       accountId = bankIdAccountId.accountId.value,
@@ -217,8 +217,8 @@ object MockedCardConnector extends ServerSetup
       branchRoutingAddress = " branchRoutingAddress",
       accountRoutingScheme = "accountRoutingScheme",
       accountRoutingAddress = "accountRoutingAddress"
-    ) :: InboundAccountJune2017(
-      errorCode = "OBPS-001: .... ",
+    ) :: InboundAccountJun2017(
+      errorCode = "OBP-6001: ...",
       bankId = bankIdAccountId2.bankId.value,
       branchId = "222",
       accountId = bankIdAccountId2.accountId.value,
