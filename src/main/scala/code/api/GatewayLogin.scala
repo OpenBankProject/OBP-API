@@ -61,12 +61,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
 
   def createJwt(payloadAsJsonString: String) : String = {
-    val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
-    val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
-    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field username and remove quotation
-    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field username and remove quotation
-    val isFirst = compact(render(jwtJson.\\("is_first"))).replace("\"", "") // Extract value from field username and remove quotation
-    val timestamp = compact(render(jwtJson.\\("timestamp"))).replace("\"", "") // Extract value from field username and remove quotation
+    val username = getFieldFromPayloadJson(payloadAsJsonString, "username")
+    val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "consumer_id")
+    val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "consumer_name")
+    val isFirst = getFieldFromPayloadJson(payloadAsJsonString, "is_first")
+    val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "timestamp")
     val json = JSONFactoryGateway.TokenJSON(
       username = username,
       is_first = None,
@@ -119,7 +118,6 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case _ => {
         // Are all the necessary GatewayLogin parameters present?
         val missingParams: Set[String] = missingGatewayLoginParameters(parameters)
-        logger.error("missingParams : " + missingParams)
         missingParams.nonEmpty match {
           case true => {
             val message = ErrorMessages.GatewayLoginMissingParameters + missingParams.mkString(", ")
@@ -135,26 +133,53 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
+  def communicateWithCbs(jwt: String) : Box[String] = {
+    val isFirst = getFieldFromPayloadJson(jwt, "is_first")
+    val cbsAuthToken = getFieldFromPayloadJson(jwt, "CBS_auth_token")
+    logger.debug("isFirst : " + isFirst)
+    logger.debug("cbsAuthToken : " + cbsAuthToken)
+    if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
+      // Call CBS
+      Empty
+    } else {
+      // Do not call CBS
+      Full("There is no need to call CBS")
+    }
+  }
+
   def getOrCreateResourceUser(jwt: String) : Box[User] = {
-    val jwtJson = parse(jwt) // Transform Json string to JsonAST
-    val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
+    val username = getFieldFromPayloadJson(jwt, "username")
     logger.debug("username: " + username)
-    Users.users.vend.getUserByProviderId(provider = "Gateway", idGivenByProvider = username).or {
-      Users.users.vend.createResourceUser(
-        provider = gateway,
-        providerId = Some(username),
-        name = Some(username),
-        email = None,
-        userId = None
-      )
+    communicateWithCbs(jwt) match {
+      case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") =>
+        logger.debug("There is no need to call CBS")
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username)
+      case Full(s) if getErrors(s).length == 0 =>
+        logger.debug("CBS returned proper response")
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or {
+          Users.users.vend.createResourceUser(
+            provider = gateway,
+            providerId = Some(username),
+            name = Some(username),
+            email = None,
+            userId = None
+          )
+        }
+      case Full(s) if getErrors(s).length > 0 =>
+        logger.debug("CBS returned some errors")
+        Failure(getErrors(s).mkString(", "))
+      case Empty =>
+        logger.debug("Call of CBS is not implemented")
+        Failure("Call of CBS is not implemented")
+      case Failure(msg, _, _) =>
+        Failure(msg)
     }
   }
 
   def getOrCreateConsumer(jwt: String, u: User) : Box[Consumer] = {
-    val jwtJson = parse(jwt) // Transform Json string to JsonAST
-    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field username and remove quotation
+    val consumerId = getFieldFromPayloadJson(jwt, "consumer_id")
+    val consumerName = getFieldFromPayloadJson(jwt, "consumer_name")
     logger.debug("consumer_id: " + consumerId)
-    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field username and remove quotation
     logger.debug("consumerName: " + consumerName)
     Consumers.consumers.vend.getOrCreateConsumer(
       consumerId=Some(consumerId),
@@ -222,6 +247,17 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     token
   }
 
+  private def getFieldFromPayloadJson(payloadAsJsonString: String, fieldName: String) = {
+    val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
+    compact(render(jwtJson.\\(fieldName))).replace("\"", "")
+  }
+
+  private def getErrors(message: String) : List[String] = {
+    for {
+      JArray(errorCodes) <- parse(message) \\ "errorCode"
+      JField("errorCode", JString(error)) <- errorCodes
+    } yield error
+  }
 
 
 }
