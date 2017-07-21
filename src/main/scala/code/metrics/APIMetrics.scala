@@ -66,7 +66,7 @@ trait APIMetrics {
       "TODO: developerEmail",
       "TODO: consumerId" ,
       "TODO: implementedByPartialFunction" ,
-      "TODO: implementedInVersion" ,
+      "TODO: i.i.v",
       "TODO: verb",
       correlationId)
   }
