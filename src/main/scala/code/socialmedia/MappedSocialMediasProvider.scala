@@ -2,7 +2,7 @@ package code.socialmedia
 
 import java.util.Date
 import code.model.dataAccess.ResourceUser
-import code.util.{DefaultStringField}
+import code.util.{UUIDString}
 import net.liftweb.mapper._
 
 object MappedSocialMediasProvider extends SocialMediaHandleProvider {
@@ -31,11 +31,11 @@ with LongKeyedMapper[MappedSocialMedia] with IdPK with CreatedUpdated {
   def getSingleton = MappedSocialMedia
 
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object bank extends DefaultStringField(this)
+  object bank extends UUIDString(this)
 
-  object mCustomerNumber extends DefaultStringField(this)
-  object mType extends DefaultStringField(this)
-  object mHandle extends DefaultStringField(this)
+  object mCustomerNumber extends MappedString(this, 64)
+  object mType extends MappedString(this, 16)
+  object mHandle extends MappedString(this, 64)
   object mDateAdded extends MappedDateTime(this)
   object mDateActivated extends MappedDateTime(this)
 

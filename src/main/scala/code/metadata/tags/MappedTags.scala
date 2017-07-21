@@ -54,7 +54,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
   object tagId extends MappedUUID(this)
 
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object tag extends DefaultStringField(this)
+  object tag extends MappedString(this, 64)
   object date extends MappedDateTime(this)
 
   override def id_ : String = tagId.get

@@ -1,29 +1,21 @@
 package code.transactionrequests
 
-import code.util.DefaultStringField
+import code.util.{UUIDString}
 import net.liftweb.mapper._
 
 class MappedTransactionRequestTypeCharge extends TransactionRequestTypeCharge with LongKeyedMapper[MappedTransactionRequestTypeCharge] with IdPK with CreatedUpdated{
   def getSingleton = MappedTransactionRequestTypeCharge
 
-  object mTransactionRequestTypeId extends DefaultStringField(this)
-
-  object mBankId extends DefaultStringField(this)
-
-  object mChargeCurrency extends DefaultStringField(this)
-
-  object mChargeAmount extends DefaultStringField(this)
-
-  object mChargeSummary extends DefaultStringField(this)
+  object mTransactionRequestTypeId extends UUIDString(this) // Add class for this
+  object mBankId extends UUIDString(this)
+  object mChargeCurrency extends MappedString(this, 3)
+  object mChargeAmount extends MappedString(this, 32)
+  object mChargeSummary extends MappedString(this, 255)
 
   override def transactionRequestTypeId: String = mTransactionRequestTypeId.get
-
   override def bankId: String = mBankId.get
-
   override def chargeCurrency: String = mChargeCurrency.get
-  
   override def chargeAmount: String = mChargeAmount.get
-
   override def chargeSummary: String = mChargeSummary.get
   
 }

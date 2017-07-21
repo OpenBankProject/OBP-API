@@ -3,7 +3,7 @@ package code.kycstatuses
 import java.util.Date
 
 import code.model.dataAccess.ResourceUser
-import code.util.{UUIDString, DefaultStringField}
+import code.util.{UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
 
@@ -46,7 +46,7 @@ with LongKeyedMapper[MappedKycStatus] with IdPK with CreatedUpdated {
   object mBankId extends UUIDString(this)
   object mCustomerId extends UUIDString(this)
 
-  object mCustomerNumber extends DefaultStringField(this)
+  object mCustomerNumber extends MappedString(this, 64)
   object mOk extends MappedBoolean(this)
   object mDate extends MappedDateTime(this)
 

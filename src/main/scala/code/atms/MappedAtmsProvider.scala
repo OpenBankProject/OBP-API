@@ -3,7 +3,7 @@ package code.atms
 import code.atms.Atms._
 import code.common.{Address, License, Location, Meta}
 import code.model.BankId
-import code.util.{MediumString, UUIDString, DefaultStringField}
+import code.util.{MediumString, UUIDString}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
@@ -23,25 +23,25 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   override def getSingleton = MappedAtm
 
   object mBankId extends UUIDString(this)
-  object mName extends DefaultStringField(this)
+  object mName extends MappedString(this, 255)
 
   object mAtmId extends UUIDString(this)
 
   // Exposed inside address. See below
-  object mLine1 extends DefaultStringField(this)
-  object mLine2 extends DefaultStringField(this)
-  object mLine3 extends DefaultStringField(this)
-  object mCity extends DefaultStringField(this)
-  object mCounty extends DefaultStringField(this)
-  object mState extends DefaultStringField(this)
+  object mLine1 extends MappedString(this, 255)
+  object mLine2 extends MappedString(this, 255)
+  object mLine3 extends MappedString(this, 255)
+  object mCity extends MappedString(this, 255)
+  object mCounty extends MappedString(this, 255)
+  object mState extends MappedString(this, 255)
   object mCountryCode extends MappedString(this, 2)
-  object mPostCode extends DefaultStringField(this)
+  object mPostCode extends MappedString(this, 20)
 
   object mlocationLatitude extends MappedDouble(this)
   object mlocationLongitude extends MappedDouble(this)
 
   // Exposed inside meta.license See below
-  object mLicenseId extends MediumString(this)
+  object mLicenseId extends UUIDString(this)
   object mLicenseName extends MappedString(this, 255)
 
 

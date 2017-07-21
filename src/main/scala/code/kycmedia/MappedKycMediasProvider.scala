@@ -2,7 +2,7 @@ package code.kycmedias
 
 import java.util.Date
 
-import code.util.{UUIDString, DefaultStringField}
+import code.util.{UUIDString}
 import net.liftweb.common.{Box,Full}
 import net.liftweb.mapper._
 
@@ -55,10 +55,10 @@ with LongKeyedMapper[MappedKycMedia] with IdPK with CreatedUpdated {
   object mId extends UUIDString(this)
   object mCustomerNumber extends UUIDString(this)
   object mType extends MappedString(this, 50)
-  object mUrl extends MappedString(this, 255)
+  object mUrl extends MappedString(this, 255) // Long enough for a URL ? 2000 might be safer
   object mDate extends MappedDateTime(this)
-  object mRelatesToKycDocumentId extends DefaultStringField(this)
-  object mRelatesToKycCheckId extends DefaultStringField(this)
+  object mRelatesToKycDocumentId extends MappedString(this, 255)
+  object mRelatesToKycCheckId extends MappedString(this, 255)
 
 
   override def bankId: String = mBankId.get

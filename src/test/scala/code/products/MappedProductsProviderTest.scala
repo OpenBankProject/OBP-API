@@ -3,7 +3,6 @@ package code.products
 import code.products.Products.Product
 import code.model.BankId
 import code.setup.ServerSetup
-import code.util.DefaultStringField
 import net.liftweb.mapper.By
 
 class MappedProductsProviderTest extends ServerSetup {

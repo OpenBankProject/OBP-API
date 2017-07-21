@@ -116,7 +116,7 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
-  override def updateConsumer(consumerId: Long,
+  override def updateConsumer(id: Long,
                               key: Option[String],
                               secret: Option[String],
                               isActive: Option[Boolean],
@@ -126,7 +126,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                               developerEmail: Option[String],
                               redirectURL: Option[String],
                               createdByUserId: Option[String]): Box[Consumer] = {
-    val consumer = Consumer.find(By(Consumer.id, consumerId))
+    val consumer = Consumer.find(By(Consumer.id, id))
     consumer match {
       case Full(c) => tryo {
         key match {
@@ -181,20 +181,54 @@ object MappedConsumersProvider extends ConsumersProvider {
                                    developerEmail: Option[String],
                                    redirectURL: Option[String],
                                    createdByUserId: Option[String]): Box[Consumer] = {
-    consumerId match {
-      case Some(id) =>
-        Consumer.find(By(Consumer.consumerId, id))
-      case None =>
-        createConsumer(key = key,
-          secret = secret,
-          isActive = isActive,
-          name = name,
-          appType = appType,
-          description = description,
-          developerEmail = developerEmail,
-          redirectURL = redirectURL,
-          createdByUserId = createdByUserId
-        )
+
+    Consumer.find(By(Consumer.consumerId, consumerId.getOrElse(Helpers.randomString(40)))) match {
+      case Full(c) => Full(c)
+      case Empty =>
+        tryo {
+          val c = Consumer.create
+          key match {
+            case Some(v) => c.key(v)
+            case None =>
+          }
+          secret match {
+            case Some(v) => c.secret(v)
+            case None =>
+          }
+          isActive match {
+            case Some(v) => c.isActive(v)
+            case None =>
+          }
+          name match {
+            case Some(v) => c.name(v)
+            case None =>
+          }
+          appType match {
+            case Some(v) => c.appType(v)
+            case None =>
+          }
+          description match {
+            case Some(v) => c.description(v)
+            case None =>
+          }
+          developerEmail match {
+            case Some(v) => c.developerEmail(v)
+            case None =>
+          }
+          redirectURL match {
+            case Some(v) => c.redirectURL(v)
+            case None =>
+          }
+          createdByUserId match {
+            case Some(v) => c.createdByUserId(v)
+            case None =>
+          }
+          consumerId match {
+            case Some(v) => c.consumerId(v)
+            case None =>
+          }
+          c.saveMe()
+        }
     }
   }
 

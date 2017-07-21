@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.ResourceUser
-import code.util.{MappedUUID, DefaultStringField}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -65,18 +65,18 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
   object mMeetingId extends MappedUUID(this)
 
   // With
-  object mBankId extends DefaultStringField(this)
+  object mBankId extends UUIDString(this)
   object mCustomerUserId extends MappedLongForeignKey(this, ResourceUser)
   object mStaffUserId extends MappedLongForeignKey(this, ResourceUser)
 
   // What
-  object mProviderId extends DefaultStringField(this)
-  object mPurposeId extends DefaultStringField(this)
+  object mProviderId extends MappedString(this, 64)
+  object mPurposeId extends MappedString(this, 64)
 
   // Keys to the "meeting room"
-  object mSessionId extends DefaultStringField(this)
-  object mCustomerToken extends DefaultStringField(this)
-  object mStaffToken extends DefaultStringField(this)
+  object mSessionId extends MappedString(this, 255)
+  object mCustomerToken extends MappedString(this, 255)
+  object mStaffToken extends MappedString(this, 255)
 
   object mWhen extends MappedDateTime(this)
 

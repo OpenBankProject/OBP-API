@@ -1,7 +1,7 @@
 package code.usercustomerlinks
 
 import java.util.Date
-import code.util.{UUIDString, DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
