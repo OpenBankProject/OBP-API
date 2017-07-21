@@ -63,10 +63,10 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def createJwt(payloadAsJsonString: String) : String = {
     val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
     val username = compact(render(jwtJson.\\("username"))).replace("\"", "") // Extract value from field username and remove quotation
-    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field username and remove quotation
-    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field username and remove quotation
-    val isFirst = compact(render(jwtJson.\\("is_first"))).replace("\"", "") // Extract value from field username and remove quotation
-    val timestamp = compact(render(jwtJson.\\("timestamp"))).replace("\"", "") // Extract value from field username and remove quotation
+    val consumerId = compact(render(jwtJson.\\("consumer_id"))).replace("\"", "") // Extract value from field consumer_id and remove quotation
+    val consumerName = compact(render(jwtJson.\\("consumer_name"))).replace("\"", "") // Extract value from field consumer_name and remove quotation
+    val isFirst = compact(render(jwtJson.\\("is_first"))).replace("\"", "") // Extract value from field and is_first remove quotation
+    val timestamp = compact(render(jwtJson.\\("timestamp"))).replace("\"", "") // Extract value from field timestamp and remove quotation
     val json = JSONFactoryGateway.TokenJSON(
       username = username,
       is_first = None,
