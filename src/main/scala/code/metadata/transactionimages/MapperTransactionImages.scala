@@ -2,10 +2,11 @@ package code.metadata.transactionimages
 
 import java.net.URL
 import java.util.Date
+
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{UUIDString, AccountIdString, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -52,17 +53,17 @@ object MapperTransactionImages extends TransactionImages {
 class MappedTransactionImage extends TransactionImage with LongKeyedMapper[MappedTransactionImage] with IdPK with CreatedUpdated {
   def getSingleton = MappedTransactionImage
 
-  object bank extends MappedString(this, 255)
-  object account extends MappedString(this, 255)
-  object transaction extends MappedString(this, 255)
-  object view extends MappedString(this, 255)
+  object bank extends UUIDString(this)
+  object account extends AccountIdString(this)
+  object transaction extends UUIDString(this)
+  object view extends UUIDString(this)
 
   object imageId extends MappedUUID(this)
   object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
 
-  object url extends DefaultStringField(this)
-  object imageDescription extends DefaultStringField(this)
+  object url extends MappedString(this, 2000) // TODO Introduce / use a class for MappedURL ?
+  object imageDescription extends MappedString(this, 2000)
 
   override def id_ : String = imageId.get
   override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)

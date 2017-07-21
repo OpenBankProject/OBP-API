@@ -3,7 +3,7 @@ package code.transaction
 import java.util.UUID
 
 import code.bankconnectors.Connector
-import code.util.{DefaultStringField, Helper, MappedAccountNumber, MappedUUID}
+import code.util._
 import net.liftweb.common.Logger
 import net.liftweb.mapper._
 import code.model._
@@ -15,7 +15,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   def getSingleton = MappedTransaction
 
   object bank extends MappedString(this, 255)
-  object account extends MappedString(this, 255)
+  object account extends AccountIdString(this)
   object transactionId extends MappedString(this, 255) {
     override def defaultValue = UUID.randomUUID().toString
   }
@@ -36,8 +36,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object tStartDate extends MappedDateTime(this)
   object tFinishDate extends MappedDateTime(this)
 
-  object description extends DefaultStringField(this)
-  object chargePolicy extends DefaultStringField(this)
+  object description extends MappedString(this, 2000)
+  object chargePolicy extends MappedString(this, 32)
 
   object counterpartyAccountNumber extends MappedAccountNumber(this)
   object counterpartyAccountHolder extends MappedString(this, 255)
@@ -53,7 +53,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   //Now we save the real Counterparty data 
   //CP--> CounterParty
   object CPOtherBankId extends MappedString(this, 36)
-  object CPOtherAccountId extends MappedString(this, 36)
+  object CPOtherAccountId extends AccountIdString(this)
   object CPOtherAccountProvider extends MappedString(this, 36)
   object CPCounterPartyId extends MappedString(this, 36)
   object CPOtherAccountRoutingScheme extends MappedString(this, 255)

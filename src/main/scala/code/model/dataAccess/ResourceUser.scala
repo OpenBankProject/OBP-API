@@ -34,7 +34,7 @@ package code.model.dataAccess
 import code.util.MappedUUID
 import net.liftweb.mapper._
 import net.liftweb.util.Props
-import code.model.{BankAccountUID, User, UserId, View}
+import code.model.{BankIdAccountId, User, UserId, View}
 import code.views.Views
 import net.liftweb.common.Full
 

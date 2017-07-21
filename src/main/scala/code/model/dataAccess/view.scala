@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.APIFailure
+import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
@@ -58,14 +59,14 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def primaryKeyField = id_
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
-  object bankPermalink extends MappedString(this, 255)
-  object accountPermalink extends MappedString(this, 255)
+  object bankPermalink extends UUIDString(this)
+  object accountPermalink extends AccountIdString(this)
 
 
   object id_ extends MappedLongIndex(this)
-  object name_ extends MappedString(this, 255)
+  object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
-  object permalink_ extends MappedString(this, 255)
+  object permalink_ extends UUIDString(this)
 
   def users : List[User] =  users_.toList
 
@@ -492,14 +493,14 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
-  def find(viewUID : ViewUID) : Box[ViewImpl] = {
+  def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
       APIFailure(s"View with permalink $viewId not found", 404)
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 
-  def find(viewId : ViewId, bankAccountId : BankAccountUID): Box[ViewImpl] = {
-    find(ViewUID(viewId, bankAccountId.bankId, bankAccountId.accountId))
+  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[ViewImpl] = {
+    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
   }
 
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {

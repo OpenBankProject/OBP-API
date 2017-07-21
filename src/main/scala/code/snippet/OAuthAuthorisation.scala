@@ -139,7 +139,7 @@ object OAuthAuthorisation {
         //if login fails, just reload the page with the login form visible
         AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
         //the user is not logged in so we show a login form
-        Consumers.consumers.vend.getConsumerByConsumerId(appToken.consumerId) match {
+        Consumers.consumers.vend.getConsumerByPrimaryId(appToken.consumerId) match {
           case Full(consumer) => {
             hideFailedLoginMessageIfNeeded &
               "#applicationName" #> consumer.name &

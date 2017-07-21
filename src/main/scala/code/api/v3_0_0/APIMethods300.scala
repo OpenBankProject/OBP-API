@@ -12,7 +12,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0.{TransactionRequestBodyPhoneToPhoneJson, _}
 import code.api.v3_0_0.JSONFactory300._
-import code.bankconnectors.{Connector, LocalMappedConnector}
+import code.bankconnectors.{Connector, LocalMappedConnector,InboundAdapterInfo}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
@@ -103,7 +103,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -153,7 +153,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         InvalidJsonFormat,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
@@ -194,7 +194,7 @@ trait APIMethods300 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         BankAccountNotFound,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
@@ -241,7 +241,7 @@ trait APIMethods300 {
         |""",
       emptyObjectJson,
       moderatedAccountJSON,
-      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnKnownError),
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -250,8 +250,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            bank <- Bank(bankId) ?~! BankNotFound
-            account <- BankAccount(bank.bankId, accountId) ?~! ErrorMessages.AccountNotFound
+            bank <- Bank(bankId) ?~ BankNotFound
+            account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
@@ -286,7 +286,7 @@ trait APIMethods300 {
         |OAuth authentication is required""",
       emptyObjectJson,
       moderatedCoreAccountJSON,
-      List(BankAccountNotFound,UnKnownError),
+      List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
@@ -295,7 +295,7 @@ trait APIMethods300 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(user))
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
@@ -323,7 +323,7 @@ trait APIMethods300 {
          |""",
       emptyObjectJson,
       coreAccountsJsonV300,
-      List(UserNotLoggedIn,UnKnownError),
+      List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
@@ -381,7 +381,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound,
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -437,7 +437,7 @@ trait APIMethods300 {
         UserNotLoggedIn, 
         BankAccountNotFound, 
         ViewNotFound, 
-        UnKnownError
+        UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
@@ -512,7 +512,7 @@ trait APIMethods300 {
         """,
       ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List())
 
@@ -522,7 +522,7 @@ trait APIMethods300 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserDoesNotHaveRole + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
             val uriPart = compact(render(json \ "es_uri_part"))
@@ -548,7 +548,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByEmail, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -558,7 +558,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
           }
           yield {
@@ -584,7 +584,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundById, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -594,7 +594,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
           }
             yield {
@@ -620,7 +620,7 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       usersJSONV200,
-      List(UserNotLoggedIn, UserDoesNotHaveRole, UserNotFoundByUsername, UnKnownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
@@ -630,7 +630,7 @@ trait APIMethods300 {
         user =>
           for {
             l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserDoesNotHaveRole + CanGetAnyUser )
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
             user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
           }
             yield {
@@ -732,7 +732,7 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -772,7 +772,7 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -816,7 +816,7 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -856,7 +856,7 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
-        UnKnownError
+        UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -1050,6 +1050,40 @@ trait APIMethods300 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      getAdapter,
+      apiVersion,
+      "getAdapter",
+      "GET",
+      "/banks/BANK_ID/adapter",
+      "Get Info Of Adapter",
+      """Get a basic Adapter info
+        |
+        |Login is required.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
+
+
+    lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
+        user =>
+          for {
+            // _ <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Bank(bankId) ?~! BankNotFound
+            ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
+          }
+          yield {
+            successJsonResponseFromCaseClass(ai)
+          }
+      }
+    }
+
 
   }
 }

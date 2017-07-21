@@ -37,10 +37,12 @@ import java.util.Date
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
+import code.atms.Atms.Atm
 import code.branches.Branches.Branch
+import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
-import code.metrics.{APIMetric, ConnMetric}
+import code.metrics.{APIMetric, ConnectorMetric}
 import code.model._
 import code.users.Users
 import net.liftweb.common.Full
@@ -131,7 +133,8 @@ case class AccountJSONV220(
                         bank_id : String
                       )
 
-case class FXRateJSON(
+case class FXRateJsonV220(
+                       bank_id: String,
                        from_currency_code: String,
                        to_currency_code: String,
                        conversion_value: Double,
@@ -163,7 +166,7 @@ case class CounterpartiesJsonV220(
 
 
 // used for Create Bank in V220
-// keep it similar as "case class BankJSON" in V121  
+// keep it similar as "case class BankJSON" in V121
 case class BankJSONV220(
   id: String,
   full_name: String,
@@ -176,7 +179,7 @@ case class BankJSONV220(
 )
 
 //keep similar to "case class BranchJsonPost" in V210
-case class BranchJSONV220(
+case class BranchJsonV220(
   id: String,
   bank_id: String,
   name: String,
@@ -187,6 +190,38 @@ case class BranchJSONV220(
   drive_up: DriveUpJson,
   branch_routing: BranchRoutingJsonV141
 )
+
+
+
+case class AtmJsonV220(
+                           id: String,
+                           bank_id: String,
+                           name: String,
+                           address: AddressJson,
+                           location: LocationJson,
+                           meta: MetaJson
+                         )
+
+
+//Copied from V210
+case class ProductJsonV220(bank_id: String,
+                           code : String,
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJson)
+
+
+case class ProductsJsonV220 (products : List[ProductJsonV220])
+
+
+
+
+
 
 // keep similar to case class CreateAccountJSON - v200
 // Added branch_id and account_routing
@@ -322,8 +357,10 @@ object JSONFactory220{
     )
   }
 
-  def createFXRateJSON(fxRate: FXRate): FXRateJSON = {
-    FXRateJSON(from_currency_code = fxRate.fromCurrencyCode,
+  def createFXRateJSON(fxRate: FXRate): FXRateJsonV220 = {
+    FXRateJsonV220(
+      bank_id = fxRate.bankId.value,
+      from_currency_code = fxRate.fromCurrencyCode,
       to_currency_code = fxRate.toCurrencyCode,
       conversion_value = fxRate.conversionValue,
       inverse_conversion_value = fxRate.inverseConversionValue,
@@ -353,7 +390,7 @@ object JSONFactory220{
     val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
     new CounterpartiesJsonV220(list)
   }
-  
+
   def createBankJSON(bank: Bank): BankJSONV220 = {
     BankJSONV220(
       id = bank.bankId.value,
@@ -369,10 +406,10 @@ object JSONFactory220{
       )
     )
   }
-  
+
   // keep similar to def createBranchJson(branch: Branch) -- v140
-  def createBranchJSON(branch: Branch): BranchJSONV220 = {
-    BranchJSONV220(
+  def createBranchJson(branch: Branch): BranchJsonV220 = {
+    BranchJsonV220(
       id= branch.branchId.value,
       bank_id= branch.bankId.value,
       name= branch.name,
@@ -387,6 +424,42 @@ object JSONFactory220{
       )
     )
   }
+
+
+  def createAtmJson(atm: Atm): AtmJsonV220 = {
+    AtmJsonV220(
+      id= atm.atmId.value,
+      bank_id= atm.bankId.value,
+      name= atm.name,
+      address= createAddressJson(atm.address),
+      location= createLocationJson(atm.location),
+      meta= createMetaJson(atm.meta)
+    )
+  }
+
+
+  def createProductJson(product: Product) : ProductJsonV220 = {
+    ProductJsonV220(
+      product.bankId.toString,
+      product.code.value,
+      product.name,
+      product.category,
+      product.family,
+      product.superFamily,
+      product.moreInfoUrl,
+      product.details,
+      product.description,
+      createMetaJson(product.meta))
+  }
+
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV220 = {
+    ProductsJsonV220(productsList.map(createProductJson))
+  }
+
+
+
+
+
   
   def createAccountJSON(userId: String, account: BankAccount): CreateAccountJSONV220 = {
     CreateAccountJSONV220(
@@ -405,16 +478,16 @@ object JSONFactory220{
     )
   }
 
-  def createConnectorMetricJson(metric: ConnMetric): ConnectorMetricJson = {
+  def createConnectorMetricJson(metric: ConnectorMetric): ConnectorMetricJson = {
     ConnectorMetricJson(
       connector_name = metric.getConnectorName(),
       function_name = metric.getFunctionName(),
-      obp_api_request_id = metric.getObpApiRequestId(),
+      obp_api_request_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
       date = metric.getDate()
     )
   }
-  def createConnectorMetricsJson(metrics : List[ConnMetric]) : ConnectorMetricsJson = {
+  def createConnectorMetricsJson(metrics : List[ConnectorMetric]) : ConnectorMetricsJson = {
     ConnectorMetricsJson(metrics.map(createConnectorMetricJson))
   }
 

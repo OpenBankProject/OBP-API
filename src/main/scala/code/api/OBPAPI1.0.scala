@@ -42,6 +42,7 @@ import net.liftweb.util.Helpers.now
 import _root_.net.liftweb.json.Serialization
 import net.liftweb.json.NoTypeHints
 import code.api.OAuthHandshake.getUser
+import code.api.util.APIUtil.getCorrelationId
 import code.bankconnectors._
 import net.liftweb.json.JsonAST.JObject
 import code.bankconnectors.OBPToDate
@@ -57,8 +58,11 @@ object OBPAPI1_0 extends RestHelper with MdcLoggable {
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
-  private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
+  private def logAPICall = {
+    val correlationId = getCorrelationId()
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L, correlationId)
+  }
+
 
   serve("obp" / "v1.0" prefix {
 
@@ -308,7 +312,7 @@ object OBPAPI1_0 extends RestHelper with MdcLoggable {
       //log the API call
       logAPICall
 
-      JsonResponse("banks" -> Bank.toJson(Bank.all))
+      JsonResponse("banks" -> Bank.toJson(Bank.all.get))
     }
   })
 

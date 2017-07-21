@@ -3,12 +3,12 @@ package code.metrics
 import java.util.Date
 
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
-import code.util.DefaultStringField
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.mapper._
 
 object MappedMetrics extends APIMetrics {
 
-  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,correlationId: String): Unit = {
     MappedMetric.create
       .userId(userId)
       .url(url)
@@ -21,6 +21,7 @@ object MappedMetrics extends APIMetrics {
       .implementedByPartialFunction(implementedByPartialFunction)
       .implementedInVersion(implementedInVersion)
       .verb(verb)
+      .correlationId(correlationId)
       .save
   }
 
@@ -88,22 +89,23 @@ object MappedMetrics extends APIMetrics {
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
   override def getSingleton = MappedMetric
 
-  object userId extends DefaultStringField(this)
-  object url extends DefaultStringField(this)
+  object userId extends UUIDString(this)
+  object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
   object date extends MappedDateTime(this)
   object duration extends MappedLong(this)
-  object userName extends DefaultStringField(this)
-  object appName extends DefaultStringField(this)
-  object developerEmail extends DefaultStringField(this)
+  object userName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
 
   //The consumerId, Foreign key to Consumer not key
-  object consumerId extends DefaultStringField(this)
+  object consumerId extends UUIDString(this)
   //name of the Scala Partial Function being used for the endpoint
-  object implementedByPartialFunction  extends DefaultStringField(this)
+  object implementedByPartialFunction  extends MappedString(this, 128)
   //name of version where the call is implemented) -- S.request.get.view
-  object implementedInVersion  extends DefaultStringField(this)
+  object implementedInVersion  extends MappedString(this, 16)
   //(GET, POST etc.) --S.request.get.requestType
-  object verb extends DefaultStringField(this)
+  object verb extends MappedString(this, 16)
+  object correlationId extends MappedUUID(this)
 
 
   override def getUrl(): String = url.get
@@ -117,6 +119,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
   override def getImplementedInVersion(): String = implementedInVersion.get
   override def getVerb(): String = verb.get
+  override def getCorrelationId(): String = correlationId.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {

@@ -50,6 +50,7 @@ connector=mapped
 
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
+## This setting is also used by connector metrics (write_connector_metrics does not exist yet)
 write_metrics=true
 
 ## ElasticSearch
@@ -77,6 +78,10 @@ write_metrics=true
 #db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+
+# If you want to use MySQL
+#db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
+
 
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port
@@ -343,3 +348,13 @@ autocomplete_at_login_form_enabled=false
 
 # control the create and access to public views.
 # allow_public_views=false
+
+# -- Gateway login --------------------------------------
+# Enable/Disable Gateway communication at all
+# In case isn't defined default value is false
+# allow_gateway_login=false
+# Define comma separated list of allowed IP addresses
+# gateway.host=127.0.0.1
+# Define secret used to validate JWT token
+# gateway.token_secret=secret
+# -------------------------------------- Gateway login --

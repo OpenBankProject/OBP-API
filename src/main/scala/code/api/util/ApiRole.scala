@@ -6,6 +6,8 @@ sealed trait ApiRole{
 
 object ApiRole {
 
+  // TODO Is there a better way to define these. i.e. do we need to define the role in three places below?
+
   case object CanSearchAllTransactions extends ApiRole{
     val requiresBankId = false
   }
@@ -23,6 +25,9 @@ object ApiRole {
   }
   case object CanCreateCustomer extends ApiRole{
     val requiresBankId = true
+  }
+  case object CanCreateCustomerAtAnyBank extends ApiRole{
+    val requiresBankId = false
   }
   case object CanCreateAccount extends ApiRole{
     val requiresBankId = true
@@ -84,12 +89,36 @@ object ApiRole {
   case object CanCreateUserCustomerLink extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateUserCustomerLinkAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateBranchAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateAtm extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateAtmAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateProduct extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateProductAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateFxRate extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateFxRateAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateBank extends ApiRole{
     val requiresBankId = false
-  }  
+  }
   case object CanReadMetrics extends ApiRole{
     val requiresBankId = false
   }
@@ -128,6 +157,13 @@ object ApiRole {
     case "CanCreateCardsForBank" => CanCreateCardsForBank
     case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case "CanCreateBranch" => CanCreateBranch
+    case "CanCreateBranchAtAnyBank" => CanCreateBranchAtAnyBank
+    case "CanCreateAtm" => CanCreateAtm
+    case "CanCreateAtmAtAnyBank" => CanCreateAtmAtAnyBank
+    case "CanCreateProduct" => CanCreateProduct
+    case "CanCreateProductAtAnyBank" => CanCreateProductAtAnyBank
+    case "CanCreateFxRate" => CanCreateFxRate
+    case "CanCreateFxRateAtAnyBank" => CanCreateFxRateAtAnyBank
     case "CanCreateBank" => CanCreateBank
     case "CanReadMetrics" => CanReadMetrics
     case "CanGetConfig" => CanGetConfig
@@ -162,6 +198,13 @@ object ApiRole {
                       "CanCreateCardsForBank" ::
                       "CanCreateUserCustomerLink" ::
                       "CanCreateBranch" ::
+                      "CanCreateBranchAtAnyBank" ::
+                      "CanCreateAtm" ::
+                      "CanCreateAtmAtAnyBank" ::
+                      "CanCreateProduct" ::
+                      "CanCreateProductAtAnyBank" ::
+                      "CanCreateFxRate" ::
+                      "CanCreateFxRateAtAnyBank" ::
                       "CanCreateBank" ::
                       "CanReadMetrics" ::
                       "CanGetConfig" ::

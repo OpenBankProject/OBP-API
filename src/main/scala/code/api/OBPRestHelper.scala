@@ -34,10 +34,8 @@ package code.api
 
 import code.api.util.{APIUtil, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.Req
+import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.JsonResponse
 import APIUtil._
 import code.model.User
 import code.api.OAuthHandshake._
@@ -94,11 +92,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.info("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.debug("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case Failure(msg, _, _) => {
-        logger.info("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
+        logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
@@ -123,7 +121,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        //logger.info("failIfBadJSON says: Cool, content-type is json")
+        //logger.debug("failIfBadJSON says: Cool, content-type is json")
         r.json match {
           case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)
@@ -133,20 +131,44 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
-    if (isThereAnOAuthHeader) {
+    if (hasAnOAuthHeader) {
       getUser match {
-        case Full(u) => fn(Full(u))
+        case Full(u) => fn(Full(u)) // Authentication is successful
         case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
       DirectLogin.getUser match {
-        case Full(u) => fn(Full(u))
+        case Full(u) => fn(Full(u)) // Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           errorJsonResponse(message, httpCode)
         }
+      }
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+      Props.get("gateway.host") match {
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
+          val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+          httpCode match {
+            case 200 =>
+              val payload = GatewayLogin.parseJwt(parameters)
+              GatewayLogin.getOrCreateResourceUser(payload: String) match {
+                case Full(u) => // Authentication is successful
+                  GatewayLogin.getOrCreateConsumer(payload, u)
+                  val jwtResponse = GatewayLogin.createJwt(payload)
+                  setGatewayResponseHeader(jwtResponse)
+                  fn(Full(u))
+                case Failure(msg, _, _) => errorJsonResponse(msg)
+                case _ => errorJsonResponse(payload, httpCode)
+              }
+            case _ => errorJsonResponse(message, httpCode)
+          }
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
+          errorJsonResponse(ErrorMessages.GatewayLoginWhiteListAddresses)
+        case Empty => errorJsonResponse(ErrorMessages.GatewayLoginHostPropertyMissing) // There is no gateway.host in props file
+        case Failure(msg, _, _) => errorJsonResponse(msg)
+        case _ => errorJsonResponse(ErrorMessages.GatewayLoginUnknownError)
       }
     } else {
       fn(Empty)

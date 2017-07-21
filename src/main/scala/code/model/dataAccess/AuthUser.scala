@@ -33,7 +33,8 @@ package code.model.dataAccess
 
 import java.util.UUID
 
-import code.api.util.APIUtil.isValidStrongPassword
+import code.accountholder.AccountHolders
+import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundUser}
@@ -45,9 +46,10 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
+import code.model._
 import code.users.Users
 import code.util.Helper
-import net.liftweb.util
+import code.views.Views
 
 
 /**
@@ -272,74 +274,60 @@ import net.liftweb.util.Helpers._
 
     <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
-
+  
   /**
-   * Find current user
-   */
-  def getCurrentUserUsername: String = {
-    for {
-      current <- AuthUser.currentUser
-      username <- tryo{current.username.get}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- OAuthHandshake.getUser
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    for {
-      current <- DirectLogin.getUser
-      username <- tryo{current.name}
-      if (username.nonEmpty)
-    } yield {
-      return username
-    }
-
-    return ""
-  }
-  /**
-    * Find current ResourceUser_UserId from AuthUser, reference the @getCurrentUserUsername
+    * Find current ResourceUser from the server. 
     * This method has no parameters, it depends on different login types:
     *  AuthUser:  AuthUser.currentUser
     *  OAuthHandshake: OAuthHandshake.getUser
     *  DirectLogin: DirectLogin.getUser
-    * to get the current Resourceuser.userId feild.
-    * 
-    * Note: resourceuser has two ids: id(Long) and userid_(String),
-    * This method return userid_(String).
+    * to get the current Resourceuser .
+    *
     */
+  def getCurrentUser: Box[User] = {
+    for {
+      resourceUser <- if (AuthUser.currentUser.isDefined)
+        //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
+        Users.users.vend.getUserByUserName(AuthUser.currentUser.get.username)
+      else if (hasDirectLoginHeader)
+        DirectLogin.getUser
+      else if (hasAnOAuthHeader) {
+        OAuthHandshake.getUser
+      } else {
+        debug(ErrorMessages.CurrentUserNotFoundException)
+        Failure(ErrorMessages.CurrentUserNotFoundException)
+        //This is a big problem, if there is no current user from here.
+        //throw new RuntimeException(ErrorMessages.CurrentUserNotFoundException)
+      }
+    } yield {
+      resourceUser
+    }
+  }
+  /**
+   * get current user.
+    * Note: 1. it will call getCurrentUser method, 
+    *          
+   */
+  def getCurrentUserUsername: String = {
+     getCurrentUser match{
+       case Full(user) => user.name
+       case _ => "" //TODO need more error handling for different user cases
+     }
+  }
+  
+  /**
+    *  get current user.userId
+    *  Note: 1.resourceuser has two ids: id(Long) and userid_(String),
+    *        
+    * @return return userid_(String).
+    */
+  
   def getCurrentResourceUserUserId: String = {
-    for {
-      current <- AuthUser.currentUser
-      user <- Users.users.vend.getUserByResourceUserId(current.user.get)
-    } yield {
-      return user.userId
+    getCurrentUser match{
+      case Full(user) => user.userId
+      case _ => "" //TODO need more error handling for different user cases
     }
-
-    for {
-      current <- OAuthHandshake.getUser
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
-    } yield {
-      return userId
-    }
-
-    for {
-      current <- DirectLogin.getUser
-      userId <- tryo{current.userId}
-      if (userId.nonEmpty)
-    } yield {
-      return userId
-    }
-
-     return ""
-   }
+  }
 
   /**
     * The string that's generated when the user name is not found.  By
@@ -354,7 +342,7 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
-    findUserByUsername(name) match {
+    findUserByUsernameLocally(name) match {
       case Full(user) if user.validated_? =>
         user.resetUniqueId().save
         val resetLink = Props.get("hostname", "ERROR")+
@@ -485,7 +473,7 @@ import net.liftweb.util.Helpers._
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
-    findUserByUsername(username) match {
+    findUserByUsernameLocally(username) match {
       case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
         if (
           user.validated_? &&
@@ -580,7 +568,7 @@ import net.liftweb.util.Helpers._
 
         val extProvider = connector
 
-        val user = findUserByUsername(name) match {
+        val user = findUserByUsernameLocally(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
             // && user.provider == extProvider
@@ -636,7 +624,7 @@ import net.liftweb.util.Helpers._
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
         val passwordFromGui = S.param("password").getOrElse("")
-        findUserByUsername(usernameFromGui) match {
+        findUserByUsernameLocally(usernameFromGui) match {
           // Check if user came from localhost and
           // if User is NOT locked and password is good
           case Full(user) if user.validated_? &&
@@ -654,7 +642,7 @@ import net.liftweb.util.Helpers._
                 case _ =>
                   homePage
               }
-              registeredUserHelper(user.username)
+//              registeredUserHelper(user.username)
             //Check the internal redirect, in case for open redirect issue.
             // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
             // val currentUrl = S.uriAndQueryString.getOrElse("/")
@@ -809,9 +797,9 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- Users.users.vend.getUserByUserName(username)
-       //TODO need more error handle here, I need the exception to debug
-       v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
+       //u <- user.user.foreign  // this will be issue when the resource user is in remote side
+       u <- Users.users.vend.getUserByUserName(name)
+       v <- Full (updateUserAccountViews(u))
       } yield {
         user
       }
@@ -826,16 +814,36 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       //TODO need more error handle here, I need the exception to debug
-       v <- Full(Connector.connector.vend.updateUserAccountViews(u))
+       v <- Full (updateUserAccountViews(u))
       } yield v
     }
   }
- 
+  
   /**
-    * find the authUser by author user name(authUser and resourceUser are the same)
+    * This is a helper method 
+    * update the views, accountHolders for OBP side when sign up new remote user
+    * 
     */
-  protected def findUserByUsername(name: String): Box[TheUserType] = {
+  def updateUserAccountViews(user: ResourceUser): Unit = {
+    //get all accounts from Kafka
+    val accounts = Connector.connector.vend.getBankAccounts(user).get
+    debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
+    
+    for {
+      account <- accounts
+      viewId <- account.viewsToGenerate 
+      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) 
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
+    } yield {
+      Views.views.vend.getOrCreateViewPrivilege(view,user)
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
+    }
+  }
+  /**
+    * Find the authUser by author user name(authUser and resourceUser are the same).
+    * Only search for the local database. 
+    */
+  protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
 

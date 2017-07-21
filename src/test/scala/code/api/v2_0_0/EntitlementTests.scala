@@ -5,7 +5,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.entitlement.Entitlement
 import net.liftweb.json.JsonAST._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.UserDoesNotHaveRole
+import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.setup.DefaultUsers
 
 
@@ -44,7 +44,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseGet.code should equal(400)
       val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      error should contain (UserDoesNotHaveRole + CanGetEntitlementsForAnyUserAtAnyBank)
+      error should contain (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements") {

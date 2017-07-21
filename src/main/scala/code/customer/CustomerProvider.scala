@@ -5,14 +5,17 @@ import java.util.Date
 import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Customer extends SimpleInjector {
 
   val customerProvider = new Inject(buildOne _) {}
 
-  //def buildOne: CustomerProvider = MappedCustomerProvider
-  def buildOne: CustomerProvider = RemotedataCustomers
+  def buildOne: CustomerProvider =
+    Props.getBool("use_akka", false) match {
+      case false  => MappedCustomerProvider
+      case true => RemotedataCustomers     // We will use Akka as a middleware
+    }
 
 }
 

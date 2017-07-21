@@ -4,9 +4,8 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
+import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
@@ -31,8 +30,11 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   implicit val materializer = ActorMaterializer()
 
   import materializer._
-
-  private def makeKeyFuture = Future(scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString)
+  /**
+    *Random select the partitions number from 0 to kafka.partitions value
+    *The specified partition number will be inside the Key.
+    */
+  private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
 
   private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
     .withBootstrapServers(bootstrapServers)
@@ -56,40 +58,48 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   private val producer = producerSettings
     .createKafkaProducer()
 
-  private val flow: ((String, String) => Source[String, Consumer.Control]) = { (topic, key) =>
-    consumer(topic, key.split("_")(0).toInt)
-      .filter(msg => msg.key() == key)
-      .map { msg =>
-        logger.debug(s"$topic with $msg")
+  /**
+    * communication with Kafka, send and receive message.
+    * This method will send message to Kafka, using the specified key and partition for each topic
+    * And get the message from the specified partition and filter by key
+    */
+  private val sendRequestAndGetResponseFromKafka: ((TopicPair, String, String) => Future[String]) = { (topic, key, value) =>
+    //When we send RequestTopic message, contain the partition in it, and when we get the ResponseTopic according to the partition.
+    val specifiedPartition = key.split("_")(0).toInt 
+    val requestTopic = topic.request
+    val responseTopic = topic.response
+    //producer will publish the message to broker
+    val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
+    producer.send(message)
+    
+    //consumer will wait for the message from broker
+    consumer(responseTopic, specifiedPartition)
+      .filter(_.key() == key) // double check the key 
+      .map { msg => 
+        logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
         msg.value
       }
-  }
-
-  private val sendRequest: ((Topic, String, String) => Future[String]) = { (topic, key, value) =>
-    producer.send(new ProducerRecord[String, String](topic.request, key.split("_")(0).toInt, key, value))
-    flow(topic.response, key)
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
       .runWith(Sink.head)
   }
 
-  private val parseF: (String => Future[JsonAST.JValue]) = { r =>
+  private val stringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
+    logger.debug("kafka-response-stringToJValueF:" + r)
     Future(json.parse(r) \\ "data")
   }
 
-  val extractF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.info("kafka-response:" + r)
+  val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
+    logger.debug("kafka-response-extractJValueToAnyF:" + r)
     Future(extractResult(r))
   }
 
-  val decomposeF: (Map[String, String] => Future[json.JValue]) = { m =>
-    Future(Extraction.decompose(m))
-  }
-
-  val decomposeF1: (Any => Future[json.JValue]) = { m =>
+  val anyToJValueF: (Any => Future[json.JValue]) = { m =>
+    logger.debug("kafka-response-anyToJValueF:" + m)
     Future(Extraction.decompose(m))
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
+    logger.debug("kafka-response-serializeF:" + m)
     Future(json.compactRender(m))
   }
 
@@ -105,76 +115,120 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     //configuration optimization is postponed
     //self ? conn
   }
-
-  def pipeToSender(sender: ActorRef, f: Future[Any]) = f recover {
-    case e: InterruptedException => json.parse(s"""[{"error":"sending message to kafka interrupted"}, {"error","${e}"}]""")
-    case e: ExecutionException => json.parse(s"""[{"error":"could not send message to kafka"}, {"error","${e}"}]""")
-    case e: TimeoutException => json.parse(s"""[{"error":"receiving message from kafka timed out"}, {"error","${e}"}]""")
-    case e: Throwable => json.parse(s"""[{"error":"unexpected error sending message to kafka"}, {"error","${e}"}]""")
+  
+  /**
+    * Check the Future, if there are Exceptions, recover the Exceptions to specific JValue 
+    * @param sender the sender who send the message to the Actor
+    * @param future the future need to be checked 
+    *               
+    * @return If there is no exception, pipeTo sender
+    *         If there is exception, recover to JValue to sender 
+    */
+  def pipeToSender(sender: ActorRef, future: Future[Any]) = future recover {
+    case e: InterruptedException => json.parse(s"""{"error":"sending message to kafka interrupted"}""")
+      logger.error(s"""{"error":"sending message to kafka interrupted,"${e}"}""")
+      throw new RuntimeException("Kafka_InterruptedException"+e.toString)
+    case e: ExecutionException => json.parse(s"""{"error":"could not send message to kafka"}""")
+      logger.error(s"""{"error":"could not send message to kafka, "${e}"}""")
+      throw new RuntimeException("Kafka_ExecutionException"+e.toString)
+    case e: TimeoutException => json.parse(s"""{"error":"receiving message from kafka timed out"}""")
+      logger.error(s"""{"error":"receiving message from kafka timed out", "${e}" "}""")
+      throw new RuntimeException("Kafka_TimeoutException"+e.toString)
+    case e: Throwable => json.parse(s"""{"error":"unexpected error sending message to kafka"}""")
+      logger.error(s"""{"error":"unexpected error sending message to kafka , "${e}"}""")
+      throw new RuntimeException("Kafka_Throwable"+e.toString)
   } pipeTo sender
 
   def receive = {
-    case v: String =>
+    case value: String =>
+      logger.debug("kafka_request[value]: " + value)
       for {
-        key <- makeKeyFuture
-        r <- sendRequest(Topics.version, key, v)
-        jv <- parseF(r)
-        any <- extractF(jv)
+        t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
+        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
+        jv <- stringToJValueF(r)
+        any <- extractJValueToAnyF(jv)
       } yield {
-        logger.info("South Side recognises version info")
+        logger.debug("South Side recognises version info")
         any
       }
 
+    // This is for KafkaMappedConnector_vJun2017, the request is TopicCaseClass  
     case request: TopicCaseClass =>
-      logger.info("kafka_request: " + request)
+      logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
-        key <- makeKeyFuture
-        d <- decomposeF1(request)
+        t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
+        d <- anyToJValueF(request)
         s <- serializeF(d)
-        r <- sendRequest(Topics.caseClassToTopic(request.getClass.getSimpleName), key, s)
-        jv <- parseF(r)
-        any <- extractF(jv)
+        r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s)
+        jv <- stringToJValueF(r)
+        any <- extractJValueToAnyF(jv)
       } yield {
         any
       }
       pipeToSender(sender, f)
 
+    // This is for KafkaMappedConnector_JVMcompatible, KafkaMappedConnector_vMar2017 and KafkaMappedConnector, the request is Map[String, String]  
     case request: Map[String, String] =>
-      logger.info("kafka_request: " + request)
+      logger.debug("kafka_request[Map[String, String]]: " + request)
       val orgSender = sender
       val f = for {
-        key <- makeKeyFuture
-        d <- decomposeF(request)
+        t <- Future(Topics.topicPairFromProps) // Just have two Topics: Request and Response
+        d <- anyToJValueF(request)
         v <- serializeF(d)
-        r <- sendRequest(Topics.connectorTopic, key, v)
-        jv <- parseF(r)
-        any <- extractF(jv)
+        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, v)
+        jv <- stringToJValueF(r)
+        any <- extractJValueToAnyF(jv)
       } yield {
         any
       }
       pipeToSender(orgSender, f)
   }
 }
-
-case class Topic(request: String, response: String)
+/**
+  * This case class design a pair of Topic, for both North and South side.
+  * They are a pair
+  * @param request  eg: obp.Jun2017.Request.GetBanks
+  * @param response eg: obp.Jun2017.Response.GetBanks
+  */
+case class TopicPair(request: String, response: String)
 
 object Topics {
+  
+  /**
+    * Two topics:
+    * Request : North is producer, South is the consumer. North --> South
+    * Response: South is producer, North is the consumer. South --> North
+    */
   private val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
   private val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
+  
+  /**
+    * set in props, we have two topics: Request and Response
+    */
+  val topicPairFromProps = TopicPair(requestTopic, responseTopic)
 
-  val connectorTopic = Topic(requestTopic, responseTopic)
+  def topicPairHardCode = TopicPair("obp.Request.version", "obp.Response.version")
 
-  def version = Topic("obp.q.version", "obp.R.version")
-
-  def caseClassToTopic(className: String): Topic = {
-    val version = {
-      val v = Props.get("connector").openOr("Jun2017")
-      val c = if (v.contains("_")) v.split("_")(1) else v
+  def createTopicByClassName(className: String): TopicPair = {
+    /**
+      * get the connectorVersion from Props connector attribute
+      * eg: in Props, connector=kafka_vJun2017
+      *     -->
+      *     connectorVersion = Jun2017
+      */
+    val connectorVersion = {
+      val connectorNameFromProps = Props.get("connector").openOr("Jun2017")
+      val c = if (connectorNameFromProps.contains("_")) connectorNameFromProps.split("_")(1) else connectorNameFromProps
       c.replaceFirst("v", "")
     }
-
-    Topic(s"obp.${version}.Q." + className.replace("$", ""),
-      s"obp.${version}.R." + className.replace("$", ""))
+  
+    /**
+      *  eg: 
+      *  obp.Jun2017.N.GetBank
+      *  obp.Jun2017.S.GetBank
+      */
+    TopicPair(s"obp.${connectorVersion}.N." + className.replace("$", ""),
+      s"obp.${connectorVersion}.S." + className.replace("$", ""))
   }
 
 }

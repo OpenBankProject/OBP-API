@@ -37,8 +37,9 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJsonV140, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.atms.Atms.AtmId
 import code.branches.Branches.BranchId
-import code.common.{License, Meta}
+import code.common.{Location, Address, License, Meta}
 import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -322,8 +323,9 @@ case class CustomerJSONs(customers: List[CustomerJsonV210])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
-//V210 added details and description fields
-case class ProductJsonV210(code : String,
+////V210 added details and description fields
+case class ProductJsonV210(bank_id: String,
+                          code : String,
                        name : String,
                        category: String,
                        family : String,
@@ -336,13 +338,13 @@ case class ProductsJsonV210 (products : List[ProductJsonV210])
 
 //V210 add bank_id field and delete id
 case class BranchJsonPut(
-                       bank_id: String,
-                       name: String,
-                       address: AddressJson,
-                       location: LocationJson,
-                       meta: MetaJson,
-                       lobby: LobbyJson,
-                       driveUp: DriveUpJson)
+                          bank_id: String,
+                          name: String,
+                          address: AddressJson,
+                          location: LocationJson,
+                          meta: MetaJson,
+                          lobby: LobbyJson,
+                          drive_up: DriveUpJson)
 
 case class BranchJsonPost(
                            id: String,
@@ -352,7 +354,45 @@ case class BranchJsonPost(
                            location: LocationJson,
                            meta: MetaJson,
                            lobby: LobbyJson,
-                           driveUp: DriveUpJson)
+                           drive_up: DriveUpJson)
+
+
+case class AtmJsonPut (
+  bank_id: String,
+  name : String,
+  address : AddressJson,
+  location : LocationJson,
+  meta : MetaJson
+)
+
+
+case class AtmJsonPost (
+    id : String,
+    bank_id: String,
+    name : String,
+    address : AddressJson,
+    location : LocationJson,
+    meta : MetaJson
+  )
+
+
+
+
+
+
+case class ProductJsonPut(
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJson)
+
+
+
+
 
 case class ConsumerRedirectUrlJSON(
                             redirect_url: String
@@ -505,7 +545,7 @@ object JSONFactory210{
   }
 
   def createConsumerJSON(c: Consumer): ConsumerJSON = {
-    
+
     val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
@@ -516,7 +556,7 @@ object JSONFactory210{
       )
       case _ => null
     }
-    
+
     ConsumerJSON(consumer_id=c.id,
       app_name=c.name,
       app_type=c.appType.toString(),
@@ -659,7 +699,9 @@ object JSONFactory210{
 
   // V210 Products
   def createProductJson(product: Product) : ProductJsonV210 = {
-    ProductJsonV210(product.code.value,
+    ProductJsonV210(
+      product.bankId.toString,
+      product.code.value,
       product.name,
       product.category,
       product.family,
@@ -690,7 +732,7 @@ object JSONFactory210{
       branch.location,
       branch.meta,
       branch.lobby,
-      branch.driveUp))
+      branch.drive_up))
   }
 
   def createViewsJSON(views : List[View]) : ViewsJSON = {

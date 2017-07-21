@@ -29,7 +29,58 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     lobby: Lobby,
     driveUp: DriveUp,
     branchRoutingScheme: String,
-    branchRoutingAddress: String
+    branchRoutingAddress: String,
+
+    // Lobby Times
+    lobbyOpeningTimeOnMonday : String,
+    lobbyClosingTimeOnMonday : String,
+
+    lobbyOpeningTimeOnTuesday : String,
+    lobbyClosingTimeOnTuesday : String,
+
+    lobbyOpeningTimeOnWednesday : String,
+    lobbyClosingTimeOnWednesday : String,
+
+    lobbyOpeningTimeOnThursday : String,
+    lobbyClosingTimeOnThursday: String,
+
+    lobbyOpeningTimeOnFriday : String,
+    lobbyClosingTimeOnFriday : String,
+
+    lobbyOpeningTimeOnSaturday : String,
+    lobbyClosingTimeOnSaturday : String,
+
+    lobbyOpeningTimeOnSunday: String,
+    lobbyClosingTimeOnSunday : String,
+
+    // Drive Up times
+    driveUpOpeningTimeOnMonday : String,
+    driveUpClosingTimeOnMonday : String,
+
+    driveUpOpeningTimeOnTuesday : String,
+    driveUpClosingTimeOnTuesday : String,
+
+    driveUpOpeningTimeOnWednesday : String,
+    driveUpClosingTimeOnWednesday : String,
+
+    driveUpOpeningTimeOnThursday : String,
+    driveUpClosingTimeOnThursday: String,
+
+    driveUpOpeningTimeOnFriday : String,
+    driveUpClosingTimeOnFriday : String,
+
+    driveUpOpeningTimeOnSaturday : String,
+    driveUpClosingTimeOnSaturday : String,
+
+    driveUpOpeningTimeOnSunday: String,
+    driveUpClosingTimeOnSunday : String,
+
+    // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+    isAccessible : String,
+
+    branchType : String,
+    moreInfo : String
+
   ) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
@@ -82,9 +133,72 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     override def hours: String = "M-Th 8:30 - 5:30"
   }
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), BankId("uk"),"Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp,"","")
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,"","")
-  val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,"","") // Should not be returned
+  val fakeBranchRoutingScheme : String = "Bank X Scheme"
+  val fakeBranchRoutingAddress : String = "78676"
+
+
+  val fakeOpeningTime : String = "10:00"
+  val fakeClosingTime : String = "18:00"
+
+  val fakeIsAccessible : String = "Y"
+  val fakeBranchType : String = "Main"
+  val fakeMoreInfo : String = "Very near to the lake"
+
+
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), BankId("uk"),"Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp, fakeBranchRoutingScheme,fakeBranchRoutingAddress,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime)
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {

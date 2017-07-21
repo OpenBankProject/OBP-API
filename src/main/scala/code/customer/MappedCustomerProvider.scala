@@ -5,7 +5,7 @@ import java.util.Date
 import code.model.{BankId, User}
 import code.usercustomerlinks.{MappedUserCustomerLink, UserCustomerLink}
 import code.users.Users
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
 
@@ -129,19 +129,19 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mCustomerId extends MappedUUID(this)
 
   //object mUser extends MappedLongForeignKey(this, ResourceUser)
-  object mBank extends DefaultStringField(this)
+  object mBank extends UUIDString(this)
 
-  object mNumber extends DefaultStringField(this)
-  object mMobileNumber extends DefaultStringField(this)
-  object mLegalName extends DefaultStringField(this)
+  object mNumber extends MappedString(this, 50)
+  object mMobileNumber extends MappedString(this, 50)
+  object mLegalName extends MappedString(this, 255)
   object mEmail extends MappedEmail(this, 200)
-  object mFaceImageUrl extends DefaultStringField(this)
+  object mFaceImageUrl extends MappedString(this, 2000)
   object mFaceImageTime extends MappedDateTime(this)
   object mDateOfBirth extends MappedDateTime(this)
-  object mRelationshipStatus extends DefaultStringField(this)
+  object mRelationshipStatus extends MappedString(this, 16)
   object mDependents extends MappedInt(this)
-  object mHighestEducationAttained  extends DefaultStringField(this)
-  object mEmploymentStatus extends DefaultStringField(this)
+  object mHighestEducationAttained  extends MappedString(this, 32)
+  object mEmploymentStatus extends MappedString(this, 32)
   object mCreditRating extends MappedString(this, 100)
   object mCreditSource extends MappedString(this, 100)
   object mCreditLimitCurrency extends MappedString(this, 100)

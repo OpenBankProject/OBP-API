@@ -4,7 +4,7 @@ import java.util.Date
 
 import net.liftweb.common.{Box, Full}
 import code.model.dataAccess.ResourceUser
-import code.util.{DefaultStringField}
+import code.util.{UUIDString}
 import net.liftweb.mapper._
 
 object MappedKycDocumentsProvider extends KycDocumentProvider {
@@ -52,15 +52,15 @@ with LongKeyedMapper[MappedKycDocument] with IdPK with CreatedUpdated {
   def getSingleton = MappedKycDocument
 
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object mBankId extends MappedString(this, 255)
-  object mCustomerId extends MappedString(this, 255)
+  object mBankId extends UUIDString(this)
+  object mCustomerId extends UUIDString(this)
 
-  object mId extends DefaultStringField(this)
-  object mCustomerNumber extends DefaultStringField(this)
-  object mType extends DefaultStringField(this)
-  object mNumber extends DefaultStringField(this)
+  object mId extends UUIDString(this)
+  object mCustomerNumber extends MappedString(this, 50)
+  object mType extends MappedString(this, 50)
+  object mNumber extends MappedString(this, 50)
   object mIssueDate extends MappedDateTime(this)
-  object mIssuePlace extends DefaultStringField(this)
+  object mIssuePlace extends MappedString(this, 512)
   object mExpiryDate extends MappedDateTime(this)
 
 

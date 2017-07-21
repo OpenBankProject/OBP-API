@@ -302,7 +302,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
     //there should be an owner view
-    val views = Views.views.vend.permittedViews(owner, BankAccountUID(foundAccount.bankId, foundAccount.accountId))
+    val views = Views.views.vend.permittedViews(owner, BankIdAccountId(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
     ownerView.isDefined should equal(true)
 
@@ -611,7 +611,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks should equal(Nil)
+    Connector.connector.vend.getBanks.get should equal(Nil)
   }
 
   it should "not allow data to be imported with an invalid secret token" in {
@@ -623,13 +623,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks should equal(Nil)
+    Connector.connector.vend.getBanks.get should equal(Nil)
   }
 
   it should "require banks to have non-empty ids" in {
 
     //no banks should exist initially
-    Connector.connector.vend.getBanks.size should equal(0)
+    Connector.connector.vend.getBanks.get.size should equal(0)
 
     val bank1Json = Extraction.decompose(bank1)
 
@@ -643,13 +643,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(bankWithoutId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks.size should equal(0)
+    Connector.connector.vend.getBanks.get.size should equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
     getResponse(bankWithEmptyId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks.size should equal(0)
+    Connector.connector.vend.getBanks.get.size should equal(0)
 
     //Check that the same json becomes valid when a non-empty id is added
     val validId = "foo"
@@ -658,7 +658,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     response.code should equal(SUCCESS)
 
     //Check the bank was created
-    val banks = Connector.connector.vend.getBanks
+    val banks = Connector.connector.vend.getBanks.get
     banks.size should equal(1)
     val createdBank  = banks(0)
 
@@ -671,7 +671,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   it should "not allow multiple banks with the same id" in {
     //no banks should exist initially
-    Connector.connector.vend.getBanks.size should equal(0)
+    Connector.connector.vend.getBanks.get.size should equal(0)
 
     val bank1AsJValue = Extraction.decompose(bank1)
 
@@ -697,7 +697,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(bank1AsJValue, validOtherBank)).code should equal(SUCCESS)
 
     //check that two banks were created
-    val banks = Connector.connector.vend.getBanks
+    val banks = Connector.connector.vend.getBanks.get
     banks.size should equal(2)
   }
 

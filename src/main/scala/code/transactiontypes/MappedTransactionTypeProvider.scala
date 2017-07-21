@@ -4,7 +4,7 @@ import code.TransactionTypes.TransactionTypeProvider
 import code.model._
 import code.TransactionTypes.TransactionType._
 
-import code.util.DefaultStringField
+import code.util.{MediumString, UUIDString}
 import net.liftweb.common._
 import net.liftweb.mapper._
 import code.api.util.ErrorMessages
@@ -66,11 +66,11 @@ class MappedTransactionType extends LongKeyedMapper[MappedTransactionType] with 
 
   override def getSingleton = MappedTransactionType
 
-  object mTransactionTypeId extends DefaultStringField(this)
-  object mBankId extends DefaultStringField(this)
-  object mShortCode extends DefaultStringField(this)
-  object mSummary extends DefaultStringField(this)
-  object mDescription extends DefaultStringField(this)
+  object mTransactionTypeId extends UUIDString(this)
+  object mBankId extends UUIDString(this)
+  object mShortCode extends MappedString(this,20)
+  object mSummary extends MappedString(this, 64)
+  object mDescription extends MappedString(this, 2000)
 
 
   object mCustomerFee_Currency extends MappedString(this, 3)

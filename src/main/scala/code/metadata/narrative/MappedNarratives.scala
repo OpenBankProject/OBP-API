@@ -1,7 +1,7 @@
 package code.metadata.narrative
 
-import code.model.{TransactionId, AccountId, BankId}
-import code.util.DefaultStringField
+import code.model.{AccountId, BankId, TransactionId}
+import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.Full
 import net.liftweb.mapper._
 
@@ -49,11 +49,11 @@ object MappedNarratives extends Narrative {
 class MappedNarrative extends LongKeyedMapper[MappedNarrative] with IdPK with CreatedUpdated {
   def getSingleton = MappedNarrative
 
-  object bank extends MappedString(this, 255)
-  object account extends MappedString(this, 255)
-  object transaction extends MappedString(this, 255)
+  object bank extends UUIDString(this)
+  object account extends AccountIdString(this)
+  object transaction extends UUIDString(this)
 
-  object narrative extends DefaultStringField(this)
+  object narrative extends MappedString(this, 2000)
 }
 
 object MappedNarrative extends MappedNarrative with LongKeyedMetaMapper[MappedNarrative] {

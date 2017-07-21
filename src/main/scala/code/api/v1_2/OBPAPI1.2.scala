@@ -112,7 +112,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           Extraction.decompose(banks)
         }
 
-        Full(successJsonResponse(banksToJson(Bank.all)))
+        Full(successJsonResponse(banksToJson(Bank.all.get)))
     }
   })
 
@@ -286,7 +286,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
           viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-          addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), authProvider, userId)
+          addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), authProvider, userId)
         } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -301,7 +301,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), authProvider, userId)
+          addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), authProvider, userId)
         } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -316,7 +316,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), authProvider, userId)
+          isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), authProvider, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }

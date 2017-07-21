@@ -3,7 +3,7 @@ package code.api.v3_0_0
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanGetAnyUser
-import code.api.util.ErrorMessages.UserDoesNotHaveRole
+import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import net.liftweb.json.JsonAST._
@@ -23,7 +23,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 400")
       responseGet.code should equal(400)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserDoesNotHaveRole + CanGetAnyUser)
+      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser){
@@ -34,7 +34,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 400")
       responseGet.code should equal(400)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserDoesNotHaveRole + CanGetAnyUser)
+      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USERNAME without required role " + CanGetAnyUser){
@@ -45,7 +45,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 400")
       responseGet.code should equal(400)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserDoesNotHaveRole + CanGetAnyUser)
+      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We create an user and get it by EMAIL and USER_ID") {

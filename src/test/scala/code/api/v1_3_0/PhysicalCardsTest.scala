@@ -4,20 +4,22 @@ import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
-import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
+import code.bankconnectors.{Connector, InboundAdapterInfo, InboundUser, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{Consumer, PhysicalCard, _}
 import code.model.dataAccess.ResourceUser
-import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import code.model.{Consumer, PhysicalCard, _}
 import code.products.Products.{Product, ProductCode}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.transactionrequests.TransactionRequestTypeCharge
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Empty, Failure, Full}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
@@ -65,9 +67,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     implicit override val nameOfConnector = "MockedCardConnector"
 
+    override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
     override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
     override def getUser(name: String, password: String): Box[InboundUser] = ???
-    def updateUserAccountViews(user: ResourceUser): Unit = ???
 
     //these methods aren't required by our test
     // override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
@@ -84,7 +87,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
                                 currency: String): Box[AmountOfMoney] = Empty
     override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
-    override def getBanks : List[Bank] = Nil
+    override def getBanks(): Box[List[Bank]] = Empty
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
     override def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =
@@ -161,7 +164,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     ): (Bank, BankAccount) = ???
 
     //sets a user as an account owner/holder
-    override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+    override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = ???
 
     //for sandbox use -> allows us to check if we can generate a new test account with the given number
     override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
@@ -195,14 +198,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
+    override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
     
     override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
-    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-
-    override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+    override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
     
     override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
 

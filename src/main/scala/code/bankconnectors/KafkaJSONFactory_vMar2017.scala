@@ -60,6 +60,12 @@ case class OutboundUserByUsernamePasswordBase(
   password: String
 )extends OutboundMessageBase
 
+case class OutboundAdapterInfo(
+  messageFormat: String,
+  action: String,
+  date: String
+) extends OutboundMessageBase
+
 case class OutboundUserAccountViewsBase(
   messageFormat: String,
   action: String,
@@ -234,6 +240,7 @@ case class OutboundCurrentFxRateBase(
   action: String,
   userId: String,
   username: String,
+  bankId: String,
   fromCurrencyCode: String,
   toCurrencyCode: String
 ) extends OutboundMessageBase
@@ -297,6 +304,14 @@ case class InboundBank(
   url: String
 )extends InboundMessageBase
 
+case class InboundAdapterInfo(errorCode: String,
+                              name: String,
+                              version: String,
+                              git_commit: String,
+                              date: String
+                             ) extends InboundMessageBase
+
+
 case class Bank2(r: InboundBank) extends Bank { //CM maybe kafka message
   
   def fullName = r.name
@@ -329,6 +344,11 @@ case class InboundAccount(
   branchId: String  = "None"
 )extends InboundMessageBase
 
+
+
+
+
+
 case class BankAccount2(r: InboundAccount) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)
@@ -359,6 +379,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
 
 case class InboundFXRate(
   errorCode: String,
+  bankId: String,
   fromCurrencyCode: String,
   toCurrencyCode: String,
   conversionValue: Double,
@@ -367,7 +388,8 @@ case class InboundFXRate(
 )extends InboundMessageBase
 
 case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
-  
+
+  def bankId: BankId = BankId(inboundFxRate.bankId)
   def fromCurrencyCode: String = inboundFxRate.fromCurrencyCode
   def toCurrencyCode: String = inboundFxRate.toCurrencyCode
   def conversionValue: Double = inboundFxRate.conversionValue

@@ -5,7 +5,7 @@ import code.bankconnectors.Connector
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
-import code.util.DefaultStringField
+import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
 import net.liftweb.mapper._
@@ -27,7 +27,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
   override def updateAllPendingTransactionRequests: Box[Option[Unit]] = {
     val transactionRequests = MappedTransactionRequest.find(By(MappedTransactionRequest.mStatus, TransactionRequests.STATUS_PENDING))
-    logger.info("Updating status of all pending transactions: ")
+    logger.debug("Updating status of all pending transactions: ")
     val statuses = Connector.connector.vend.getTransactionRequestStatuses
     transactionRequests.map{ tr =>
       for {
@@ -35,7 +35,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
         if (statuses.exists(_ == transactionRequest.id -> "APVD"))
       } yield {
         tr.updateStatus(TransactionRequests.STATUS_COMPLETED)
-        logger.info(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
+        logger.debug(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
       }
     }
   }
@@ -164,48 +164,48 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   override def getSingleton = MappedTransactionRequest
 
   //transaction request fields:
-  object mTransactionRequestId extends DefaultStringField(this)
-  object mType extends DefaultStringField(this)
+  object mTransactionRequestId extends UUIDString(this)
+  object mType extends MappedString(this, 32)
 
   //transaction fields:
-  object mTransactionIDs extends DefaultStringField(this)
-  object mStatus extends DefaultStringField(this)
+  object mTransactionIDs extends MappedString(this, 2000)
+  object mStatus extends MappedString(this, 32)
   object mStartDate extends MappedDate(this)
   object mEndDate extends MappedDate(this)
-  object mChallenge_Id extends DefaultStringField(this)
+  object mChallenge_Id extends MappedString(this, 64)
   object mChallenge_AllowedAttempts extends MappedInt(this)
-  object mChallenge_ChallengeType extends DefaultStringField(this)
-  object mCharge_Summary  extends DefaultStringField(this)
-  object mCharge_Amount  extends DefaultStringField(this)
-  object mCharge_Currency  extends DefaultStringField(this)
-  object mcharge_Policy  extends DefaultStringField(this)
+  object mChallenge_ChallengeType extends MappedString(this, 32)
+  object mCharge_Summary  extends MappedString(this, 64)
+  object mCharge_Amount  extends MappedString(this, 32)
+  object mCharge_Currency  extends MappedString(this, 3)
+  object mcharge_Policy  extends MappedString(this, 32)
 
   //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
-  object mBody_Value_Currency extends DefaultStringField(this)
-  object mBody_Value_Amount extends DefaultStringField(this)
-  object mBody_Description extends DefaultStringField(this)
+  object mBody_Value_Currency extends MappedString(this, 3)
+  object mBody_Value_Amount extends MappedString(this, 32)
+  object mBody_Description extends MappedString(this, 2000)
   // This is the details / body of the request (contains all fields in the body)
   // Note:this need to be a longer string, defaults is 2000, maybe not enough
-  object mDetails extends DefaultStringField(this)
+  object mDetails extends MappedString(this, 2000)
 
   //fromAccount fields
-  object mFrom_BankId extends DefaultStringField(this)
-  object mFrom_AccountId extends DefaultStringField(this)
+  object mFrom_BankId extends UUIDString(this)
+  object mFrom_AccountId extends AccountIdString(this)
 
   //toAccount fields
-  object mTo_BankId extends DefaultStringField(this)
-  object mTo_AccountId extends DefaultStringField(this)
+  object mTo_BankId extends UUIDString(this)
+  object mTo_AccountId extends AccountIdString(this)
 
   //toCounterparty fields
-  object mName extends DefaultStringField(this)
-  object mThisBankId extends DefaultStringField(this)
-  object mThisAccountId extends DefaultStringField(this)
-  object mThisViewId extends DefaultStringField(this)
-  object mCounterpartyId extends DefaultStringField(this)
-  object mOtherAccountRoutingScheme extends DefaultStringField(this)
-  object mOtherAccountRoutingAddress extends DefaultStringField(this)
-  object mOtherBankRoutingScheme extends DefaultStringField(this)
-  object mOtherBankRoutingAddress extends DefaultStringField(this)
+  object mName extends MappedString(this, 64)
+  object mThisBankId extends UUIDString(this)
+  object mThisAccountId extends AccountIdString(this)
+  object mThisViewId extends UUIDString(this)
+  object mCounterpartyId extends UUIDString(this)
+  object mOtherAccountRoutingScheme extends MappedString(this, 32) // TODO Add class for Scheme and Address
+  object mOtherAccountRoutingAddress extends MappedString(this, 64)
+  object mOtherBankRoutingScheme extends MappedString(this, 32)
+  object mOtherBankRoutingAddress extends MappedString(this, 64)
   object mIsBeneficiary extends MappedBoolean(this)
 
   def updateStatus(newStatus: String) = {

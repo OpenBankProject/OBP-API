@@ -14,7 +14,11 @@ object APIMetrics extends SimpleInjector {
     Props.getBool("allow_elasticsearch", false) &&
       Props.getBool("allow_elasticsearch_metrics", false) match {
         // case false => MappedMetrics
-        case false => RemotedataMetrics
+        case false =>
+          Props.getBool("use_akka", false) match {
+            case false  => MappedMetrics
+            case true => RemotedataMetrics     // We will use Akka as a middleware
+          }
         case true => ElasticsearchMetrics
     }
 
@@ -38,11 +42,33 @@ object APIMetrics extends SimpleInjector {
 
 trait APIMetrics {
 
-  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit
+  def saveMetric(userId: String,
+                 url: String,
+                 date: Date,
+                 duration: Long,
+                 userName: String,
+                 appName: String,
+                 developerEmail: String,
+                 consumerId: String,
+                 implementedByPartialFunction: String,
+                 implementedInVersion: String,
+                 verb: String,
+                 correlationId: String): Unit
 
-  def saveMetric(url : String, date : Date, duration: Long) : Unit ={
+  def saveMetric(url : String, date : Date, duration: Long, correlationId: String) : Unit ={
     //TODO: update all places calling old function before removing this
-    saveMetric("TODO: userId", url, date, duration, "TODO: userName", "TODO: appName", "TODO: developerEmail","TODO: consumerId" ,"TODO: implementedByPartialFunction" ,"TODO: implementedInVersion" ,"TODO: implementedInVersion" )
+    saveMetric("TODO: userId",
+      url,
+      date,
+      duration,
+      "TODO: userName",
+      "TODO: appName",
+      "TODO: developerEmail",
+      "TODO: consumerId" ,
+      "TODO: implementedByPartialFunction" ,
+      "TODO: i.i.v",
+      "TODO: verb",
+      correlationId)
   }
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -61,7 +87,7 @@ trait APIMetrics {
 }
 
 class RemotedataMetricsCaseClasses {
-  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String)
+  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String)
 //  case class getAllGroupedByUrl()
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
@@ -84,5 +110,6 @@ trait APIMetric {
   def getImplementedByPartialFunction() : String
   def getImplementedInVersion() : String
   def getVerb() : String
+  def getCorrelationId(): String
 
 }

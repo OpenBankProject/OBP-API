@@ -5,11 +5,10 @@ import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
 
 /**
-  * Created by zhanghongwei on 07/04/2017.
   * This object prepare all the JSON case classes for Swagger .
   * For now, just support all the endpoints for V220.
   * Because different versions, has different case classes.
-  * It is hard to mapping all these case class dynamicly for now.
+  * It is hard to mapping all these case class dynamicaly for now.
   * May be it can be fixed later.
   *
   */
@@ -44,7 +43,8 @@ object SwaggerDefinitionsJSON {
       "can_see_transaction_finish_date",
       "can_see_transaction_balance",
       "can_see_comments",
-      "can_see_narrative", "can_see_tags",
+      "can_see_narrative",
+      "can_see_tags",
       "can_see_images",
       "can_see_bank_account_owners",
       "can_see_bank_account_type",
@@ -745,12 +745,12 @@ object SwaggerDefinitionsJSON {
     hours = "5"
   )
   val addressJson = AddressJson(
-    line_1 = "Berlin",
-    line_2 = "Berlin",
-    line_3 = "Berlin",
+    line_1 = "Osloer Straße 16/17",
+    line_2 = "Wedding",
+    line_3 = "",
     city = "Berlin",
-    state = "Berlin",
-    postcode = "123",
+    state = "Berlin Brandenburg",
+    postcode = "13359",
     country = "Germany"
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(
@@ -1442,17 +1442,18 @@ object SwaggerDefinitionsJSON {
   )
   
   val productJsonV210 = ProductJsonV210(
-    code = "123",
-    name = "Good",
-    category = "OBP",
-    family = "Mother",
-    super_family = "GOOD",
-    more_info_url = "www.openbankproject.com",
-    details = "good ides",
-    description = "Good boy",
+    bank_id = "bankid123",
+    code = "prod1",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
     meta = metaJson
   )
-  
+
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
   
   val postCounterpartyJSON = PostCounterpartyJSON(
@@ -1568,7 +1569,8 @@ object SwaggerDefinitionsJSON {
     views = List(viewJSONV220)
   )
   
-  val fXRateJSON = FXRateJSON(
+  val fXRateJSON = FXRateJsonV220(
+    bank_id = "bankid434",
     from_currency_code = "EUR",
     to_currency_code = "GBP",
     conversion_value = 1.001,
@@ -1610,7 +1612,7 @@ object SwaggerDefinitionsJSON {
     )
   )
   
-  val branchJSONV220 = BranchJSONV220(
+  val branchJsonV220 = BranchJsonV220(
     id = "123",
     bank_id = "gh.29.uk",
     name = "OBP",
@@ -1621,7 +1623,47 @@ object SwaggerDefinitionsJSON {
     drive_up = driveUpJson,
     branch_routing = branchRoutingJSON
   )
-  
+
+
+  val atmJsonV220 = AtmJsonV220(
+    id = "123",
+    bank_id = "gh.29.uk",
+    name = "OBP",
+    address = addressJson,
+    location = locationJson,
+    meta = metaJson
+  )
+
+  val productJsonV220 = ProductJsonV220(
+    bank_id = "bankid123",
+    code = "prod1",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
+    meta = metaJson
+  )
+
+
+
+
+
+
+
+  val fxJsonV220 = FXRateJsonV220(
+    bank_id = "bankid123",
+    from_currency_code = "EUR",
+    to_currency_code = "USD",
+    conversion_value = 1,
+    inverse_conversion_value = 1,
+    effective_date = exampleDate
+  )
+
+
+
   val createAccountJSONV220 = CreateAccountJSONV220(
     user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
     label = "Label",

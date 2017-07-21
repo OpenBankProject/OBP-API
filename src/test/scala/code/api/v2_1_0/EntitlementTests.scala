@@ -2,7 +2,7 @@ package code.api.v2_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
-import code.api.util.ErrorMessages.UserDoesNotHaveRole
+import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.entitlement.Entitlement
 import code.model.BankId
 import net.liftweb.json.JsonAST._
@@ -65,7 +65,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
         Nil
       val requiredEntitlementsTxt = requiredEntitlements.mkString(" or ")
       And("We should get a message: " + s"$requiredEntitlementsTxt entitlements required")
-      error should contain (UserDoesNotHaveRole + requiredEntitlementsTxt)
+      error should contain (UserHasMissingRoles + requiredEntitlementsTxt)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser") {

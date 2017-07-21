@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{DefaultStringField, MappedAccountNumber, MappedUUID}
+import code.util._
 import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.{By, _}
@@ -269,20 +269,20 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   object counterpartyId extends MappedUUID(this)
 
   //these define the obp account to which this counterparty belongs
-  object thisBankId extends MappedString(this, 255)
-  object thisAccountId extends MappedString(this, 255)
+  object thisBankId extends UUIDString(this)
+  object thisAccountId extends AccountIdString(this)
 
   //these define the counterparty
-  object holder extends MappedString(this, 255)
+  object holder extends MappedString(this, 255) // Is this the name of the counterparty?
   object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
-  object publicAlias extends DefaultStringField(this)
-  object privateAlias extends DefaultStringField(this)
-  object moreInfo extends DefaultStringField(this)
-  object url extends DefaultStringField(this)
-  object imageUrl extends DefaultStringField(this)
-  object openCorporatesUrl extends DefaultStringField(this)
+  object publicAlias extends MappedString(this, 64)
+  object privateAlias extends MappedString(this, 64)
+  object moreInfo extends MappedString(this, 255)
+  object url extends MappedString(this, 2000)
+  object imageUrl extends MappedString(this, 2000)
+  object openCorporatesUrl extends MappedString(this, 2000)
 
   object physicalLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)
   object corporateLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)
@@ -368,7 +368,6 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
   override def dbIndexes =
     UniqueIndex(counterpartyId) ::
-    Index(thisBankId, thisAccountId, holder, accountNumber) ::
     super.dbIndexes
 }
 
@@ -398,7 +397,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mCreatedByUserId extends MappedString(this, 36)
   object mName extends MappedString(this, 36)
   object mThisBankId extends MappedString(this, 36)
-  object mThisAccountId extends MappedString(this, 255)
+  object mThisAccountId extends AccountIdString(this)
   object mThisViewId extends MappedString(this, 36)
   object mCounterPartyId extends MappedString(this, 36)
   object mOtherAccountRoutingScheme extends MappedString(this, 255)

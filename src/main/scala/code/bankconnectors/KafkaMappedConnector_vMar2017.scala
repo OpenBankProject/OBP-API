@@ -31,6 +31,8 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.atms.Atms.AtmId
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -100,6 +102,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
 
   // Each Message Doc has a process, description, example outbound and inbound messages.
@@ -192,8 +196,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  def updateUserAccountViews( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks.flatMap { bank => {
+  override def updateUserAccountViewsOld( user: ResourceUser ) = {
+    val accounts: List[InboundAccount] = getBanks.get.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -222,9 +226,9 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         acc.generateAccountantsView,
         acc.generateAuditorsView
       )}
-      existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
+      existing_views <- tryo {Views.views.vend.views(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
-      setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
+      setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
@@ -268,7 +272,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   )
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = {
+  override def getBanks(): Box[List[Bank]] = {
     val req = OutboundBanksBase(
       messageFormat = messageFormat,
       action = "obp.get.Banks",
@@ -292,7 +296,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    res
+    Full(res)
   }
   
   messageDocs += MessageDoc(
@@ -594,7 +598,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     val r = process(req).extractOpt[InternalTransaction]
     r match {
       // Check does the response data match the requested data
-      case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
+      case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
       case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
@@ -683,7 +687,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
     // Populate fields and generate result
     val res = for {
       r <- rList
@@ -746,7 +750,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bankId), AccountId(r.accountId))).toSet
     val acc = List((bankId, accountId)).toSet
-    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountConnectorResponse)
+    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccount)
 
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 
@@ -826,7 +830,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     val accRes = for(row <- r) yield {
       (BankId(row.bankId), AccountId(row.accountId))
     }
-    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
+    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccounts)
 
     r.map { t =>
       createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
@@ -1200,13 +1204,15 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
+        bankId = "bankid543",
         fromCurrencyCode = "1234",
         toCurrencyCode = ""
       )
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundFXRate(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6XXXX: .... ",
+        bankId = "bankid654",
         fromCurrencyCode = "1234",
         toCurrencyCode = "1234",
         conversionValue = 123.44,
@@ -1216,13 +1222,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
   // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = OutboundCurrentFxRateBase(
       messageFormat = messageFormat,
       action = "obp.get.CurrentFxRate",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
+      bankId = bankId.value,
       fromCurrencyCode = fromCurrencyCode,
       toCurrencyCode = toCurrencyCode)
     
@@ -1557,7 +1564,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   }
 
   //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+  override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
@@ -1754,9 +1761,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
-  
+  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
+
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(
       InboundAccount(

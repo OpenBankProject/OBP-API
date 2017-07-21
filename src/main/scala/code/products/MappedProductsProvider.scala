@@ -4,7 +4,7 @@ import code.products.Products._
 import code.common.{License, Meta}
 import code.model.BankId
 import code.products.Products.ProductCode
-import code.util.DefaultStringField
+import code.util.{UUIDString}
 import net.liftweb.mapper._
 
 import code.products.Products.Product
@@ -13,6 +13,7 @@ import code.products.Products.Product
 object MappedProductsProvider extends ProductsProvider {
 
   override protected def getProductFromProvider(bankId: BankId, productCode: ProductCode): Option[Product] =
+  // Does this implicit cast from MappedProduct to Product?
   MappedProduct.find(
     By(MappedProduct.mBankId, bankId.value),
     By(MappedProduct.mCode, productCode.value)
@@ -29,25 +30,25 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   override def getSingleton = MappedProduct
 
-  object mBankId extends DefaultStringField(this) // combination of this
-  object mCode extends DefaultStringField(this)   // and this is unique
+  object mBankId extends UUIDString(this) // combination of this
+  object mCode extends MappedString(this, 50)   // and this is unique
 
-  object mName extends DefaultStringField(this)
+  object mName extends MappedString(this, 125)
 
   // Note we have an database pk called id but don't expose it
 
   // Exposed inside address. See below
-  object mCategory extends DefaultStringField(this)
-  object mFamily extends DefaultStringField(this)
-  object mSuperFamily extends DefaultStringField(this)
-  object mMoreInfoUrl extends DefaultStringField(this) // use URL field?
-  object mDetails extends DefaultStringField(this)
-  object mDescription extends DefaultStringField(this)
+  object mCategory extends MappedString(this, 50)
+  object mFamily extends MappedString(this, 50)
+  object mSuperFamily extends MappedString(this, 50)
+  object mMoreInfoUrl extends MappedString(this, 2000) // use URL field?
+  object mDetails extends MappedString(this, 2000)
+  object mDescription extends MappedString(this, 2000)
 
 
   // Exposed inside meta.license See below
-  object mLicenseId extends DefaultStringField(this)
-  object mLicenseName extends DefaultStringField(this)
+  object mLicenseId extends UUIDString(this) // This are common open data fields in OBP, add class for them?
+  object mLicenseName extends MappedString(this, 255)
 
   override def bankId: BankId = BankId(mBankId.get)
 

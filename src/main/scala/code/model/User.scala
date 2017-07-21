@@ -68,7 +68,7 @@ trait User {
     * @return the account's permitted views for the user 
     */
   def permittedViews(bankAccount: BankAccount) : List[View] =
-    Views.views.vend.permittedViews(this, BankAccountUID(bankAccount.bankId, bankAccount.accountId))
+    Views.views.vend.permittedViews(this, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
 
   def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
     if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){

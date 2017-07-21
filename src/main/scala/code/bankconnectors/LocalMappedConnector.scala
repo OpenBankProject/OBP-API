@@ -3,7 +3,9 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.atms.Atms.{Atm, AtmId}
+import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -34,6 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.math.BigInt
 import code.api.util.APIUtil.saveConnectorMetric
+import code.api.v2_2_0.ProductJsonV220
 
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -58,19 +61,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric 
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
+
+  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
-    logger.info(s"threshold is $threshold")
+    logger.debug(s"threshold is $threshold")
 
     // TODO constrain this to supported currencies.
     val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
-    logger.info(s"thresholdCurrency is $thresholdCurrency")
+    logger.debug(s"thresholdCurrency is $thresholdCurrency")
 
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
-    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     AmountOfMoney(currency, convertedThreshold.toString())
   }
 
@@ -119,21 +125,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               currency: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
     val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
-    logger.info(s"transactionRequests_charge_level is $chargeLevel")
+    logger.debug(s"transactionRequests_charge_level is $chargeLevel")
 
     // TODO constrain this to supported currencies.
     //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
-    //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    logger.debug(s"chargeLevelCurrency is $chargeLevelCurrency")
     //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
     //    val convertedThreshold = fx.convert(chargeLevel, rate)
-    //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    //    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
 
     Full(AmountOfMoney(currency, chargeLevel.toString))
   }
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
-
-  def updateUserAccountViews(user: ResourceUser): Unit = ???
 
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
@@ -152,8 +156,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
 
   //gets banks handled by this connector
-  override def getBanks: List[Bank] = saveConnectorMetric {
-      MappedBank
+  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+     Full(MappedBank
         .findAll()
         .map(
           bank =>
@@ -162,6 +166,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               case _ => bank
             }
         )
+     )
   }("getBanks")
 
 
@@ -608,10 +613,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
-        logger.info(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
+        logger.debug(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
       case _ =>
-        logger.info(s"creating bank with national identifier $bankNationalIdentifier")
+        logger.debug(s"creating bank with national identifier $bankNationalIdentifier")
         //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
         MappedBank.create
           .permalink(Helper.generatePermalink(bankName))
@@ -738,7 +743,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
-        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ =>
         MappedBankAccount.create
@@ -897,17 +902,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     result.getOrElse(false)
   }
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = {
+  override def getProducts(bankId: BankId): Box[List[MappedProduct]] = {
     Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
   }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[MappedProduct] = {
     MappedProduct.find(
       By(MappedProduct.mBankId, bankId.value),
       By(MappedProduct.mCode, productCode.value)
     )
   }
 
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
   override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
 
     //check the branch existence and update or insert data
@@ -930,11 +936,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
-            .mDriveUpHours(branch.driveUp.hours)
+            .mDriveUpHours(branch.drive_up.hours)
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchUpdateError
+        } ?~! ErrorMessages.UpdateBranchError
       case _ =>
         tryo {
           MappedBranch.create
@@ -953,13 +959,114 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
             .mLobbyHours(branch.lobby.hours)
-            .mDriveUpHours(branch.driveUp.hours)
+            .mDriveUpHours(branch.drive_up.hours)
             .mBranchRoutingScheme(branchRoutingScheme) //Added in V220
             .mBranchRoutingAddress(branchRoutingAddress) //Added in V220
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchInsertError
+        } ?~! ErrorMessages.CreateBranchError
     }
   }
+
+
+  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
+  override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
+
+    //check the atm existence and update or insert data
+    getAtm(BankId(atm.bank_id), AtmId(atm.id)) match {
+      case Full(mappedAtm) =>
+        tryo {
+          mappedAtm.mName(atm.name)
+            .mLine1(atm.address.line_1)
+            .mLine2(atm.address.line_2)
+            .mLine3(atm.address.line_3)
+            .mCity(atm.address.city)
+            .mCounty(atm.address.country)
+            .mState(atm.address.state)
+            .mPostCode(atm.address.postcode)
+            .mlocationLatitude(atm.location.latitude)
+            .mlocationLongitude(atm.location.longitude)
+            .mLicenseId(atm.meta.license.id)
+            .mLicenseName(atm.meta.license.name)
+            .saveMe()
+        } ?~! ErrorMessages.UpdateAtmError
+      case _ =>
+        tryo {
+          MappedAtm.create
+            .mAtmId(atm.id)
+            .mBankId(atm.bank_id)
+            .mName(atm.name)
+            .mLine1(atm.address.line_1)
+            .mLine2(atm.address.line_2)
+            .mLine3(atm.address.line_3)
+            .mCity(atm.address.city)
+            .mCounty(atm.address.country)
+            .mState(atm.address.state)
+            .mPostCode(atm.address.postcode)
+            .mlocationLatitude(atm.location.latitude)
+            .mlocationLongitude(atm.location.longitude)
+            .mLicenseId(atm.meta.license.id)
+            .mLicenseName(atm.meta.license.name)
+            .saveMe()
+        } ?~! ErrorMessages.CreateAtmError
+    }
+  }
+
+
+
+  override def createOrUpdateProduct(bankId : String,
+                                     code : String,
+                                     name : String,
+                                     category : String,
+                                     family : String,
+                                     superFamily : String,
+                                     moreInfoUrl : String,
+                                     details : String,
+                                     description : String,
+                                     metaLicenceId : String,
+                                     metaLicenceName : String): Box[Product] = {
+
+    //check the product existence and update or insert data
+    getProduct(BankId(bankId), ProductCode(code)) match {
+      case Full(mappedProduct) =>
+        tryo {
+          mappedProduct.mName(name)
+          .mCode (code)
+          .mBankId(bankId)
+          .mName(name)
+          .mCategory(category)
+          .mFamily(family)
+          .mSuperFamily(superFamily)
+          .mMoreInfoUrl(moreInfoUrl)
+          .mDetails(details)
+          .mDescription(description)
+          .mLicenseId(metaLicenceId)
+          .mLicenseName(metaLicenceName)
+          .saveMe()
+        } ?~! ErrorMessages.UpdateProductError
+      case _ =>
+        tryo {
+          MappedProduct.create
+            .mName(name)
+            .mCode (code)
+            .mBankId(bankId)
+            .mName(name)
+            .mCategory(category)
+            .mFamily(family)
+            .mSuperFamily(superFamily)
+            .mMoreInfoUrl(moreInfoUrl)
+            .mDetails(details)
+            .mDescription(description)
+            .mLicenseId(metaLicenceId)
+            .mLicenseName(metaLicenceName)
+            .saveMe()
+        } ?~! ErrorMessages.CreateProductError
+    }
+
+  }
+
+
+
+
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
     MappedBranch
@@ -975,19 +1082,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId))
+
+
+  override def getAtm(bankId : BankId, atmId: AtmId) : Box[MappedAtm]= {
+    MappedAtm
+      .find(
+        By(MappedAtm.mBankId, bankId.value),
+        By(MappedAtm.mAtmId, atmId.value))
   }
+
+
+
+
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
     */
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
     /**
       * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
       */
     val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
     )
@@ -995,6 +1112,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
       */
     val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId.value),
       By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
       By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
     )
@@ -1059,7 +1177,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankInsertError
+             } ?~! ErrorMessages.CreateBankError
       case _ =>
         tryo {
                MappedBank.create
@@ -1073,6 +1191,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .mBankRoutingScheme(bankRoutingScheme)
                .mBankRoutingAddress(bankRoutingAddress)
                .saveMe()
-             } ?~! ErrorMessages.CreateBankUpdateError
+             } ?~! ErrorMessages.UpdateBankError
     }
 }

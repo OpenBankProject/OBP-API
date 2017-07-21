@@ -37,6 +37,7 @@ import java.util.Date
 import _root_.net.liftweb.util.Helpers._
 import code.token.Tokens
 import code.api.OAuthHandshake._
+import code.api.util.APIUtil.getCorrelationId
 import code.metrics.APIMetrics
 import code.model._
 import net.liftweb.common._
@@ -112,15 +113,15 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
   private def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
   if(httpCode==200)
   {
-    logger.info("OAuth header correct ")
+    logger.debug("OAuth header correct ")
     Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
       case Full(token) => {
-        logger.info("access token: "+ token + " found")
+        logger.debug("access token: "+ token + " found")
         val user = User.findByResourceUserId(token.userForeignKey.get)
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")
-          case _ => logger.info("no user was found for the oauth token")
+          case Full(u) => logger.debug("user " + u.emailAddress + " was found from the oauth token")
+          case _ => logger.debug("no user was found for the oauth token")
         }
         user
       }
@@ -143,8 +144,10 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
     }
   }
 
-  private def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L)
+  private def logAPICall = {
+    val correlationId = getCorrelationId()
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan), -1L, correlationId)
+  }
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)
@@ -302,7 +305,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
         )
       }
 
-      JsonResponse("banks" -> Bank.all.map(bankToJson _ ))
+      JsonResponse("banks" -> Bank.all.get.map(bankToJson _ ))
     }
 
   })
@@ -346,8 +349,8 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
       def accountToJson(acc : BankAccount, user : Box[User]) : JObject = {
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.emailAddress + " was found")
-          case _ => logger.info("no user was found")
+          case Full(u) => logger.debug("user " + u.emailAddress + " was found")
+          case _ => logger.debug("no user was found")
         }
 
         val views = acc permittedViews user

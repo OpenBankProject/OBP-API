@@ -1,7 +1,7 @@
 package code.usercustomerlinks
 
 import java.util.Date
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
@@ -54,8 +54,8 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
   // Name the objects m* so that we can give the overridden methods nice names.
   // Assume we'll have to override all fields so name them all m*
   object mUserCustomerLinkId extends MappedUUID(this)
-  object mCustomerId extends DefaultStringField(this)
-  object mUserId extends DefaultStringField(this)
+  object mCustomerId extends UUIDString(this)
+  object mUserId extends UUIDString(this)
   object mDateInserted extends MappedDateTime(this)
   object mIsActive extends MappedBoolean(this)
 
