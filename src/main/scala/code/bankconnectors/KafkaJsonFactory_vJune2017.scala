@@ -12,7 +12,7 @@ import net.liftweb.util.Helpers.today
 
 case class InboundAccountJun2017(
   errorCode: String,
-  cbsAuthToken: String,
+  cbsToken: String,
   bankId: String,
   branchId: String,
   accountId: String,

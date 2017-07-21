@@ -59,14 +59,13 @@ import net.liftweb.util.Props
 import scala.collection.immutable.{Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 import scalacache.memoization.memoizeSync
-
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import concurrent.duration._
 import language.postfixOps
 import com.google.common.cache.CacheBuilder
 import code.util.Helper.MdcLoggable
-import net.liftweb.json.JsonAST.{JValue}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction._
 
 
@@ -127,7 +126,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   override def getAdapterInfo: Box[InboundAdapterInfo] = {
     val req = code.bankconnectors.GetAdapterInfo((new Date()).toString)
     val rr = process[GetAdapterInfo](req)
-    val r = rr.extract[InboundAdapterInfo]
+    val r = rr.extract[AdapterInfo].data
     Full(r)
   }
 
@@ -143,11 +142,12 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundValidatedUser(
-        errorCode = "OBP-6001: ...",
-        email = "susan.uk.29@example.com",
-        displayName = "susan"
-      )
+      UserWrapper(
+        Some(InboundValidatedUser(
+          errorCode = "OBP-6001: ...",
+          email = "susan.uk.29@example.com",
+          displayName = "susan"
+        )))
     )
   )
   def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
@@ -156,9 +156,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         req <- Full(
           GetUserByUsernamePassword(AuthInfo(currentResourceUserId, username,"cbsToken"), password = password)
         )
-        u <- Full(process[GetUserByUsernamePassword](req).extract[InboundValidatedUser])
-        recUsername <- tryo(u.displayName)
-      } yield if (username == u.displayName) new InboundUser(recUsername,
+        user <- process[GetUserByUsernamePassword](req).extract[UserWrapper].data
+        recUsername <- tryo(user.displayName)
+      } yield if (username == user.displayName) new InboundUser(recUsername,
         password, recUsername
       ) else null
     }}("getUser")
@@ -192,7 +192,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     memoizeSync(getBanksTTL millisecond){
     val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
     logger.debug(s"Kafka getBanks says: req is: $req")
-    val rList = process[GetBanks](req).extract[List[InboundBank]]
+    val rList = process[GetBanks](req).extract[Banks].data
     val res = rList map (new Bank2(_))
     logger.debug(s"Kafka getBanks says res is $res")
     Full(res)
@@ -222,7 +222,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, "cbsToken"),
       bankId = bankId.toString)
     
-    val r =  process[GetBank](req).extract[InboundBank]
+    val r =  process[GetBank](req).extract[BankWrapper].data
       
     Full(new Bank2(r))
       
@@ -237,34 +237,35 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       GetAccounts(AuthInfo("userId", "username","cbsToken"))
     ),
     exampleInboundMessage = decompose(
-      InboundAccountJun2017(
-        errorCode = "OBP-6001: ...",
-        cbsAuthToken = "cbsAuthToken",
-        bankId = "gh.29.uk",
-        branchId = "222", 
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123", 
-        accountType = "AC", 
-        balanceAmount = "50",
-        balanceCurrency = "EUR", 
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", 
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
-      ) :: Nil
+      InboundBankAccounts(
+        AuthInfo("userId", "username", "cbsToken"),
+        InboundAccountJun2017(
+          errorCode = "OBP-6001: ...",
+          cbsToken ="cbsToken",
+          bankId = "gh.29.uk",
+          branchId = "222", 
+          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          accountNumber = "123", 
+          accountType = "AC", 
+          balanceAmount = "50",
+          balanceCurrency = "EUR", 
+          owners = "Susan" :: " Frank" :: Nil,
+          viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+          bankRoutingScheme = "iban", 
+          bankRoutingAddress = "bankRoutingAddress",
+          branchRoutingScheme = "branchRoutingScheme",
+          branchRoutingAddress = " branchRoutingAddress",
+          accountRoutingScheme = "accountRoutingScheme",
+          accountRoutingAddress = "accountRoutingAddress"
+      ) :: Nil)
     )
   )
   override def getBankAccounts(user: User): Box[List[InboundAccountJun2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
-    val req = GetAccounts(
-      AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"))
+    val req = GetAccounts(AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"))
     
     logger.debug(s"Kafka getBankAccounts says: req is: $req")
-    val rList = process[GetAccounts](req).extract[List[InboundAccountJun2017]]
+    val rList = process[GetAccounts](req).extract[InboundBankAccounts].data
     val res = rList //map (new BankAccountJun2017(_))
     logger.debug(s"Kafka getBankAccounts says res is $res")
     Full(res)
@@ -283,26 +284,28 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundAccountJun2017(
-        errorCode = "OBP-6001: ...",
-        cbsAuthToken = "cbsAuthToken", 
-        bankId = "gh.29.uk", 
-        branchId = "222",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123", 
-        accountType = "AC", 
-        balanceAmount = "50",
-        balanceCurrency = "EUR", 
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", 
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
+      InboundBankAccount(
+        AuthInfo("userId", "username", "cbsToken"),
+        InboundAccountJun2017(
+          errorCode = "OBP-6001: ...",
+          cbsToken = "cbsToken",
+          bankId = "gh.29.uk", 
+          branchId = "222",
+          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          accountNumber = "123", 
+          accountType = "AC", 
+          balanceAmount = "50",
+          balanceCurrency = "EUR", 
+          owners = "Susan" :: " Frank" :: Nil,
+          viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+          bankRoutingScheme = "iban", 
+          bankRoutingAddress = "bankRoutingAddress",
+          branchRoutingScheme = "branchRoutingScheme",
+          branchRoutingAddress = " branchRoutingAddress",
+          accountRoutingScheme = "accountRoutingScheme",
+          accountRoutingAddress = "accountRoutingAddress"
       )
-    )
+    ))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccountJun2017] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
@@ -318,7 +321,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       // 3 there is error in Kafka
       // 4 there is error in Akka
       // 5 there is error in Future
-    val res = process[GetAccountbyAccountID](req).extract[InboundAccountJun2017]
+    val res = process[GetAccountbyAccountID](req).extract[InboundBankAccount].data
     
     logger.debug(s"Kafka getBankAccount says res is $res")
     
@@ -339,6 +342,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
+      InboundTransactions(
+      AuthInfo("userId", "username", "cbsToken" ),
       InternalTransaction(
         errorCode = "OBP-6001: ...",
         transactionId = "1234",
@@ -372,35 +377,28 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         `type` = "AC",
         userId = "1234"
       ) :: Nil
-    )
+    ))
   )
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+    val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
+    val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
+    val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
+    val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
     val ordering = queryParams.collect {
       //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
-    }
-    val optionalParams: Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    //TODO no filter now.
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+      case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
+    val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
     
     val req = GetTransactions(
       authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = "cbsToken" ),
       bankId = bankId.toString,
       accountId = accountId.value,
-      queryParams = mapperParams.toString()
+      queryParams = optionalParams.toString()
     )
     
     implicit val formats = net.liftweb.json.DefaultFormats
     logger.debug(s"Kafka getTransactions says: req is: $req")
-    val rList = process[GetTransactions](req).extract[List[InternalTransaction]]
+    val rList = process[GetTransactions](req).extract[InboundTransactions].data
     logger.debug(s"Kafka getTransactions says: req is: $rList")
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
@@ -429,7 +427,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InternalTransaction(
+      InboundTransaction(
+        AuthInfo("userId","usename","cbsToken"),
+        InternalTransaction(
         errorCode = "OBP-6001: ...",
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -446,7 +446,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         `type` = "AC",
         userId = "1234"
       )
-    )
+    ))
   )
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = GetTransaction(
@@ -456,11 +456,11 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       transactionId = transactionId.toString)
     
     // Since result is single account, we need only first list entry
-    val r = process[GetTransaction](req).extractOpt[InternalTransaction]
+    val r = process[GetTransaction](req).extract[InboundTransaction].data
     r match {
       // Check does the response data match the requested data
-      case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
+      case x if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
+      case x if transactionId.value == x.transactionId => createNewTransaction(x)
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
     
@@ -697,8 +697,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundAccountJun2017(
-        errorCode = "OBP-6001: ...", 
-        cbsAuthToken = "xysgh1234",
+        errorCode = "OBP-6001: ...",
+        cbsToken = "cbsToken",
         bankId = "gh.29.uk", 
         branchId = "222",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -1619,7 +1619,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     Full(new BankAccountJun2017(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
-        cbsAuthToken = "xysgh1234",
+        cbsToken = "cbsToken",
         bankId = "gh.29.uk",
         branchId = "222",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",

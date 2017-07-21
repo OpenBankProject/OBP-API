@@ -23,10 +23,11 @@ case class CreateCBSAuthToken(authInfo: AuthInfo) extends TopicCaseClass
 /**
   * case classes used as payloads
   */
+case class AdapterInfo(data: InboundAdapterInfo)
+case class UserWrapper(data: Option[InboundValidatedUser])
 case class Banks(authInfo: AuthInfo, data: List[InboundBank])
 case class BankWrapper(authInfo: AuthInfo, data: InboundBank)
-case class AdapterInfo(data: InboundAdapterInfo)
-case class InboundBankAccounts(data: List[InboundAccountJun2017])
-case class InboundBankAccount(data: InboundAccountJun2017)
-case class InboundTransactions(data: List[InternalTransaction])
+case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJun2017])
+case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJun2017)
+case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)

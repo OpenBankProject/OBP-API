@@ -203,7 +203,7 @@ object MockedCardConnector extends ServerSetup
     Full(
       InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
-        cbsAuthToken = "xysgh1234", 
+        cbsToken = "cbsToken",
         bankId = bankIdAccountId.bankId.value,
         branchId = "222", 
         accountId = bankIdAccountId.accountId.value,
@@ -221,7 +221,7 @@ object MockedCardConnector extends ServerSetup
         accountRoutingAddress = "accountRoutingAddress"
       ) :: InboundAccountJun2017(
         errorCode = "OBP-6001: ...",
-        cbsAuthToken = "xysgh1235",
+        cbsToken = "cbsToken",
         bankId = bankIdAccountId2.bankId.value, 
         branchId = "222",
         accountId = bankIdAccountId2.accountId.value, 
