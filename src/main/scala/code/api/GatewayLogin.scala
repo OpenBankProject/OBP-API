@@ -146,8 +146,16 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     logger.debug("cbsAuthToken : " + cbsAuthToken)
     if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
       // Call CBS
-      // Connector.connector.vend.getBankAccounts(username)
-      Empty
+//      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]
+//      res match {
+//        case Full(l) =>
+//          Full(Extraction.decompose(l)) // Json string
+//        case Empty =>
+//          Empty
+//        case Failure(msg, _, _) =>
+//          Failure(msg)
+//      }
+      Full("Call of CBS is not implemented")
     } else {
       // Do not call CBS
       Full("There is no need to call CBS")
@@ -170,6 +178,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("username: " + username)
     communicateWithCbs(jwtPayload) match {
+      case Full(s) if s.equalsIgnoreCase("Call of CBS is not implemented") => // Call of CBS is not implemented
+        logger.debug("Call of CBS is not implemented")
+        Failure("Call of CBS is not implemented")
       case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
         logger.debug("There is no need to call CBS")
         Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
@@ -177,13 +188,13 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             createConsumerAndSetResponseHeader(jwtPayload, Full(u), None)
             Full(u)
           case Empty =>
-            Failure("User cannot be found. Please initiate CBS communication in order to crete it.")
+            Failure("User cannot be found. Please initiate CBS communication in order to create it.")
           case Failure(msg, _, _) =>
             Failure(msg)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
-      case Full(s) if getErrors(s).length == 0 => // CBS returned response without any error
+      case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
         logger.debug("CBS returned proper response")
         val u = Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
           Users.users.vend.createResourceUser( // Otherwise create a new one
@@ -194,9 +205,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             userId = None
           )
         }
-        val cbsAuthToken: Seq[String] = getCbsToken(jwtPayload)
-        createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthToken.head))
-        // Update user accoun views
+        val cbsAuthTokens = getCbsToken(s)
+        createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
+        // Update user account views
 //        for {
 //          user <- u
 //          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
@@ -204,14 +215,16 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 //          Connector.connector.vend.updateUserAccountViewsOld(ru)
 //        }
         u // Return user
-      case Full(s) if getErrors(s).length > 0 =>
+      case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
         logger.debug("CBS returned some errors")
         Failure(getErrors(s).mkString(", "))
       case Empty =>
-        logger.debug("Call of CBS is not implemented")
-        Failure("Call of CBS is not implemented")
+        logger.debug("Cannot get the response from South side")
+        Failure("Cannot get the response from South side")
       case Failure(msg, _, _) =>
         Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.GatewayLoginUnknownError)
     }
   }
 
@@ -291,6 +304,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     compact(render(jwtJson.\\(fieldName))).replace("\"", "")
   }
 
+  // Try to find errorCode in Json string received from South side and extract to list
+  // Return list of error codes values
   private def getErrors(message: String) : List[String] = {
     for {
       JArray(errorCodes) <- parse(message) \\ "errorCode"
@@ -298,10 +313,12 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     } yield error
   }
 
+  // Try to find CBS auth token in Json string received from South side and extract to list
+  // Return list of same CBS auth token values
   private def getCbsToken(message: String) : List[String] = {
     for {
-      JArray(cbsToken) <- parse(message) \\ "cbsToken"
-      JField("errorCode", JString(cbsToken)) <- cbsToken
+      JArray(cbsTokens) <- parse(message) \\ "cbsToken"
+      JField("cbsToken", JString(cbsToken)) <- cbsTokens
     } yield cbsToken
   }
 
