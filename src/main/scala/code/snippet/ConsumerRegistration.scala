@@ -77,41 +77,41 @@ class ConsumerRegistration extends MdcLoggable {
 
     def registerWithoutWarnings =
       register &
-      "#registration-errors" #> ""
+      "#register-consumer-errors" #> ""
 
     def register = {
-      ".register" #> {
-          ".appTypeClass" #> SHtml.select(appTypes, Empty, appType(_)) &
-          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) & 
-          ".appRedirectUrlClass" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
-          ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
-          ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
-          "type=submit" #> SHtml.submit("Send", () => submitButtonDefense)
+      "form" #> {
+          "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
+          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) & 
+          "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
+          "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
+          "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
+          "type=submit" #> SHtml.submit("Register consumer", () => submitButtonDefense)
       } &
-      ".success" #> ""
+      "#register-consumer-success" #> ""
     }
 
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = Props.get("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = Props.get("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
-      ".app-consumer_id *" #> consumer.id.get &
-      ".app-name *" #> consumer.name.get &
-      ".app-redirect-url *" #> consumer.redirectURL &
-      ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
-      ".app-type *" #> consumer.appType.get.toString &
-      ".app-description *" #> consumer.description.get &
-      ".app-developer *" #> consumer.developerEmail.get &
-      ".auth-key *" #> consumer.key.get &
-      ".secret-key *" #> consumer.secret.get &
-      ".registration" #> "" &
-      ".oauth-endpoint a *" #> urlOAuthEndpoint &
-      ".oauth-endpoint a [href]" #> urlOAuthEndpoint &
-      ".directlogin-endpoint a *" #> urlDirectLoginEndpoint &
-      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
-      ".post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
-      ".post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl
+      "#app-consumer_id *" #> consumer.id.get &
+      "#app-name *" #> consumer.name.get &
+      "#app-redirect-url *" #> consumer.redirectURL &
+      "#app-user-authentication-url *" #> consumer.userAuthenticationURL &
+      "#app-type *" #> consumer.appType.get.toString &
+      "#app-description *" #> consumer.description.get &
+      "#app-developer *" #> consumer.developerEmail.get &
+      "#auth-key *" #> consumer.key.get &
+      "#secret-key *" #> consumer.secret.get &
+      "#oauth-endpoint a *" #> urlOAuthEndpoint &
+      "#oauth-endpoint a [href]" #> urlOAuthEndpoint &
+      "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
+      "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
+      "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
+      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
+      "#register-consumer-input" #> ""
     }
 
     def showRegistrationResults(result : Consumer) = {
@@ -125,7 +125,7 @@ class ConsumerRegistration extends MdcLoggable {
     def showErrors(errors : List[FieldError]) = {
       val errorsString = errors.map(_.msg.toString)
       register &
-      "#registration-errors *" #> {
+      "#register-consumer-errors *" #> {
         ".error *" #>
           errorsString.map({ e=>
             ".errorContent *" #> e
@@ -135,7 +135,7 @@ class ConsumerRegistration extends MdcLoggable {
 
     def showUnknownErrors(errors : List[String]) = {
       register &
-        "#registration-errors *" #> {
+        "#register-consumer-errors *" #> {
           ".error *" #>
             errors.map({ e=>
               ".errorContent *" #> e
@@ -144,11 +144,11 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
-    def showErrorsForDescription (descriptioinError : String) = {
+    def showErrorsForDescription (descriptionError : String) = {
       register &
-        "#registration-errors *" #> {
+        "#register-consumer-errors *" #> {
           ".error *" #>
-            List(descriptioinError).map({ e=>
+            List(descriptionError).map({ e=>
               ".errorContent *" #> e
             })
         }
@@ -166,7 +166,7 @@ class ConsumerRegistration extends MdcLoggable {
       redirectionURLVar.set(redirectionURLVar.is)
 
       if(submitButtonDefenseFlag.isEmpty)
-        showErrorsForDescription("The 'Send' button random name has been modified !")
+        showErrorsForDescription("The 'Register' button random name has been modified !")
       else if(descriptionVar.isEmpty)
         showErrorsForDescription("Description of the application can not be empty !")
       else{

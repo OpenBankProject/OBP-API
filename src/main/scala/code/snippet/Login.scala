@@ -49,7 +49,7 @@ class Login {
       ".logout [href]" #> {
         AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> AuthUser.getCurrentUserUsername
+      ".logout #username *" #> AuthUser.getCurrentUserUsername
     }
   }
 
@@ -91,7 +91,7 @@ class Login {
       val specialLoginInstructions  = scala.xml.Unparsed(Props.get("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
       implicit val formats = net.liftweb.json.DefaultFormats
-      "#login_special_instructions *" #> specialLoginInstructions
+      "#login-special-instructions *" #> specialLoginInstructions
     }
 
 
