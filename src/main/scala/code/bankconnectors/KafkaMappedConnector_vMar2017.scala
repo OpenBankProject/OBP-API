@@ -122,7 +122,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundValidatedUser(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         email = "susan.uk.29@example.com",
         displayName = "susan"
       )
@@ -163,7 +163,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -178,7 +178,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         generateAuditorsView = true
       )
         :: InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -254,14 +254,14 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
       )
         :: InboundBank(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -318,7 +318,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundChallengeLevel(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         limit = "1000",
         currency = "EUR"
       )
@@ -371,7 +371,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundChargeLevel(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         currency = "EUR",
         amount = ""
       )
@@ -430,7 +430,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundCreateChallange(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         challengeId = "1234567"
       )
     )
@@ -481,7 +481,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundValidateChallangeAnswer(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         answer = ""
       )
     )
@@ -524,7 +524,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
         
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -565,7 +565,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InternalTransaction(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         amount = "100",
@@ -622,7 +622,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InternalTransaction(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         amount = "100",
@@ -638,7 +638,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         `type` = "AC",
         userId = "1234"
       ) :: InternalTransaction(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         amount = "100",
@@ -715,7 +715,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -773,7 +773,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -787,7 +787,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         generateAccountantsView = true,
         generateAuditorsView = true
       ) :: InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -854,7 +854,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",
@@ -921,7 +921,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundCounterparty(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         name = "sushan",
         createdByUserId = "12345",
         thisBankId = "gh.29.uk",
@@ -976,7 +976,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       CounterpartyTrait2(
         InboundCounterparty(
-          errorCode = "OBPS-001: .... ",
+          errorCode = "OBP-6001: ...",
           name = "sushan",
           createdByUserId = "12345",
           thisBankId = "gh.29.uk",
@@ -1052,7 +1052,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundTransactionId(
         
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         transactionId = "1234"
       )
     )
@@ -1258,7 +1258,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundTransactionRequestTypeCharge(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         transactionRequestType = "",
         bankId = "gh.29.uk",
         chargeCurrency = "EUR",
@@ -1301,7 +1301,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         } yield {
           TransactionRequestTypeCharge2(InboundTransactionRequestTypeCharge(
              
-            errorCode = "OBPS-001: .... ",
+            errorCode = "OBP-6001: ...",
             transactionRequestType.value, 
             bankId.value,
             fromAccountCurrency, 
@@ -1766,7 +1766,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(
       InboundAccount(
-        errorCode = "OBPS-001: .... ",
+        errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
         label = "Good",

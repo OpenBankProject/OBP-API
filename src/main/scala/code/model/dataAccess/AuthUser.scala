@@ -823,7 +823,7 @@ import net.liftweb.util.Helpers._
     */
   def updateUserAccountViews(user: ResourceUser): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccounts(user).get
+    val accounts = Connector.connector.vend.getBankAccounts(user.name).get
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
     
     for {

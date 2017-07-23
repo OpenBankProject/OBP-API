@@ -9,31 +9,28 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 
-case class InboundCBSAuthToken(
+
+case class InboundAccountJun2017(
   errorCode: String,
-  token: String
-) extends InboundMessageBase 
+  cbsToken: String,
+  bankId: String,
+  branchId: String,
+  accountId: String,
+  accountNumber: String,
+  accountType: String,
+  balanceAmount: String,
+  balanceCurrency: String,
+  owners: List[String],
+  viewsToGenerate: List[String],
+  bankRoutingScheme: String,
+  bankRoutingAddress: String,
+  branchRoutingScheme: String,
+  branchRoutingAddress: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String
+) extends InboundMessageBase with InboundAccountCommon
 
-case class InboundAccountJune2017(
-                                   errorCode: String,
-                                   bankId: String,
-                                   branchId: String,
-                                   accountId: String,
-                                   accountNumber: String,
-                                   accountType: String,
-                                   balanceAmount: String,
-                                   balanceCurrency: String,
-                                   owners: List[String],
-                                   viewsToGenerate: List[String],
-                                   bankRoutingScheme:String,
-                                   bankRoutingAddress:String,
-                                   branchRoutingScheme:String,
-                                   branchRoutingAddress:String,
-                                   accountRoutingScheme:String,
-                                   accountRoutingAddress:String
-                                 ) extends InboundMessageBase with InboundAccountCommon
-
-case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
+case class BankAccountJun2017(r: InboundAccountJun2017) extends BankAccount {
 
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.accountType

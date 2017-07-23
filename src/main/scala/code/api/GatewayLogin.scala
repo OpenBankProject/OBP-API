@@ -29,7 +29,9 @@ package code.api
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
+import code.bankconnectors.{Connector, InboundAccountJun2017}
 import code.consumer.Consumers
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -146,16 +148,53 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     logger.debug("cbsAuthToken : " + cbsAuthToken)
     if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
       // Call CBS
-//      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]
-//      res match {
-//        case Full(l) =>
-//          Full(Extraction.decompose(l)) // Json string
+      //val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
+     val res =  Full(InboundAccountJun2017(
+        errorCode = "",
+        cbsToken ="cbsToken",
+        bankId = "gh.29.uk",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        accountNumber = "123",
+        accountType = "AC",
+        balanceAmount = "50",
+        balanceCurrency = "EUR",
+        owners = "Susan" :: " Frank" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
+      ) :: InboundAccountJun2017(
+        errorCode = "",
+        cbsToken ="cbsToken",
+        bankId = "gh.29.uk",
+        branchId = "222",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        accountNumber = "123",
+        accountType = "AC",
+        balanceAmount = "50",
+        balanceCurrency = "EUR",
+        owners = "Susan" :: " Frank" :: Nil,
+        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress"
+      ) ::Nil)
+      
+      res match {
+        case Full(l) =>
+          Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
 //        case Empty =>
 //          Empty
 //        case Failure(msg, _, _) =>
 //          Failure(msg)
-//      }
-      Full("Call of CBS is not implemented")
+      }
     } else {
       // Do not call CBS
       Full("There is no need to call CBS")
@@ -178,9 +217,6 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("username: " + username)
     communicateWithCbs(jwtPayload) match {
-      case Full(s) if s.equalsIgnoreCase("Call of CBS is not implemented") => // Call of CBS is not implemented
-        logger.debug("Call of CBS is not implemented")
-        Failure("Call of CBS is not implemented")
       case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
         logger.debug("There is no need to call CBS")
         Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
@@ -208,19 +244,19 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         val cbsAuthTokens = getCbsToken(s)
         createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
         // Update user account views
-//        for {
-//          user <- u
-//          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
-//        } {
-//          Connector.connector.vend.updateUserAccountViewsOld(ru)
-//        }
+        for {
+          user <- u
+          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
+        } {
+          AuthUser.updateUserAccountViews(ru)
+        }
         u // Return user
       case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
         logger.debug("CBS returned some errors")
         Failure(getErrors(s).mkString(", "))
       case Empty =>
-        logger.debug("Cannot get the response from South side")
-        Failure("Cannot get the response from South side")
+        logger.debug("Cannot get the CBSToken response from South side")
+        Failure("Cannot get the CBSToken response from South side")
       case Failure(msg, _, _) =>
         Failure(msg)
       case _ =>
@@ -308,7 +344,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   // Return list of error codes values
   private def getErrors(message: String) : List[String] = {
     for {
-      JArray(errorCodes) <- parse(message) \\ "errorCode"
+      JArray(errorCodes) <- parse(message)\\ "errorCode"
       JField("errorCode", JString(error)) <- errorCodes
     } yield error
   }
