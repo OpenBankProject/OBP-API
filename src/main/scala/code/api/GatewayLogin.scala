@@ -27,6 +27,7 @@ Berlin 13359, Germany
 package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
 import code.consumer.Consumers
 import code.model.{Consumer, User}
@@ -60,16 +61,20 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
 
-  def createJwt(payloadAsJsonString: String) : String = {
+  def createJwt(payloadAsJsonString: String, cbsAuthToken: Option[String]) : String = {
     val username = getFieldFromPayloadJson(payloadAsJsonString, "username")
     val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "consumer_id")
     val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "consumer_name")
     val isFirst = getFieldFromPayloadJson(payloadAsJsonString, "is_first")
     val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "timestamp")
+    val cbsToken = cbsAuthToken match {
+      case Some(v) => v
+      case None => getFieldFromPayloadJson(payloadAsJsonString, "CBS_auth_token")
+    }
     val json = JSONFactoryGateway.TokenJSON(
       username = username,
       is_first = None,
-      CBS_auth_token = Some("Not implemented"),
+      CBS_auth_token = Some(cbsToken),
       timestamp = timestamp,
       consumer_id = consumerId,
       consumer_name = consumerName
@@ -133,39 +138,65 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def communicateWithCbs(jwt: String) : Box[String] = {
-    val isFirst = getFieldFromPayloadJson(jwt, "is_first")
-    val cbsAuthToken = getFieldFromPayloadJson(jwt, "CBS_auth_token")
+  def communicateWithCbs(jwtPayload: String) : Box[String] = {
+    val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
+    val cbsAuthToken = getFieldFromPayloadJson(jwtPayload, "CBS_auth_token")
+    val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("isFirst : " + isFirst)
     logger.debug("cbsAuthToken : " + cbsAuthToken)
     if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
       // Call CBS
-      Empty
+//      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]
+//      res match {
+//        case Full(l) =>
+//          Full(Extraction.decompose(l)) // Json string
+//        case Empty =>
+//          Empty
+//        case Failure(msg, _, _) =>
+//          Failure(msg)
+//      }
+      Full("Call of CBS is not implemented")
     } else {
       // Do not call CBS
       Full("There is no need to call CBS")
     }
   }
 
-  def getOrCreateResourceUser(jwt: String) : Box[User] = {
-    val username = getFieldFromPayloadJson(jwt, "username")
+  private def createConsumerAndSetResponseHeader(payload: String, u: Box[User], cbsAuthToken: Option[String]) = {
+    u match {
+      case Full(user) =>
+        GatewayLogin.getOrCreateConsumer(payload, user)
+        val jwtResponse = GatewayLogin.createJwt(payload, cbsAuthToken)
+        setGatewayResponseHeader(jwtResponse)
+
+      case _ =>
+        // Do nothing
+    }
+  }
+
+  def getOrCreateResourceUser(jwtPayload: String) : Box[User] = {
+    val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("username: " + username)
-    communicateWithCbs(jwt) match {
+    communicateWithCbs(jwtPayload) match {
+      case Full(s) if s.equalsIgnoreCase("Call of CBS is not implemented") => // Call of CBS is not implemented
+        logger.debug("Call of CBS is not implemented")
+        Failure("Call of CBS is not implemented")
       case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
         logger.debug("There is no need to call CBS")
         Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
           case Full(u) => // Only valid case because we expect to find a user
+            createConsumerAndSetResponseHeader(jwtPayload, Full(u), None)
             Full(u)
           case Empty =>
-            Failure("User cannot be found. Please initiate CBS communication in order to crete it.")
+            Failure("User cannot be found. Please initiate CBS communication in order to create it.")
           case Failure(msg, _, _) =>
             Failure(msg)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
-      case Full(s) if getErrors(s).length == 0 => // CBS returned response without any error
+      case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
         logger.debug("CBS returned proper response")
-        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
+        val u = Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
           Users.users.vend.createResourceUser( // Otherwise create a new one
             provider = gateway,
             providerId = Some(username),
@@ -174,20 +205,32 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             userId = None
           )
         }
-      case Full(s) if getErrors(s).length > 0 =>
+        val cbsAuthTokens = getCbsToken(s)
+        createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
+        // Update user account views
+//        for {
+//          user <- u
+//          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
+//        } {
+//          Connector.connector.vend.updateUserAccountViewsOld(ru)
+//        }
+        u // Return user
+      case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
         logger.debug("CBS returned some errors")
         Failure(getErrors(s).mkString(", "))
       case Empty =>
-        logger.debug("Call of CBS is not implemented")
-        Failure("Call of CBS is not implemented")
+        logger.debug("Cannot get the response from South side")
+        Failure("Cannot get the response from South side")
       case Failure(msg, _, _) =>
         Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.GatewayLoginUnknownError)
     }
   }
 
-  def getOrCreateConsumer(jwt: String, u: User) : Box[Consumer] = {
-    val consumerId = getFieldFromPayloadJson(jwt, "consumer_id")
-    val consumerName = getFieldFromPayloadJson(jwt, "consumer_name")
+  def getOrCreateConsumer(jwtPayload: String, u: User) : Box[Consumer] = {
+    val consumerId = getFieldFromPayloadJson(jwtPayload, "consumer_id")
+    val consumerName = getFieldFromPayloadJson(jwtPayload, "consumer_name")
     logger.debug("consumer_id: " + consumerId)
     logger.debug("consumerName: " + consumerName)
     Consumers.consumers.vend.getOrCreateConsumer(
@@ -261,11 +304,22 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     compact(render(jwtJson.\\(fieldName))).replace("\"", "")
   }
 
+  // Try to find errorCode in Json string received from South side and extract to list
+  // Return list of error codes values
   private def getErrors(message: String) : List[String] = {
     for {
       JArray(errorCodes) <- parse(message) \\ "errorCode"
       JField("errorCode", JString(error)) <- errorCodes
     } yield error
+  }
+
+  // Try to find CBS auth token in Json string received from South side and extract to list
+  // Return list of same CBS auth token values
+  private def getCbsToken(message: String) : List[String] = {
+    for {
+      JArray(cbsTokens) <- parse(message) \\ "cbsToken"
+      JField("cbsToken", JString(cbsToken)) <- cbsTokens
+    } yield cbsToken
   }
 
 
