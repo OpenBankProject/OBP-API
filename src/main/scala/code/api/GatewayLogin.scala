@@ -29,7 +29,7 @@ package code.api
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
-import code.bankconnectors.{Connector, InboundAccountJun2017}
+import code.bankconnectors.InboundAccountJun2017
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
@@ -241,7 +241,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             userId = None
           )
         }
-        val cbsAuthTokens = getCbsToken(s)
+        val cbsAuthTokens = getCbsTokens(s)
         createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
         // Update user account views
         for {
@@ -343,19 +343,25 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   private def getErrors(message: String) : List[String] = {
-    for {
-      JArray(errorCodes) <- parse(message)\\ "errorCode"
-      JField("errorCode", JString(error)) <- errorCodes
-    } yield error
+    val json = parse(message)
+    val listOfValues = for {
+      JArray(objects) <- json
+      JObject(obj) <- objects
+      JField("errorCode", JString(fieldName)) <- obj
+    } yield fieldName
+    listOfValues
   }
 
   // Try to find CBS auth token in Json string received from South side and extract to list
   // Return list of same CBS auth token values
-  private def getCbsToken(message: String) : List[String] = {
-    for {
-      JArray(cbsTokens) <- parse(message) \\ "cbsToken"
-      JField("cbsToken", JString(cbsToken)) <- cbsTokens
-    } yield cbsToken
+  private def getCbsTokens(message: String) : List[String] = {
+    val json = parse(message)
+    val listOfValues = for {
+      JArray(objects) <- json
+      JObject(obj) <- objects
+      JField("cbsToken", JString(fieldName)) <- obj
+    } yield fieldName
+    listOfValues
   }
 
 
