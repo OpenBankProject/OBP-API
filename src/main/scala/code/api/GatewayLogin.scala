@@ -29,7 +29,7 @@ package code.api
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
-import code.bankconnectors.InboundAccountJun2017
+import code.bankconnectors.{Connector, InboundAccountJune2017}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
@@ -148,52 +148,14 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     logger.debug("cbsAuthToken : " + cbsAuthToken)
     if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
       // Call CBS
-      //val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
-     val res =  Full(InboundAccountJun2017(
-        errorCode = "",
-        cbsToken ="cbsToken",
-        bankId = "gh.29.uk",
-        branchId = "222",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
-      ) :: InboundAccountJun2017(
-        errorCode = "",
-        cbsToken ="cbsToken",
-        bankId = "gh.29.uk",
-        branchId = "222",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
-      ) ::Nil)
-      
+      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
           Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
-//        case Empty =>
-//          Empty
-//        case Failure(msg, _, _) =>
-//          Failure(msg)
+        case Empty =>
+          Empty
+        case Failure(msg, _, _) =>
+          Failure(msg)
       }
     } else {
       // Do not call CBS
@@ -342,7 +304,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
-  private def getErrors(message: String) : List[String] = {
+  def getErrors(message: String) : List[String] = {
     val json = parse(message)
     val listOfValues = for {
       JArray(objects) <- json
@@ -354,7 +316,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   // Try to find CBS auth token in Json string received from South side and extract to list
   // Return list of same CBS auth token values
-  private def getCbsTokens(message: String) : List[String] = {
+  def getCbsTokens(message: String) : List[String] = {
     val json = parse(message)
     val listOfValues = for {
       JArray(objects) <- json

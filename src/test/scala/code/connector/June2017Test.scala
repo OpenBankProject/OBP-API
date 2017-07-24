@@ -5,7 +5,7 @@ import code.bankconnectors.{Connector}
 import code.model.dataAccess.{ViewImpl}
 import code.setup.{DefaultUsers, ServerSetup}
 
-class Jun2017Test extends ServerSetup with DefaultUsers {
+class June2017Test extends ServerSetup with DefaultUsers {
 
   
   override def beforeAll() = {
