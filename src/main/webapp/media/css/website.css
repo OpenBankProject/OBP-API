@@ -152,18 +152,10 @@ footer #copyright {
 	color: white;
 }
 #main-about #main-about-buttons {
-	margin: 10px 25px 0 25px;
-	text-align: left;
+	margin: 20px 0 0 30px;
 }
 #main-about #main-about-buttons a {
-	padding: 5px 15px;
-	display: inline-block;
-	text-decoration: none;
-	border-radius: 10px;
-	color: #333;
-	background-color: white;
-	margin: 10px 5px;
-	font-size: 15px;
+	margin-bottom: 10px;
 }
 
 
