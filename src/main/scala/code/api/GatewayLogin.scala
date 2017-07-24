@@ -148,45 +148,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     logger.debug("cbsAuthToken : " + cbsAuthToken)
     if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
       // Call CBS
-      //val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
-     val res =  Full(InboundAccountJun2017(
-        errorCode = "",
-        cbsToken ="cbsToken",
-        bankId = "gh.29.uk",
-        branchId = "222",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
-      ) :: InboundAccountJun2017(
-        errorCode = "",
-        cbsToken ="cbsToken",
-        bankId = "gh.29.uk",
-        branchId = "222",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = "Susan" :: " Frank" :: Nil,
-        viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress"
-      ) ::Nil)
-      
+      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
           Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
@@ -342,20 +304,24 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
-  private def getErrors(message: String) : List[String] = {
+  def getErrors(message: String) : List[String] = {
     for {
-      JArray(errorCodes) <- parse(message)\\ "errorCode"
-      JField("errorCode", JString(error)) <- errorCodes
-    } yield error
+      JArray(accountListJValue) <- parse(message)
+      accountJValue <- (accountListJValue)
+      errorCodeValue <- Full((accountJValue \ "errorCode"))
+      if !(errorCodeValue equals(JNothing))&& errorCodeValue.values.toString.length!=0
+    } yield compact(render(errorCodeValue))
   }
 
   // Try to find CBS auth token in Json string received from South side and extract to list
   // Return list of same CBS auth token values
-  private def getCbsToken(message: String) : List[String] = {
+  def getCbsToken(message: String) : List[String] = {
     for {
-      JArray(cbsTokens) <- parse(message) \\ "cbsToken"
-      JField("cbsToken", JString(cbsToken)) <- cbsTokens
-    } yield cbsToken
+      JArray(accountListJValue) <- parse(message)
+      accountJValue <- (accountListJValue)
+      cbsTokenValue <- Full((accountJValue \ "cbsToken"))
+      if !(cbsTokenValue equals(JNothing))&& cbsTokenValue.values.toString.length!=0
+    } yield compact(render(cbsTokenValue))
   }
 
 
