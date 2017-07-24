@@ -152,10 +152,10 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       res match {
         case Full(l) =>
           Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
-//        case Empty =>
-//          Empty
-//        case Failure(msg, _, _) =>
-//          Failure(msg)
+        case Empty =>
+          Empty
+        case Failure(msg, _, _) =>
+          Failure(msg)
       }
     } else {
       // Do not call CBS
@@ -203,7 +203,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             userId = None
           )
         }
-        val cbsAuthTokens = getCbsToken(s)
+        val cbsAuthTokens = getCbsTokens(s)
         createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
         // Update user account views
         for {
@@ -305,23 +305,25 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   def getErrors(message: String) : List[String] = {
-    for {
-      JArray(accountListJValue) <- parse(message)
-      accountJValue <- (accountListJValue)
-      errorCodeValue <- Full((accountJValue \ "errorCode"))
-      if !(errorCodeValue equals(JNothing))&& errorCodeValue.values.toString.length!=0
-    } yield compact(render(errorCodeValue))
+    val json = parse(message)
+    val listOfValues = for {
+      JArray(objects) <- json
+      JObject(obj) <- objects
+      JField("errorCode", JString(fieldName)) <- obj
+    } yield fieldName
+    listOfValues
   }
 
   // Try to find CBS auth token in Json string received from South side and extract to list
   // Return list of same CBS auth token values
-  def getCbsToken(message: String) : List[String] = {
-    for {
-      JArray(accountListJValue) <- parse(message)
-      accountJValue <- (accountListJValue)
-      cbsTokenValue <- Full((accountJValue \ "cbsToken"))
-      if !(cbsTokenValue equals(JNothing))&& cbsTokenValue.values.toString.length!=0
-    } yield compact(render(cbsTokenValue))
+  def getCbsTokens(message: String) : List[String] = {
+    val json = parse(message)
+    val listOfValues = for {
+      JArray(objects) <- json
+      JObject(obj) <- objects
+      JField("cbsToken", JString(fieldName)) <- obj
+    } yield fieldName
+    listOfValues
   }
 
 
