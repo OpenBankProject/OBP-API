@@ -24,56 +24,53 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
   by
   Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+  Sebastian Henschel: sebastian AT tesobe DOT com
 -->
 
-<div id="main" class="lift:surround?with=default;at=content">
-    <div id="create-sandbox-account" class="">
-        <div id="create-account-explanation">
-            This form is designed to allow developers to create test accounts. When an account is created,
-            a view with VIEW_ID "owner" will be created, and access to this view will be granted to the user
-            (you) who created it. If you wish, you may then populate the account with transactions using the
-            <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1#payments">v1.2.1 payments API</a>.
-            If you wish to do this, you will probably want to create some other accounts to send payments to and receive
-            payments from.
-        </div>
-        <div id="create-account-instructions">
-            Create a new test bank account:
-        </div>
-        <div id="create-account-error-message"></div>
-        <div id="account-created-successfully" style="display:none">
-            Thank you, account <span id="created-account-id">ACCOUNT_ID</span> has
-            been created at bank <span id="created-account-bank-id">BANK_ID</span> with
-            an initial balance of <span id="created-account-initial-balance">INITIAL_BALANCE</span>
-            <span id="created-account-currency">CURRENCY</span>.
-        </div>
+<div id="create-account" data-lift="surround?with=default;at=content">
+	<h1>Create new test bank account</h1>
 
-        <form data-lift="form.ajax">
-            <div data-lift="CreateTestAccountForm" class="form-column middle">
-                <div>
-                    <label for="bank-id">Bank</label>
-                    <select id="create-account-bank-selector" name="bank-id">
-                        <option class="bank-option" value="bankid">Bank id</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="account-id">Desired Account Id</label>
-                    <input type="text" name="account-id" placeholder="Account Id">
-                </div>
-                <div>
-                    <label for="currency">Desired Account Currency</label>
-                    <input type="text" name="currency">
-                </div>
-                <div>
-                    <label for="account-id">Desired Initial Balance</label>
-                    <input type="text" name="initial-balance">
-                </div>
-                <div class="submit">
-                    <input type="submit">
-                </div>
-            </div>
-        </form>
-    </div>
+	<div id="create-account-explanation">
+		This form is designed to allow developers to create test accounts. When an account is created,
+		a view with VIEW_ID "owner" will be created, and access to this view will be granted to the user
+		(you) who created it. If you wish, you may then populate the account with transactions using the
+		<a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1#payments">v1.2.1 payments API</a>.
+		If you wish to do this, you will probably want to create some other accounts to send payments to and receive
+		payments from.
+	</div>
+
+	<form data-lift="form.ajax">
+		<div id="create-account-success" class="alert alert-success" style="display:none">
+			Thank you!<br />
+			Account <span id="create-account-id">ACCOUNT_ID</span> has
+			been created at bank <span id="create-account-bank-id">BANK_ID</span> with
+			an initial balance of <span id="create-account-initial-balance">INITIAL_BALANCE</span>
+			<span id="create-account-currency">CURRENCY</span>.
+		</div>
+		<div id="create-account-error" class="alert alert-danger" style="display: none"></div>
+
+		<div data-lift="CreateTestAccountForm">
+			<div class="form-group">
+				<label for="bank-id">Bank</label>
+				<select id="create-account-bank-selector" class="form-control" name="bank-id">
+					<option class="bank-option" value="bankid">Bank id</option>
+				</select>
+			</div>
+			<div class="form-group">
+				<label for="account-id">Desired Account Id</label>
+				<input type="text" class="form-control" name="account-id">
+			</div>
+			<div class="form-group">
+				<label for="currency">Desired Account Currency</label>
+				<input type="text" class="form-control" name="currency">
+			</div>
+			<div class="form-group">
+				<label for="account-id">Desired Initial Balance</label>
+				<input type="text" class="form-control" name="initial-balance">
+			</div>
+			<div class="submit">
+				<input type="submit" class="btn btn-default">
+			</div>
+		</div>
+	</form>
 </div>

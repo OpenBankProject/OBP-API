@@ -366,22 +366,17 @@ import net.liftweb.util.Helpers._
   }
 
   override def lostPasswordXhtml = {
-    <div id="authorizeSection">
-      <div id="userAccess">
-        <div class="account account-in-content">
-          Enter your email address or username and we'll email you a link to reset your password
-          <form class="forgotPassword" action={S.uri} method="post">
-            <div class="field username">
-              <label>Username or email address</label> <user:email />
+    <div id="recover-password">
+          <h1>Recover Password</h1>
+          <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
+          <form action={S.uri} method="post">
+            <div class="form-group">
+              <label>Username or email address</label> <span id="recover-password-email"><user:email /></span>
             </div>
-            <div class="field buttons">
-              <div class="button button-field">
+            <div id="recover-password-submit">
                 <user:submit />
-              </div>
             </div>
           </form>
-        </div>
-      </div>
     </div>
   }
 
@@ -423,30 +418,32 @@ import net.liftweb.util.Helpers._
     if (url.isEmpty) {
       s""
     } else {
-      scala.xml.Unparsed(s"""<tr><td colspan="2"><input type="checkbox" id="agree-terms-input" /><span id="agree-terms-text">I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></span></td></tr>""")
+      scala.xml.Unparsed(s"""<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>""")
     }
   }
 
 
   override def signupXhtml (user:AuthUser) =  {
-    <div id="authorizeSection" class="signupSection">
-      <div class="signup-error"><span class="lift:Msg?id=signup"/></div>
-      <div>
-        <form id="signupForm" method="post" action={S.uri}>
-          <table>
-            <tr>
-              <td colspan="2">{ S.?("sign.up") }</td>
-            </tr>
-              {localForm(user, false, signupFields)}
-              {agreeTerms}
-            <tr>
-              <td>&nbsp;</td>
-              <td><user:submit/></td>
-            </tr>
-          </table>
-        </form>
-      </div>
+    <div id="signup">
+      <form method="post" action={S.uri}>
+          <h1>Sign Up</h1>
+          <div id="signup-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
+          {localForm(user, false, signupFields)}
+          {agreeTerms}
+          <div id="signup-submit">
+            <user:submit />
+          </div>
+      </form>
     </div>
+  }
+
+  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = {
+    for {
+      pointer <- fields
+      field <- computeFieldFromPointer(user, pointer).toList
+      if field.show_? && (!ignorePassword || !pointer.isPasswordField_?)
+      form <- field.toForm.toList
+    } yield <div class="form-group"><label>{field.displayName}</label> {form}</div>
   }
 
   def userLoginFailed = {
@@ -826,7 +823,7 @@ import net.liftweb.util.Helpers._
     */
   def updateUserAccountViews(user: ResourceUser): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccounts(user).get
+    val accounts = Connector.connector.vend.getBankAccounts(user.name).get
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
     
     for {
@@ -882,7 +879,7 @@ import net.liftweb.util.Helpers._
           }
 
         case xs =>
-          xs.foreach(e => S.error("signup", e.msg))
+          xs.foreach(e => S.error("error", e.msg))
           signupFunc(Full(innerSignup _))
       }
     }

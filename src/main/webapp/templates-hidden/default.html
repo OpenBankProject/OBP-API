@@ -24,130 +24,158 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
   by
   Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+  Sebastian Henschel: sebastian AT tesobe DOT com
 -->
 <!DOCTYPE html>
-
 <html lang="en">
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-        <title data-lift="WebUI.pageTitle">Open Bank Project: </title>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Webapp of the Open Bank Project API">
+	<meta name="keywords" content="OBP, Open Bank Project, API, bank, fintech">
+	<meta name="author" content="TESOBE">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+	<title data-lift="WebUI.pageTitle">Open Bank Project: </title>
+	<link href="/media/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+	<link href="/media/css/toastr.min.css" rel="stylesheet" type="text/css" />
+	<link href="/media/css/cookies-consent.css" rel="stylesheet">
+	<link id="main_style_sheet" data-lift="WebUI.mainStyleSheet" href="/media/css/website.css" rel="stylesheet" type="text/css" />
+	<link id="override_style_sheet" data-lift="WebUI.overrideStyleSheet" href="" rel="stylesheet" type="text/css" />
 
-        <link id="main_style_sheet" data-lift="WebUI.mainStyleSheet" href="/media/css/website.css" rel="stylesheet" type="text/css" />
-        <link id="override_style_sheet" data-lift="WebUI.overrideStyleSheet" href="" rel="stylesheet" type="text/css" />
-        <link href="/media/css/cookies-consent.css" rel="stylesheet">
+	<script src="/media/js/jquery.min.js" type="text/javascript"></script>
+	<script src="/media/js/bootstrap.min.js" type="text/javascript"></script>
+	<script src="/media/js/website.js" type="text/javascript"></script>
+	<script src="/media/js/toastr.min.js" type="text/javascript"></script>
+	<script src="/media/js/cookies-consent.js"></script>
+</head>
+<body id="page_init">
+	<div id="cookies-consent" data-lift="WebUI.cookieConsent">
+		We use cookies to support session management.
+		<input id="clickMe"/>
+	</div>
 
-        <script id="jquery" src="/media/js/jquery.min.js" type="text/javascript"></script>
-        <script src="/media/js/website.js" type="text/javascript"></script>
-        <script src="/media/js/toastr.min.js" type="text/javascript"></script>
-        <script src="/media/js/cookies-consent.js"></script>
-        <link href="/media/css/toastr.min.css" rel="stylesheet"/>
-    </head>
-    <body id="page_init">
-    <div id="cookies-consent" class="lift:WebUI.cookieConsent">
-        We use cookies to support session management.
-        <input id="clickMe"/>
-    </div>
+	<div class="container">
+		<header>
+			<div id="header-decoration"></div>
 
-    <div id="background">
-        <div id="wrapper">
-            <header id="header">
-                <div id="header-decoration"></div>
+			<div id="cookie-ipaddress-concurrent-logins" data-lift="WebUI.concurrentLoginsCookiesCheck"></div>
 
-                <div id="cookie-ipaddress-concurrent-logins" class="lift:WebUI.concurrentLoginsCookiesCheck"></div>
-                <div id="logo-left" class="lift:WebUI.headerLogoLeft">
-                    <a href="/"><img src="" alt=""></a>
-                </div>
-                <div id="top-text" class="lift:WebUI.topText">
-                    This is the top text
-                </div>
+			<div id="top-text" data-lift="WebUI.topText"></div>
 
+			<div class="row">
+				<div class="col-xs-12 col-sm-1"></div>
+				<div class="col-xs-12 col-sm-5">
+					<div class="logo hidden-xs" id="logo-left" data-lift="WebUI.headerLogoLeft">
+						<a href="/"><img src=""></a>
+					</div>
+					<div class="visible-xs">
+						<div class="logo-xs" id="logo-left-xs" data-lift="WebUI.headerLogoLeft">
+							<a href="/"><img src=""></a>
+						</div>
+					</div>
+				</div>
+				<div class="col-xs-12 col-sm-5">
+					<div class="hidden-xs">
+						<div class="logo" id="logo-right" data-lift="WebUI.headerLogoRight">
+							<a href="/"><img src=""></a>
+						</div>
+					</div>
+					<div class="visible-xs">
+						<div class="logo-xs" id="logo-right-xs" data-lift="WebUI.headerLogoRight">
+							<a href="/"><img src=""></a>
+						</div>
+					</div>
+				</div>
+				<div class="col-xs-12 col-sm-1"></div>
+			</div>
 
-                <div id="logo-right" class="lift:WebUI.headerLogoRight">
-                    <a href="/"><img src="" alt=""></a>
-                </div>
-                <div id="messages-container" class="lift:Msgs"></div>
-                <script>
-                  $(function() {
-                    toastr.options.timeOut = 3000;
-                    if(notice = $("#lift__noticesContainer___error").text()) {
-                      toastr.error(notice)
-                    }
-                    else if(notice = $("#lift__noticesContainer__").text()) {
-                      toastr.success(notice)
-                    }
-                  })
-                </script>
-              </lift:Msgs>
-            </header>
-            <nav id="nav">
-                <ul>
-                    <li class="lift:Nav.item?name=Home navitem navitem-home">
-                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                    </li>
-                    <li class="lift:Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true navitem">
-                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                    </li>
-                    <li class="lift:Nav.item?name=Metrics navitem">
-                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                    </li>
-                    <li class="lift:Nav.item?name=Connect navitem">
-                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                    </li>
-                    <li class="lift:Nav.item?name=Sandbox%20Account%20Creation&showEvenIfRestricted=true navitem">
-                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                    </li>
-                    <!-- login state -->
-                    <li class="lift:Nav.item?name=Login navitem nav-login-state-item">
-                        <!-- LOGGED OUT -->
-                        <div class="lift:Login.loggedOut">
-                            <a href="#" class="navlink login">Login</a>
-                        </div>
-                    </li>
-                    <li class="navitem nav-login-state-item">
-                        <!-- LOGGED IN -->
-                        <div id="admin-logout" class="lift:Login.adminLogout">
-                            admin <span id="admin-username">NAME</span>. <a id="admin-logout-clickme" href="#">Logout</a>
-                        </div>
-                        <div class="lift:Login.loggedIn">
-                            <div class="profile-info">
-                                <span class="username">username</span>&nbsp;<a href="" class="logout">Logout</a>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
-            </nav>
-            <section id="content">
-              <lift:bind name="content"/>
-                The main content gets bound here
-            </section>
-            <footer id="footer">
-                <div id="copyright">
-                    <a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2017 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL and commercial licenses.
-                </div>
-                <div>
-                    <a href="http://twitter.com/#!/OpenBankProject">Twitter</a> |
-                    <a href="https://github.com/OpenBankProject/OBP-API/">Github</a> |
-                    <a class="api-documentation-link lift:WebUI.apiDocumentationLink" href="">API Documentation</a> |
-                    <a class="api-explorer-link lift:WebUI.apiExplorerLink" href="">API Explorer</a> |
-                    <a class="sofi-link lift:WebUI.sofiLink" href="">Sofi</a>
-                </div>
-            </footer>
+			<div id="messages-container" data-lift="Msgs"></div>
+			<script>
+			  $(function() {
+				toastr.options.timeOut = 3000;
+				if(notice = $("#lift__noticesContainer___error").text()) {
+				  toastr.error(notice)
+				}
+				else if(notice = $("#lift__noticesContainer__").text()) {
+				  toastr.success(notice)
+				}
+			  })
+			</script>
+		</header>
 
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+				</div>
+				<div id="navbar" class="collapse navbar-collapse">
+					<ul class="nav navbar-nav">
+						<li data-lift="Nav.item?name=Home" class="navitem navitem-home">
+							<a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+						<li data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true" class="navitem">
+							<a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+						<li data-lift="Nav.item?name=Metrics" class="navitem">
+							<a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+						<li data-lift="Nav.item?name=Connect" class="navitem">
+							<a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+						<li data-lift="Nav.item?name=Sandbox%20Account%20Creation&showEvenIfRestricted=true" class="navitem">
+							<a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<!-- login state -->
+						<li data-lift="Nav.item?name=Login" class="navitem">
+							<!-- LOGGED OUT -->
+							<p class="navbar-btn">
+								<a href="/user_mgt/sign_up" class="btn btn-default">Sign up</a>
+								<a data-lift="Login.loggedOut" href="#" class="btn btn-default login">Login</a>
+							</p>
+						</li>
+						<li class="navitem">
+							<!-- LOGGED IN -->
+							<p class="navbar-btn"><a data-lift="Login.loggedIn" href="#" class="btn btn-default logout">Logout <span id="username">username</span></a></p>
+						</li>
+					</ul>
+				</div><!--/.nav-collapse -->
+			</div>
+		</nav>
 
-            <footer2 id="footer2">
-                <div id="footer2-logo-left" class="lift:WebUI.footer2LogoLeft">
-                    <a href="/"><img src="" alt=""></a>
-                </div>
+		<section id="content">
+			<lift:bind name="content"/>
+			The main content gets bound here
+		</section>
 
-                <div id="footer2-middle-text" class="lift:WebUI.footer2MiddleText">
-                    This is the footer2 middle text
-                </div>
-            </footer2>
-        </div>
-    </div>
-    </body>
-    </html>
+		<footer>
+			<div id="copyright">
+				<a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2017 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL and commercial licenses.
+			</div>
+			<div>
+				<a href="http://twitter.com/#!/OpenBankProject">Twitter</a> |
+				<a href="https://github.com/OpenBankProject/OBP-API/">Github</a> |
+				<a class="api-documentation-link" data-lift="WebUI.apiDocumentationLink" href="">API Documentation</a> |
+				<a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API Explorer</a> |
+				<a class="sofi-link" data-lift="WebUI.sofiLink" href="">Sofi</a>
+			</div>
+		</footer>
+
+		<div id="footer2">
+			<span id="footer2-logo-left" data-lift="WebUI.footer2LogoLeft">
+				<a href="/"><img src="" alt=""></a>
+			</span>
+			<span id="footer2-middle-text" data-lift="WebUI.footer2MiddleText">
+				This is the footer2 middle text
+			</span>
+		</div>
+	</div>
+</body>
+</html>

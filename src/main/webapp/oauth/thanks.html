@@ -1,53 +1,17 @@
-<!--
-Open Bank Project - API
-Copyright (C) 2011-2017, TESOBE Ltd.
+<div id="authorise" data-lift="surround?with=default;at=content">
+	<div data-lift="OAuthWorkedThanks.thanks" id="oauth-done-thanks">
+		<h1>You have been authenticated!</h1>
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE Ltd.
-Osloer Strasse 16/17
-Berlin 13359, Germany
-
-This product includes software developed at
-TESOBE (http://www.tesobe.com/)
-
-
--->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title class="lift:Menu.title">Open Bank Project: %*%</title>
-    <link href="/media/css/website.css?20140404" rel="stylesheet" type="text/css" />
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
-	<script src="/media/js/website.js" type="text/javascript"></script>
-</head>
-<body class="lift:surround?with=default;at=content">
-	<div class="lift:OAuthWorkedThanks.thanks" id="oauth-done-thanks">
-		
-		<div id="manualRedirect">
+		<div id="manual-redirect">
 			Please click <a id="redirect-link" href="">here</a> to be redirected.</noscript>
 		</div>
-
-		<p><br>Thank you, you have been authenticated.<br>
-			The requesting application should have received an ok and you may now close this window.</p>
+		<p>
+		The requesting application should have received an ok and you may now close this window.
+		</p>
 
 		<script class="redirect-script" type="text/javascript">
 			$('#manualRedirect').hide(); //don't need the manual link if js is enabled
 			window.location.assign($('#redirect-link').attr('href'));
 		</script>
 	</div>
-</body>
-</html>
+</div>

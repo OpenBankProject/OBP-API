@@ -103,6 +103,7 @@ case class InboundUser(
 // This is the common InboundAccount from all Kafka/remote, not finished yet. 
 trait InboundAccountCommon{
   def errorCode: String
+  def cbsToken: String
   def bankId: String
   def branchId: String
   def accountId: String
@@ -170,7 +171,7 @@ trait Connector extends MdcLoggable{
   
   //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
   //when it is stable, will call this method. 
-  def getBankAccounts(user: User): Box[List[InboundAccountCommon]] = Empty
+  def getBankAccounts(username: String) : Box[List[InboundAccountJune2017]] = Empty
   
   /**
     * This method is for get User from external, eg kafka/obpjvm... 
@@ -184,7 +185,7 @@ trait Connector extends MdcLoggable{
   /**
     * This is a helper method 
     * for remote user(means the user will get from kafka) to update the views, accountHolders for OBP side
-    * It depends different use cases, normally (also see it in KafkaMappedConnector_vJun2017.scala)
+    * It depends different use cases, normally (also see it in KafkaMappedConnector_vJune2017.scala)
     * 
     * @param user the user is from remote side
     */
