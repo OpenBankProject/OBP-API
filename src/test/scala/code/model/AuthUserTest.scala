@@ -1,7 +1,7 @@
 package code.model
 
 import code.accountholder.MapperAccountHolders
-import code.bankconnectors.{Connector, KafkaMappedConnector_vJune2017}
+import code.bankconnectors.{Connector}
 import code.connector.MockedCardConnector
 import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
