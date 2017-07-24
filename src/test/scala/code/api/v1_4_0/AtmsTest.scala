@@ -19,7 +19,36 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                         name : String,
                         address : Address,
                         location : Location,
-                        meta : Meta) extends Atm
+                        meta : Meta,
+
+                        // Opening times
+                        OpeningTimeOnMonday : String,
+                        ClosingTimeOnMonday : String,
+
+                        OpeningTimeOnTuesday : String,
+                        ClosingTimeOnTuesday : String,
+
+                        OpeningTimeOnWednesday : String,
+                        ClosingTimeOnWednesday : String,
+
+                        OpeningTimeOnThursday : String,
+                        ClosingTimeOnThursday: String,
+
+                        OpeningTimeOnFriday : String,
+                        ClosingTimeOnFriday : String,
+
+                        OpeningTimeOnSaturday : String,
+                        ClosingTimeOnSaturday : String,
+
+                        OpeningTimeOnSunday: String,
+                        ClosingTimeOnSunday : String,
+
+                        // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                        isAccessible : String,
+
+                        branchType : String,
+                        moreInfo : String
+                    ) extends Atm
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
@@ -53,12 +82,48 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     override def longitude: Double = 22.2222
   }
 
+  val fakeOpeningTime : String = "10:00"
+  val fakeClosingTime : String = "18:00"
+
+  val fakeIsAccessible : String = "Y"
+  val fakeBranchType : String = "Main"
+  val fakeMoreInfo : String = "Not available when it's snowing."
 
 
 
-  val fakeAtm1 = AtmImpl(AtmId("atm1"), bankWithLicense, "Atm 1", fakeAddress1, fakeLocation, fakeMeta)
-  val fakeAtm2 = AtmImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta)
-  val fakeAtm3 = AtmImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense) // Should not be returned
+  val fakeAtm1 = AtmImpl(AtmId("atm1"), bankWithLicense, "Atm 1", fakeAddress1, fakeLocation, fakeMeta,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo)
+  val fakeAtm2 = AtmImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo)
+  val fakeAtm3 = AtmImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeOpeningTime,fakeClosingTime,
+    fakeIsAccessible,
+    fakeBranchType,
+    fakeMoreInfo) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {
@@ -81,6 +146,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
   }
 
+  // TODO Extend to more fields
   def verifySameData(atm: Atm, atmJson : AtmJson) = {
     atm.name should equal (atmJson.name)
     atm.atmId should equal(AtmId(atmJson.id))

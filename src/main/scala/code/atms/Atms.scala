@@ -25,6 +25,34 @@ object Atms extends SimpleInjector {
     def address : Address
     def location : Location
     def meta : Meta
+
+    def  OpeningTimeOnMonday : String
+    def  ClosingTimeOnMonday : String
+
+    def  OpeningTimeOnTuesday : String
+    def  ClosingTimeOnTuesday : String
+
+    def  OpeningTimeOnWednesday : String
+    def  ClosingTimeOnWednesday : String
+
+    def  OpeningTimeOnThursday : String
+    def  ClosingTimeOnThursday: String
+
+    def  OpeningTimeOnFriday : String
+    def  ClosingTimeOnFriday : String
+
+    def  OpeningTimeOnSaturday : String
+    def  ClosingTimeOnSaturday : String
+
+    def  OpeningTimeOnSunday: String
+    def  ClosingTimeOnSunday : String
+
+    def  isAccessible : String
+
+    def  branchType : String
+    def  moreInfo : String
+
+
   }
 
   val atmsProvider = new Inject(buildOne _) {}
