@@ -1,6 +1,6 @@
 package code.api
 
-import code.bankconnectors.InboundAccountJun2017
+import code.bankconnectors.InboundAccountJune2017
 import net.liftweb.json.{Extraction, compact, render}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{ Full}
@@ -16,7 +16,7 @@ class gateWayloginTest extends FeatureSpec
   implicit val formats = net.liftweb.json.DefaultFormats
   
   //fake this: Connector.connector.vend.getBankAccounts(username)
-  val fakeResultFromAdapter =  Full(InboundAccountJun2017(
+  val fakeResultFromAdapter =  Full(InboundAccountJune2017(
     errorCode = "",
     cbsToken ="cbsToken1",
     bankId = "gh.29.uk",
@@ -34,7 +34,7 @@ class gateWayloginTest extends FeatureSpec
     branchRoutingAddress = " branchRoutingAddress",
     accountRoutingScheme = "accountRoutingScheme",
     accountRoutingAddress = "accountRoutingAddress"
-  ) :: InboundAccountJun2017(
+  ) :: InboundAccountJune2017(
     errorCode = "",
     cbsToken ="cbsToken2",
     bankId = "gh.29.uk",

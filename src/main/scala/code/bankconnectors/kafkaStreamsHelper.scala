@@ -152,7 +152,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         any
       }
 
-    // This is for KafkaMappedConnector_vJun2017, the request is TopicCaseClass  
+    // This is for KafkaMappedConnector_vJune2017, the request is TopicCaseClass  
     case request: TopicCaseClass =>
       logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
@@ -187,8 +187,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 /**
   * This case class design a pair of Topic, for both North and South side.
   * They are a pair
-  * @param request  eg: obp.Jun2017.Request.GetBanks
-  * @param response eg: obp.Jun2017.Response.GetBanks
+  * @param request  eg: obp.June2017.N.GetBanks
+  * @param response eg: obp.June2017.S.GetBanks
   */
 case class TopicPair(request: String, response: String)
 
@@ -224,8 +224,8 @@ object Topics {
   
     /**
       *  eg: 
-      *  obp.Jun2017.N.GetBank
-      *  obp.Jun2017.S.GetBank
+      *  obp.June2017.N.GetBank
+      *  obp.June2017.S.GetBank
       */
     TopicPair(s"obp.${connectorVersion}.N." + className.replace("$", ""),
       s"obp.${connectorVersion}.S." + className.replace("$", ""))

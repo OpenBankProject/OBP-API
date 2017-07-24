@@ -29,7 +29,7 @@ package code.api
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
-import code.bankconnectors.{Connector, InboundAccountJun2017}
+import code.bankconnectors.{Connector, InboundAccountJune2017}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}

@@ -69,11 +69,11 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction._
 
 
-object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with MdcLoggable {
+object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
 
-  type AccountType = BankAccountJun2017
+  type AccountType = BankAccountJune2017
 
-  implicit override val nameOfConnector = KafkaMappedConnector_vJun2017.getClass.getSimpleName
+  implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.getClass.getSimpleName
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
@@ -95,7 +95,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
   // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
-  val messageFormat: String = "Jun2017"
+  val messageFormat: String = "June2017"
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
@@ -117,7 +117,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       InboundAdapterInfo(
         errorCode = "OBP-6001: ...",
         name = "Obp-Kafka-South",
-        version = "Jun2017",
+        version = "June2017",
         git_commit = "...",
         date = (new Date()).toString
       )
@@ -239,7 +239,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundBankAccounts(
         AuthInfo("userId", "username", "cbsToken"),
-        InboundAccountJun2017(
+        InboundAccountJune2017(
           errorCode = "OBP-6001: ...",
           cbsToken ="cbsToken",
           bankId = "gh.29.uk",
@@ -260,13 +260,13 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       ) :: Nil)
     )
   )
-  override def getBankAccounts(username: String): Box[List[InboundAccountJun2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
     val req = GetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"))
     
     logger.debug(s"Kafka getBankAccounts says: req is: $req")
     val rList = process[GetAccounts](req).extract[InboundBankAccounts].data
-    val res = rList //map (new BankAccountJun2017(_))
+    val res = rList //map (new BankAccountJune2017(_))
     logger.debug(s"Kafka getBankAccounts says res is $res")
     Full(res)
   }}("getBankAccounts")
@@ -286,7 +286,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundBankAccount(
         AuthInfo("userId", "username", "cbsToken"),
-        InboundAccountJun2017(
+        InboundAccountJune2017(
           errorCode = "OBP-6001: ...",
           cbsToken = "cbsToken",
           bankId = "gh.29.uk", 
@@ -307,7 +307,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccountJun2017] = saveConnectorMetric{
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccountJune2017] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
     // Generate random uuid to be used as request-response match id
     val req = GetAccountbyAccountID(
@@ -325,7 +325,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     
     logger.debug(s"Kafka getBankAccount says res is $res")
     
-    Full(new BankAccountJun2017(res))
+    Full(new BankAccountJune2017(res))
   }}("getBankAccount")
   
   
@@ -696,7 +696,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundAccountJun2017(
+      InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
         cbsToken = "cbsToken",
         bankId = "gh.29.uk", 
@@ -732,10 +732,10 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      process(req).extract[InboundAccountJun2017]
+      process(req).extract[InboundAccountJune2017]
     }
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, "label")
-    Full(new BankAccountJun2017(r))
+    Full(new BankAccountJune2017(r))
   }
 
   // Get all counterparties related to an account
@@ -907,8 +907,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
     * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
     * of the saved transaction.
     */
-  private def saveTransaction(fromAccount: BankAccountJun2017,
-                              toAccount: BankAccountJun2017,
+  private def saveTransaction(fromAccount: BankAccountJune2017,
+                              toAccount: BankAccountJune2017,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
@@ -1204,8 +1204,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   }
 
 
-  protected override def makePaymentImpl(fromAccount: BankAccountJun2017,
-                                         toAccount: BankAccountJun2017,
+  protected override def makePaymentImpl(fromAccount: BankAccountJune2017,
+                                         toAccount: BankAccountJune2017,
                                          toCounterparty: CounterpartyTrait,
                                          amt: BigDecimal,
                                          description: String,
@@ -1616,8 +1616,8 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
 
   override def getEmptyBankAccount(): Box[AccountType] = {
-    Full(new BankAccountJun2017(
-      InboundAccountJun2017(
+    Full(new BankAccountJune2017(
+      InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
         cbsToken = "cbsToken",
         bankId = "gh.29.uk",
@@ -1689,7 +1689,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccountJun2017, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccountJune2017, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,

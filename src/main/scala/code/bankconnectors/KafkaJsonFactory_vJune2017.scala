@@ -10,7 +10,7 @@ import net.liftweb.util.Helpers.today
 
 
 
-case class InboundAccountJun2017(
+case class InboundAccountJune2017(
   errorCode: String,
   cbsToken: String,
   bankId: String,
@@ -30,7 +30,7 @@ case class InboundAccountJun2017(
   accountRoutingAddress: String
 ) extends InboundMessageBase with InboundAccountCommon
 
-case class BankAccountJun2017(r: InboundAccountJun2017) extends BankAccount {
+case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.accountType
