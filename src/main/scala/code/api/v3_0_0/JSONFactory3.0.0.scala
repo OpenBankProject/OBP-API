@@ -22,11 +22,6 @@ Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
 
  */
 package code.api.v3_0_0
@@ -34,6 +29,7 @@ package code.api.v3_0_0
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
+import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
 import code.model._
@@ -227,6 +223,50 @@ case class ModeratedCoreAccountJSON(
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
 
 //ended -- account relevant case classes /////
+
+
+
+
+case class OpeningTimesV300(
+                             opening_time: String,
+                             closing_time: String
+                           )
+
+case class LobbyJsonV330(
+                        monday: OpeningTimesV300,
+                        tuesday: OpeningTimesV300,
+                        wednesday: OpeningTimesV300,
+                        thursday: OpeningTimesV300,
+                        friday: OpeningTimesV300,
+                        saturday: OpeningTimesV300,
+                        sunday: OpeningTimesV300
+                        )
+
+case class DriveUpJsonV330(
+                          monday: OpeningTimesV300,
+                          tuesday: OpeningTimesV300,
+                          wednesday: OpeningTimesV300,
+                          thursday: OpeningTimesV300,
+                          friday: OpeningTimesV300,
+                          saturday: OpeningTimesV300,
+                          sunday: OpeningTimesV300
+                        )
+
+case class BranchJsonV300(
+                           id: String,
+                           bank_id: String,
+                           name: String,
+                           address: AddressJson,
+                           location: LocationJson,
+                           meta: MetaJson,
+                           lobby: LobbyJsonV330,
+                           drive_up: DriveUpJsonV330,
+                           branch_routing: BranchRoutingJsonV141,
+                           // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                           is_accessible : String,
+                           branch_type : String,
+                           more_info : String
+                         )
 
 
 object JSONFactory300{

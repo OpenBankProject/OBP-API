@@ -3,7 +3,7 @@ package code.atms
 import code.atms.Atms._
 import code.common.{Address, License, Location, Meta}
 import code.model.BankId
-import code.util.{MediumString, UUIDString}
+import code.util.{TwentyFourHourClockString, MediumString, UUIDString}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
@@ -45,6 +45,36 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   object mLicenseName extends MappedString(this, 255)
 
 
+  // Drive Up
+  object mOpeningTimeOnMonday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnMonday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnTuesday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnTuesday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnWednesday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnWednesday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnThursday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnThursday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnFriday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnFriday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnSaturday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnSaturday extends TwentyFourHourClockString(this)
+
+  object mOpeningTimeOnSunday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnSunday extends TwentyFourHourClockString(this)
+
+
+
+  object mIsAccessible extends MappedString(this, 1) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
+
+  object mBranchType extends MappedString(this, 32)
+  object mMoreInfo extends MappedString(this, 128)
+
+
 
   override def atmId: AtmId = AtmId(mAtmId.get)
 
@@ -73,6 +103,38 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
     override def latitude: Double = mlocationLatitude
     override def longitude: Double = mlocationLongitude
   }
+
+
+  override def  OpeningTimeOnMonday : String = mOpeningTimeOnMonday.get
+  override def  ClosingTimeOnMonday : String = mClosingTimeOnMonday.get
+
+  override def  OpeningTimeOnTuesday : String = mOpeningTimeOnTuesday.get
+  override def  ClosingTimeOnTuesday : String = mClosingTimeOnTuesday.get
+
+  override def  OpeningTimeOnWednesday : String = mOpeningTimeOnWednesday.get
+  override def  ClosingTimeOnWednesday : String = mClosingTimeOnWednesday.get
+
+  override def  OpeningTimeOnThursday : String = mOpeningTimeOnThursday.get
+  override def  ClosingTimeOnThursday: String = mClosingTimeOnThursday.get
+
+  override def  OpeningTimeOnFriday : String = mOpeningTimeOnFriday.get
+  override def  ClosingTimeOnFriday : String = mClosingTimeOnFriday.get
+
+  override def  OpeningTimeOnSaturday : String = mOpeningTimeOnSaturday.get
+  override def  ClosingTimeOnSaturday : String = mClosingTimeOnSaturday.get
+
+  override def  OpeningTimeOnSunday: String = mOpeningTimeOnSunday.get
+  override def  ClosingTimeOnSunday : String = mClosingTimeOnSunday.get
+
+
+  // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+  override def  isAccessible : String = mIsAccessible.get
+
+  override def  branchType : String = mBranchType.get
+  override def  moreInfo : String = mMoreInfo.get
+
+
+
 
 }
 
