@@ -1,13 +1,29 @@
 package code.common
 
-trait License {
+// We use traits so we can override in the Provider for database access etc.
+// We use case classes based on the traits so we can easily construct a data structure like the trait.
+
+
+trait LicenseT {
     def id : String
     def name : String
   }
 
-  trait Meta {
-    def license : License
+case class License (
+   id : String,
+   name : String
+) extends LicenseT
+
+
+
+  trait MetaT {
+    def license : LicenseT
   }
+
+case class Meta (
+  license : License
+) extends MetaT
+
 
   trait AddressT {
     def line1 : String
@@ -20,6 +36,7 @@ trait License {
     //ISO_3166-1_alpha-2
     def countryCode : String
   }
+
 
 case class Address(
 line1 : String,
@@ -42,20 +59,28 @@ countryCode : String) extends AddressT
 case class Location(
   latitude: Double,
   longitude: Double
-                      ) extends LocationT
+) extends LocationT
 
 
 
 
 case class OpeningTimes(
-                         openingTime: String,
-                         closingTime: String
-                       )
+  openingTime: String,
+  closingTime: String
+)
+
+
+trait RoutingT {
+  def scheme: String
+  def address: String
+}
 
 case class Routing(
-                    scheme: String,
-                    address: String
-                  )
+  scheme: String,
+  address: String
+) extends RoutingT
+
+
 
 
 

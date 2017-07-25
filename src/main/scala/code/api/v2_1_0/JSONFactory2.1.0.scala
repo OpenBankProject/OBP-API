@@ -39,7 +39,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJsonV140, Custome
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.atms.Atms.AtmId
 import code.branches.Branches.BranchId
-import code.common.{LocationT, AddressT, License, Meta}
+import code.common.{Location, Address, License, Meta}
 import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._

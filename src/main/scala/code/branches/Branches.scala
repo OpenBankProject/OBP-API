@@ -20,72 +20,114 @@ object Branches extends SimpleInjector {
   }
 
 
+  trait BranchT {
+  def branchId: BranchId
+  def bankId: BankId
+  def name: String
+  def address: Address
+  def location: Location
+  def lobbyString: String
+  def driveUpString: String
+  def meta: Meta
+  def branchRouting: Routing
+  def lobby: Lobby
+  def driveUp: DriveUp
+  // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+  def isAccessible : String
+  def branchType : String
+  def moreInfo : String}
 
-  trait Branch {
-    def branchId : BranchId
-    def bankId : BankId
-    def name : String
-    def address : AddressT
-    def location : LocationT
-    def lobbyString : LobbyString
-    def driveUpString : DriveUpString
-    def meta : Meta
-    def branchRoutingScheme: String
-    def branchRoutingAddress: String
 
-    // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
-    // but could also be 25:44 if we want to represent a time after midnight.
 
-    // Lobby
-    def  lobbyOpeningTimeOnMonday : String
-    def  lobbyClosingTimeOnMonday : String
 
-    def  lobbyOpeningTimeOnTuesday : String
-    def  lobbyClosingTimeOnTuesday : String
 
-    def  lobbyOpeningTimeOnWednesday : String
-    def  lobbyClosingTimeOnWednesday : String
+  case class Branch(
+                     branchId: BranchId,
+                     bankId: BankId,
+                     name: String,
+                     address: Address,
+                     location: Location,
+                     lobbyString: String,
+                     driveUpString: String,
+                     meta: Meta,
+                     branchRouting: Routing,
+                     lobby: Lobby,
+                     driveUp: DriveUp,
+                     // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                     isAccessible : String,
+                     branchType : String,
+                     moreInfo : String
+                   ) extends BranchT
 
-    def  lobbyOpeningTimeOnThursday : String
-    def  lobbyClosingTimeOnThursday: String
 
-    def  lobbyOpeningTimeOnFriday : String
-    def  lobbyClosingTimeOnFriday : String
 
-    def  lobbyOpeningTimeOnSaturday : String
-    def  lobbyClosingTimeOnSaturday : String
 
-    def  lobbyOpeningTimeOnSunday: String
-    def  lobbyClosingTimeOnSunday : String
 
-    // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-    def  isAccessible : String
-
-    def  branchType : String
-    def  moreInfo : String
-
-    // Drive Up
-    def  driveUpOpeningTimeOnMonday : String
-    def  driveUpClosingTimeOnMonday : String
-
-    def  driveUpOpeningTimeOnTuesday : String
-    def  driveUpClosingTimeOnTuesday : String
-
-    def  driveUpOpeningTimeOnWednesday : String
-    def  driveUpClosingTimeOnWednesday : String
-
-    def  driveUpOpeningTimeOnThursday : String
-    def  driveUpClosingTimeOnThursday: String
-
-    def  driveUpOpeningTimeOnFriday : String
-    def  driveUpClosingTimeOnFriday : String
-
-    def  driveUpOpeningTimeOnSaturday : String
-    def  driveUpClosingTimeOnSaturday : String
-
-    def  driveUpOpeningTimeOnSunday: String
-    def  driveUpClosingTimeOnSunday : String
-  }
+//  trait Branch {
+//    def branchId : BranchId
+//    def bankId : BankId
+//    def name : String
+//    def address : AddressT
+//    def location : LocationT
+//    def lobbyString : LobbyString
+//    def driveUpString : DriveUpString
+//    def meta : Meta
+//    def branchRoutingScheme: String
+//    def branchRoutingAddress: String
+//
+//    // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
+//    // but could also be 25:44 if we want to represent a time after midnight.
+//
+//    // Lobby
+//    def  lobbyOpeningTimeOnMonday : String
+//    def  lobbyClosingTimeOnMonday : String
+//
+//    def  lobbyOpeningTimeOnTuesday : String
+//    def  lobbyClosingTimeOnTuesday : String
+//
+//    def  lobbyOpeningTimeOnWednesday : String
+//    def  lobbyClosingTimeOnWednesday : String
+//
+//    def  lobbyOpeningTimeOnThursday : String
+//    def  lobbyClosingTimeOnThursday: String
+//
+//    def  lobbyOpeningTimeOnFriday : String
+//    def  lobbyClosingTimeOnFriday : String
+//
+//    def  lobbyOpeningTimeOnSaturday : String
+//    def  lobbyClosingTimeOnSaturday : String
+//
+//    def  lobbyOpeningTimeOnSunday: String
+//    def  lobbyClosingTimeOnSunday : String
+//
+//    // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+//    def  isAccessible : String
+//
+//    def  branchType : String
+//    def  moreInfo : String
+//
+//    // Drive Up
+//    def  driveUpOpeningTimeOnMonday : String
+//    def  driveUpClosingTimeOnMonday : String
+//
+//    def  driveUpOpeningTimeOnTuesday : String
+//    def  driveUpClosingTimeOnTuesday : String
+//
+//    def  driveUpOpeningTimeOnWednesday : String
+//    def  driveUpClosingTimeOnWednesday : String
+//
+//    def  driveUpOpeningTimeOnThursday : String
+//    def  driveUpClosingTimeOnThursday: String
+//
+//    def  driveUpOpeningTimeOnFriday : String
+//    def  driveUpClosingTimeOnFriday : String
+//
+//    def  driveUpOpeningTimeOnSaturday : String
+//    def  driveUpClosingTimeOnSaturday : String
+//
+//    def  driveUpOpeningTimeOnSunday: String
+//    def  driveUpClosingTimeOnSunday : String
+//  }
 
 
 
@@ -184,21 +226,8 @@ object Branches extends SimpleInjector {
 
   import code.common.Routing
 
-  case class BranchCC(
-                       id: String,
-                       bank_id: String,
-                       name: String,
-                       address: AddressT,
-                       location: Location,
-                       meta: Meta,
-                       lobby: Lobby,
-                       driveUp: DriveUp,
-                       branchRouting: Routing,
-                       // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-                       isAccessible : String,
-                       branchType : String,
-                       moreInfo : String
-                           ) extends Branch
+
+
 
 
 

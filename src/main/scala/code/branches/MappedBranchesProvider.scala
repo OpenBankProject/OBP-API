@@ -3,7 +3,7 @@ package code.branches
 import code.branches.Branches._
 import code.model.BankId
 
-import code.common.{AddressT, License, LocationT, Meta}
+import code.common._
 
 import code.util.{TwentyFourHourClockString, UUIDString}
 import net.liftweb.common.Box
@@ -30,7 +30,7 @@ object MappedBranchesProvider extends BranchesProvider {
   }
 }
 
-class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
+class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def getSingleton = MappedBranch
 
@@ -119,8 +119,15 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
-  override def branchRoutingScheme: String = mBranchRoutingScheme.get
-  override def branchRoutingAddress: String = mBranchRoutingAddress.get
+
+  override def branchRouting: RoutingT = new RoutingT {
+    override def scheme: String = mBranchRoutingScheme.get
+    override def address: String = mBranchRoutingAddress.get
+  }
+
+//  override def branchRoutingScheme: String = mBranchRoutingScheme.get
+//  override def branchRoutingAddress: String = mBranchRoutingAddress.get
+
   override def bankId: BankId = BankId(mBankId.get)
 
   override def address: AddressT = new AddressT {
@@ -134,8 +141,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     override def postCode: String = mPostCode.get
   }
 
-  override def meta: Meta = new Meta {
-    override def license: License = new License {
+  override def meta: MetaT = new MetaT {
+    override def license: LicenseT = new LicenseT {
       override def id: String = mLicenseId.get
       override def name: String = mLicenseName.get
     }

@@ -6,7 +6,7 @@ package code.atms
 
 import code.atms.Atms.{Atm, AtmId}
 import code.model.BankId
-import code.common.{AddressT, LocationT, Meta}
+import code.common.{Meta, Address, Location}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
@@ -22,8 +22,8 @@ object Atms extends SimpleInjector {
     def atmId : AtmId
     def bankId : BankId
     def name : String
-    def address : AddressT
-    def location : LocationT
+    def address : Address
+    def location : Location
     def meta : Meta
 
     def  OpeningTimeOnMonday : String

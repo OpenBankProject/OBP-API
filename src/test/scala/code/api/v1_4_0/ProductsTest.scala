@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
-import code.common.{License, Meta}
+import code.common.{LicenseT, MetaT}
 import code.model.BankId
 import code.products.Products.ProductCode
 import code.products.Products.Product
@@ -25,17 +25,17 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
                         moreInfoUrl: String,
                         details: String,
                         description: String,
-                        meta: Meta) extends Product
+                        meta: MetaT) extends Product
 
-  val fakeMeta = new Meta {
-    val license = new License {
+  val fakeMeta = new MetaT {
+    val license = new LicenseT {
       override def id: String = "example-data-license"
       override def name: String = "Example Data License"
     }
   }
 
-  val fakeMetaNoLicense = new Meta {
-    val license = new License {
+  val fakeMetaNoLicense = new MetaT {
+    val license = new LicenseT {
       override def id: String = ""
       override def name: String = ""
     }

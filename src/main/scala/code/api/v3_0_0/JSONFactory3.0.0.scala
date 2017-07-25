@@ -35,7 +35,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, MetaJson, Locati
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
 
-import code.common.AddressT // should replace Address in 1.4
+import code.common.Address // should replace Address in 1.4
 
 import code.model._
 

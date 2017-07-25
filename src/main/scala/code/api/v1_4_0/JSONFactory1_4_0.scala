@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
-import code.common.{AddressT, License, LocationT, Meta}
+import code.common._
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
@@ -18,6 +18,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.common.Full
+
 
 object JSONFactory1_4_0 {
 
@@ -99,6 +100,7 @@ object JSONFactory1_4_0 {
   case class AtmsJson (atms : List[AtmJson])
 
 
+  // Note this case class has country (not countryCode) and it is missing county
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
 
@@ -169,7 +171,7 @@ object JSONFactory1_4_0 {
 
 
   // Accept an address object and return its json representation
-  def createAddressJson(address : AddressT) : AddressJson = {
+  def createAddressJson(address : Address) : AddressJson = {
     AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
   }
 
@@ -180,12 +182,12 @@ object JSONFactory1_4_0 {
                 branch.name,
                 createAddressJson(branch.address),
                 createLocationJson(branch.location),
-                createLobbyJson(branch.lobbyString.hours),
-                createDriveUpJson(branch.driveUpString.hours),
+                createLobbyJson(branch.lobbyString),
+                createDriveUpJson(branch.driveUpString),
                 createMetaJson(branch.meta),
                 BranchRoutingJsonV141(
-                  scheme = branch.branchRoutingScheme,
-                  address = branch.branchRoutingAddress
+                  scheme = branch.branchRouting.scheme,
+                  address = branch.branchRouting.address
                 )
     )
   }

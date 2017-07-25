@@ -416,11 +416,11 @@ object JSONFactory220{
       address= createAddressJson(branch.address),
       location= createLocationJson(branch.location),
       meta= createMetaJson(branch.meta),
-      lobby= createLobbyJson(branch.lobbyString.hours),
-      drive_up= createDriveUpJson(branch.driveUpString.hours),
+      lobby= createLobbyJson(branch.lobbyString),
+      drive_up= createDriveUpJson(branch.driveUpString),
       branch_routing = BranchRoutingJsonV141(
-        scheme = branch.branchRoutingScheme,
-        address = branch.branchRoutingAddress
+        scheme = branch.branchRouting.scheme,
+        address = branch.branchRouting.address
       )
     )
   }

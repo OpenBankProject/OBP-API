@@ -4,7 +4,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.api.util.APIUtil.OAuth._
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.{Atms, AtmsProvider}
-import code.common.{AddressT, License, LocationT, Meta}
+import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.model.BankId
 import code.setup.DefaultUsers
 
@@ -19,7 +19,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                      name : String,
                      address : AddressT,
                      location : LocationT,
-                     meta : Meta,
+                     meta : MetaT,
 
                      // Opening times
                      OpeningTimeOnMonday : String,
@@ -57,15 +57,15 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   val fakeAddress1 = AddressImpl("Duckerstrasse 86", "Prenzlauerberg", "lala", "Berlin", "a county", "Berlin", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeMeta = new Meta {
-    val license = new License {
+  val fakeMeta = new MetaT {
+    val license = new LicenseT {
       override def id: String = "sample-license"
       override def name: String = "Sample License"
     }
   }
 
-  val fakeMetaNoLicense = new Meta {
-    val license = new License {
+  val fakeMetaNoLicense = new MetaT {
+    val license = new LicenseT {
       override def id: String = ""
       override def name: String = ""
     }

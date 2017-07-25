@@ -6,7 +6,7 @@ package code.products
 
 import code.products.Products.{Product, ProductCode}
 import code.model.BankId
-import code.common.{AddressT, LocationT, Meta}
+import code.common.{Address, LocationT, Meta}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 

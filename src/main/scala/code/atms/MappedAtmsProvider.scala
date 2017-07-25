@@ -1,7 +1,7 @@
 package code.atms
 
 import code.atms.Atms._
-import code.common.{AddressT, License, LocationT, Meta}
+import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, MediumString, UUIDString}
 import net.liftweb.mapper._
@@ -92,8 +92,8 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
     override def postCode: String = mPostCode.get
   }
 
-  override def meta: Meta = new Meta {
-    override def license: License = new License {
+  override def meta: MetaT = new MetaT {
+    override def license: LicenseT = new LicenseT {
       override def id: String = mLicenseId.get
       override def name: String = mLicenseName.get
     }

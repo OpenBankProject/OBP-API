@@ -11,7 +11,7 @@ import code.api.v2_1_0.{AtmJsonPost}
 import code.api.v2_2_0.{AtmJsonV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors.{Connector, InboundAdapterInfo}
-import code.common.{Meta, LocationT, AddressT}
+import code.common.{Meta, Location, Address}
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}

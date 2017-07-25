@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
-import code.common.{AddressT, License, LocationT, Meta}
+import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.branches.Branches.{Branch, BranchId, DriveUpString, LobbyString}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
@@ -25,7 +25,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
                          name: String,
                          address: AddressT,
                          location: LocationT,
-                         meta: Meta,
+                         meta: MetaT,
                          lobbyString: LobbyString,
                          driveUpString: DriveUpString,
                          branchRoutingScheme: String,
@@ -89,15 +89,15 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
   val fakeAddress1 = AddressImpl("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", "Denmark", "Denmark", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeMeta = new Meta {
-    val license = new License {
+  val fakeMeta = new MetaT {
+    val license = new LicenseT {
       override def id: String = "sample-license"
       override def name: String = "Sample License"
     }
   }
 
-  val fakeMetaNoLicense = new Meta {
-    val license = new License {
+  val fakeMetaNoLicense = new MetaT {
+    val license = new LicenseT {
       override def id: String = ""
       override def name: String = ""
     }

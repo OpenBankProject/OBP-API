@@ -1,7 +1,7 @@
 package code.products
 
 import code.products.Products._
-import code.common.{License, Meta}
+import code.common.{LicenseT, MetaT}
 import code.model.BankId
 import code.products.Products.ProductCode
 import code.util.{UUIDString}
@@ -62,8 +62,8 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def details: String = mDetails.get
   override def description: String = mDescription.get
 
-  override def meta: Meta = new Meta {
-    override def license: License = new License {
+  override def meta: MetaT = new MetaT {
+    override def license: LicenseT = new LicenseT {
       override def id: String = mLicenseId.get
       override def name: String = mLicenseName.get
     }
