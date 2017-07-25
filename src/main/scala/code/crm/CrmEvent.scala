@@ -6,7 +6,7 @@ package code.crm
 
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model.BankId
-import code.common.{Address, Location, Meta}
+import code.common.{AddressT, LocationT, Meta}
 import code.model.dataAccess.ResourceUser
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Logger

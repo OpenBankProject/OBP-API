@@ -29,9 +29,14 @@ package code.api.v3_0_0
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
-import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, MetaJson, LocationJson}
+
+//import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
+
+import code.common.AddressT // should replace Address in 1.4
+
 import code.model._
 
 //started - view relevant case classes
@@ -252,11 +257,25 @@ case class DriveUpJsonV330(
                           sunday: OpeningTimesV300
                         )
 
+
+trait AddressvJson330 {
+  def line_1 : String
+  def line_2 : String
+  def line_3 : String
+  def city : String
+  def county : String
+  def state : String
+  def post_code : String
+  //ISO_3166-1_alpha-2
+  def country_code : String
+}
+
+
 case class BranchJsonV300(
                            id: String,
                            bank_id: String,
                            name: String,
-                           address: AddressJson,
+                           address: AddressvJson330,
                            location: LocationJson,
                            meta: MetaJson,
                            lobby: LobbyJsonV330,

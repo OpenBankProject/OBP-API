@@ -3,8 +3,8 @@ package code.api.v1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
-import code.common.{Address, License, Location, Meta}
-import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
+import code.common.{AddressT, License, LocationT, Meta}
+import code.branches.Branches.{Branch, BranchId, DriveUpString, LobbyString}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.setup.DefaultUsers
@@ -20,70 +20,70 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(
-    branchId: BranchId,
-    bankId: BankId,
-    name: String,
-    address: Address,
-    location: Location,
-    meta: Meta,
-    lobby: Lobby,
-    driveUp: DriveUp,
-    branchRoutingScheme: String,
-    branchRoutingAddress: String,
+                         branchId: BranchId,
+                         bankId: BankId,
+                         name: String,
+                         address: AddressT,
+                         location: LocationT,
+                         meta: Meta,
+                         lobbyString: LobbyString,
+                         driveUpString: DriveUpString,
+                         branchRoutingScheme: String,
+                         branchRoutingAddress: String,
 
-    // Lobby Times
-    lobbyOpeningTimeOnMonday : String,
-    lobbyClosingTimeOnMonday : String,
+                         // Lobby Times
+                         lobbyOpeningTimeOnMonday : String,
+                         lobbyClosingTimeOnMonday : String,
 
-    lobbyOpeningTimeOnTuesday : String,
-    lobbyClosingTimeOnTuesday : String,
+                         lobbyOpeningTimeOnTuesday : String,
+                         lobbyClosingTimeOnTuesday : String,
 
-    lobbyOpeningTimeOnWednesday : String,
-    lobbyClosingTimeOnWednesday : String,
+                         lobbyOpeningTimeOnWednesday : String,
+                         lobbyClosingTimeOnWednesday : String,
 
-    lobbyOpeningTimeOnThursday : String,
-    lobbyClosingTimeOnThursday: String,
+                         lobbyOpeningTimeOnThursday : String,
+                         lobbyClosingTimeOnThursday: String,
 
-    lobbyOpeningTimeOnFriday : String,
-    lobbyClosingTimeOnFriday : String,
+                         lobbyOpeningTimeOnFriday : String,
+                         lobbyClosingTimeOnFriday : String,
 
-    lobbyOpeningTimeOnSaturday : String,
-    lobbyClosingTimeOnSaturday : String,
+                         lobbyOpeningTimeOnSaturday : String,
+                         lobbyClosingTimeOnSaturday : String,
 
-    lobbyOpeningTimeOnSunday: String,
-    lobbyClosingTimeOnSunday : String,
+                         lobbyOpeningTimeOnSunday: String,
+                         lobbyClosingTimeOnSunday : String,
 
-    // Drive Up times
-    driveUpOpeningTimeOnMonday : String,
-    driveUpClosingTimeOnMonday : String,
+                         // Drive Up times
+                         driveUpOpeningTimeOnMonday : String,
+                         driveUpClosingTimeOnMonday : String,
 
-    driveUpOpeningTimeOnTuesday : String,
-    driveUpClosingTimeOnTuesday : String,
+                         driveUpOpeningTimeOnTuesday : String,
+                         driveUpClosingTimeOnTuesday : String,
 
-    driveUpOpeningTimeOnWednesday : String,
-    driveUpClosingTimeOnWednesday : String,
+                         driveUpOpeningTimeOnWednesday : String,
+                         driveUpClosingTimeOnWednesday : String,
 
-    driveUpOpeningTimeOnThursday : String,
-    driveUpClosingTimeOnThursday: String,
+                         driveUpOpeningTimeOnThursday : String,
+                         driveUpClosingTimeOnThursday: String,
 
-    driveUpOpeningTimeOnFriday : String,
-    driveUpClosingTimeOnFriday : String,
+                         driveUpOpeningTimeOnFriday : String,
+                         driveUpClosingTimeOnFriday : String,
 
-    driveUpOpeningTimeOnSaturday : String,
-    driveUpClosingTimeOnSaturday : String,
+                         driveUpOpeningTimeOnSaturday : String,
+                         driveUpClosingTimeOnSaturday : String,
 
-    driveUpOpeningTimeOnSunday: String,
-    driveUpClosingTimeOnSunday : String,
+                         driveUpOpeningTimeOnSunday: String,
+                         driveUpClosingTimeOnSunday : String,
 
-    // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-    isAccessible : String,
+                         // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                         isAccessible : String,
 
-    branchType : String,
-    moreInfo : String
+                         branchType : String,
+                         moreInfo : String
 
   ) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
-                         state : String, postCode : String, countryCode : String) extends Address
+                         state : String, postCode : String, countryCode : String) extends AddressT
 
 
   val fakeAddress1 = AddressImpl("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", "Denmark", "Denmark", "10437", "DE")
@@ -103,33 +103,33 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     }
   }
 
-  val fakeLocation = new Location {
+  val fakeLocation = new LocationT {
    override def latitude: Double = 1.11
    override def longitude: Double = 2.22
   }
 
 
-  val fakeLocation2 = new Location {
+  val fakeLocation2 = new LocationT {
     override def latitude: Double = 1.1111
     override def longitude: Double = 2.2222
   }
 
 
-  val fakeLobby = new Lobby {
+  val fakeLobby = new LobbyString {
    val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
   }
 
 
-  val fakeLobby2 = new Lobby {
+  val fakeLobby2 = new LobbyString {
     val hours = "9-5"
   }
 
-  val fakeDriveUp = new DriveUp {
+  val fakeDriveUp = new DriveUpString {
     override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
   }
 
 
-  val fakeDriveUp2 = new DriveUp {
+  val fakeDriveUp2 = new DriveUpString {
     override def hours: String = "M-Th 8:30 - 5:30"
   }
 
@@ -233,8 +233,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     branch.address.postCode should equal(branchJson.address.postcode)
     branch.location.latitude should equal(branchJson.location.latitude)
     branch.location.longitude should equal(branchJson.location.longitude)
-    branch.lobby.hours should equal(branchJson.lobby.hours)
-    branch.driveUp.hours should equal(branchJson.drive_up.hours)
+    branch.lobbyString.hours should equal(branchJson.lobby.hours)
+    branch.driveUpString.hours should equal(branchJson.drive_up.hours)
   }
 
   /*

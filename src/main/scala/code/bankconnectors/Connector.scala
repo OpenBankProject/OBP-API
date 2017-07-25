@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.{Atm, AtmId}
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.FXRate
@@ -991,9 +992,7 @@ trait Connector extends MdcLoggable{
   //Note: this is a temporary way for compatibility
   //It is better to create the case class for all the connector methods
   def createOrUpdateBranch(
-    branch: BranchJsonPost,
-    branchRoutingScheme: String, //Added in V220
-    branchRoutingAddress: String //Added in V220
+    branch: BranchJsonV300
   ): Box[Branch]
   
   def createOrUpdateBank(

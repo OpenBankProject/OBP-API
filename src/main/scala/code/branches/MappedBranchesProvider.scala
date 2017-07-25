@@ -3,7 +3,7 @@ package code.branches
 import code.branches.Branches._
 import code.model.BankId
 
-import code.common.{Address, License, Location, Meta}
+import code.common.{AddressT, License, LocationT, Meta}
 
 import code.util.{TwentyFourHourClockString, UUIDString}
 import net.liftweb.common.Box
@@ -123,7 +123,7 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   override def branchRoutingAddress: String = mBranchRoutingAddress.get
   override def bankId: BankId = BankId(mBankId.get)
 
-  override def address: Address = new Address {
+  override def address: AddressT = new AddressT {
     override def line1: String = mLine1.get
     override def line2: String = mLine2.get
     override def line3: String = mLine3.get
@@ -141,19 +141,26 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     }
   }
 
-  override def lobby: Lobby = new Lobby {
+  override def lobbyString: LobbyString = new LobbyString {
     override def hours: String = mLobbyHours
   }
 
-  override def driveUp: DriveUp = new DriveUp {
+  override def driveUpString: DriveUpString = new DriveUpString {
     override def hours: String = mDriveUpHours
   }
 
 
-  override def location: Location = new Location {
+  override def location: LocationT = new LocationT {
     override def latitude: Double = mlocationLatitude
     override def longitude: Double = mlocationLongitude
   }
+
+
+  override def lobby: LobbyString = new LobbyString {
+    override def openingTimes: String = mLobbyHours
+  }
+
+
 
 
   // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45

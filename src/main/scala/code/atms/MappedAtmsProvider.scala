@@ -1,7 +1,7 @@
 package code.atms
 
 import code.atms.Atms._
-import code.common.{Address, License, Location, Meta}
+import code.common.{AddressT, License, LocationT, Meta}
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, MediumString, UUIDString}
 import net.liftweb.mapper._
@@ -81,7 +81,7 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   override def bankId : BankId = BankId(mBankId.get)
   override def name: String = mName.get
 
-  override def address: Address = new Address {
+  override def address: AddressT = new AddressT {
     override def line1: String = mLine1.get
     override def line2: String = mLine2.get
     override def line3: String = mLine3.get
@@ -99,7 +99,7 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
     }
   }
 
-  override def location: Location = new Location {
+  override def location: LocationT = new LocationT {
     override def latitude: Double = mlocationLatitude
     override def longitude: Double = mlocationLongitude
   }

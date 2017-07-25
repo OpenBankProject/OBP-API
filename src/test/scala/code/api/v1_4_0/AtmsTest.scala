@@ -4,7 +4,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.api.util.APIUtil.OAuth._
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.{Atms, AtmsProvider}
-import code.common.{Address, License, Location, Meta}
+import code.common.{AddressT, License, LocationT, Meta}
 import code.model.BankId
 import code.setup.DefaultUsers
 
@@ -15,43 +15,43 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
   // Have to repeat the constructor parameters from the trait
   case class AtmImpl(atmId : AtmId,
-                        bankId: BankId,
-                        name : String,
-                        address : Address,
-                        location : Location,
-                        meta : Meta,
+                     bankId: BankId,
+                     name : String,
+                     address : AddressT,
+                     location : LocationT,
+                     meta : Meta,
 
-                        // Opening times
-                        OpeningTimeOnMonday : String,
-                        ClosingTimeOnMonday : String,
+                     // Opening times
+                     OpeningTimeOnMonday : String,
+                     ClosingTimeOnMonday : String,
 
-                        OpeningTimeOnTuesday : String,
-                        ClosingTimeOnTuesday : String,
+                     OpeningTimeOnTuesday : String,
+                     ClosingTimeOnTuesday : String,
 
-                        OpeningTimeOnWednesday : String,
-                        ClosingTimeOnWednesday : String,
+                     OpeningTimeOnWednesday : String,
+                     ClosingTimeOnWednesday : String,
 
-                        OpeningTimeOnThursday : String,
-                        ClosingTimeOnThursday: String,
+                     OpeningTimeOnThursday : String,
+                     ClosingTimeOnThursday: String,
 
-                        OpeningTimeOnFriday : String,
-                        ClosingTimeOnFriday : String,
+                     OpeningTimeOnFriday : String,
+                     ClosingTimeOnFriday : String,
 
-                        OpeningTimeOnSaturday : String,
-                        ClosingTimeOnSaturday : String,
+                     OpeningTimeOnSaturday : String,
+                     ClosingTimeOnSaturday : String,
 
-                        OpeningTimeOnSunday: String,
-                        ClosingTimeOnSunday : String,
+                     OpeningTimeOnSunday: String,
+                     ClosingTimeOnSunday : String,
 
-                        // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-                        isAccessible : String,
+                     // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                     isAccessible : String,
 
-                        branchType : String,
-                        moreInfo : String
+                     branchType : String,
+                     moreInfo : String
                     ) extends Atm
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
-                         state : String, postCode : String, countryCode : String) extends Address
+                         state : String, postCode : String, countryCode : String) extends AddressT
 
 
   val fakeAddress1 = AddressImpl("Duckerstrasse 86", "Prenzlauerberg", "lala", "Berlin", "a county", "Berlin", "10437", "DE")
@@ -71,13 +71,13 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     }
   }
 
-  val fakeLocation = new Location {
+  val fakeLocation = new LocationT {
    override def latitude: Double = 11.11
    override def longitude: Double = 22.22
   }
 
 
-  val fakeLocation2 = new Location {
+  val fakeLocation2 = new LocationT {
     override def latitude: Double = 11.1111
     override def longitude: Double = 22.2222
   }

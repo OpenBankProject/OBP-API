@@ -189,8 +189,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
 
-    foundBranch.lobby.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
-    foundBranch.driveUp.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
+    foundBranch.lobbyString.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
+    foundBranch.driveUpString.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
 
   def verifyAtmCreated(atm : SandboxAtmImport) = {

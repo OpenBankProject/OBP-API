@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
-import code.common.{Address, License, Location, Meta}
+import code.common.{AddressT, License, LocationT, Meta}
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
@@ -150,7 +150,7 @@ object JSONFactory1_4_0 {
     LicenseJson(license.id, license.name)
   }
 
-  def createLocationJson(location : Location) : LocationJson = {
+  def createLocationJson(location : LocationT) : LocationJson = {
     LocationJson(location.latitude, location.longitude)
   }
 
@@ -169,7 +169,7 @@ object JSONFactory1_4_0 {
 
 
   // Accept an address object and return its json representation
-  def createAddressJson(address : Address) : AddressJson = {
+  def createAddressJson(address : AddressT) : AddressJson = {
     AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
   }
 
@@ -180,8 +180,8 @@ object JSONFactory1_4_0 {
                 branch.name,
                 createAddressJson(branch.address),
                 createLocationJson(branch.location),
-                createLobbyJson(branch.lobby.hours),
-                createDriveUpJson(branch.driveUp.hours),
+                createLobbyJson(branch.lobbyString.hours),
+                createDriveUpJson(branch.driveUpString.hours),
                 createMetaJson(branch.meta),
                 BranchRoutingJsonV141(
                   scheme = branch.branchRoutingScheme,

@@ -416,8 +416,8 @@ object JSONFactory220{
       address= createAddressJson(branch.address),
       location= createLocationJson(branch.location),
       meta= createMetaJson(branch.meta),
-      lobby= createLobbyJson(branch.lobby.hours),
-      drive_up= createDriveUpJson(branch.driveUp.hours),
+      lobby= createLobbyJson(branch.lobbyString.hours),
+      drive_up= createDriveUpJson(branch.driveUpString.hours),
       branch_routing = BranchRoutingJsonV141(
         scheme = branch.branchRoutingScheme,
         address = branch.branchRoutingAddress

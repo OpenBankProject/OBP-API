@@ -4,8 +4,9 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
+import code.api.v3_0_0.BranchJsonV300
 import code.branches.Branches.{Branch, BranchId}
-import code.common.{Address, License, Location, Meta}
+import code.common._
 import code.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
@@ -18,14 +19,16 @@ object Branches extends SimpleInjector {
     def unapply(id : String) = Some(BranchId(id))
   }
 
+
+
   trait Branch {
     def branchId : BranchId
     def bankId : BankId
     def name : String
-    def address : Address
-    def location : Location
-    def lobby : Lobby
-    def driveUp : DriveUp
+    def address : AddressT
+    def location : LocationT
+    def lobbyString : LobbyString
+    def driveUpString : DriveUpString
     def meta : Meta
     def branchRoutingScheme: String
     def branchRoutingAddress: String
@@ -84,11 +87,130 @@ object Branches extends SimpleInjector {
     def  driveUpClosingTimeOnSunday : String
   }
 
-  trait Lobby {
+
+
+
+
+  ///
+
+//  case class BranchCC(
+//                       branchId: BranchId,
+//                       bankId: BankId,
+//                       name: String,
+//                       address: AddressT,
+//                       location: LocationT,
+//                       meta: Meta,
+//                       lobbyString: LobbyString,
+//                       driveUpString: DriveUpString,
+//                       branchRoutingScheme: String,
+//                       branchRoutingAddress: String,
+//
+//                       // Lobby Times
+//                       lobbyOpeningTimeOnMonday : String,
+//                       lobbyClosingTimeOnMonday : String,
+//
+//                       lobbyOpeningTimeOnTuesday : String,
+//                       lobbyClosingTimeOnTuesday : String,
+//
+//                       lobbyOpeningTimeOnWednesday : String,
+//                       lobbyClosingTimeOnWednesday : String,
+//
+//                       lobbyOpeningTimeOnThursday : String,
+//                       lobbyClosingTimeOnThursday: String,
+//
+//                       lobbyOpeningTimeOnFriday : String,
+//                       lobbyClosingTimeOnFriday : String,
+//
+//                       lobbyOpeningTimeOnSaturday : String,
+//                       lobbyClosingTimeOnSaturday : String,
+//
+//                       lobbyOpeningTimeOnSunday: String,
+//                       lobbyClosingTimeOnSunday : String,
+//
+//                       // Drive Up times
+//                       driveUpOpeningTimeOnMonday : String,
+//                       driveUpClosingTimeOnMonday : String,
+//
+//                       driveUpOpeningTimeOnTuesday : String,
+//                       driveUpClosingTimeOnTuesday : String,
+//
+//                       driveUpOpeningTimeOnWednesday : String,
+//                       driveUpClosingTimeOnWednesday : String,
+//
+//                       driveUpOpeningTimeOnThursday : String,
+//                       driveUpClosingTimeOnThursday: String,
+//
+//                       driveUpOpeningTimeOnFriday : String,
+//                       driveUpClosingTimeOnFriday : String,
+//
+//                       driveUpOpeningTimeOnSaturday : String,
+//                       driveUpClosingTimeOnSaturday : String,
+//
+//                       driveUpOpeningTimeOnSunday: String,
+//                       driveUpClosingTimeOnSunday : String,
+//
+//                       // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+//                       isAccessible : String,
+//
+//                       branchType : String,
+//                       moreInfo : String
+//
+//                       ) extends Branch
+
+
+
+
+
+  case class Lobby(
+                            monday: OpeningTimes,
+                            tuesday: OpeningTimes,
+                            wednesday: OpeningTimes,
+                            thursday: OpeningTimes,
+                            friday: OpeningTimes,
+                            saturday: OpeningTimes,
+                            sunday: OpeningTimes
+                          )
+
+  case class DriveUp(
+                              monday: OpeningTimes,
+                              tuesday: OpeningTimes,
+                              wednesday: OpeningTimes,
+                              thursday: OpeningTimes,
+                              friday: OpeningTimes,
+                              saturday: OpeningTimes,
+                              sunday: OpeningTimes
+                            )
+
+
+  import code.common.Routing
+
+  case class BranchCC(
+                       id: String,
+                       bank_id: String,
+                       name: String,
+                       address: AddressT,
+                       location: Location,
+                       meta: Meta,
+                       lobby: Lobby,
+                       driveUp: DriveUp,
+                       branchRouting: Routing,
+                       // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                       isAccessible : String,
+                       branchType : String,
+                       moreInfo : String
+                           ) extends Branch
+
+
+
+  //
+
+  @deprecated("Use detailed fields now, not this string","24 July 2017")
+  trait LobbyString {
    def hours : String
   }
 
-  trait DriveUp {
+  @deprecated("Use detailed fields now, not this string","24 July 2017")
+  trait DriveUpString {
     def hours : String
   }
 
