@@ -27,7 +27,7 @@ class MappedThing extends Thing with LongKeyedMapper[MappedThing] with IdPK {
   object bankId_ extends UUIDString(this)
   object name_ extends MappedString(this, 255)
 
-  object thingId_ extends MappedString(this, 255)
+  object thingId_ extends MappedString(this, 30)
 
   object fooSomething_ extends MappedString(this, 255)
   object barSomething_ extends MappedString(this, 255)
