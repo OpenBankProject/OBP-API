@@ -4,8 +4,7 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
-import code.api.v3_0_0.BranchJsonV300
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchId, BranchT}
 import code.common._
 import code.model.BankId
 import net.liftweb.common.Logger
@@ -224,9 +223,6 @@ object Branches extends SimpleInjector {
                             )
 
 
-  import code.common.Routing
-
-
 
 
 
@@ -269,7 +265,7 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-  final def getBranches(bankId : BankId) : Option[List[Branch]] = {
+  final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
     // If we get branches filter them
     getBranchesFromProvider(bankId) match {
       case Some(branches) => {
@@ -286,13 +282,13 @@ trait BranchesProvider {
   /*
   Return one Branch
    */
-  final def getBranch(branchId : BranchId) : Option[Branch] = {
+  final def getBranch(branchId : BranchId) : Option[BranchT] = {
     // Filter out if no license data
     getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
-  protected def getBranchFromProvider(branchId : BranchId) : Option[Branch]
-  protected def getBranchesFromProvider(bank : BankId) : Option[List[Branch]]
+  protected def getBranchFromProvider(branchId : BranchId) : Option[BranchT]
+  protected def getBranchesFromProvider(bank : BankId) : Option[List[BranchT]]
 
 // End of Trait
 }

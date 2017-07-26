@@ -1,9 +1,9 @@
 package code.atms
 
 import code.atms.Atms._
-import code.common.{AddressT, LicenseT, LocationT, MetaT}
+import code.common._
 import code.model.BankId
-import code.util.{TwentyFourHourClockString, MediumString, UUIDString}
+import code.util.{TwentyFourHourClockString, UUIDString}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
@@ -81,28 +81,28 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   override def bankId : BankId = BankId(mBankId.get)
   override def name: String = mName.get
 
-  override def address: AddressT = new AddressT {
-    override def line1: String = mLine1.get
-    override def line2: String = mLine2.get
-    override def line3: String = mLine3.get
-    override def city: String = mCity.get
-    override def county: String = mCounty.get
-    override def state: String = mState.get
-    override def countryCode: String = mCountryCode.get
-    override def postCode: String = mPostCode.get
-  }
+  override def address = Address(
+    line1 = mLine1.get,
+    line2 = mLine2.get,
+    line3 = mLine3.get,
+    city = mCity.get,
+    county = mCounty.get,
+    state = mState.get,
+    countryCode = mCountryCode.get,
+    postCode = mPostCode.get
+  )
 
-  override def meta: MetaT = new MetaT {
-    override def license: LicenseT = new LicenseT {
-      override def id: String = mLicenseId.get
-      override def name: String = mLicenseName.get
-    }
-  }
+  override def meta = Meta (
+    license = License (
+      id = mLicenseId.get,
+     name = mLicenseName.get
+    )
+  )
 
-  override def location: LocationT = new LocationT {
-    override def latitude: Double = mlocationLatitude
-    override def longitude: Double = mlocationLongitude
-  }
+  override def location = Location(
+    latitude = mlocationLatitude.get,
+    longitude = mlocationLongitude.get
+  )
 
 
   override def  OpeningTimeOnMonday : String = mOpeningTimeOnMonday.get

@@ -2,14 +2,15 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{AtmJsonPost, TransactionRequestCommonBodyJSON}
 import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
-import code.branches.Branches.{DriveUp, Lobby, Branch, BranchId}
+import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, Lobby}
 import code.branches.MappedBranch
-import code.common._
+import code.common.{Address, _}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -26,8 +27,9 @@ import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
 import code.util.Helper
-import code.util.Helper._
+import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
+import com.google.common.cache.CacheBuilder
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
@@ -36,21 +38,12 @@ import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.math.BigInt
-import code.api.util.APIUtil.saveConnectorMetric
-import code.api.v2_2_0.ProductJsonV220
-
-import scalacache.ScalaCache
+import scalacache.{ScalaCache, _}
 import scalacache.guava.GuavaCache
-import scalacache._
-import concurrent.duration._
-import language.postfixOps
-import memoization._
-import com.google.common.cache.CacheBuilder
-import code.util.Helper.MdcLoggable
-
-import code.common.Address
-import code.common.MetaT
+import scalacache.memoization._
 
 
 object LocalMappedConnector extends Connector with MdcLoggable {
@@ -919,7 +912,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def createOrUpdateBranch(branchJsonV300: BranchJsonV300): Box[Branch] = {
+  override def createOrUpdateBranch(branchJsonV300: BranchJsonV300): Box[BranchT] = {
 
     // TODO
     // Either this should accept a Branch case class i.e. extract the construction of a Branch out of here and move it to the API
@@ -1291,7 +1284,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedBranch.mBranchId, branchId.value))
       .map(
         branch => 
-          branch.branchRoutingScheme == null && branch.branchRoutingAddress == null match {
+          branch.branchRouting.scheme == null && branch.branchRouting.address == null match {
             case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value) 
             case _ => branch
         }

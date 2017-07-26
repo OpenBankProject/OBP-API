@@ -2,22 +2,18 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
-import code.common._
+import code.api.util.APIUtil.ResourceDoc
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.atms.Atms.Atm
-import code.branches.Branches.Branch
-import code.crm.CrmEvent.{CrmEvent, CrmEventId}
-import code.products.Products.Product
+import code.branches.Branches.BranchT
+import code.common._
+import code.crm.CrmEvent.CrmEvent
 import code.customer.{Customer, CustomerMessage}
 import code.model._
-import code.products.Products.ProductCode
-import code.transactionrequests.TransactionRequests._
-import net.liftweb.json.JsonAST.{JObject, JValue}
-import org.pegdown.PegDownProcessor
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
-import net.liftweb.common.Full
+import code.transactionrequests.TransactionRequests._
+import org.pegdown.PegDownProcessor
 
 
 object JSONFactory1_4_0 {
@@ -177,7 +173,7 @@ object JSONFactory1_4_0 {
 
   // Branches
 
-  def createBranchJson(branch: Branch) : BranchJson = {
+  def createBranchJson(branch: BranchT) : BranchJson = {
     BranchJson(branch.branchId.value,
                 branch.name,
                 createAddressJson(branch.address),
@@ -192,7 +188,7 @@ object JSONFactory1_4_0 {
     )
   }
 
-  def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {
+  def createBranchesJson(branchesList: List[BranchT]) : BranchesJson = {
     BranchesJson(branchesList.map(createBranchJson))
   }
 

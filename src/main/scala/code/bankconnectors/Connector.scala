@@ -9,7 +9,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.{Atm, AtmId}
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchId, BranchT}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
@@ -993,7 +993,7 @@ trait Connector extends MdcLoggable{
   //It is better to create the case class for all the connector methods
   def createOrUpdateBranch(
     branch: BranchJsonV300
-  ): Box[Branch]
+  ): Box[BranchT]
   
   def createOrUpdateBank(
     bankId: String,
@@ -1038,7 +1038,7 @@ trait Connector extends MdcLoggable{
 
 
 
-  def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+  def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 
