@@ -338,7 +338,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         authInfo = AuthInfo("userId", "username", "cbsToken" ),
         bankId = "bankId",
         accountId = "accountId",
-        queryParams = "mapperParams"
+        limit =100,
+        fromDate="exampleDate",
+        toDate="exampleDate"
       )
     ),
     exampleInboundMessage = decompose(
@@ -393,7 +395,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = "cbsToken" ),
       bankId = bankId.toString,
       accountId = accountId.value,
-      queryParams = optionalParams.toString()
+      limit = limit.value,
+      fromDate = fromDate.value.toString,
+      toDate = toDate.value.toString
     )
     
     implicit val formats = net.liftweb.json.DefaultFormats
