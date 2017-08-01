@@ -14,15 +14,16 @@ import scala.util.Try
 
 object MappedBranchesProvider extends BranchesProvider {
 
-  override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] =
+  override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] =
     MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
-  override protected def getBranchesFromProvider(bankId: BankId): Option[List[Branch]] = {
+  override protected def getBranchesFromProvider(bankId: BankId): Option[List[BranchT]] = {
     Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
+      // For all found set the routing scheme and address (default it to the branchId)
       .map(
         branch =>
-          branch.branchRoutingScheme == null && branch.branchRoutingAddress ==null match {
-            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
+          branch.mBranchRoutingScheme == null && branch.mBranchRoutingAddress == null match {
+            case true => branch.mBranchRoutingScheme("BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
             case _ => branch
           }
       )
@@ -148,11 +149,11 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     }
   }
 
-  override def lobbyString: LobbyString = new LobbyString {
+  override def lobbyString: LobbyStringT = new LobbyStringT {
     override def hours: String = mLobbyHours
   }
 
-  override def driveUpString: DriveUpString = new DriveUpString {
+  override def driveUpString: DriveUpStringT = new DriveUpStringT {
     override def hours: String = mDriveUpHours
   }
 
@@ -163,7 +164,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   }
 
 
-  override def lobby: LobbyString = new LobbyString {
+  override def lobby: LobbyStringT = new LobbyStringT {
     override def openingTimes: String = mLobbyHours
   }
 

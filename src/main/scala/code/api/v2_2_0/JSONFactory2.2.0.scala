@@ -38,14 +38,15 @@ import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRouti
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
 import code.atms.Atms.Atm
-import code.branches.Branches.Branch
+import code.branches.Branches._
+import code.common.{Meta, Location, Address}
 import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.{APIMetric, ConnectorMetric}
 import code.model._
 import code.users.Users
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 //import net.liftweb.common.Box
 //import net.liftweb.json.Extraction
 //import net.liftweb.json.JsonAST.JValue
@@ -180,26 +181,26 @@ case class BankJSONV220(
 
 //keep similar to "case class BranchJsonPost" in V210
 case class BranchJsonV220(
-  id: String,
-  bank_id: String,
-  name: String,
-  address: AddressJson,
-  location: LocationJson,
-  meta: MetaJson,
-  lobby: LobbyJson,
-  drive_up: DriveUpJson,
-  branch_routing: BranchRoutingJsonV141
+                           id: String,
+                           bank_id: String,
+                           name: String,
+                           address: AddressJsonV140,
+                           location: LocationJsonV140,
+                           meta: MetaJsonV140,
+                           lobby: LobbyStringJson,
+                           drive_up: DriveUpStringJson,
+                           branch_routing: BranchRoutingJsonV141
 )
 
 
 
 case class AtmJsonV220(
-                           id: String,
-                           bank_id: String,
-                           name: String,
-                           address: AddressJson,
-                           location: LocationJson,
-                           meta: MetaJson
+                        id: String,
+                        bank_id: String,
+                        name: String,
+                        address: AddressJsonV140,
+                        location: LocationJsonV140,
+                        meta: MetaJsonV140
                          )
 
 
@@ -213,7 +214,7 @@ case class ProductJsonV220(bank_id: String,
                            more_info_url: String,
                            details: String,
                            description: String,
-                           meta : MetaJson)
+                           meta : MetaJsonV140)
 
 
 case class ProductsJsonV220 (products : List[ProductJsonV220])
@@ -408,7 +409,24 @@ object JSONFactory220{
   }
 
   // keep similar to def createBranchJson(branch: Branch) -- v140
-  def createBranchJson(branch: Branch): BranchJsonV220 = {
+//  def createBranchJson(branch: BranchT): BranchJsonV220 = {
+//    BranchJsonV220(
+//      id= branch.branchId.value,
+//      bank_id= branch.bankId.value,
+//      name= branch.name,
+//      address= createAddressJson(branch.address),
+//      location= createLocationJson(branch.location),
+//      meta= createMetaJson(branch.meta),
+//      lobby= createLobbyStringJson(branch.lobbyString.getOrElse("")),
+//      drive_up= createDriveUpStringJson(branch.driveUpString.getOrElse("")),
+//      branch_routing = BranchRoutingJsonV141(
+//        scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
+//        address = branch.branchRouting.map(_.address).getOrElse("")
+//      )
+//    )
+//  }
+
+  def createBranchJson(branch: BranchT): BranchJsonV220 = {
     BranchJsonV220(
       id= branch.branchId.value,
       bank_id= branch.bankId.value,
@@ -416,14 +434,16 @@ object JSONFactory220{
       address= createAddressJson(branch.address),
       location= createLocationJson(branch.location),
       meta= createMetaJson(branch.meta),
-      lobby= createLobbyJson(branch.lobbyString),
-      drive_up= createDriveUpJson(branch.driveUpString),
+      lobby= createLobbyStringJson(branch.lobbyString.map(_.hours).getOrElse("")),
+      drive_up= createDriveUpStringJson(branch.driveUpString.map(_.hours).getOrElse("")),
       branch_routing = BranchRoutingJsonV141(
-        scheme = branch.branchRouting.scheme,
-        address = branch.branchRouting.address
+        scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
+        address = branch.branchRouting.map(_.address).getOrElse("")
       )
     )
   }
+
+
 
 
   def createAtmJson(atm: Atm): AtmJsonV220 = {
@@ -518,5 +538,32 @@ object JSONFactory220{
       created=c.createdAt
     )
   }
+
+
+  def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
+
+    val address : Address = transformV140ToAddress(branchJsonV220.address) // Note the address in V220 is V140
+    val location: Location =  transformV140ToLocation(branchJsonV220.location)  // Note the location in V220 is V140
+    val meta: Meta =  transformV140ToMeta(branchJsonV220.meta)  // Note the meta in V220 is V140
+
+    Full(Branch(
+      BranchId(branchJsonV220.id),
+      BankId(branchJsonV220.bank_id),
+      branchJsonV220.name,
+      address = address,
+      location = location,
+      lobbyString = Some(LobbyString(branchJsonV220.lobby.hours)),
+      driveUpString = Some(DriveUpString(branchJsonV220.drive_up.hours)),
+      meta = meta,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None))
+  }
+
+
+
   
 }

@@ -1520,15 +1520,13 @@ trait APIMethods210 {
           for {
             u <- user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            branch <- tryo {json.extract[BranchJsonPut]} ?~! InvalidJsonFormat
+            branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
-            branchPost <- toBranchJsonPost(branchId,branch)
-            success <- Connector.connector.vend.createOrUpdateBranch(
-              branchPost,
-              "", //new field in V220
-              "" //new field in V220
-            )
+            // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
+
+            branch <- transformToBranch(branchId, branchJsonPutV210)
+            success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
             val json = JSONFactory1_4_0.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
@@ -1564,13 +1562,10 @@ trait APIMethods210 {
           for {
             u <- user ?~ UserNotLoggedIn
             bank <- Bank(bankId)?~! {BankNotFound}
-            branch <- tryo {json.extract[BranchJsonPost]} ?~! InvalidJsonFormat
+            branchJsonPostV210 <- tryo {json.extract[BranchJsonPostV210]} ?~! InvalidJsonFormat
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
-            success <- Connector.connector.vend.createOrUpdateBranch(
-              branch,
-              "", //new field in V220
-              "" //new field in V220
-            )
+            branch <- transformToBranch(branchJsonPostV210)
+            success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
            val json = JSONFactory1_4_0.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))

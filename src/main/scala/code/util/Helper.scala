@@ -252,4 +252,33 @@ object Helper{
   trait MdcLoggable extends Loggable {
     MDC.put("host" -> getHostname)
   }
+
+  /*
+  Return true for Y, YES and true etc.
+   */
+  def stringToBooleanOption(input : String) : Option[Boolean] = {
+    var upperInput = input.toUpperCase()
+    upperInput match {
+      case "Y" | "YES" | "TRUE" | "1" | "-1" => Full(true)
+      case "N" | "NO" | "FALSE" | "0" => Full(false)
+      case _ => None
+    }
+  }
+
+  /*
+  Return "Y" for true, "N" for false and "" if None
+   */
+  def optionBooleanToString(input : Option[Boolean]) : String = {
+    val result : String = input match {
+      case Some(a) => a match {
+        case true => "Y"
+        case false => "N"
+      }
+      case _ => ""
+    }
+    result
+  }
+
+
+
 }

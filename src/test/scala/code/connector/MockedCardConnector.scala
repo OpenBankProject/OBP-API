@@ -2,7 +2,7 @@ package code.connector
 
 import java.util.Date
 
-import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
@@ -160,7 +160,7 @@ object MockedCardConnector extends ServerSetup
   override def getProducts(bankId: BankId): Box[List[Product]] = Empty
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
   
-  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: BranchJsonPostV210, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
   

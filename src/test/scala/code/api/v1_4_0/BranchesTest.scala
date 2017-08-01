@@ -4,7 +4,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
 import code.common.{AddressT, LicenseT, LocationT, MetaT}
-import code.branches.Branches.{Branch, BranchId, DriveUpString, LobbyString}
+import code.branches.Branches.{Branch, BranchId, DriveUpStringT, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.setup.DefaultUsers
@@ -26,8 +26,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
                          address: AddressT,
                          location: LocationT,
                          meta: MetaT,
-                         lobbyString: LobbyString,
-                         driveUpString: DriveUpString,
+                         lobbyString: LobbyStringT,
+                         driveUpString: DriveUpStringT,
                          branchRoutingScheme: String,
                          branchRoutingAddress: String,
 
@@ -115,21 +115,21 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
   }
 
 
-  val fakeLobby = new LobbyString {
+  val fakeLobby = new LobbyStringT {
    val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
   }
 
 
-  val fakeLobby2 = new LobbyString {
+  val fakeLobby2 = new LobbyStringT {
     val hours = "9-5"
   }
 
-  val fakeDriveUp = new DriveUpString {
+  val fakeDriveUp = new DriveUpStringT {
     override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
   }
 
 
-  val fakeDriveUp2 = new DriveUpString {
+  val fakeDriveUp2 = new DriveUpStringT {
     override def hours: String = "M-Th 8:30 - 5:30"
   }
 

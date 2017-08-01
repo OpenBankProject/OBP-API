@@ -35,11 +35,12 @@ import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, ChallengeJsonV140, CustomerFaceImageJson, DriveUpJson, LicenseJson, LobbyJson, LocationJson, MetaJson, TransactionRequestAccountJsonV140}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddressJsonV140, ChallengeJsonV140, CustomerFaceImageJson, DriveUpStringJson, LicenseJsonV140, LobbyStringJson, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140}
+import code.api.v1_4_0.JSONFactory1_4_0.{transformV140ToLocation,transformV140ToMeta,transformV140ToAddress}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.atms.Atms.AtmId
-import code.branches.Branches.BranchId
-import code.common.{Location, Address, License, Meta}
+import code.branches.Branches._
+import code.common._
 import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -51,6 +52,9 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
 import code.users.Users
+
+import scala.None
+
 
 
 
@@ -239,8 +243,8 @@ case class CounterpartyMetadataJSON(
                                      URL: String,
                                      image_URL: String,
                                      open_corporates_URL: String,
-                                     corporate_location: LocationJSONV210,
-                                     physical_location: LocationJSONV210
+                                     corporate_location: LocationJsonV210,
+                                     physical_location: LocationJsonV210
                                    )
 
 
@@ -256,7 +260,7 @@ case class CounterpartyNameJSON(
                             )
 
 
-case class LocationJSONV210(
+case class LocationJsonV210(
                          latitude: Double,
                          longitude: Double,
                          date: Date,
@@ -318,46 +322,46 @@ case class ProductJsonV210(bank_id: String,
                        more_info_url: String,
                        details: String,
                        description: String,
-                       meta : MetaJson)
+                       meta : MetaJsonV140)
 case class ProductsJsonV210 (products : List[ProductJsonV210])
 
 //V210 add bank_id field and delete id
-case class BranchJsonPut(
-                          bank_id: String,
-                          name: String,
-                          address: AddressJson,
-                          location: LocationJson,
-                          meta: MetaJson,
-                          lobby: LobbyJson,
-                          drive_up: DriveUpJson)
+case class BranchJsonPutV210(
+                              bank_id: String,
+                              name: String,
+                              address: AddressJsonV140,
+                              location: LocationJsonV140,
+                              meta: MetaJsonV140,
+                              lobby: LobbyStringJson,
+                              drive_up: DriveUpStringJson)
 
-case class BranchJsonPost(
-                           id: String,
-                           bank_id: String,
-                           name: String,
-                           address: AddressJson,
-                           location: LocationJson,
-                           meta: MetaJson,
-                           lobby: LobbyJson,
-                           drive_up: DriveUpJson)
+case class BranchJsonPostV210(
+                               id: String,
+                               bank_id: String,
+                               name: String,
+                               address: AddressJsonV140,
+                               location: LocationJsonV140,
+                               meta: MetaJsonV140,
+                               lobby: LobbyStringJson,
+                               drive_up: DriveUpStringJson)
 
 
 case class AtmJsonPut (
-  bank_id: String,
-  name : String,
-  address : AddressJson,
-  location : LocationJson,
-  meta : MetaJson
+                        bank_id: String,
+                        name : String,
+                        address : AddressJsonV140,
+                        location : LocationJsonV140,
+                        meta : MetaJsonV140
 )
 
 
 case class AtmJsonPost (
-    id : String,
-    bank_id: String,
-    name : String,
-    address : AddressJson,
-    location : LocationJson,
-    meta : MetaJson
+                         id : String,
+                         bank_id: String,
+                         name : String,
+                         address : AddressJsonV140,
+                         location : LocationJsonV140,
+                         meta : MetaJsonV140
   )
 
 
@@ -373,7 +377,7 @@ case class ProductJsonPut(
                            more_info_url: String,
                            details: String,
                            description: String,
-                           meta : MetaJson)
+                           meta : MetaJsonV140)
 
 
 
@@ -591,7 +595,7 @@ object JSONFactory210{
     )
   }
 
-  def createLocationJSON(loc : Option[GeoTag]) : LocationJSONV210 = {
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJsonV210 = {
     loc match {
       case Some(location) => {
         val user = createUserJSON(location.postedBy)
@@ -599,7 +603,7 @@ object JSONFactory210{
         if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
           null
         else
-          new LocationJSONV210(
+          new LocationJsonV210(
             latitude = location.latitude,
             longitude = location.longitude,
             date = location.datePosted,
@@ -700,16 +704,16 @@ object JSONFactory210{
   def createProductsJson(productsList: List[Product]) : ProductsJsonV210 = {
     ProductsJsonV210(productsList.map(createProductJson))
   }
-  def createMetaJson(meta: Meta) : MetaJson = {
-    MetaJson(createLicenseJson(meta.license))
+  def createMetaJson(meta: Meta) : MetaJsonV140 = {
+    MetaJsonV140(createLicenseJson(meta.license))
   }
   // Accept a license object and return its json representation
-  def createLicenseJson(license : License) : LicenseJson = {
-    LicenseJson(license.id, license.name)
+  def createLicenseJson(license : License) : LicenseJsonV140 = {
+    LicenseJsonV140(license.id, license.name)
   }
 
-  def toBranchJsonPost(branchId: BranchId, branch: BranchJsonPut): Box[BranchJsonPost] = {
-    Full(BranchJsonPost(
+  def toBranchJsonPost(branchId: BranchId, branch: BranchJsonPutV210): Box[BranchJsonPostV210] = {
+    Full(BranchJsonPostV210(
       branchId.value,
       branch.bank_id,
       branch.name,
@@ -719,6 +723,96 @@ object JSONFactory210{
       branch.lobby,
       branch.drive_up))
   }
+
+
+
+
+
+
+
+  def transformToBasicUser(userJSONV210: UserJSONV210): BasicResourceUser = {
+    BasicResourceUser(
+      userId = userJSONV210.id,
+      provider = userJSONV210.provider,
+      username = userJSONV210.username
+    )
+  }
+
+
+
+  def transformToLocation(locationJsonV210: LocationJsonV210): Box[Location] = {
+    Full(Location
+      (
+      latitude = locationJsonV210.latitude,
+      longitude = locationJsonV210.longitude,
+      date = Some(locationJsonV210.date),
+      user = Full(transformToBasicUser(locationJsonV210.user))
+    )
+    )
+  }
+
+
+
+
+
+
+
+  // Overloaded
+  def transformToBranch(branchId: BranchId, branchJsonPutV210: BranchJsonPutV210): Box[Branch] = {
+
+    val address : Address = transformV140ToAddress(branchJsonPutV210.address)
+    val location: Location =  transformV140ToLocation(branchJsonPutV210.location)
+    val meta: Meta =  transformV140ToMeta(branchJsonPutV210.meta)
+
+    Full(Branch(
+      BranchId(branchId.value),
+      BankId(branchJsonPutV210.bank_id),
+      branchJsonPutV210.name,
+      address = address,
+      location = location,
+      lobbyString = Some(LobbyString(hours = branchJsonPutV210.lobby.hours)),
+      driveUpString = Some(DriveUpString(branchJsonPutV210.drive_up.hours)),
+      meta = meta,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None))
+  }
+
+  // Overloaded
+  def transformToBranch(branchJsonPostV210: BranchJsonPostV210): Box[Branch] = {
+
+    val address : Address = transformV140ToAddress(branchJsonPostV210.address)
+    val location: Location =  transformV140ToLocation(branchJsonPostV210.location)
+    val meta: Meta =  transformV140ToMeta(branchJsonPostV210.meta)
+
+    Full(Branch(
+      BranchId(branchJsonPostV210.id),
+      BankId(branchJsonPostV210.bank_id),
+      branchJsonPostV210.name,
+      address = address,
+      location = location,
+      lobbyString = Some(LobbyString(branchJsonPostV210.lobby.hours)),
+      driveUpString = Some(DriveUpString(branchJsonPostV210.drive_up.hours)),
+      meta = meta,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None))
+
+
+
+
+
+  }
+
+
+
+
 
   def createViewsJSON(views : List[View]) : ViewsJSON = {
     val list : List[ViewJSON] = views.map(createViewJSON)

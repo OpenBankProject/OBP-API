@@ -4,11 +4,10 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
-import code.api.v3_0_0.BranchJsonV300
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchT, Branch, BranchId}
 import code.common._
 import code.model.BankId
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
 object Branches extends SimpleInjector {
@@ -19,6 +18,8 @@ object Branches extends SimpleInjector {
     def unapply(id : String) = Some(BranchId(id))
   }
 
+// MappedBranch will implement this.
+// The trait defines the fields the API will interact with.
 
   trait BranchT {
   def branchId: BranchId
@@ -26,39 +27,39 @@ object Branches extends SimpleInjector {
   def name: String
   def address: Address
   def location: Location
-  def lobbyString: String
-  def driveUpString: String
+  def lobbyString: Option[LobbyStringT]
+  def driveUpString: Option[DriveUpStringT]
   def meta: Meta
-  def branchRouting: Routing
-  def lobby: Lobby
-  def driveUp: DriveUp
+  def branchRouting: Option[RoutingT]
+  def lobby: Option[Lobby]
+  def driveUp: Option[DriveUp]
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-  def isAccessible : String
-  def branchType : String
-  def moreInfo : String}
+  def isAccessible : Option[Boolean]
+  def branchType : Option[String]
+  def moreInfo : Option[String]}
 
 
 
 
-
+// This is the API Version indpendent case class for Branches.
+  // Use this internally
   case class Branch(
                      branchId: BranchId,
                      bankId: BankId,
                      name: String,
                      address: Address,
                      location: Location,
-                     lobbyString: String,
-                     driveUpString: String,
+                     lobbyString: Option[LobbyStringT],
+                     driveUpString: Option[DriveUpStringT],
                      meta: Meta,
-                     branchRouting: Routing,
-                     lobby: Lobby,
-                     driveUp: DriveUp,
-                     // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-                     isAccessible : String,
-                     branchType : String,
-                     moreInfo : String
+                     branchRouting: Option[Routing],
+                     lobby: Option[Lobby],
+                     driveUp: Option[DriveUp],
+                     // Easy access for people who use wheelchairs etc.
+                     isAccessible : Option[Boolean],
+                     branchType : Option[String],
+                     moreInfo : Option[String]
                    ) extends BranchT
-
 
 
 
@@ -233,15 +234,28 @@ object Branches extends SimpleInjector {
 
   //
 
-  @deprecated("Use detailed fields now, not this string","24 July 2017")
-  trait LobbyString {
+  @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
+  trait LobbyStringT {
    def hours : String
   }
 
-  @deprecated("Use detailed fields now, not this string","24 July 2017")
-  trait DriveUpString {
+  @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
+  case class LobbyString (
+    hours : String
+                         ) extends LobbyStringT
+
+
+  @deprecated("Use DriveUp instead which contains detailed fields now, not this string","24 July 2017")
+  trait DriveUpStringT {
     def hours : String
   }
+
+  @deprecated("Use DriveUp instead which contains detailed fields now, not this string","24 July 2017")
+  case class DriveUpString (
+         hours : String
+       ) extends DriveUpStringT
+
+
 
   val branchesProvider = new Inject(buildOne _) {}
 
@@ -269,7 +283,7 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-  final def getBranches(bankId : BankId) : Option[List[Branch]] = {
+  final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
     // If we get branches filter them
     getBranchesFromProvider(bankId) match {
       case Some(branches) => {
@@ -286,13 +300,13 @@ trait BranchesProvider {
   /*
   Return one Branch
    */
-  final def getBranch(branchId : BranchId) : Option[Branch] = {
+  final def getBranch(branchId : BranchId) : Option[BranchT] = {
     // Filter out if no license data
     getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
-  protected def getBranchFromProvider(branchId : BranchId) : Option[Branch]
-  protected def getBranchesFromProvider(bank : BankId) : Option[List[Branch]]
+  protected def getBranchFromProvider(branchId : BranchId) : Option[BranchT]
+  protected def getBranchesFromProvider(bank : BankId) : Option[List[BranchT]]
 
 // End of Trait
 }

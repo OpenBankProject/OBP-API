@@ -7,9 +7,9 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.{Atm, AtmId}
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchT, Branch, BranchId}
+import code.branches.MappedBranch
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
@@ -35,7 +35,7 @@ import scala.util.Random
 So we can switch between different sources of resources e.g.
 - Mapper ORM for connecting to RDBMS (via JDBC) https://www.assembla.com/wiki/show/liftweb/Mapper
 - MongoDB
-- KafkaMQ 
+- KafkaMQ
 etc.
 
 Note: We also have individual providers for resources like Branches and Products.
@@ -101,7 +101,7 @@ case class InboundUser(
   password: String,
   displayName: String
 )
-// This is the common InboundAccount from all Kafka/remote, not finished yet. 
+// This is the common InboundAccount from all Kafka/remote, not finished yet.
 trait InboundAccountCommon{
   def errorCode: String
   def cbsToken: String
@@ -142,7 +142,7 @@ trait Connector extends MdcLoggable{
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
   def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney
-  
+
   //Gets current charge level for transaction request
   def getChargeLevel(bankId: BankId,
                      accountId: AccountId,
@@ -151,7 +151,7 @@ trait Connector extends MdcLoggable{
                      userName: String,
                      transactionRequestType: String,
                      currency: String): Box[AmountOfMoney]
-  
+
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String]
   // Validates an answer for a challenge and returs if the answer is correct or not
@@ -169,25 +169,25 @@ trait Connector extends MdcLoggable{
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
-  
+
   //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
-  //when it is stable, will call this method. 
+  //when it is stable, will call this method.
   def getBankAccounts(username: String) : Box[List[InboundAccountJune2017]] = Empty
-  
+
   /**
-    * This method is for get User from external, eg kafka/obpjvm... 
+    * This method is for get User from external, eg kafka/obpjvm...
     *  getUserId  --> externalUserHelper--> getUserFromConnector --> getUser
     * @param name
     * @param password
     * @return
     */
   def getUser(name: String, password: String): Box[InboundUser]
-  
+
   /**
-    * This is a helper method 
+    * This is a helper method
     * for remote user(means the user will get from kafka) to update the views, accountHolders for OBP side
     * It depends different use cases, normally (also see it in KafkaMappedConnector_vJune2017.scala)
-    * 
+    *
     * @param user the user is from remote side
     */
   @deprecated("Now move it to AuthUser.updateUserAccountViews","17-07-2017")
@@ -350,7 +350,7 @@ trait Connector extends MdcLoggable{
         getEmptyBankAccount()
       } ?~ "code.bankconnectors.Connector.makePatmentV200 method toAccount is Empty!" //The error is for debugging not for showing to browser
 
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~ 
+      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~
         "code.bankconnectors.Connector.makePatmentV200.makePaymentImpl return Empty!" //The error is for debugging not for showing to browser
     } yield transactionId
   }
@@ -553,7 +553,7 @@ trait Connector extends MdcLoggable{
     val transactionReq = for {
       chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId,
                                     initiator.name, transactionRequestType.value, fromAccount.currency)
-  
+
       chargeValue <- tryo {
                             BigDecimal(transactionRequestCommonBody.value.amount) * BigDecimal(chargeLevel.amount) match {
                               //Set the mininal cost (2 euros)for transaction request
@@ -564,9 +564,9 @@ trait Connector extends MdcLoggable{
                               case value => value.setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble
                             }
                           } ?~! s"The value transactionRequestCommonBody.value.amount: ${transactionRequestCommonBody.value.amount } or chargeLevel.amount: ${chargeLevel.amount } can not be transfered to decimal "
-  
+
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue.toString()))
-  
+
       transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString),
                                                             transactionRequestType,
                                                             fromAccount,
@@ -597,9 +597,9 @@ trait Connector extends MdcLoggable{
         transactionRequest = transactionRequest.copy(challenge = null)
         //save transaction_id into database
         saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
-        //update transaction_id filed for varibale 'transactionRequest' 
+        //update transaction_id filed for varibale 'transactionRequest'
         transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.get.value)
-        
+
       case TransactionRequests.STATUS_PENDING =>
         transactionRequest = transactionRequest
 
@@ -851,10 +851,10 @@ trait Connector extends MdcLoggable{
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
 
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
-      
+
     } yield {
       var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
-      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.  
+      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.
       tr=tr.copy(transaction_ids =transId.value)
       tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
       tr
@@ -941,11 +941,11 @@ trait Connector extends MdcLoggable{
   def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
     AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
-  
+
   /**
-    * sets a user as an account owner/holder, this maybe duplicated with 
+    * sets a user as an account owner/holder, this maybe duplicated with
     * @ setAccountHolder(bankAccountUID: BankAccountUID, user: User)
-    *                  
+    *
     * @param owner
     * @param bankId
     * @param accountId
@@ -991,9 +991,7 @@ trait Connector extends MdcLoggable{
 
   //Note: this is a temporary way for compatibility
   //It is better to create the case class for all the connector methods
-  def createOrUpdateBranch(
-    branch: BranchJsonV300
-  ): Box[Branch]
+  def createOrUpdateBranch(branch: Branch): Box[BranchT]
   
   def createOrUpdateBank(
     bankId: String,
@@ -1038,7 +1036,7 @@ trait Connector extends MdcLoggable{
 
 
 
-  def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+  def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 

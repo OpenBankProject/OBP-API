@@ -28,7 +28,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
-import code.branches.Branches.{DriveUpString, LobbyString, Branch}
+import code.branches.Branches.{DriveUpStringT, LobbyStringT, Branch}
 
 
 
@@ -718,7 +718,7 @@ trait APIMethods300 {
               ||
               hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
               , createBranchEntitlementsRequiredText)
-            branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
+            branchJsonV300 <- tryo {json.extract[Branch]} ?~! ErrorMessages.InvalidJsonFormat
           success <- Connector.connector.vend.createOrUpdateBranch(branchJsonV300)
           } yield {
             val json = branchJsonV300 // JSONFactory300.createBranchJson(success)
