@@ -147,6 +147,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         }
       }
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+      logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
