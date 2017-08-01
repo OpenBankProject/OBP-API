@@ -1,16 +1,10 @@
 package code.branches
 
 import code.branches.Branches._
-import code.model.BankId
-
 import code.common._
-
+import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
-import net.liftweb.common.Box
 import net.liftweb.mapper._
-import org.joda.time.Hours
-
-import scala.util.Try
 
 object MappedBranchesProvider extends BranchesProvider {
 
@@ -34,9 +28,6 @@ object MappedBranchesProvider extends BranchesProvider {
 class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def getSingleton = MappedBranch
-
-
-
 
 
   object mBankId extends UUIDString(this)
@@ -131,37 +122,106 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   override def bankId: BankId = BankId(mBankId.get)
 
-  override def address: AddressT = new AddressT {
-    override def line1: String = mLine1.get
-    override def line2: String = mLine2.get
-    override def line3: String = mLine3.get
-    override def city: String = mCity.get
-    override def county: String = mCounty.get
-    override def state: String = mState.get
-    override def countryCode: String = mCountryCode.get
-    override def postCode: String = mPostCode.get
-  }
+  override def address = Address(
+    line1 = mLine1.get,
+    line2 = mLine2.get,
+    line3 = mLine3.get,
+    city = mCity.get,
+    county = Some(mCounty.get),
+    state = mState.get,
+    countryCode = mCountryCode.get,
+    postCode = mPostCode.get
+  )
 
-  override def meta: MetaT = new MetaT {
-    override def license: LicenseT = new LicenseT {
-      override def id: String = mLicenseId.get
-      override def name: String = mLicenseName.get
-    }
-  }
+  override def meta = Meta (
+    license = License (
+      id = mLicenseId.get,
+      name = mLicenseName.get
+    )
+  )
 
-  override def lobbyString: LobbyStringT = new LobbyStringT {
-    override def hours: String = mLobbyHours
-  }
+  override def lobbyString = Some(new LobbyStringT {
+    override def hours: String = mLobbyHours.get
+  })
+  override def location =
+    Location(
+    latitude = mlocationLatitude.get,
+    longitude = mlocationLongitude.get,
+      None,
+      None
+  )
 
-  override def driveUpString: DriveUpStringT = new DriveUpStringT {
-    override def hours: String = mDriveUpHours
+  override def driveUpString = Some(new DriveUpStringT {
+    override def hours: String = mDriveUpHours.get
   }
+  )
 
-
-  override def location: LocationT = new LocationT {
-    override def latitude: Double = mlocationLatitude
-    override def longitude: Double = mlocationLongitude
-  }
+  override def lobby = Some(
+    Lobby(
+    monday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnMonday.get,
+      closingTime = mLobbyClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnTuesday.get,
+      closingTime = mLobbyClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnWednesday.get,
+      closingTime = mLobbyClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnThursday.get,
+      closingTime = mLobbyClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnFriday.get,
+      closingTime = mLobbyClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSaturday.get,
+      closingTime = mLobbyClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSunday.get,
+      closingTime = mLobbyClosingTimeOnSunday.get
+    )
+  )
+  )
+  // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
+  // but could also be 25:44 if we want to represent a time after midnight.
+  override def driveUp = Some(
+    DriveUp(
+    monday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnMonday.get,
+      closingTime = mDriveUpClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnTuesday.get,
+      closingTime = mDriveUpClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnWednesday.get,
+      closingTime = mDriveUpClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnThursday.get,
+      closingTime = mDriveUpClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnFriday.get,
+      closingTime = mDriveUpClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSaturday.get,
+      closingTime = mDriveUpClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSunday.get,
+      closingTime = mDriveUpClosingTimeOnSunday.get
+    )
+  )
+  )
 
 
   /*
@@ -173,57 +233,80 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
 
 
+  override def lobby = Lobby(
+    monday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnMonday.get,
+      closingTime = mLobbyClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnTuesday.get,
+      closingTime = mLobbyClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnWednesday.get,
+      closingTime = mLobbyClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnThursday.get,
+      closingTime = mLobbyClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnFriday.get,
+      closingTime = mLobbyClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSaturday.get,
+      closingTime = mLobbyClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSunday.get,
+      closingTime = mLobbyClosingTimeOnSunday.get
+    )
+  )
   // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
   // but could also be 25:44 if we want to represent a time after midnight.
-  override def  lobbyOpeningTimeOnMonday : String = mLobbyOpeningTimeOnMonday.get
-  override def  lobbyClosingTimeOnMonday : String = mLobbyClosingTimeOnMonday.get
-
-  override def  lobbyOpeningTimeOnTuesday : String = mLobbyOpeningTimeOnTuesday.get
-  override def  lobbyClosingTimeOnTuesday : String = mLobbyClosingTimeOnTuesday.get
-
-  override def  lobbyOpeningTimeOnWednesday : String = mLobbyOpeningTimeOnWednesday.get
-  override def  lobbyClosingTimeOnWednesday : String = mLobbyClosingTimeOnWednesday.get
-
-  override def  lobbyOpeningTimeOnThursday : String = mLobbyOpeningTimeOnThursday.get
-  override def  lobbyClosingTimeOnThursday: String = mLobbyClosingTimeOnThursday.get
-
-  override def  lobbyOpeningTimeOnFriday : String = mLobbyOpeningTimeOnFriday.get
-  override def  lobbyClosingTimeOnFriday : String = mLobbyClosingTimeOnFriday.get
-
-  override def  lobbyOpeningTimeOnSaturday : String = mLobbyOpeningTimeOnSaturday.get
-  override def  lobbyClosingTimeOnSaturday : String = mLobbyClosingTimeOnSaturday.get
-
-  override def  lobbyOpeningTimeOnSunday: String = mLobbyOpeningTimeOnSunday.get
-  override def  lobbyClosingTimeOnSunday : String = mLobbyClosingTimeOnSunday.get
-
-  override def  driveUpOpeningTimeOnMonday : String = mDriveUpOpeningTimeOnMonday.get
-  override def  driveUpClosingTimeOnMonday : String = mDriveUpClosingTimeOnMonday.get
-
-  override def  driveUpOpeningTimeOnTuesday : String = mDriveUpOpeningTimeOnTuesday.get
-  override def  driveUpClosingTimeOnTuesday : String = mDriveUpClosingTimeOnTuesday.get
-
-  override def  driveUpOpeningTimeOnWednesday : String = mDriveUpOpeningTimeOnWednesday.get
-  override def  driveUpClosingTimeOnWednesday : String = mDriveUpClosingTimeOnWednesday.get
-
-  override def  driveUpOpeningTimeOnThursday : String = mDriveUpOpeningTimeOnThursday.get
-  override def  driveUpClosingTimeOnThursday: String = mDriveUpClosingTimeOnThursday.get
-
-  override def  driveUpOpeningTimeOnFriday : String = mDriveUpOpeningTimeOnFriday.get
-  override def  driveUpClosingTimeOnFriday : String = mDriveUpClosingTimeOnFriday.get
-
-  override def  driveUpOpeningTimeOnSaturday : String = mDriveUpOpeningTimeOnSaturday.get
-  override def  driveUpClosingTimeOnSaturday : String = mDriveUpClosingTimeOnSaturday.get
-
-  override def  driveUpOpeningTimeOnSunday: String = mDriveUpOpeningTimeOnSunday.get
-  override def  driveUpClosingTimeOnSunday : String = mDriveUpClosingTimeOnSunday.get
+  override def driveUp = DriveUp(
+    monday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnMonday.get,
+      closingTime = mDriveUpClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnTuesday.get,
+      closingTime = mDriveUpClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnWednesday.get,
+      closingTime = mDriveUpClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnThursday.get,
+      closingTime = mDriveUpClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnFriday.get,
+      closingTime = mDriveUpClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSaturday.get,
+      closingTime = mDriveUpClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSunday.get,
+      closingTime = mDriveUpClosingTimeOnSunday.get
+    )
+  )
 
 */
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-  override def  isAccessible : String = mIsAccessible.get
+  override def  isAccessible = mIsAccessible.get match {
+    case "Y" => Some(true)
+    case "N" => Some(false)
+    case _ => None
+  }
 
-  override def  branchType : String = mBranchType.get
-  override def  moreInfo : String = mMoreInfo.get
+  override def  branchType = Some(mBranchType.get)
+  override def  moreInfo = Some(mMoreInfo.get)
 
 }
 

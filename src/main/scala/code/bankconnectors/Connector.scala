@@ -1036,7 +1036,7 @@ trait Connector extends MdcLoggable{
 
 
 
-  def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]
+  def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
 

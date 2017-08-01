@@ -32,7 +32,7 @@ case class Meta (
     def line2 : String
     def line3 : String
     def city : String
-    def county : String
+    def county : Option[String]
     def state : String
     def postCode : String
     //ISO_3166-1_alpha-2

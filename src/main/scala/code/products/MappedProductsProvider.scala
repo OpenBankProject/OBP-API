@@ -1,13 +1,10 @@
 package code.products
 
-import code.products.Products._
-import code.common.{LicenseT, MetaT}
+import code.common.{License, Meta}
 import code.model.BankId
-import code.products.Products.ProductCode
-import code.util.{UUIDString}
+import code.products.Products.{Product, ProductCode}
+import code.util.UUIDString
 import net.liftweb.mapper._
-
-import code.products.Products.Product
 
 
 object MappedProductsProvider extends ProductsProvider {
@@ -62,12 +59,12 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def details: String = mDetails.get
   override def description: String = mDescription.get
 
-  override def meta: MetaT = new MetaT {
-    override def license: LicenseT = new LicenseT {
-      override def id: String = mLicenseId.get
-      override def name: String = mLicenseName.get
-    }
-  }
+  override def meta = Meta (
+    license = License (
+      id = mLicenseId.get,
+      name = mLicenseName.get
+    )
+  )
 
 
 }

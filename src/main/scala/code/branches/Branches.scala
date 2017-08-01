@@ -263,7 +263,7 @@ object Branches extends SimpleInjector {
 
 
   // Helper to get the count out of an option
-  def countOfBranches (listOpt: Option[List[Branch]]) : Int = {
+  def countOfBranches (listOpt: Option[List[BranchT]]) : Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0

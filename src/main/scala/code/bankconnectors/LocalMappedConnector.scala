@@ -2,13 +2,14 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
 import code.branches.Branches._
 import code.branches.MappedBranch
-import code.common._
+import code.common.{Address, _}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -25,8 +26,9 @@ import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
 import code.util.Helper
-import code.util.Helper._
+import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
+import com.google.common.cache.CacheBuilder
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
@@ -35,21 +37,12 @@ import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.math.BigInt
-import code.api.util.APIUtil.saveConnectorMetric
-import code.api.v2_2_0.ProductJsonV220
-
-import scalacache.ScalaCache
+import scalacache.{ScalaCache, _}
 import scalacache.guava.GuavaCache
-import scalacache._
-import concurrent.duration._
-import language.postfixOps
-import memoization._
-import com.google.common.cache.CacheBuilder
-import code.util.Helper.MdcLoggable
-
-import code.common.Address
-import code.common.MetaT
+import scalacache.memoization._
 
 
 object LocalMappedConnector extends Connector with MdcLoggable {
