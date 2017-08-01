@@ -109,7 +109,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     super.preStart()
     val conn = {
 
-      val c = Props.get("connector").openOr("Jun2017")
+      val c = Props.get("connector").openOr("June2017")
       if (c.contains("_")) c.split("_")(1) else c
     }
     //configuration optimization is postponed
@@ -212,12 +212,12 @@ object Topics {
   def createTopicByClassName(className: String): TopicPair = {
     /**
       * get the connectorVersion from Props connector attribute
-      * eg: in Props, connector=kafka_vJun2017
+      * eg: in Props, connector=kafka_vJune2017
       *     -->
-      *     connectorVersion = Jun2017
+      *     connectorVersion = June2017
       */
     val connectorVersion = {
-      val connectorNameFromProps = Props.get("connector").openOr("Jun2017")
+      val connectorNameFromProps = Props.get("connector").openOr("June2017")
       val c = if (connectorNameFromProps.contains("_")) connectorNameFromProps.split("_")(1) else connectorNameFromProps
       c.replaceFirst("v", "")
     }

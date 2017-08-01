@@ -69,11 +69,11 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction._
 
 
-object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with MdcLoggable {
+object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
 
   type AccountType = BankAccountJune2017
 
-  implicit override val nameOfConnector = KafkaMappedConnector_vJun2017.getClass.getSimpleName
+  implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.getClass.getSimpleName
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
@@ -338,7 +338,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
         authInfo = AuthInfo("userId", "username", "cbsToken" ),
         bankId = "bankId",
         accountId = "accountId",
-        queryParams = "mapperParams"
+        limit =100,
+        fromDate="exampleDate",
+        toDate="exampleDate"
       )
     ),
     exampleInboundMessage = decompose(
@@ -393,7 +395,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = "cbsToken" ),
       bankId = bankId.toString,
       accountId = accountId.value,
-      queryParams = optionalParams.toString()
+      limit = limit.value,
+      fromDate = fromDate.value.toString,
+      toDate = toDate.value.toString
     )
     
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -456,7 +460,9 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
       transactionId = transactionId.toString)
     
     // Since result is single account, we need only first list entry
+    logger.debug(s"Kafka getTransaction request says:  is: $req")
     val r = process[GetTransaction](req).extract[InboundTransaction].data
+    logger.debug(s"Kafka getTransaction response says: is: $r")
     r match {
       // Check does the response data match the requested data
       case x if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
