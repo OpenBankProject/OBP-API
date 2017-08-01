@@ -164,8 +164,10 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   }
 
 
+  /*
+
   override def lobby: LobbyStringT = new LobbyStringT {
-    override def openingTimes: String = mLobbyHours
+    override def openingHours: String = mLobbyHours
   }
 
 
@@ -215,6 +217,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   override def  driveUpOpeningTimeOnSunday: String = mDriveUpOpeningTimeOnSunday.get
   override def  driveUpClosingTimeOnSunday : String = mDriveUpClosingTimeOnSunday.get
 
+*/
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
   override def  isAccessible : String = mIsAccessible.get
