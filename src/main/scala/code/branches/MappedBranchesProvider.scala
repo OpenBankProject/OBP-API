@@ -13,10 +13,11 @@ object MappedBranchesProvider extends BranchesProvider {
 
   override protected def getBranchesFromProvider(bankId: BankId): Option[List[BranchT]] = {
     Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
+      // For all found set the routing scheme and address (default it to the branchId)
       .map(
         branch =>
-          branch.branchRouting.scheme == null && branch.branchRouting.address ==null match {
-            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
+          branch.mBranchRoutingScheme == null && branch.mBranchRoutingAddress == null match {
+            case true => branch.mBranchRoutingScheme("BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
             case _ => branch
           }
       )
@@ -111,10 +112,10 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
-  override def branchRouting = Routing (
-    scheme = mBranchRoutingScheme.get,
-    address = mBranchRoutingAddress.get
-  )
+  override def branchRouting: Option[RoutingT] = Some(new RoutingT {
+    override def scheme: String = mBranchRoutingScheme.get
+    override def address: String = mBranchRoutingAddress.get
+  })
 
 //  override def branchRoutingScheme: String = mBranchRoutingScheme.get
 //  override def branchRoutingAddress: String = mBranchRoutingAddress.get
@@ -126,7 +127,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     line2 = mLine2.get,
     line3 = mLine3.get,
     city = mCity.get,
-    county = mCounty.get,
+    county = Some(mCounty.get),
     state = mState.get,
     countryCode = mCountryCode.get,
     postCode = mPostCode.get
@@ -139,18 +140,96 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     )
   )
 
-  override def location = Location(
+  override def lobbyString = Some(new LobbyStringT {
+    override def hours: String = mLobbyHours.get
+  })
+  override def location =
+    Location(
     latitude = mlocationLatitude.get,
-    longitude = mlocationLongitude.get
+    longitude = mlocationLongitude.get,
+      None,
+      None
   )
 
-  override def lobbyString = new LobbyString {
-    override def hours: String = mLobbyHours
-  }.hours
+  override def driveUpString = Some(new DriveUpStringT {
+    override def hours: String = mDriveUpHours.get
+  }
+  )
 
-  override def driveUpString = new DriveUpString {
-    override def hours: String = mDriveUpHours
-  }.hours
+  override def lobby = Some(
+    Lobby(
+    monday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnMonday.get,
+      closingTime = mLobbyClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnTuesday.get,
+      closingTime = mLobbyClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnWednesday.get,
+      closingTime = mLobbyClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnThursday.get,
+      closingTime = mLobbyClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnFriday.get,
+      closingTime = mLobbyClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSaturday.get,
+      closingTime = mLobbyClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mLobbyOpeningTimeOnSunday.get,
+      closingTime = mLobbyClosingTimeOnSunday.get
+    )
+  )
+  )
+  // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
+  // but could also be 25:44 if we want to represent a time after midnight.
+  override def driveUp = Some(
+    DriveUp(
+    monday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnMonday.get,
+      closingTime = mDriveUpClosingTimeOnMonday.get
+    ),
+    tuesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnTuesday.get,
+      closingTime = mDriveUpClosingTimeOnTuesday.get
+    ),
+    wednesday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnWednesday.get,
+      closingTime = mDriveUpClosingTimeOnWednesday.get
+    ),
+    thursday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnThursday.get,
+      closingTime = mDriveUpClosingTimeOnThursday.get
+    ),
+    friday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnFriday.get,
+      closingTime = mDriveUpClosingTimeOnFriday.get
+    ),
+    saturday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSaturday.get,
+      closingTime = mDriveUpClosingTimeOnSaturday.get
+    ),
+    sunday = OpeningTimes(
+      openingTime = mDriveUpOpeningTimeOnSunday.get,
+      closingTime = mDriveUpClosingTimeOnSunday.get
+    )
+  )
+  )
+
+
+  /*
+
+  override def lobby: LobbyStringT = new LobbyStringT {
+    override def openingHours: String = mLobbyHours
+  }
+
 
 
 
@@ -217,12 +296,17 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     )
   )
 
+*/
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-  override def  isAccessible : String = mIsAccessible.get
+  override def  isAccessible = mIsAccessible.get match {
+    case "Y" => Some(true)
+    case "N" => Some(false)
+    case _ => None
+  }
 
-  override def  branchType : String = mBranchType.get
-  override def  moreInfo : String = mMoreInfo.get
+  override def  branchType = Some(mBranchType.get)
+  override def  moreInfo = Some(mMoreInfo.get)
 
 }
 

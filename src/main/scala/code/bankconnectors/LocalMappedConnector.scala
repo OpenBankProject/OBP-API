@@ -4,11 +4,10 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{AtmJsonPost, TransactionRequestCommonBodyJSON}
-import code.api.v3_0_0.BranchJsonV300
+import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
-import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, Lobby}
+import code.branches.Branches._
 import code.branches.MappedBranch
 import code.common.{Address, _}
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -912,7 +911,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def createOrUpdateBranch(branchJsonV300: BranchJsonV300): Box[BranchT] = {
+  override def createOrUpdateBranch(branch: Branch): Box[BranchT] = {
 
     // TODO
     // Either this should accept a Branch case class i.e. extract the construction of a Branch out of here and move it to the API
@@ -923,86 +922,86 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-
+/*
 
 
     val address : Address = Address(
-      branchJsonV300.address.line_1,
-      branchJsonV300.address.line_2,
-      branchJsonV300.address.line_3,
-      branchJsonV300.address.city,
-      branchJsonV300.address.county,
-      branchJsonV300.address.state,
-      branchJsonV300.address.post_code,
-      branchJsonV300.address.country_code
+      branch.address.line_1,
+      branch.address.line_2,
+      branch.address.line_3,
+      branch.address.city,
+      branch.address.county,
+      branch.address.state,
+      branch.address.post_code,
+      branch.address.country_code
     )
 
-    val location: Location = Location(branchJsonV300.location.latitude.toDouble,
-                                      branchJsonV300.location.longitude.toDouble)
+    val location: Location = Location(branch.location.latitude.toDouble,
+                                      branch.location.longitude.toDouble)
 
 
     val lobby : Lobby = Lobby(
       monday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.monday.opening_time,
-        closingTime = branchJsonV300.lobby.monday.closing_time),
+        openingTime = branch.lobby.monday.opening_time,
+        closingTime = branch.lobby.monday.closing_time),
       tuesday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.tuesday.opening_time,
-        closingTime = branchJsonV300.lobby.tuesday.closing_time),
+        openingTime = branch.lobby.tuesday.opening_time,
+        closingTime = branch.lobby.tuesday.closing_time),
       wednesday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.wednesday.opening_time,
-        closingTime = branchJsonV300.lobby.wednesday.closing_time),
+        openingTime = branch.lobby.wednesday.opening_time,
+        closingTime = branch.lobby.wednesday.closing_time),
       thursday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.thursday.opening_time,
-        closingTime = branchJsonV300.lobby.thursday.closing_time),
+        openingTime = branch.lobby.thursday.opening_time,
+        closingTime = branch.lobby.thursday.closing_time),
       friday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.friday.opening_time,
-        closingTime = branchJsonV300.lobby.friday.closing_time),
+        openingTime = branch.lobby.friday.opening_time,
+        closingTime = branch.lobby.friday.closing_time),
       saturday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.saturday.opening_time,
-        closingTime = branchJsonV300.lobby.saturday.closing_time),
+        openingTime = branch.lobby.saturday.opening_time,
+        closingTime = branch.lobby.saturday.closing_time),
       sunday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.sunday.opening_time,
-        closingTime = branchJsonV300.lobby.sunday.closing_time)
+        openingTime = branch.lobby.sunday.opening_time,
+        closingTime = branch.lobby.sunday.closing_time)
     )
 
     val driveUp : DriveUp = DriveUp(
       monday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.monday.opening_time,
-        closingTime = branchJsonV300.drive_up.monday.closing_time),
+        openingTime = branch.drive_up.monday.opening_time,
+        closingTime = branch.drive_up.monday.closing_time),
       tuesday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.tuesday.opening_time,
-        closingTime = branchJsonV300.drive_up.tuesday.closing_time),
+        openingTime = branch.drive_up.tuesday.opening_time,
+        closingTime = branch.drive_up.tuesday.closing_time),
       wednesday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.wednesday.opening_time,
-        closingTime = branchJsonV300.drive_up.wednesday.closing_time),
+        openingTime = branch.drive_up.wednesday.opening_time,
+        closingTime = branch.drive_up.wednesday.closing_time),
       thursday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.thursday.opening_time,
-        closingTime = branchJsonV300.drive_up.thursday.closing_time),
+        openingTime = branch.drive_up.thursday.opening_time,
+        closingTime = branch.drive_up.thursday.closing_time),
       friday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.friday.opening_time,
-        closingTime = branchJsonV300.drive_up.friday.closing_time),
+        openingTime = branch.drive_up.friday.opening_time,
+        closingTime = branch.drive_up.friday.closing_time),
       saturday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.saturday.opening_time,
-        closingTime = branchJsonV300.drive_up.saturday.closing_time),
+        openingTime = branch.drive_up.saturday.opening_time,
+        closingTime = branch.drive_up.saturday.closing_time),
       sunday = OpeningTimes(
-        openingTime = branchJsonV300.drive_up.sunday.opening_time,
-        closingTime = branchJsonV300.drive_up.sunday.closing_time)
+        openingTime = branch.drive_up.sunday.opening_time,
+        closingTime = branch.drive_up.sunday.closing_time)
     )
 
 
 
-    val license = License(branchJsonV300.meta.license.id, branchJsonV300.meta.license.name)
+    val license = License(branch.meta.license.id, branch.meta.license.name)
 
     val meta = Meta(license = license)
 
-    val branchRouting = Routing(branchJsonV300.branch_routing.scheme, branchJsonV300.branch_routing.address)
+    val branchRouting = Routing(branch.branch_routing.scheme, branch.branch_routing.address)
 
 
 
     val branch : Branch = Branch(
-    branchId =  BranchId(branchJsonV300.id),
-    bankId = BankId(branchJsonV300.bank_id),
-    name = branchJsonV300.name,
+    branchId =  BranchId(branch.id),
+    bankId = BankId(branch.bank_id),
+    name = branch.name,
     address = address,
     location = location,
     meta =  meta,
@@ -1012,11 +1011,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     driveUp = driveUp,
     branchRouting = branchRouting,
     // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-    isAccessible = branchJsonV300.is_accessible,
-    branchType = branchJsonV300.branch_type,
-    moreInfo = branchJsonV300.more_info
+    isAccessible = branch.is_accessible,
+    branchType = branch.branch_type,
+    moreInfo = branch.more_info
     )
 
+*/
+
+
+
+     val isAccessibleString = optionBooleanToString(branch.isAccessible)
+     val branchTypeString = branch.branchType.orNull
 
 
       //check the branch existence and update or insert data
@@ -1033,7 +1038,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLine2(branch.address.line2)
             .mLine3(branch.address.line3)
             .mCity(branch.address.city)
-            .mCounty(branch.address.county)
+            .mCounty(branch.address.county.orNull)
             .mState(branch.address.state)
             .mPostCode(branch.address.postCode)
             .mCountryCode(branch.address.countryCode)
@@ -1041,60 +1046,58 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-            .mLobbyHours(branch.lobbyString) // only used by versions prior to v3.0.0
-            .mDriveUpHours(branch.driveUpString) // only used by versions prior to v3.0.0
-            .mBranchRoutingScheme(branch.branchRouting.scheme) //Added in V220
-            .mBranchRoutingAddress(branch.branchRouting.address) //Added in V220
+            .mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // ok like this? only used by versions prior to v3.0.0
+            .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // ok like this? only used by versions prior to v3.0.0
+            .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
+            .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
+            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
+            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
 
+            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
+//            .mLobbyClosingTimeOnTuesday(branch.lobby.tuesday.closingTime)
+//
+//            .mLobbyOpeningTimeOnWednesday(branch.lobby.wednesday.openingTime)
+//            .mLobbyClosingTimeOnWednesday(branch.lobby.wednesday.closingTime)
+//
+//            .mLobbyOpeningTimeOnThursday(branch.lobby.thursday.openingTime)
+//            .mLobbyClosingTimeOnThursday(branch.lobby.thursday.closingTime)
+//
+//            .mLobbyOpeningTimeOnFriday(branch.lobby.friday.openingTime)
+//            .mLobbyClosingTimeOnFriday(branch.lobby.friday.closingTime)
+//
+//            .mLobbyOpeningTimeOnSaturday(branch.lobby.saturday.openingTime)
+//            .mLobbyClosingTimeOnSaturday(branch.lobby.saturday.closingTime)
+//
+//            .mLobbyOpeningTimeOnSunday(branch.lobby.sunday.openingTime)
+//            .mLobbyClosingTimeOnSunday(branch.lobby.sunday.closingTime)
+//
+//
+//          // Drive Up
+//            .mDriveUpOpeningTimeOnMonday(branch.driveUp.monday.openingTime)
+//            .mDriveUpClosingTimeOnMonday(branch.driveUp.monday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnTuesday(branch.driveUp.tuesday.openingTime)
+//            .mDriveUpClosingTimeOnTuesday(branch.driveUp.tuesday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnWednesday(branch.driveUp.wednesday.openingTime)
+//            .mDriveUpClosingTimeOnWednesday(branch.driveUp.wednesday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnThursday(branch.driveUp.thursday.openingTime)
+//            .mDriveUpClosingTimeOnThursday(branch.driveUp.thursday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnFriday(branch.driveUp.friday.openingTime)
+//            .mDriveUpClosingTimeOnFriday(branch.driveUp.friday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnSaturday(branch.driveUp.saturday.openingTime)
+//            .mDriveUpClosingTimeOnSaturday(branch.driveUp.saturday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnSunday(branch.driveUp.sunday.openingTime)
+//            .mDriveUpClosingTimeOnSunday(branch.driveUp.sunday.closingTime)
 
-            .mLobbyOpeningTimeOnMonday(branch.lobby.monday.openingTime)
-            .mLobbyClosingTimeOnMonday(branch.lobby.monday.closingTime)
+            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
 
-            .mLobbyOpeningTimeOnTuesday(branch.lobby.tuesday.openingTime)
-            .mLobbyClosingTimeOnTuesday(branch.lobby.tuesday.closingTime)
-
-            .mLobbyOpeningTimeOnWednesday(branch.lobby.wednesday.openingTime)
-            .mLobbyClosingTimeOnWednesday(branch.lobby.wednesday.closingTime)
-
-            .mLobbyOpeningTimeOnThursday(branch.lobby.thursday.openingTime)
-            .mLobbyClosingTimeOnThursday(branch.lobby.thursday.closingTime)
-
-            .mLobbyOpeningTimeOnFriday(branch.lobby.friday.openingTime)
-            .mLobbyClosingTimeOnFriday(branch.lobby.friday.closingTime)
-
-            .mLobbyOpeningTimeOnSaturday(branch.lobby.saturday.openingTime)
-            .mLobbyClosingTimeOnSaturday(branch.lobby.saturday.closingTime)
-
-            .mLobbyOpeningTimeOnSunday(branch.lobby.sunday.openingTime)
-            .mLobbyClosingTimeOnSunday(branch.lobby.sunday.closingTime)
-
-
-          // Drive Up
-            .mDriveUpOpeningTimeOnMonday(branch.driveUp.monday.openingTime)
-            .mDriveUpClosingTimeOnMonday(branch.driveUp.monday.closingTime)
-
-            .mDriveUpOpeningTimeOnTuesday(branch.driveUp.tuesday.openingTime)
-            .mDriveUpClosingTimeOnTuesday(branch.driveUp.tuesday.closingTime)
-
-            .mDriveUpOpeningTimeOnWednesday(branch.driveUp.wednesday.openingTime)
-            .mDriveUpClosingTimeOnWednesday(branch.driveUp.wednesday.closingTime)
-
-            .mDriveUpOpeningTimeOnThursday(branch.driveUp.thursday.openingTime)
-            .mDriveUpClosingTimeOnThursday(branch.driveUp.thursday.closingTime)
-
-            .mDriveUpOpeningTimeOnFriday(branch.driveUp.friday.openingTime)
-            .mDriveUpClosingTimeOnFriday(branch.driveUp.friday.closingTime)
-
-            .mDriveUpOpeningTimeOnSaturday(branch.driveUp.saturday.openingTime)
-            .mDriveUpClosingTimeOnSaturday(branch.driveUp.saturday.closingTime)
-
-            .mDriveUpOpeningTimeOnSunday(branch.driveUp.sunday.openingTime)
-            .mDriveUpClosingTimeOnSunday(branch.driveUp.sunday.closingTime)
-
-            .mIsAccessible(branch.isAccessible) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-
-            .mBranchType(branch.branchType)
-            .mMoreInfo(branch.moreInfo)
+            .mBranchType(branch.branchType.orNull)
+            .mMoreInfo(branch.moreInfo.orNull)
 
             .saveMe()
         } ?~! ErrorMessages.UpdateBranchError
@@ -1109,7 +1112,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLine2(branch.address.line2)
             .mLine3(branch.address.line3)
             .mCity(branch.address.city)
-            .mCounty(branch.address.county)
+            .mCounty(branch.address.county.orNull)
             .mState(branch.address.state)
             .mPostCode(branch.address.postCode)
             .mCountryCode(branch.address.countryCode)
@@ -1117,60 +1120,58 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-            .mLobbyHours(branch.lobbyString) // only used by versions prior to v3.0.0
-            .mDriveUpHours(branch.driveUpString) // only used by versions prior to v3.0.0
-            .mBranchRoutingScheme(branch.branchRouting.scheme) //Added in V220
-            .mBranchRoutingAddress(branch.branchRouting.address) //Added in V220
+            .mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // OK like this?  only used by versions prior to v3.0.0
+            .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
+            .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
+            .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
+            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
+            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
 
+            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
+//            .mLobbyClosingTimeOnTuesday(branch.lobby.tuesday.closingTime)
+//
+//            .mLobbyOpeningTimeOnWednesday(branch.lobby.wednesday.openingTime)
+//            .mLobbyClosingTimeOnWednesday(branch.lobby.wednesday.closingTime)
+//
+//            .mLobbyOpeningTimeOnThursday(branch.lobby.thursday.openingTime)
+//            .mLobbyClosingTimeOnThursday(branch.lobby.thursday.closingTime)
+//
+//            .mLobbyOpeningTimeOnFriday(branch.lobby.friday.openingTime)
+//            .mLobbyClosingTimeOnFriday(branch.lobby.friday.closingTime)
+//
+//            .mLobbyOpeningTimeOnSaturday(branch.lobby.saturday.openingTime)
+//            .mLobbyClosingTimeOnSaturday(branch.lobby.saturday.closingTime)
+//
+//            .mLobbyOpeningTimeOnSunday(branch.lobby.sunday.openingTime)
+//            .mLobbyClosingTimeOnSunday(branch.lobby.sunday.closingTime)
+//
+//
+//            // Drive Up
+//            .mDriveUpOpeningTimeOnMonday(branch.driveUp.monday.openingTime)
+//            .mDriveUpClosingTimeOnMonday(branch.driveUp.monday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnTuesday(branch.driveUp.tuesday.openingTime)
+//            .mDriveUpClosingTimeOnTuesday(branch.driveUp.tuesday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnWednesday(branch.driveUp.wednesday.openingTime)
+//            .mDriveUpClosingTimeOnWednesday(branch.driveUp.wednesday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnThursday(branch.driveUp.thursday.openingTime)
+//            .mDriveUpClosingTimeOnThursday(branch.driveUp.thursday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnFriday(branch.driveUp.friday.openingTime)
+//            .mDriveUpClosingTimeOnFriday(branch.driveUp.friday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnSaturday(branch.driveUp.saturday.openingTime)
+//            .mDriveUpClosingTimeOnSaturday(branch.driveUp.saturday.closingTime)
+//
+//            .mDriveUpOpeningTimeOnSunday(branch.driveUp.sunday.openingTime)
+//            .mDriveUpClosingTimeOnSunday(branch.driveUp.sunday.closingTime)
 
-            .mLobbyOpeningTimeOnMonday(branch.lobby.monday.openingTime)
-            .mLobbyClosingTimeOnMonday(branch.lobby.monday.closingTime)
+            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
 
-            .mLobbyOpeningTimeOnTuesday(branch.lobby.tuesday.openingTime)
-            .mLobbyClosingTimeOnTuesday(branch.lobby.tuesday.closingTime)
-
-            .mLobbyOpeningTimeOnWednesday(branch.lobby.wednesday.openingTime)
-            .mLobbyClosingTimeOnWednesday(branch.lobby.wednesday.closingTime)
-
-            .mLobbyOpeningTimeOnThursday(branch.lobby.thursday.openingTime)
-            .mLobbyClosingTimeOnThursday(branch.lobby.thursday.closingTime)
-
-            .mLobbyOpeningTimeOnFriday(branch.lobby.friday.openingTime)
-            .mLobbyClosingTimeOnFriday(branch.lobby.friday.closingTime)
-
-            .mLobbyOpeningTimeOnSaturday(branch.lobby.saturday.openingTime)
-            .mLobbyClosingTimeOnSaturday(branch.lobby.saturday.closingTime)
-
-            .mLobbyOpeningTimeOnSunday(branch.lobby.sunday.openingTime)
-            .mLobbyClosingTimeOnSunday(branch.lobby.sunday.closingTime)
-
-
-            // Drive Up
-            .mDriveUpOpeningTimeOnMonday(branch.driveUp.monday.openingTime)
-            .mDriveUpClosingTimeOnMonday(branch.driveUp.monday.closingTime)
-
-            .mDriveUpOpeningTimeOnTuesday(branch.driveUp.tuesday.openingTime)
-            .mDriveUpClosingTimeOnTuesday(branch.driveUp.tuesday.closingTime)
-
-            .mDriveUpOpeningTimeOnWednesday(branch.driveUp.wednesday.openingTime)
-            .mDriveUpClosingTimeOnWednesday(branch.driveUp.wednesday.closingTime)
-
-            .mDriveUpOpeningTimeOnThursday(branch.driveUp.thursday.openingTime)
-            .mDriveUpClosingTimeOnThursday(branch.driveUp.thursday.closingTime)
-
-            .mDriveUpOpeningTimeOnFriday(branch.driveUp.friday.openingTime)
-            .mDriveUpClosingTimeOnFriday(branch.driveUp.friday.closingTime)
-
-            .mDriveUpOpeningTimeOnSaturday(branch.driveUp.saturday.openingTime)
-            .mDriveUpClosingTimeOnSaturday(branch.driveUp.saturday.closingTime)
-
-            .mDriveUpOpeningTimeOnSunday(branch.driveUp.sunday.openingTime)
-            .mDriveUpClosingTimeOnSunday(branch.driveUp.sunday.closingTime)
-
-            .mIsAccessible(branch.isAccessible) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-
-            .mBranchType(branch.branchType)
-            .mMoreInfo(branch.moreInfo)
+            .mBranchType(branch.branchType.orNull)
+            .mMoreInfo(branch.moreInfo.orNull)
             .saveMe()
         } ?~! ErrorMessages.CreateBranchError
     }
@@ -1284,8 +1285,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedBranch.mBranchId, branchId.value))
       .map(
         branch => 
-          branch.branchRouting.scheme == null && branch.branchRouting.address == null match {
-            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value) 
+          branch.branchRouting.map(_.scheme) == null && branch.branchRouting.map(_.address) == null match {
+            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
             case _ => branch
         }
     )

@@ -50,11 +50,11 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                      moreInfo : String
                     ) extends Atm
 
-  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
+  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],
                          state : String, postCode : String, countryCode : String) extends AddressT
 
 
-  val fakeAddress1 = AddressImpl("Duckerstrasse 86", "Prenzlauerberg", "lala", "Berlin", "a county", "Berlin", "10437", "DE")
+  val fakeAddress1 = AddressImpl("Duckerstrasse 86", "Prenzlauerberg", "lala", "Berlin", Some("a county"), "Berlin", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
   val fakeMeta = new MetaT {

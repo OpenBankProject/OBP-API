@@ -86,7 +86,7 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
     line2 = mLine2.get,
     line3 = mLine3.get,
     city = mCity.get,
-    county = mCounty.get,
+    county = Some(mCounty.get),
     state = mState.get,
     countryCode = mCountryCode.get,
     postCode = mPostCode.get
@@ -101,7 +101,9 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
 
   override def location = Location(
     latitude = mlocationLatitude.get,
-    longitude = mlocationLongitude.get
+    longitude = mlocationLongitude.get,
+    None,
+    None
   )
 
 

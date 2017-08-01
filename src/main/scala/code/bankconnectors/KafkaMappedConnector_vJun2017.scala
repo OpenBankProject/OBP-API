@@ -1596,7 +1596,7 @@ object KafkaMappedConnector_vJun2017 extends Connector with KafkaHelper with Mdc
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: Branch): Box[MappedBranch] = Empty
 
   override def createOrUpdateBank(
                                    bankId: String,

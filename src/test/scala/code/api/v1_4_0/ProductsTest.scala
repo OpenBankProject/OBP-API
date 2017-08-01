@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
-import code.common.{LicenseT, MetaT}
+import code.common.{License, LicenseT, Meta, MetaT}
 import code.model.BankId
 import code.products.Products.ProductCode
 import code.products.Products.Product
@@ -25,21 +25,21 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
                         moreInfoUrl: String,
                         details: String,
                         description: String,
-                        meta: MetaT) extends Product
+                        meta: Meta) extends Product
 
-  val fakeMeta = new MetaT {
-    val license = new LicenseT {
-      override def id: String = "example-data-license"
-      override def name: String = "Example Data License"
-    }
-  }
+  val fakeMeta = Meta(
+    License (
+      id = "example-data-license",
+      name = "Example Data License"
+  )
+  )
 
-  val fakeMetaNoLicense = new MetaT {
-    val license = new LicenseT {
-      override def id: String = ""
-      override def name: String = ""
-    }
-  }
+  val fakeMetaNoLicense = Meta(
+    License (
+      id = "",
+      name = ""
+    )
+  )
 
 
   val fakeProduct1 = ProductImpl(BankWithLicense, ProductCode("prod1"), "name 1", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo1.html", "", "", fakeMeta)

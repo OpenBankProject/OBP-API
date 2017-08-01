@@ -11,7 +11,7 @@ import code.products.Products.{Product, ProductCode}
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.model.dataAccess.ResourceUser
 import code.model._
-import code.branches.Branches.Branch
+import code.branches.Branches.{Branch, BranchT}
 import code.atms.Atms.Atm
 import code.users.Users
 import code.util.Helper
@@ -52,7 +52,7 @@ trait OBPDataImport extends MdcLoggable {
   type ViewType <: View
   type TransactionType <: TransactionUUID
   type AccountOwnerUsername = String
-  type BranchType <: Branch
+  type BranchType <: BranchT
   type AtmType <: Atm
   type ProductType <: Product
   type CrmEventType <: CrmEvent
