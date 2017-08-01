@@ -1285,7 +1285,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]= {
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
     MappedBranch
       .find(
         By(MappedBranch.mBankId, bankId.value), 

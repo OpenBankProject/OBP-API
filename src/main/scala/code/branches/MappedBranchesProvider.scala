@@ -121,10 +121,10 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
-  override def branchRouting: RoutingT = new RoutingT {
+  override def branchRouting: Option[RoutingT] = Some(new RoutingT {
     override def scheme: String = mBranchRoutingScheme.get
     override def address: String = mBranchRoutingAddress.get
-  }
+  })
 
 //  override def branchRoutingScheme: String = mBranchRoutingScheme.get
 //  override def branchRoutingAddress: String = mBranchRoutingAddress.get
