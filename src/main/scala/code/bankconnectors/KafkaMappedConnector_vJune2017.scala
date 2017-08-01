@@ -456,7 +456,9 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       transactionId = transactionId.toString)
     
     // Since result is single account, we need only first list entry
+    logger.debug(s"Kafka getTransaction request says:  is: $req")
     val r = process[GetTransaction](req).extract[InboundTransaction].data
+    logger.debug(s"Kafka getTransaction response says: is: $r")
     r match {
       // Check does the response data match the requested data
       case x if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
