@@ -12,7 +12,9 @@ import net.liftweb.util.SimpleInjector
 
 object Branches extends SimpleInjector {
 
-  case class BranchId(value : String)
+  case class BranchId(value : String) {
+    override def toString = value
+  }
 
   object BranchId {
     def unapply(id : String) = Some(BranchId(id))
