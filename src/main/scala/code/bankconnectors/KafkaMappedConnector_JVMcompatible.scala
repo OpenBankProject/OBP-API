@@ -1298,7 +1298,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.createOrUpdateBranch(branch)
   }
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]= {
     LocalMappedConnector.getBranch(bankId, branchId)
   }
 
