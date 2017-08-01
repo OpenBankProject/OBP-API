@@ -358,3 +358,7 @@ autocomplete_at_login_form_enabled=false
 # Define secret used to validate JWT token
 # gateway.token_secret=secret
 # -------------------------------------- Gateway login --
+
+
+# Disable akka (Remote storage not possible)
+use_akka=false
