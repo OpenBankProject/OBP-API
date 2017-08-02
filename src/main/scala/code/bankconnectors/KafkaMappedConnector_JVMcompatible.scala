@@ -33,10 +33,10 @@ import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.MappedAtm
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchT, Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -1294,11 +1294,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getProduct(bankId, productCode)
   }
 
-  override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = {
-    LocalMappedConnector.createOrUpdateBranch(branch, branchRoutingScheme, branchRoutingAddress)
+  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = {
+    LocalMappedConnector.createOrUpdateBranch(branch)
   }
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]= {
     LocalMappedConnector.getBranch(bankId, branchId)
   }
 

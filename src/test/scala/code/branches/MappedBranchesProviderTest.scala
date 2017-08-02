@@ -1,9 +1,8 @@
 package code.branches
 
 import code.model.BankId
-import code.branches.Branches.BranchId
+import code.branches.Branches.{Branch, BranchId, BranchT}
 import net.liftweb.mapper.By
-import code.branches.Branches.Branch
 import code.setup.ServerSetup
 
 class MappedBranchesProviderTest extends ServerSetup {
@@ -94,7 +93,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
       When("we try to get the branches for that bank")
-      val branchesOpt: Option[List[Branch]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX))
+      val branchesOpt: Option[List[BranchT]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX))
 
       Then("We should get a branches list")
       branchesOpt.isDefined should equal (true)

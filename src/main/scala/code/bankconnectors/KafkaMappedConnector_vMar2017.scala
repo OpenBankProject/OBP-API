@@ -33,7 +33,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchT, Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -1745,7 +1745,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override  def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
   
   override def createOrUpdateBank(
     bankId: String,

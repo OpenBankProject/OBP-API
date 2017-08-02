@@ -3,8 +3,8 @@ package code.api.v1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
-import code.common.{Address, License, Location, Meta}
-import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
+import code.common._
+import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.setup.DefaultUsers
@@ -20,118 +20,127 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(
-    branchId: BranchId,
-    bankId: BankId,
-    name: String,
-    address: Address,
-    location: Location,
-    meta: Meta,
-    lobby: Lobby,
-    driveUp: DriveUp,
-    branchRoutingScheme: String,
-    branchRoutingAddress: String,
+                         branchId: BranchId,
+                         bankId: BankId,
+                         name: String,
+                         address: Address,
+                         location: Location,
+                         meta: Meta,
+                         lobbyString: Option[LobbyStringT],
+                         driveUpString: Option[DriveUpStringT],
+                         branchRoutingScheme: String,
+                         branchRoutingAddress: String,
 
-    // Lobby Times
-    lobbyOpeningTimeOnMonday : String,
-    lobbyClosingTimeOnMonday : String,
+                         // Lobby Times
+                         lobbyOpeningTimeOnMonday : String,
+                         lobbyClosingTimeOnMonday : String,
 
-    lobbyOpeningTimeOnTuesday : String,
-    lobbyClosingTimeOnTuesday : String,
+                         lobbyOpeningTimeOnTuesday : String,
+                         lobbyClosingTimeOnTuesday : String,
 
-    lobbyOpeningTimeOnWednesday : String,
-    lobbyClosingTimeOnWednesday : String,
+                         lobbyOpeningTimeOnWednesday : String,
+                         lobbyClosingTimeOnWednesday : String,
 
-    lobbyOpeningTimeOnThursday : String,
-    lobbyClosingTimeOnThursday: String,
+                         lobbyOpeningTimeOnThursday : String,
+                         lobbyClosingTimeOnThursday: String,
 
-    lobbyOpeningTimeOnFriday : String,
-    lobbyClosingTimeOnFriday : String,
+                         lobbyOpeningTimeOnFriday : String,
+                         lobbyClosingTimeOnFriday : String,
 
-    lobbyOpeningTimeOnSaturday : String,
-    lobbyClosingTimeOnSaturday : String,
+                         lobbyOpeningTimeOnSaturday : String,
+                         lobbyClosingTimeOnSaturday : String,
 
-    lobbyOpeningTimeOnSunday: String,
-    lobbyClosingTimeOnSunday : String,
+                         lobbyOpeningTimeOnSunday: String,
+                         lobbyClosingTimeOnSunday : String,
 
-    // Drive Up times
-    driveUpOpeningTimeOnMonday : String,
-    driveUpClosingTimeOnMonday : String,
+                         // Drive Up times
+                         driveUpOpeningTimeOnMonday : String,
+                         driveUpClosingTimeOnMonday : String,
 
-    driveUpOpeningTimeOnTuesday : String,
-    driveUpClosingTimeOnTuesday : String,
+                         driveUpOpeningTimeOnTuesday : String,
+                         driveUpClosingTimeOnTuesday : String,
 
-    driveUpOpeningTimeOnWednesday : String,
-    driveUpClosingTimeOnWednesday : String,
+                         driveUpOpeningTimeOnWednesday : String,
+                         driveUpClosingTimeOnWednesday : String,
 
-    driveUpOpeningTimeOnThursday : String,
-    driveUpClosingTimeOnThursday: String,
+                         driveUpOpeningTimeOnThursday : String,
+                         driveUpClosingTimeOnThursday: String,
 
-    driveUpOpeningTimeOnFriday : String,
-    driveUpClosingTimeOnFriday : String,
+                         driveUpOpeningTimeOnFriday : String,
+                         driveUpClosingTimeOnFriday : String,
 
-    driveUpOpeningTimeOnSaturday : String,
-    driveUpClosingTimeOnSaturday : String,
+                         driveUpOpeningTimeOnSaturday : String,
+                         driveUpClosingTimeOnSaturday : String,
 
-    driveUpOpeningTimeOnSunday: String,
-    driveUpClosingTimeOnSunday : String,
-
-    // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-    isAccessible : String,
-
-    branchType : String,
-    moreInfo : String
-
-  ) extends Branch
-  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
-                         state : String, postCode : String, countryCode : String) extends Address
+                         driveUpOpeningTimeOnSunday: String,
+                         driveUpClosingTimeOnSunday : String,
 
 
-  val fakeAddress1 = AddressImpl("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", "Denmark", "Denmark", "10437", "DE")
+
+                         // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                         isAccessible : Option[Boolean],
+
+                         branchType : Option[String],
+                         moreInfo : Option[String],
+                         driveUp: Option[DriveUp],
+                         lobby: Option[Lobby],
+                         branchRouting: Option[RoutingT]
+
+  ) extends BranchT
+
+
+
+  val fakeAddress1 = Address("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", Some("Denmark"), "Denmark", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeMeta = new Meta {
-    val license = new License {
-      override def id: String = "sample-license"
-      override def name: String = "Sample License"
-    }
-  }
+  val fakeMeta = Meta (
+    License (
+      id = "sample-license",
+     name = "Sample License"
+      )
+  )
 
-  val fakeMetaNoLicense = new Meta {
-    val license = new License {
-      override def id: String = ""
-      override def name: String = ""
-    }
-  }
+  val fakeMetaNoLicense = Meta (
+    License (
+      id = "",
+      name = ""
+      )
+  )
 
-  val fakeLocation = new Location {
-   override def latitude: Double = 1.11
-   override def longitude: Double = 2.22
-  }
-
-
-  val fakeLocation2 = new Location {
-    override def latitude: Double = 1.1111
-    override def longitude: Double = 2.2222
-  }
+  val fakeLocation = Location (
+    latitude = 1.11,
+    longitude = 2.22,
+    date =None,
+    user = None
+  )
 
 
-  val fakeLobby = new Lobby {
+  val fakeLocation2 = Location (
+    latitude = 1.1111,
+    longitude = 2.2222,
+    date =None,
+    user = None
+  )
+
+
+  val fakeLobby = Some(new LobbyStringT {
    val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
   }
+  )
 
 
-  val fakeLobby2 = new Lobby {
+  val fakeLobby2 = Some(new LobbyStringT {
     val hours = "9-5"
-  }
+  })
 
-  val fakeDriveUp = new DriveUp {
+  val fakeDriveUp = Some(new DriveUpStringT {
     override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
-  }
+  })
 
 
-  val fakeDriveUp2 = new DriveUp {
+  val fakeDriveUp2 = Some(new DriveUpStringT {
     override def hours: String = "M-Th 8:30 - 5:30"
-  }
+  })
 
   val fakeBranchRoutingScheme : String = "Bank X Scheme"
   val fakeBranchRoutingAddress : String = "78676"
@@ -140,9 +149,9 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
   val fakeOpeningTime : String = "10:00"
   val fakeClosingTime : String = "18:00"
 
-  val fakeIsAccessible : String = "Y"
-  val fakeBranchType : String = "Main"
-  val fakeMoreInfo : String = "Very near to the lake"
+  val fakeIsAccessible: Option[Boolean] = Some(true)
+  val fakeBranchType : Option[String]  = Some("Main")
+  val fakeMoreInfo  : Option[String] = Some("Very near to the lake")
 
 
   val fakeBranch1 = BranchImpl(BranchId("branch1"), BankId("uk"),"Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp, fakeBranchRoutingScheme,fakeBranchRoutingAddress,
@@ -153,16 +162,16 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
-    fakeIsAccessible,
+    fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime)
+    fakeMoreInfo, None, None, None)
   val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -171,16 +180,16 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
-    fakeIsAccessible,
+    fakeOpeningTime, fakeClosingTime,
+    fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime)
+    fakeMoreInfo, None, None, None)
   val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -189,20 +198,20 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
-    fakeIsAccessible,
+    fakeOpeningTime, fakeClosingTime,
+    fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeClosingTime,
+    fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime,
-    fakeOpeningTime, fakeClosingTime) // Should not be returned
+    fakeMoreInfo, None, None, None) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
-    override protected def getBranchesFromProvider(bank: BankId): Option[List[Branch]] = {
+    override protected def getBranchesFromProvider(bank: BankId): Option[List[BranchT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))
@@ -211,7 +220,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] = {
+    override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] = {
       branchId match {
          case BankWithLicense => Some(fakeBranch1)
          case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
@@ -221,7 +230,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
   }
 
-  def verifySameData(branch: Branch, branchJson : BranchJson) = {
+  def verifySameData(branch: BranchT, branchJson : BranchJson) = {
     branch.name should equal (branchJson.name)
     branch.branchId should equal(BranchId(branchJson.id))
     branch.address.line1 should equal(branchJson.address.line_1)
@@ -233,8 +242,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     branch.address.postCode should equal(branchJson.address.postcode)
     branch.location.latitude should equal(branchJson.location.latitude)
     branch.location.longitude should equal(branchJson.location.longitude)
-    branch.lobby.hours should equal(branchJson.lobby.hours)
-    branch.driveUp.hours should equal(branchJson.drive_up.hours)
+    branch.lobbyString.get.hours should equal(branchJson.lobby.hours)
+    branch.driveUpString.get.hours should equal(branchJson.drive_up.hours)
   }
 
   /*
