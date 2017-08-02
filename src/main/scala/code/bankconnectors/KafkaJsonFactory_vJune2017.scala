@@ -58,3 +58,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def branchId: String = r.branchId
 
 }
+
+case class InternalTransactionId(
+  id : String
+)

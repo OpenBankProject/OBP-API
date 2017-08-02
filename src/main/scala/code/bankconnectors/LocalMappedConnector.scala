@@ -461,13 +461,50 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // Return the sent transaction id
     sentTransactionId
   }
-
+  
+  /**
+    * Perform a payment (in the sandbox) Store one or more transactions
+    */
+  override def makePaymentv300(
+    initiator: User,
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    toCounterparty: CounterpartyTrait,
+    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+    transactionRequestType: TransactionRequestType,
+    chargePolicy: String
+  ): Box[TransactionId] = {
+    
+    // Note: These are guards. Values are calculated in makePaymentv200
+    val rate = tryo {
+      fx.exchangeRate(fromAccount.currency, toAccount.currency)
+    } ?~! {
+      s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+    }
+    
+    val amount = BigDecimal(transactionRequestCommonBody.value.amount)
+    val description = transactionRequestCommonBody.description
+    // Is it better to pass these into this function ?
+    val fromTransAmt = -amount//from fromAccount balance should decrease
+    val toTransAmt = fx.convert(amount, rate.get)
+    
+    // From
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
+    
+    // To
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
+    
+    // Return the sent transaction id
+    sentTransactionId
+  }
+  
+  
   /**
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>
     */
-  private def saveTransaction(fromAccount: MappedBankAccount,
-                              toAccount: MappedBankAccount,
+  private def saveTransaction(fromAccount: BankAccount,
+                              toAccount: BankAccount,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,

@@ -32,6 +32,7 @@ import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.model._
 
 //started - view relevant case classes
@@ -178,6 +179,23 @@ case class CoreCounterpartiesJsonV300(
 case class CoreTransactionsJsonV300(
   transactions: List[CoreTransactionJsonV300]
 )
+
+//for create transaction request
+case class CounterpartyPhoneToPhoneJson(
+  other_account_owner: String,
+  other_account_owner_birthday: String,
+  other_account_phone_number: String
+)
+
+// the data from endpoint, extract as valid JSON
+
+case class TransactionRequestBodyPhoneToPhoneJson(
+  from_account_phone_number: String,
+  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
+  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+  charge_policy: String,
+  couterparty: CounterpartyPhoneToPhoneJson
+) extends TransactionRequestCommonBodyJSON
 
 //ended -- Transaction relevant case classes /////
 

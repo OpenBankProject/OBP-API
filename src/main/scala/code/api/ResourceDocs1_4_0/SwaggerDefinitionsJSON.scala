@@ -1325,18 +1325,7 @@ object SwaggerDefinitionsJSON {
     "SHARED"
   )
 
-  val transactionRequestBodyPhoneToPhoneJson = TransactionRequestBodyPhoneToPhoneJson(
-    this_account_secondary_routing = RoutingPhoneToPhoneJson(scheme = "PHONE_NUMBER", address = "+9722398746"),
-    value = amountOfMoneyJsonV121,
-    description = "This is a PHONE_TO_PHONE Transaction Request",
-    charge_policy = "SHARED",
-    couterparty = CounterpartyPhoneToPhoneJson(name = "Counterparty Name",
-      other_bank_name = "BANK L",
-      other_bank_routing = RoutingPhoneToPhoneJson(scheme = "OBP", address = "test.uk.en.1"),
-      other_branch_routing = RoutingPhoneToPhoneJson(scheme = "OBP", address = "yuaiusydf"),
-      other_account_routing = RoutingPhoneToPhoneJson(scheme = "OBP", address = "asoiuf79a8s79dfasdhlkjh37f"),
-      other_account_secondary_routing = RoutingPhoneToPhoneJson(scheme = "PHONE_NUMBER", address = "+9722398746"))
-  )
+  
   
   val customerCreditRatingJSON = CustomerCreditRatingJSON(
     rating = "OBP",
@@ -1816,6 +1805,23 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
+  
+  
+  val couterparty = CounterpartyPhoneToPhoneJson(
+    other_account_owner= "TOM",
+    other_account_owner_birthday = "19900101",
+    other_account_phone_number= "+9722398746"
+  )
+  
+  // mapping NTBD_1_135 Sample.txt and NTBD_2_135 Sample.txt
+  val transactionRequestBodyPhoneToPhoneJson = TransactionRequestBodyPhoneToPhoneJson(
+    from_account_phone_number="123",
+    value = amountOfMoneyJsonV121,                                
+    description = "This is a PHONE_TO_PHONE Transaction Request", 
+    charge_policy = "SHARED",
+    couterparty = couterparty
+  )
+  
   //The commont error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

@@ -10,9 +10,9 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.JSONFactory200
-import code.api.v2_1_0.{TransactionRequestBodyPhoneToPhoneJson, _}
+import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
-import code.bankconnectors.{Connector, LocalMappedConnector,InboundAdapterInfo}
+import code.bankconnectors.{Connector, InboundAdapterInfo, LocalMappedConnector}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
@@ -902,7 +902,7 @@ trait APIMethods300 {
                   toAccountId <- Full(AccountId(transactionRequestBodySandboxTan.to.account_id))
                   toAccount <- BankAccount(toBankId, toAccountId) ?~! {CounterpartyNotFound}
                   transDetailsSerialized <- tryo {write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -950,7 +950,7 @@ trait APIMethods300 {
                     transactionRequestBodyCounterparty.description,
                     transactionRequestBodyCounterparty.charge_policy)
                   transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -989,7 +989,7 @@ trait APIMethods300 {
                     transDetailsSEPAJson.description,
                     chargePolicy)
                   transDetailsSerialized <- tryo {write(transactionRequestDetailsSEPARMapperJSON)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -1009,7 +1009,7 @@ trait APIMethods300 {
                     amountOfMoneyJSON,
                     transactionRequestBodyFreeForm.description)
                   transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperFreeForm)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
                     fromAccount,
                     fromAccount,//in FREE_FORM, we only use toAccount == fromAccount
@@ -1024,18 +1024,15 @@ trait APIMethods300 {
               case "PHONE_TO_PHONE" => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
-                  toBankId <- Full(BankId(transDetailsP2PJson.couterparty.other_bank_routing.address))
-                  toAccountId <-Full(AccountId(transDetailsP2PJson.couterparty.other_account_routing.address))
-                  toAccount <- BankAccount(toBankId, toAccountId) ?~! {CounterpartyNotFound}
                   chargePolicy = transDetailsP2PJson.charge_policy
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.this_account_secondary_routing.address)) ?~! "Phone number is not correct."
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.this_account_secondary_routing.address)) ?~! "Phone number is not correct."
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
                     fromAccount,
-                    toAccount,
+                    new MappedBankAccount(),
                     new MappedCounterparty(),
                     transactionRequestType,
                     transDetailsP2PJson,

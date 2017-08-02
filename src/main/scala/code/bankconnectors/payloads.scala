@@ -1,7 +1,5 @@
 package code.bankconnectors
 
-import java.util.Date
-
 /**
   * Created by slavisa on 6/5/17.
   */
@@ -22,6 +20,28 @@ case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, account
 case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicCaseClass
 case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicCaseClass
 case class CreateCBSAuthToken(authInfo: AuthInfo) extends TopicCaseClass
+case class CreateTransaction(
+  authInfo: AuthInfo,
+  
+  // fromAccount
+  fromAccountBankId : String,
+  fromAccountId : String,
+  
+  // transaction details
+  transactionRequestType: String,
+  transactionChargePolicy: String,
+  
+  // toAccount or toCounterparty
+  toCounterpartyId: String,
+  toCounterpartyName: String,
+  toCounterpartyCurrency: String,
+  toCounterpartyRoutingAddress: String,
+  toCounterpartyRoutingScheme: String,
+  toCounterpartyBankRoutingAddress: String,
+  toCounterpartyBankRoutingScheme: String
+  
+) extends TopicCaseClass
+
 /**
   * case classes used as payloads
   */
@@ -33,3 +53,4 @@ case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune
 case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
+case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
