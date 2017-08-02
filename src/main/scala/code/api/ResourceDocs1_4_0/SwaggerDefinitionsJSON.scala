@@ -701,7 +701,7 @@ object SwaggerDefinitionsJSON {
     date = exampleDate
   )
 
-  val locationJson = LocationJson(
+  val locationJson = LocationJsonV140(
     latitude = 11.45,
     longitude = 11.45
   )
@@ -731,20 +731,20 @@ object SwaggerDefinitionsJSON {
     challenge_type = "SANDBOX_TAN"
   )
 
-  val driveUpJson = DriveUpJson(
+  val driveUpJson = DriveUpStringJson(
     hours = "5"
   )
-  val licenseJson = LicenseJson(
+  val licenseJson = LicenseJsonV140(
     id = "5",
     name = "TESOBE"
   )
-  val metaJson = MetaJson(
+  val metaJson = MetaJsonV140(
     license = licenseJson
   )
-  val lobbyJson = LobbyJson(
+  val lobbyJson = LobbyStringJson(
     hours = "5"
   )
-  val addressJson = AddressJson(
+  val addressJson = AddressJsonV140(
     line_1 = "Osloer Straße 16/17",
     line_2 = "Wedding",
     line_3 = "",
@@ -1356,7 +1356,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val locationJSON =
-    LocationJSONV210(
+    LocationJsonV210(
       latitude = 11.45,
       longitude = 11.45,
       date = exampleDate,
@@ -1458,7 +1458,7 @@ object SwaggerDefinitionsJSON {
     metrics = List(metricJson)
   )
   
-  val branchJsonPut = BranchJsonPut("gh.29.fi", "OBP",
+  val branchJsonPut = BranchJsonPutV210("gh.29.fi", "OBP",
     addressJson,
     locationJson,
     metaJson,
@@ -1466,7 +1466,7 @@ object SwaggerDefinitionsJSON {
     driveUpJson
   )
   
-  val branchJsonPost = BranchJsonPost("123", "gh.29.fi", "OBP",
+  val branchJsonPost = BranchJsonPostV210("123", "gh.29.fi", "OBP",
     addressJson,
     locationJson,
     metaJson,

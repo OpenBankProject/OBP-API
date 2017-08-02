@@ -170,11 +170,11 @@ trait Bank {
 
 
   //SWIFT BIC banking code (globally unique)
-  @deprecated("used bankRoutingScheme and bankRoutingAddress instead")
+  @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def swiftBic: String
 
   //it's not entirely clear what this is/represents (BLZ in Germany?)
-  @deprecated("used bankRoutingScheme and bankRoutingAddress instead")
+  @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
