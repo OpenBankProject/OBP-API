@@ -177,7 +177,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.line2 should equal(branch.address.line_2)
     foundBranch.address.line3 should equal(branch.address.line_3)
     foundBranch.address.city should equal(branch.address.city)
-    foundBranch.address.county should equal(branch.address.county)
+    foundBranch.address.county should equal(Some(branch.address.county))
     foundBranch.address.state should equal(branch.address.state)
 
     foundBranch.location.latitude should equal(branch.location.latitude)
@@ -189,8 +189,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
 
-    foundBranch.lobbyString.getOrElse("") should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
-    foundBranch.driveUpString.getOrElse("") should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
+    foundBranch.lobbyString.get.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
+    foundBranch.driveUpString.get.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
 
   def verifyAtmCreated(atm : SandboxAtmImport) = {
@@ -208,7 +208,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundAtm.address.line2 should equal(atm.address.line_2)
     foundAtm.address.line3 should equal(atm.address.line_3)
     foundAtm.address.city should equal(atm.address.city)
-    foundAtm.address.county should equal(atm.address.county)
+    foundAtm.address.county should equal(Some(atm.address.county))
     foundAtm.address.state should equal(atm.address.state)
 
     foundAtm.location.latitude should equal(atm.location.latitude)

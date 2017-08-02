@@ -242,8 +242,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     branch.address.postCode should equal(branchJson.address.postcode)
     branch.location.latitude should equal(branchJson.location.latitude)
     branch.location.longitude should equal(branchJson.location.longitude)
-    branch.lobbyString.getOrElse("") should equal(branchJson.lobby.hours)
-    branch.driveUpString.getOrElse("") should equal(branchJson.drive_up.hours)
+    branch.lobbyString.get.hours should equal(branchJson.lobby.hours)
+    branch.driveUpString.get.hours should equal(branchJson.drive_up.hours)
   }
 
   /*

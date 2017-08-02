@@ -1100,7 +1100,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mMoreInfo(branch.moreInfo.orNull)
 
             .saveMe()
-        } ?~! ErrorMessages.UpdateBranchError
+        }
       case _ =>
         tryo {
           // Insert...
@@ -1173,7 +1173,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchType(branch.branchType.orNull)
             .mMoreInfo(branch.moreInfo.orNull)
             .saveMe()
-        } ?~! ErrorMessages.CreateBranchError
+        }
     }
   }
 
