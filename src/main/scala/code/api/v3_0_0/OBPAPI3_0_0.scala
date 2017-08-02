@@ -47,6 +47,13 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
+
+
+/*
+This file defines which endpoints from all the versions are available in v3.0.0
+ */
+
+
 object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with MdcLoggable {
   
   
@@ -250,8 +257,6 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getAtm ::
                           Implementations2_1_0.getBranch ::
                           Implementations2_1_0.updateBranch ::
-                          //now in V220
-                          //Implementations2_1_0.createBranch ::
                           Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
@@ -272,15 +277,11 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
   // ### VERSION 2.1.0 - BEGIN ###
   //First step - make a list of allowed endpoints
-  val endpointsOf2_2_0 = //V300 Implementations2_2_0.getViewsForBankAccount ::
-                          //V300 Implementations2_2_0.createViewForBankAccount ::
-                          //V300 Implementations2_2_0.updateViewForBankAccount ::
-                          Implementations2_2_0.getCurrentFxRate ::
+  val endpointsOf2_2_0 =  Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getMessageDocs ::
                           Implementations2_2_0.createBank ::
                           Implementations2_2_0.createAccount ::
-                          Implementations2_2_0.createBranch ::
                           Implementations2_2_0.createAtm ::
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.config ::
@@ -311,6 +312,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUserByUsername ::
                           Implementations3_0_0.getBranches ::
                           Implementations3_0_0.getAdapter ::
+                          Implementations3_0_0.createBranch ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

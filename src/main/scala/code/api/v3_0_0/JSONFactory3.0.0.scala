@@ -281,7 +281,7 @@ case class DriveUpJsonV330(
 //}
 
 
-case class AddressJsonV330(
+case class AddressJsonV300(
                              line_1 : String,
                              line_2 : String,
                              line_3 : String,
@@ -299,7 +299,7 @@ case class BranchJsonV300(
                            id: String,
                            bank_id: String,
                            name: String,
-                           address: AddressJsonV330,
+                           address: AddressJsonV300,
                            location: LocationJsonV140,
                            meta: MetaJsonV140,
                            lobby: LobbyJsonV330,
@@ -586,11 +586,11 @@ object JSONFactory300{
 
 
 
-  def createBranchJson(branch: BranchT): BranchJsonV300 = {
+  def createBranchJsonV300(branch: BranchT): BranchJsonV300 = {
     BranchJsonV300(branch.branchId.value,
       branch.bankId.value,
       branch.name,
-      AddressJsonV330(branch.address.line1,
+      AddressJsonV300(branch.address.line1,
         branch.address.line2,
         branch.address.line3,
         branch.address.city,
@@ -657,21 +657,21 @@ object JSONFactory300{
   }
 
   def createBranchesJson(branchesList: List[BranchT]): BranchesJsonV300 = {
-    BranchesJsonV300(branchesList.map(createBranchJson))
+    BranchesJsonV300(branchesList.map(createBranchJsonV300))
   }
 
 
 
-  def transformV140ToAddress(addressJsonV330: AddressJsonV330): Address = {
+  def transformToAddressFromV300(addressJsonV300: AddressJsonV300): Address = {
     Address(
-      line1 = addressJsonV330.line_1,
-      line2 = addressJsonV330.line_2,
-      line3 = addressJsonV330.line_3,
-      city = addressJsonV330.city,
+      line1 = addressJsonV300.line_1,
+      line2 = addressJsonV300.line_2,
+      line3 = addressJsonV300.line_3,
+      city = addressJsonV300.city,
       county = None,
-      state = addressJsonV330.state,
-      postCode = addressJsonV330.postcode,
-      countryCode = addressJsonV330.country_code // May not be a code
+      state = addressJsonV300.state,
+      postCode = addressJsonV300.postcode,
+      countryCode = addressJsonV300.country_code // May not be a code
     )
   }
 
@@ -682,9 +682,9 @@ object JSONFactory300{
   def transformToBranch(branchJsonV300: BranchJsonV300): Box[Branch] = {
 
 
-    val address : Address = transformV140ToAddress(branchJsonV300.address) // Note the address in V220 is V140
-    val location: Location =  transformV140ToLocation(branchJsonV300.location)  // Note the location is V140
-    val meta: Meta =  transformV140ToMeta(branchJsonV300.meta)  // Note the meta  is V140
+    val address : Address = transformToAddressFromV300(branchJsonV300.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(branchJsonV300.location)  // Note the location is V140
+    val meta: Meta =  transformToMetaFromV140(branchJsonV300.meta)  // Note the meta  is V140
 
 
     val lobby: Lobby = Lobby(

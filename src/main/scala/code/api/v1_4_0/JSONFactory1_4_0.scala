@@ -470,7 +470,7 @@ object JSONFactory1_4_0 {
 
   // It seems we can't overload this function i.e. have to give it specific name because
   // else cant use it with a nested case class when the top case class is a different version
-  def transformV140ToLocation(locationJsonV140: LocationJsonV140): Location = {
+  def transformToLocationFromV140(locationJsonV140: LocationJsonV140): Location = {
     Location (
       latitude = locationJsonV140.latitude,
       longitude = locationJsonV140.longitude,
@@ -488,7 +488,7 @@ object JSONFactory1_4_0 {
   }
 
 
-  def transformV140ToMeta(metaJsonV140: MetaJsonV140): Meta = {
+  def transformToMetaFromV140(metaJsonV140: MetaJsonV140): Meta = {
     Meta (
       license = transformV140ToLicence (
         metaJsonV140.license)
@@ -496,7 +496,7 @@ object JSONFactory1_4_0 {
   }
 
 
-  def transformV140ToAddress(addressJsonV140: AddressJsonV140): Address = {
+  def transformToAddressFromV140(addressJsonV140: AddressJsonV140): Address = {
     Address(
       line1 = addressJsonV140.line_1,
       line2 = addressJsonV140.line_2,

@@ -36,7 +36,7 @@ import java.util.Date
 import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJsonV140, ChallengeJsonV140, CustomerFaceImageJson, DriveUpStringJson, LicenseJsonV140, LobbyStringJson, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140}
-import code.api.v1_4_0.JSONFactory1_4_0.{transformV140ToLocation,transformV140ToMeta,transformV140ToAddress}
+import code.api.v1_4_0.JSONFactory1_4_0.{transformToLocationFromV140,transformToMetaFromV140,transformToAddressFromV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.atms.Atms.AtmId
 import code.branches.Branches._
@@ -760,9 +760,9 @@ object JSONFactory210{
   // Overloaded
   def transformToBranch(branchId: BranchId, branchJsonPutV210: BranchJsonPutV210): Box[Branch] = {
 
-    val address : Address = transformV140ToAddress(branchJsonPutV210.address)
-    val location: Location =  transformV140ToLocation(branchJsonPutV210.location)
-    val meta: Meta =  transformV140ToMeta(branchJsonPutV210.meta)
+    val address : Address = transformToAddressFromV140(branchJsonPutV210.address)
+    val location: Location =  transformToLocationFromV140(branchJsonPutV210.location)
+    val meta: Meta =  transformToMetaFromV140(branchJsonPutV210.meta)
 
     Full(Branch(
       BranchId(branchId.value),
@@ -784,9 +784,9 @@ object JSONFactory210{
   // Overloaded
   def transformToBranch(branchJsonPostV210: BranchJsonPostV210): Box[Branch] = {
 
-    val address : Address = transformV140ToAddress(branchJsonPostV210.address)
-    val location: Location =  transformV140ToLocation(branchJsonPostV210.location)
-    val meta: Meta =  transformV140ToMeta(branchJsonPostV210.meta)
+    val address : Address = transformToAddressFromV140(branchJsonPostV210.address)
+    val location: Location =  transformToLocationFromV140(branchJsonPostV210.location)
+    val meta: Meta =  transformToMetaFromV140(branchJsonPostV210.meta)
 
     Full(Branch(
       BranchId(branchJsonPostV210.id),

@@ -542,9 +542,9 @@ object JSONFactory220{
 
   def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
 
-    val address : Address = transformV140ToAddress(branchJsonV220.address) // Note the address in V220 is V140
-    val location: Location =  transformV140ToLocation(branchJsonV220.location)  // Note the location in V220 is V140
-    val meta: Meta =  transformV140ToMeta(branchJsonV220.meta)  // Note the meta in V220 is V140
+    val address : Address = transformToAddressFromV140(branchJsonV220.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(branchJsonV220.location)  // Note the location in V220 is V140
+    val meta: Meta =  transformToMetaFromV140(branchJsonV220.meta)  // Note the meta in V220 is V140
 
     Full(Branch(
       BranchId(branchJsonV220.id),

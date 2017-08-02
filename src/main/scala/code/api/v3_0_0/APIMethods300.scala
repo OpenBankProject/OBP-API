@@ -697,8 +697,8 @@ trait APIMethods300 {
           |
          |$createBranchEntitlementsRequiredText
           |""",
-      branchJsonV220,
-      branchJsonV220,
+      branchJsonV300,
+      branchJsonV300,
       List(
         UserNotLoggedIn,
         BankNotFound,
