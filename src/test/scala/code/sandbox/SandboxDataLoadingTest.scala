@@ -41,7 +41,7 @@ import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, countOfAtms}
 import code.branches.Branches
-import code.branches.Branches.{Branch, BranchId, countOfBranches}
+import code.branches.Branches.{Branch, BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
 import code.crm.CrmEvent
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
@@ -168,7 +168,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val branchId = BranchId(branch.id)
 
     // check we have found a branch
-    val foundBranchOpt: Option[Branch] = Branches.branchesProvider.vend.getBranch(branchId)
+    val foundBranchOpt: Option[BranchT] = Branches.branchesProvider.vend.getBranch(branchId)
     foundBranchOpt.isDefined should equal(true)
 
     val foundBranch = foundBranchOpt.get
@@ -177,7 +177,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.line2 should equal(branch.address.line_2)
     foundBranch.address.line3 should equal(branch.address.line_3)
     foundBranch.address.city should equal(branch.address.city)
-    foundBranch.address.county should equal(branch.address.county)
+    foundBranch.address.county should equal(Some(branch.address.county))
     foundBranch.address.state should equal(branch.address.state)
 
     foundBranch.location.latitude should equal(branch.location.latitude)
@@ -189,8 +189,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
 
-    foundBranch.lobby.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
-    foundBranch.driveUp.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
+    foundBranch.lobbyString.get.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
+    foundBranch.driveUpString.get.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
 
   def verifyAtmCreated(atm : SandboxAtmImport) = {
@@ -208,7 +208,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundAtm.address.line2 should equal(atm.address.line_2)
     foundAtm.address.line3 should equal(atm.address.line_3)
     foundAtm.address.city should equal(atm.address.city)
-    foundAtm.address.county should equal(atm.address.county)
+    foundAtm.address.county should equal(Some(atm.address.county))
     foundAtm.address.state should equal(atm.address.state)
 
     foundAtm.location.latitude should equal(atm.location.latitude)
@@ -1713,7 +1713,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check we are starting from a clean slate (no branches for this bank)
     // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
-    val existingBranches: Option[List[Branch]] = Branches.branchesProvider.vend.getBranches(bankId1)
+    val existingBranches: Option[List[BranchT]] = Branches.branchesProvider.vend.getBranches(bankId1)
 
     // We want the size of the list inside the Option
     val existingBranchesCount = countOfBranches(existingBranches)

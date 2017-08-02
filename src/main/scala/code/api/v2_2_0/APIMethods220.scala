@@ -9,9 +9,8 @@ import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddressJson, LocationJson, MetaJson}
 
-
+import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 
 import code.api.v2_1_0._
 import code.api.v2_2_0._
@@ -430,21 +429,9 @@ trait APIMethods220 {
               ||
               hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
               , createBranchEntitlementsRequiredText)
-            branch <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
-            success <- Connector.connector.vend.createOrUpdateBranch(
-              BranchJsonPost(
-                branch.id,
-                branch.bank_id,
-                branch.name,
-                branch.address,
-                branch.location,
-                branch.meta,
-                branch.lobby,
-                branch.drive_up
-              ),
-              branch.branch_routing.scheme,
-              branch.branch_routing.address
-            )
+            branchJsonV220 <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- transformV220ToBranch(branchJsonV220)
+            success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
             val json = JSONFactory220.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))

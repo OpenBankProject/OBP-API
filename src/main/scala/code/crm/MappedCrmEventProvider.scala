@@ -6,7 +6,7 @@ import code.crm.CrmEvent._
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.customer.CustomerMessage
 import code.model.BankId
-import code.common.{Address, License, Location, Meta}
+import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{UUIDString, MappedUUID}

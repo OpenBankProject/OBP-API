@@ -5,6 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanGetAnyUser, CanSearchWarehouse}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
@@ -13,6 +14,8 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors.{Connector, InboundAdapterInfo, LocalMappedConnector}
+import code.bankconnectors.{Connector, InboundAdapterInfo}
+import code.common.{Meta, Location, Address}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty

@@ -3,10 +3,10 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
-import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
-import code.branches.Branches.{Branch, BranchId}
+import code.branches.Branches.{BranchT, Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -646,7 +646,7 @@ private object LocalConnector extends Connector with MdcLoggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost, branchRoutingScheme: String, branchRoutingAddress: String): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 

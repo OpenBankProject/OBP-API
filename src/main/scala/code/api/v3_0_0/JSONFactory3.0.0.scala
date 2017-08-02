@@ -30,10 +30,29 @@ import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.branches.Branches._
+import net.liftweb.common.{Full, Box}
+
+//import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+
+import code.common._
+
+import code.branches.Branches.Branch
+
+import code.api.v3_0_0.AddressvJsonV330
+
+// should replace Address in 1.4
+
 import code.model._
+
+import scala.util.Try
+
+
+
+
 
 //started - view relevant case classes
 
@@ -270,13 +289,41 @@ case class DriveUpJsonV330(
                           sunday: OpeningTimesV300
                         )
 
+
+//trait AddressvJson330 {
+//  def line_1 : String
+//  def line_2 : String
+//  def line_3 : String
+//  def city : String
+//  def county : String
+//  def state : String
+//  def post_code : String
+//  //ISO_3166-1_alpha-2
+//  def country_code : String
+//}
+
+
+case class AddressvJsonV330(
+                             line_1 : String,
+                             line_2 : String,
+                             line_3 : String,
+                             city : String,
+                             county : String,
+                             state : String,
+                             postcode : String,
+                             //ISO_3166-1_alpha-2
+                             country_code : String
+)
+
+
+
 case class BranchJsonV300(
                            id: String,
                            bank_id: String,
                            name: String,
-                           address: AddressJson,
-                           location: LocationJson,
-                           meta: MetaJson,
+                           address: AddressvJsonV330,
+                           location: LocationJsonV140,
+                           meta: MetaJsonV140,
                            lobby: LobbyJsonV330,
                            drive_up: DriveUpJsonV330,
                            branch_routing: BranchRoutingJsonV141,
@@ -285,6 +332,14 @@ case class BranchJsonV300(
                            branch_type : String,
                            more_info : String
                          )
+
+
+
+
+
+
+
+
 
 
 object JSONFactory300{
@@ -514,7 +569,7 @@ object JSONFactory300{
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
-  
+
   def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJSON (
@@ -528,6 +583,119 @@ object JSONFactory300{
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
-  
-  
+
+
+
+  def transformV140ToAddress(addressJsonV330: AddressvJsonV330): Address = {
+    Address(
+      line1 = addressJsonV330.line_1,
+      line2 = addressJsonV330.line_2,
+      line3 = addressJsonV330.line_3,
+      city = addressJsonV330.city,
+      county = None,
+      state = addressJsonV330.state,
+      postCode = addressJsonV330.postcode,
+      countryCode = addressJsonV330.country_code // May not be a code
+    )
+  }
+
+
+
+  // This goes FROM JSON TO internal representation of a Branch
+  // This can be overloaded, and each function can accept a different input type
+  def transformToBranch(branchJsonV300: BranchJsonV300): Box[Branch] = {
+
+
+    val address : Address = transformV140ToAddress(branchJsonV300.address) // Note the address in V220 is V140
+    val location: Location =  transformV140ToLocation(branchJsonV300.location)  // Note the location is V140
+    val meta: Meta =  transformV140ToMeta(branchJsonV300.meta)  // Note the meta  is V140
+
+
+    val lobby: Lobby = Lobby(
+      monday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.monday.opening_time,
+        closingTime = branchJsonV300.lobby.monday.closing_time),
+      tuesday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.tuesday.opening_time,
+        closingTime = branchJsonV300.lobby.tuesday.closing_time),
+      wednesday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.wednesday.opening_time,
+        closingTime = branchJsonV300.lobby.wednesday.closing_time),
+      thursday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.thursday.opening_time,
+        closingTime = branchJsonV300.lobby.thursday.closing_time),
+      friday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.friday.opening_time,
+        closingTime = branchJsonV300.lobby.friday.closing_time),
+      saturday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.saturday.opening_time,
+        closingTime = branchJsonV300.lobby.saturday.closing_time),
+      sunday = OpeningTimes(
+        openingTime = branchJsonV300.lobby.sunday.opening_time,
+        closingTime = branchJsonV300.lobby.sunday.closing_time)
+    )
+
+
+    val driveUp: DriveUp = DriveUp(
+      monday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.monday.opening_time,
+        closingTime = branchJsonV300.drive_up.monday.closing_time),
+      tuesday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.tuesday.opening_time,
+        closingTime = branchJsonV300.drive_up.tuesday.closing_time),
+      wednesday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.wednesday.opening_time,
+        closingTime = branchJsonV300.drive_up.wednesday.closing_time),
+      thursday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.thursday.opening_time,
+        closingTime = branchJsonV300.drive_up.thursday.closing_time),
+      friday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.friday.opening_time,
+        closingTime = branchJsonV300.drive_up.friday.closing_time),
+      saturday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.saturday.opening_time,
+        closingTime = branchJsonV300.drive_up.saturday.closing_time),
+      sunday = OpeningTimes(
+        openingTime = branchJsonV300.drive_up.sunday.opening_time,
+        closingTime = branchJsonV300.drive_up.sunday.closing_time)
+    )
+
+
+
+
+    val branchRouting = Some(Routing(branchJsonV300.branch_routing.scheme, branchJsonV300.branch_routing.address))
+
+
+
+
+    val isAccessible: Boolean = Try(branchJsonV300.is_accessible.toBoolean).getOrElse(false)
+
+
+    val branch: Branch = Branch(
+      branchId = BranchId(branchJsonV300.id),
+      bankId = BankId(branchJsonV300.bank_id),
+      name = branchJsonV300.name,
+      address = address,
+      location = location,
+      meta = meta,
+      lobbyString = null,
+      driveUpString = null,
+      lobby = Full(lobby),
+      driveUp = Full(driveUp),
+      branchRouting = branchRouting,
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = Full(isAccessible),
+      branchType = Full(branchJsonV300.branch_type),
+      moreInfo = Full(branchJsonV300.more_info)
+    )
+
+    Full(branch)
+  }
+
+
+
+
+
+
+
 }
