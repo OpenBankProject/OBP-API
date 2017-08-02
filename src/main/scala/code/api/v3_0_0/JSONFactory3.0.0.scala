@@ -31,17 +31,13 @@ import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches._
-import net.liftweb.common.{Full, Box}
+import net.liftweb.common.{Box, Full}
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-
-import code.common._
-
 import code.branches.Branches.Branch
-
-import code.api.v3_0_0.AddressvJsonV330
+import code.common._
 
 // should replace Address in 1.4
 
@@ -285,7 +281,7 @@ case class DriveUpJsonV330(
 //}
 
 
-case class AddressvJsonV330(
+case class AddressJsonV330(
                              line_1 : String,
                              line_2 : String,
                              line_3 : String,
@@ -303,7 +299,7 @@ case class BranchJsonV300(
                            id: String,
                            bank_id: String,
                            name: String,
-                           address: AddressvJsonV330,
+                           address: AddressJsonV330,
                            location: LocationJsonV140,
                            meta: MetaJsonV140,
                            lobby: LobbyJsonV330,
@@ -317,7 +313,7 @@ case class BranchJsonV300(
 
 
 
-
+case class BranchesJsonV300(branches : List[BranchJsonV300])
 
 
 
@@ -566,9 +562,107 @@ object JSONFactory300{
     )
   }
 
+  // Accept a license object and return its json representation
+  def createLicenseJson(license : LicenseT) : LicenseJsonV140 = {
+    LicenseJsonV140(license.id, license.name)
+  }
+
+  def createLocationJson(location : LocationT) : LocationJsonV140 = {
+    LocationJsonV140(location.latitude, location.longitude)
+  }
 
 
-  def transformV140ToAddress(addressJsonV330: AddressvJsonV330): Address = {
+  def createDriveUpStringJson(hours : String) : DriveUpStringJson = {
+    DriveUpStringJson(hours)
+  }
+
+  def createLobbyStringJson(hours : String) : LobbyStringJson = {
+    LobbyStringJson(hours)
+  }
+
+  def createMetaJson(meta: MetaT) : MetaJsonV140 = {
+    MetaJsonV140(createLicenseJson(meta.license))
+  }
+
+
+
+  def createBranchJson(branch: BranchT): BranchJsonV300 = {
+    BranchJsonV300(branch.branchId.value,
+      branch.bankId.value,
+      branch.name,
+      AddressJsonV330(branch.address.line1,
+        branch.address.line2,
+        branch.address.line3,
+        branch.address.city,
+        branch.address.county.getOrElse(""),
+        branch.address.state,
+        branch.address.postCode,
+        branch.address.countryCode),
+      createLocationJson(branch.location),
+      createMetaJson(branch.meta),
+      LobbyJsonV330(
+        monday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.monday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.monday.closingTime).getOrElse("")),
+        tuesday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.tuesday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.tuesday.closingTime).getOrElse("")),
+        wednesday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.wednesday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.wednesday.closingTime).getOrElse("")),
+        thursday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.thursday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.thursday.closingTime).getOrElse("")),
+        friday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.friday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.friday.closingTime).getOrElse("")),
+        saturday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.saturday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.saturday.closingTime).getOrElse("")),
+        sunday = OpeningTimesV300(
+          opening_time = branch.lobby.map(_.sunday.openingTime).getOrElse(""),
+          closing_time = branch.lobby.map(_.sunday.closingTime).getOrElse(""))
+      ),
+      DriveUpJsonV330(
+        monday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.monday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.monday.closingTime).getOrElse("")),
+        tuesday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.tuesday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.tuesday.closingTime).getOrElse("")),
+        wednesday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.wednesday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.wednesday.closingTime).getOrElse("")),
+        thursday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.thursday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.thursday.closingTime).getOrElse("")),
+        friday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.friday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.friday.closingTime).getOrElse("")),
+        saturday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.saturday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.saturday.closingTime).getOrElse("")),
+        sunday = OpeningTimesV300(
+          opening_time = branch.driveUp.map(_.sunday.openingTime).getOrElse(""),
+          closing_time = branch.driveUp.map(_.sunday.closingTime).getOrElse(""))
+      ),
+      BranchRoutingJsonV141(
+        scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
+        address = branch.branchRouting.map(_.scheme).getOrElse("")
+      ),
+      is_accessible = "",
+      branch_type = "",
+      more_info = ""
+    )
+  }
+
+  def createBranchesJson(branchesList: List[BranchT]): BranchesJsonV300 = {
+    BranchesJsonV300(branchesList.map(createBranchJson))
+  }
+
+
+
+  def transformV140ToAddress(addressJsonV330: AddressJsonV330): Address = {
     Address(
       line1 = addressJsonV330.line_1,
       line2 = addressJsonV330.line_2,
