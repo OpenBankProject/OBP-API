@@ -799,17 +799,21 @@ trait APIMethods300 {
       "getBranches",
       "GET",
       "/banks/BANK_ID/branches",
-      "Get Bank Branches",
+      "Get Branches for a Bank",
       s"""Returns information about branches for a single bank specified by BANK_ID including:
          |
         |* Name
          |* Address
          |* Geo Location
          |* License the data under this endpoint is released under
+         |* Structured opening hours
+         |* Accessible flag
+         |* Branch Type
+         |* More Info
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
-      branchesJson,
+      branchesJsonV300,
       List(
         UserNotLoggedIn,
         BankNotFound,

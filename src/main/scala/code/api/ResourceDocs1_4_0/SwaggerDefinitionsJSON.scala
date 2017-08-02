@@ -943,6 +943,8 @@ object SwaggerDefinitionsJSON {
 
 
   val branchJsonV300: BranchJsonV300 = createBranchJsonV300 (branch)
+  val branchesJsonV300 = BranchesJsonV300(branches = List(branchJsonV300))
+
 
 
 

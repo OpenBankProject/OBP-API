@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.Atm
 import code.branches.Branches.BranchT
 import code.common._
@@ -82,9 +83,11 @@ object JSONFactory1_4_0 {
                         lobby : LobbyStringJson,
                         drive_up: DriveUpStringJson,
                         meta : MetaJsonV140,
-                        branch_routing: BranchRoutingJsonV141)
+                        branch_routing: BranchRoutingJsonV141) // This is bad branch_routing should not have been put in V140
 
   case class BranchesJson (branches : List[BranchJson])
+
+  case class BranchesJsonV300 (branches : List[BranchJsonV300])
 
 
   case class AtmJson(id : String,
