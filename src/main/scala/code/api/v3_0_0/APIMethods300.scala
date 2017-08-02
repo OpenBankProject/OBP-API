@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -7,11 +8,12 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200
-import code.api.v2_1_0.{AtmJsonPost}
+import code.api.v2_1_0.AtmJsonPost
 import code.api.v2_2_0.{AtmJsonV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors.{Connector, InboundAdapterInfo}
-import code.common.{Meta, Location, Address}
+import code.branches.Branches
+import code.branches.Branches.Branch
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
@@ -24,11 +26,10 @@ import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-
-import code.branches.Branches.{DriveUpStringT, LobbyStringT, Branch}
 
 
 
@@ -790,10 +791,53 @@ trait APIMethods300 {
 
 
 
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
 
+    resourceDocs += ResourceDoc(
+      getBranches,
+      apiVersion,
+      "getBranches",
+      "GET",
+      "/banks/BANK_ID/branches",
+      "Get Bank Branches",
+      s"""Returns information about branches for a single bank specified by BANK_ID including:
+         |
+        |* Name
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+      emptyObjectJson,
+      branchesJson,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No branches available. License may not be set.",
+        UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagBank)
+    )
 
-
-
+    lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- if(getBranchesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! UserNotLoggedIn
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            // Get branches from the active provider
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory300.createBranchesJson(branches)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
 
 
 

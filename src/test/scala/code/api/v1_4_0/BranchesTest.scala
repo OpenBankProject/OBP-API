@@ -1,11 +1,11 @@
 package code.api.v1_4_0
 
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
-import dispatch._
-import code.common._
-import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
+import code.api.v3_0_0.V300ServerSetup
+import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
+import code.common._
 import code.model.BankId
 import code.setup.DefaultUsers
 
@@ -13,7 +13,7 @@ import code.setup.DefaultUsers
 Note This does not test retrieval from a backend.
 We mock the backend so get test the API
  */
-class BranchesTest extends V140ServerSetup with DefaultUsers {
+class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("testBank1")
   val BankWithoutLicense = BankId("testBank2")
@@ -265,12 +265,19 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
     scenario("We try to get bank branches for a bank without a data license for branch information") {
 
-      When("We make a request")
+      When("We make a request v1.4.0")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
+
+      When("We make a request v3.0.0")
+      val request300 = (v3_0Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
+      val response300 = makeGetRequest(request300)
+
+      Then("We should get a 200")
+      response300.code should equal(200)
     }
 
     scenario("We try to get bank branches for a bank with a data license for branch information") {

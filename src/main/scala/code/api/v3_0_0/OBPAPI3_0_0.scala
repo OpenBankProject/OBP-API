@@ -162,7 +162,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //First step - make a list of allowed endpoints
   val endpointsOf1_4_0 = Implementations1_4_0.getCustomerMessages ::
                           Implementations1_4_0.addCustomerMessage ::
-                          Implementations1_4_0.getBranches ::
+                          // Implementations1_4_0.getBranches ::
                           Implementations1_4_0.getAtms ::
                           Implementations1_4_0.getCrmEvents ::
                           Implementations1_4_0.getTransactionRequestTypes ::
@@ -309,6 +309,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUser ::
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
+                          Implementations3_0_0.getBranches ::
                           Implementations3_0_0.getAdapter ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
