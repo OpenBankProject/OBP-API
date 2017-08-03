@@ -422,7 +422,10 @@ object SwaggerJSONFactory {
     //      name -> Tesobe,              --> "name" : {"type":"string"}              
     //      bank -> Bank(gh.29.uk),      --> "bank": {"$ref":"#/definitions/Bank"}    
     //      banks -> List(Bank(gh.29.uk) --> "banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
-    val properties = for ((key, value) <- mapOfFields) yield {
+    val properties = for {
+      (key, value) <- mapOfFields
+      _ = print("\n val properties for comprehension: " + key + " is " + value)
+    } yield {
       value match {
         case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"

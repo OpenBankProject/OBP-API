@@ -678,8 +678,7 @@ object JSONFactory300{
 
 
   // This goes FROM JSON TO internal representation of a Branch
-  // This can be overloaded, and each function can accept a different input type
-  def transformToBranch(branchJsonV300: BranchJsonV300): Box[Branch] = {
+  def transformToBranchFromV300(branchJsonV300: BranchJsonV300): Box[Branch] = {
 
 
     val address : Address = transformToAddressFromV300(branchJsonV300.address) // Note the address in V220 is V140

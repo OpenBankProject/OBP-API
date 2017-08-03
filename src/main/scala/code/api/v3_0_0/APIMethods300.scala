@@ -719,11 +719,13 @@ trait APIMethods300 {
               ||
               hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
               , createBranchEntitlementsRequiredText)
-            branchJsonV300 <- tryo {json.extract[Branch]} ?~! ErrorMessages.InvalidJsonFormat
-          success <- Connector.connector.vend.createOrUpdateBranch(branchJsonV300)
+            branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
+            branch <- transformToBranchFromV300(branchJsonV300)
+          success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
             val json = branchJsonV300 // JSONFactory300.createBranchJson(success)
             createdJsonResponse(Extraction.decompose(json))
+            // TODO remove the shortcut i.e. we should do the conversion back from branch to json rather than just echo the input
           }
       }
     }
