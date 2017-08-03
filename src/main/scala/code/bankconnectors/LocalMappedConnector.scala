@@ -1023,12 +1023,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
      val isAccessibleString = optionBooleanToString(branch.isAccessible)
      val branchTypeString = branch.branchType.orNull
 
+    logger.info("before create or update branch")
+
+    val foundBranch : Box[MappedBranch] = getBranch(branch.bankId, branch.branchId)
+
+    logger.info("after getting")
 
       //check the branch existence and update or insert data
-    getBranch(branch.bankId, branch.branchId) match {
+    foundBranch match {
       case Full(mappedBranch) =>
         tryo {
           // Update...
+          logger.info("We found a branch so update...")
           mappedBranch
             // Doesn't make sense to update branchId and bankId
             //.mBranchId(branch.branchId)
@@ -1104,6 +1110,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case _ =>
         tryo {
           // Insert...
+          logger.info("No Branch found so create...")
           MappedBranch.create
             .mBranchId(branch.branchId.toString)
             .mBankId(branch.bankId.toString)
@@ -1120,14 +1127,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-            .mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // OK like this?  only used by versions prior to v3.0.0
-            .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
-            .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
-            .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
-            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
-
-            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
+//            .mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // OK like this?  only used by versions prior to v3.0.0
+//            .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
+//            .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
+//            .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
+//            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
+//            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
+//
+//            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
 //            .mLobbyClosingTimeOnTuesday(branch.lobby.tuesday.closingTime)
 //
 //            .mLobbyOpeningTimeOnWednesday(branch.lobby.wednesday.openingTime)
@@ -1168,13 +1175,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 //            .mDriveUpOpeningTimeOnSunday(branch.driveUp.sunday.openingTime)
 //            .mDriveUpClosingTimeOnSunday(branch.driveUp.sunday.closingTime)
 
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-
-            .mBranchType(branch.branchType.orNull)
-            .mMoreInfo(branch.moreInfo.orNull)
+//            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
+//
+//            .mBranchType(branch.branchType.orNull)
+//            .mMoreInfo(branch.moreInfo.orNull)
             .saveMe()
         }
     }
+    // Return the recently created / updated Branch from the database
+    val branchToReturn : Box[BranchT] = getBranch(branch.bankId, branch.branchId)
+    branchToReturn
   }
 
 

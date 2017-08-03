@@ -311,6 +311,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
                           Implementations3_0_0.getBranches ::
+                          // TODO Added getBranch here
                           Implementations3_0_0.getAdapter ::
                           Implementations3_0_0.createBranch ::
                           Nil

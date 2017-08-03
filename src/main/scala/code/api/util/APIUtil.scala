@@ -98,6 +98,8 @@ import code.api.util.APIUtil._
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
   val InvalidInputJsonFormat = "OBP-10006: Invalid input JSON format." // Why do we need this as well as InvalidJsonFormat?
   val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
+  val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
+  val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

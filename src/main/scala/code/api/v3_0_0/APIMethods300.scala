@@ -715,16 +715,19 @@ trait APIMethods300 {
           for {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
+            canCreateBranch <- booleanToBox(
+              hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
               ||
-              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
+              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank) == true
               , createBranchEntitlementsRequiredText)
-            branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
-            branch <- transformToBranchFromV300(branchJsonV300)
-          success <- Connector.connector.vend.createOrUpdateBranch(branch)
+            _ = print("\n createBranch before json.extract: ")
+            branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
+            branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
+            success <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
+            _ = print("\n createBranch before json.extract: success is: " + success)
           } yield {
-            val json = branchJsonV300 // JSONFactory300.createBranchJson(success)
-            createdJsonResponse(Extraction.decompose(json))
+            //val json = branchJsonV300 // JSONFactory300.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(success))
             // TODO remove the shortcut i.e. we should do the conversion back from branch to json rather than just echo the input
           }
       }
@@ -839,6 +842,8 @@ trait APIMethods300 {
           } yield {
             // Format the data as json
             val json = JSONFactory300.createBranchesJson(branches)
+
+            val x = print("\n getBranches json is: " + json)
             successJsonResponse(Extraction.decompose(json))
           }
         }
