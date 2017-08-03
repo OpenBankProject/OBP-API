@@ -441,7 +441,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     accountId: AccountId,
     userId: String,
     transactionRequestType: TransactionRequestType,
-    transactionRequestId: String
+    transactionRequestId: String,
+    phoneNumber: String
   ): Box[String] = {
     // Create argument list
     val req = OutboundChallengeBase(

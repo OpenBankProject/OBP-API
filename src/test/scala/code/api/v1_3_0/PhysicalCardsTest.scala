@@ -74,7 +74,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     //these methods aren't required by our test
     // override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
-    override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
+    override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String] = ???
 
     override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = AmountOfMoney("EUR", "0")
     // parameters in non ideal order override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???

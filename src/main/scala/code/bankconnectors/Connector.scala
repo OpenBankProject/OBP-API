@@ -153,7 +153,7 @@ trait Connector extends MdcLoggable{
                      currency: String): Box[AmountOfMoney]
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String]
+  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String]
   // Validates an answer for a challenge and returs if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean]
 
@@ -628,7 +628,7 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
 
         // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
         val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
@@ -733,7 +733,7 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
 
 
         // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210

@@ -401,13 +401,15 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     accountId: AccountId,
     userId: String,
     transactionRequestType: TransactionRequestType,
-    transactionRequestId: String
+    transactionRequestId: String,
+    phoneNumber: String
   ): Box[String] = saveConnectorMetric{
     LocalMappedConnector.createChallenge(
       bankId: BankId, accountId: AccountId,
       userId: String,
       transactionRequestType: TransactionRequestType,
-      transactionRequestId: String
+      transactionRequestId: String,
+      phoneNumber: String
     )}("createChallenge")
   
   //TODO, not implement in Adapter, just fake the response 

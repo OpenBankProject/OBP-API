@@ -9,6 +9,10 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 
+/**
+  * Created by slavisa on 6/5/17.
+  */
+case class AuthInfo(userId: String, username: String, cbsToken: String)
 
 case class InboundAccountJune2017(
   errorCode: String,
@@ -61,4 +65,8 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 
 case class InternalTransactionId(
   id : String
+)
+
+case class InternalCreateChallengeJune2017(
+  answer : String
 )

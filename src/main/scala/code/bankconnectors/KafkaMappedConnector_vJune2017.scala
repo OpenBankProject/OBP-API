@@ -577,6 +577,60 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   
   
   
+  messageDocs += MessageDoc(
+    process = "obp.create.Challenge",
+    messageFormat = messageFormat,
+    description = "CreateChallenge from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundChallengeBase(
+        action = "obp.create.Challenge",
+        messageFormat = messageFormat,
+        bankId = "gh.29.uk",
+        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
+        username = "susan.uk.29@example.com",
+        transactionRequestType = "SANDBOX_TAN",
+        transactionRequestId = "1234567"
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundCreateChallange(
+        errorCode = "OBP-6001: ...",
+        challengeId = "1234567"
+      )
+    )
+  )
+  
+  override def createChallenge(
+    bankId: BankId,
+    accountId: AccountId,
+    userId: String,
+    transactionRequestType: TransactionRequestType,
+    transactionRequestId: String,
+    phoneNumber: String
+  ): Box[String] = {
+    val req = OutboundCreateChallengeJune2017(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
+      bankId = bankId.value,
+      accountId = accountId.value,
+      userId = userId,
+      username = AuthUser.getCurrentUserUsername,
+      transactionRequestType = transactionRequestType.value,
+      transactionRequestId = transactionRequestId,
+      phoneNumber=phoneNumber
+    )
+    
+    val r: Option[InboundCreateChallengeJune2017] = process[OutboundCreateChallengeJune2017](req).extractOpt[InboundCreateChallengeJune2017]
+    
+    r match {
+      //       Check does the response data match the requested data
+      case Some(x) => Full(x.data.answer)
+      case _ => Empty
+    }
+    
+  }
+  
+  
   //////////////////////////////////////////////////////////////////////////////// 
   // the following methods do not implement in new Adapter code
   messageDocs += MessageDoc(
@@ -699,67 +753,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     )
   }
 
-  
-  messageDocs += MessageDoc(
-    process = "obp.create.Challenge",
-    messageFormat = messageFormat,
-    description = "CreateChallenge from kafka ",
-    exampleOutboundMessage = decompose(
-      OutboundChallengeBase(
-        action = "obp.create.Challenge",
-        messageFormat = messageFormat,
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        transactionRequestType = "SANDBOX_TAN",
-        transactionRequestId = "1234567"
-      )
-    ),
-    exampleInboundMessage = decompose(
-      InboundCreateChallange(
-        errorCode = "OBP-6001: ...",
-        challengeId = "1234567"
-      )
-    )
-  )
 
-  override def createChallenge(
-                                bankId: BankId,
-                                accountId: AccountId,
-                                userId: String,
-                                transactionRequestType: TransactionRequestType,
-                                transactionRequestId: String
-                              ): Box[String] = {
-    // Create argument list
-    val req = OutboundChallengeBase(
-      messageFormat = messageFormat,
-      action = "obp.create.Challenge",
-      bankId = bankId.value,
-      accountId = accountId.value,
-      userId = userId,
-      username = currentResourceUsername,
-      transactionRequestType = transactionRequestType.value,
-      transactionRequestId = transactionRequestId
-    )
-
-//    val r: Option[InboundCreateChallange] = process(req
-//    ).extractOpt[InboundCreateChallange]
-    // Return result
-//    r match {
-//       Check does the response data match the requested data
-//      case Some(x) => Full(x.challengeId)
-//      case _ => Empty
-//    }
-    //Fake the result for now. 
-    LocalMappedConnector.createChallenge(
-      bankId: BankId,
-      accountId: AccountId,
-      userId: String,
-      transactionRequestType: TransactionRequestType,
-      transactionRequestId: String
-    )
-  }
 
   messageDocs += MessageDoc(
     process = "obp.validate.ChallengeAnswer",

@@ -1,9 +1,5 @@
 package code.bankconnectors
 
-/**
-  * Created by slavisa on 6/5/17.
-  */
-case class AuthInfo(userId: String, username: String, cbsToken: String)
 
 /**
   * case classes used to define topics
@@ -42,6 +38,17 @@ case class CreateTransaction(
   
 ) extends TopicCaseClass
 
+case class OutboundCreateChallengeJune2017(
+  authInfo: AuthInfo,
+  bankId: String,
+  accountId: String,
+  userId: String,
+  username: String,
+  transactionRequestType: String,
+  transactionRequestId: String,
+  phoneNumber: String
+) extends TopicCaseClass
+
 /**
   * case classes used as payloads
   */
@@ -54,3 +61,4 @@ case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
+case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)

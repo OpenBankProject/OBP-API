@@ -58,7 +58,7 @@ private object LocalConnector extends Connector with MdcLoggable {
                                         transactionRequestType: String, currency: String)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String] = ???
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
