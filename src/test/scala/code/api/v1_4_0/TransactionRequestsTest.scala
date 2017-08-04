@@ -23,7 +23,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       accounts.foldLeft(0)((accumulator, account) => {
         //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
         //it with the correct account owners, and be sure that we don't even run into pagination problems
-        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
+        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
       })
     }
 

@@ -335,7 +335,7 @@ object APIUtil extends MdcLoggable {
 
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(application) => application.isActive
+      case Full(application) => application.isActive.get
       case _ => false
     }
   }
@@ -387,9 +387,9 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.get.view
+      val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.get.requestType.method
+      val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
       val url = S.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
@@ -586,10 +586,10 @@ object APIUtil extends MdcLoggable {
       }
       
       if(parsedDate.isDefined){
-        Full(parsedDate.get)
+        Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.get)
+        Full(fallBackParsedDate.openOrThrowException("Attempted to open an empty Box."))
       }
       else{
         Failure(FilterDateFormatError)

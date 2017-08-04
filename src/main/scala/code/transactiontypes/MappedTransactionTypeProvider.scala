@@ -95,13 +95,13 @@ class MappedTransactionType extends LongKeyedMapper[MappedTransactionType] with 
   }
 
   def updateAllFields(mappedTransactionType: MappedTransactionType): Box[MappedTransactionType] = {
-    mTransactionTypeId.set(mappedTransactionType.mTransactionTypeId)
-    mBankId.set(mappedTransactionType.mBankId)
-    mShortCode.set(mappedTransactionType.mShortCode)
-    mSummary.set(mappedTransactionType.mSummary)
-    mDescription.set(mappedTransactionType.mDescription)
-    mCustomerFee_Currency.set(mappedTransactionType.mCustomerFee_Currency)
-    mCustomerFee_Amount.set(mappedTransactionType.mCustomerFee_Amount)
+    mTransactionTypeId.set(mappedTransactionType.mTransactionTypeId.get)
+    mBankId.set(mappedTransactionType.mBankId.get)
+    mShortCode.set(mappedTransactionType.mShortCode.get)
+    mSummary.set(mappedTransactionType.mSummary.get)
+    mDescription.set(mappedTransactionType.mDescription.get)
+    mCustomerFee_Currency.set(mappedTransactionType.mCustomerFee_Currency.get)
+    mCustomerFee_Amount.set(mappedTransactionType.mCustomerFee_Amount.get)
     Some(this)
   }
 }

@@ -68,9 +68,9 @@ class OAuthTest extends ServerSetup {
 
   val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 
-  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None).get
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, None, Some(selfCallback), None).openOrThrowException("Attempted to open an empty Box.")
 
-  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None).get
+  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, None, Some(selfCallback), None).openOrThrowException("Attempted to open an empty Box.")
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
@@ -94,8 +94,8 @@ class OAuthTest extends ServerSetup {
       lastName(randomString(10)).
       saveMe
 
-  lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
-  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key, disabledTestConsumer.secret)
+  lazy val consumer = new Consumer (testConsumer.key.get,testConsumer.secret.get)
+  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key.get, disabledTestConsumer.secret.get)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
@@ -239,7 +239,7 @@ class OAuthTest extends ServerSetup {
       When("the browser is launched to login")
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       Then("we should get a verifier")
-      verifier.get.nonEmpty should equal (true)
+      verifier.openOrThrowException("Attempted to open an empty Box.").nonEmpty should equal (true)
     }
     scenario("the user login and is asked to enter the verifier manually", Verifier, Oauth){
       Given("we will use a valid request token")
@@ -272,7 +272,7 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
-      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
+      val accessToken = getAccessToken(consumer, requestToken, verifier.openOrThrowException("Attempted to open an empty Box."))
       Then("we should get an access token")
       extractToken(accessToken.body)
     }
@@ -282,7 +282,7 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
-      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
+      val accessToken = getAccessToken(consumer, requestToken, verifier.openOrThrowException("Attempted to open an empty Box."))
       Then("we should get an access token")
       extractToken(accessToken.body)
     }
@@ -302,7 +302,7 @@ class OAuthTest extends ServerSetup {
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
-      val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)
+      val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.openOrThrowException("Attempted to open an empty Box."))
       Then("we should get a 401")
       accessTokenReply.code should equal (401)
     }

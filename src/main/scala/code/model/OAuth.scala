@@ -306,7 +306,7 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
   //obscure primary key to avoid revealing information about, e.g. how many consumers are registered
   // (by incrementing ids until receiving a "log in first" page instead of 404)
   val obfuscator = new KeyObfuscator()
-  override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id)
+  override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id.get)
   //I've disabled this method as it only looked to be called by the original implementation of obscurePrimaryKey(in: TheCrudType)
   //and I don't want it affecting anything else
   override def obscurePrimaryKey(in: String): String = ""
@@ -545,9 +545,9 @@ class Token extends LongKeyedMapper[Token]{
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
   def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
-  def isValid : Boolean = expirationDate.is after now
+  def isValid : Boolean = expirationDate.get after now
   def gernerateVerifier : String =
-    if (verifier.isEmpty){
+    if (verifier.get.isEmpty){
         def fiveRandomNumbers() : String = {
           def r() = randomInt(9).toString //from zero to 9
           (1 to 5).map(x => r()).foldLeft("")(_ + _)
@@ -557,7 +557,7 @@ class Token extends LongKeyedMapper[Token]{
       generatedVerifier
     }
     else
-      verifier.is
+      verifier.get
 
   // in the case of user authentication in a third party application
   // (see authenticationURL in class Consumer).
@@ -569,14 +569,14 @@ class Token extends LongKeyedMapper[Token]{
   }
 
   def generateThirdPartyApplicationSecret: String = {
-    if(thirdPartyApplicationSecret isEmpty){
+    if(thirdPartyApplicationSecret.get isEmpty){
       def r() = randomInt(9).toString //from zero to 9
       val generatedSecret = (1 to 10).map(x => r()).foldLeft("")(_ + _)
       thirdPartyApplicationSecret(generatedSecret).save
       generatedSecret
     }
     else
-      thirdPartyApplicationSecret
+      thirdPartyApplicationSecret.get
   }
 }
 object Token extends Token with LongKeyedMetaMapper[Token]{

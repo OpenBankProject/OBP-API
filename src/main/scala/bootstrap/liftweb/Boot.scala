@@ -344,7 +344,7 @@ class Boot extends MdcLoggable {
     }
 
     //for XSS vulnerability, set X-Frame-Options header as DENY
-    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    LiftRules.supplementalHeaders.default.set(List(("X-Frame-Options", "DENY")))
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)

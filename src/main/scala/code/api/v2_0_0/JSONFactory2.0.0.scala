@@ -574,10 +574,10 @@ object JSONFactory200{
       case _       => ("", List())
     }
     new UserJSONV200(user_id = userId,
-      email = user.email,
-      username = stringOrNull(user.username),
-      provider_id = stringOrNull(user.provider),
-      provider = stringOrNull(user.provider),
+      email = user.email.get,
+      username = stringOrNull(user.username.get),
+      provider_id = stringOrNull(user.provider.get),
+      provider = stringOrNull(user.provider.get),
       entitlements = createEntitlementJSONs(entitlements)
     )
   }

@@ -128,14 +128,14 @@ trait SendServerRequests {
 
   def getConsumerSecret(consumerKey : String ) : String = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(c) => c.secret
+      case Full(c) => c.secret.get
       case _ => ""
     }
   }
 
   def getTokenSecret(token : String ) : String = {
     Tokens.tokens.vend.getTokenByKey(token) match {
-      case Full(t) => t.secret
+      case Full(t) => t.secret.get
       case _ => ""
     }
   }

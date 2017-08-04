@@ -598,7 +598,7 @@ trait Connector extends MdcLoggable{
         //save transaction_id into database
         saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
         //update transaction_id filed for varibale 'transactionRequest'
-        transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.get.value)
+        transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.openOrThrowException("Attempted to open an empty Box.").value)
 
       case TransactionRequests.STATUS_PENDING =>
         transactionRequest = transactionRequest

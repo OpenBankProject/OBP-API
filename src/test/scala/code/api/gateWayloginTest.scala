@@ -57,12 +57,12 @@ class gateWayloginTest extends FeatureSpec
   
   feature("Unit Tests for two getCbsToken and getErrors: ") {
     scenario("test the getErrors") {
-      val reply: List[String] =  GatewayLogin.getErrors(compact(render(Extraction.decompose(fakeResultFromAdapter.get))))
+      val reply: List[String] =  GatewayLogin.getErrors(compact(render(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box.")))))
       reply.forall(_.equalsIgnoreCase("")) should equal(true)
     }
   
     scenario("test the getCbsToken") {
-      val reply: List[String] =  GatewayLogin.getCbsTokens(compact(render(Extraction.decompose(fakeResultFromAdapter.get))))
+      val reply: List[String] =  GatewayLogin.getCbsTokens(compact(render(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box.")))))
       reply(0) should equal("cbsToken1")
       reply(1) should equal("cbsToken2")
   

@@ -8,7 +8,7 @@ import code.views.Views
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{DefaultConnectionIdentifier, Props}
 
 /**
  * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
@@ -29,22 +29,22 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).get
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).openOrThrowException("Attempted to open an empty Box.")
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).get
+    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).openOrThrowException("Attempted to open an empty Box.")
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createRandomView(bankId, accountId).get
+    Views.views.vend.createRandomView(bankId, accountId).openOrThrowException("Attempted to open an empty Box.")
   }
 
 
   protected def wipeTestData(): Unit = {
 
     //drop the mongo Database after each test
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    MongoDB.getDb(DefaultConnectionIdentifier).foreach(_.dropDatabase())
 
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {

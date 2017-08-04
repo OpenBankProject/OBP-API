@@ -112,7 +112,7 @@ object OBPAPI1_2 extends OBPRestHelper with MdcLoggable {
           Extraction.decompose(banks)
         }
 
-        Full(successJsonResponse(banksToJson(Bank.all.get)))
+        Full(successJsonResponse(banksToJson(Bank.all.getOrElse(Nil))))
     }
   })
 
