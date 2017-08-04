@@ -27,9 +27,10 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
-import code.api.v2_1_0._
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
@@ -486,7 +487,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         // transaction details
         transactionRequestType = "SANDBOX_TAN",
         transactionChargePolicy = "RECEIVER",
- 
+        transactionRequestCommonBody=SwaggerDefinitionsJSON.transactionRequestBodyCounterpartyJSON,
         // toAccount or toCounterparty
         toCounterpartyId = "1234",
         toCounterpartyName = "obp",
@@ -529,7 +530,8 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
           // transaction details
           transactionRequestType = transactionRequestType.value,
           transactionChargePolicy = chargePolicy,
-    
+          transactionRequestCommonBody=transactionRequestCommonBody,
+          
           // toAccount or toCounterparty
           toCounterpartyId = toCounterparty.counterpartyId,
           toCounterpartyName = toCounterparty.name,
@@ -550,7 +552,8 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
           // transaction details
           transactionRequestType = transactionRequestType.value,
           transactionChargePolicy = chargePolicy,
-    
+          transactionRequestCommonBody=transactionRequestCommonBody,
+          
           // toAccount or toCounterparty
           toCounterpartyId = toAccount.accountId.value,
           toCounterpartyName = toAccount.name,

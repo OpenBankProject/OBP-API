@@ -1,5 +1,7 @@
 package code.bankconnectors
 
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+
 
 /**
   * case classes used to define topics
@@ -26,6 +28,7 @@ case class CreateTransaction(
   // transaction details
   transactionRequestType: String,
   transactionChargePolicy: String,
+  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
   
   // toAccount or toCounterparty
   toCounterpartyId: String,

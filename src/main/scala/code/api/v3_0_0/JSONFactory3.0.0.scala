@@ -25,29 +25,18 @@ Berlin 13359, Germany
 
  */
 package code.api.v3_0_0
-
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches._
 import net.liftweb.common.{Full, Box}
-
-//import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-
 import code.common._
-
 import code.branches.Branches.Branch
-
-import code.api.v3_0_0.AddressvJsonV330
-
-// should replace Address in 1.4
-
 import code.model._
-
 import scala.util.Try
 
 
@@ -209,9 +198,26 @@ case class CounterpartyPhoneToPhoneJson(
 // the data from endpoint, extract as valid JSON
 
 case class TransactionRequestBodyPhoneToPhoneJson(
-  from_account_phone_number: String,
   value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
   description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+  from_account_phone_number: String,
+  charge_policy: String,
+  couterparty: CounterpartyPhoneToPhoneJson
+) extends TransactionRequestCommonBodyJSON
+
+
+case class TransactionRequestBodyAccountToAccount(
+  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
+  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+  from_account_phone_number: String,
+  charge_policy: String,
+  couterparty: CounterpartyPhoneToPhoneJson
+) extends TransactionRequestCommonBodyJSON
+
+case class TransactionRequestBodyATMJson(
+  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
+  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+  from_account_phone_number: String,
   charge_policy: String,
   couterparty: CounterpartyPhoneToPhoneJson
 ) extends TransactionRequestCommonBodyJSON

@@ -1822,6 +1822,22 @@ object SwaggerDefinitionsJSON {
     couterparty = couterparty
   )
   
+  val transactionRequestBodyATMJson = TransactionRequestBodyATMJson(
+    from_account_phone_number="123",
+    value = amountOfMoneyJsonV121,
+    description = "This is a PHONE_TO_PHONE Transaction Request",
+    charge_policy = "SHARED",
+    couterparty = couterparty
+  )
+  
+  val transactionRequestBodyAccountToAccount = TransactionRequestBodyAccountToAccount(
+    from_account_phone_number="123",
+    value = amountOfMoneyJsonV121,
+    description = "This is a PHONE_TO_PHONE Transaction Request",
+    charge_policy = "SHARED",
+    couterparty = couterparty
+  )
+  
   //The commont error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

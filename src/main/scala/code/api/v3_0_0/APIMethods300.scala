@@ -863,10 +863,93 @@ trait APIMethods300 {
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
+  
+    // Transaction Request (ATM)
+    resourceDocs += ResourceDoc(
+      createTransactionRequestATM,
+      apiVersion,
+      "createTransactionRequestATM",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ATM/transaction-requests",
+      "Create Transaction Request (ATM)",
+      s"""$transactionRequestGeneralText
+         |
+         |Special instructions for ATM:
+         |
+         |When using a ATM Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |
+       """.stripMargin,
+      transactionRequestBodyATMJson,
+      transactionRequestWithChargeJSON210,
+      List(
+        UserNotLoggedIn,
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        UserNoPermissionAccessView,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+  
+    // Transaction Request (ACCOUNT_TO_ACCOUNT)
+    resourceDocs += ResourceDoc(
+      createTransactionRequestAccountToAccount,
+      apiVersion,
+      "createTransactionRequestAccountToAccount",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT_TO_ACCOUNT/transaction-requests",
+      "Create Transaction Request (ACCOUNT_TO_ACCOUNT)",
+      s"""$transactionRequestGeneralText
+         |
+         |Special instructions for ACCOUNT_TO_ACCOUNT:
+         |
+         |When using a ATM Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |
+       """.stripMargin,
+      transactionRequestBodyAccountToAccount,
+      transactionRequestWithChargeJSON210,
+      List(
+        UserNotLoggedIn,
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        UserNoPermissionAccessView,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+  
 
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCouterparty = createTransactionRequest
     lazy val createTransactionRequestPhoneToPhone = createTransactionRequest
+    lazy val createTransactionRequestATM = createTransactionRequest
+    lazy val createTransactionRequestAccountToAccount = createTransactionRequest
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
@@ -1027,6 +1110,44 @@ trait APIMethods300 {
               case "PHONE_TO_PHONE" => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  chargePolicy = transDetailsP2PJson.charge_policy
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
+                  transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
+                    viewId,
+                    fromAccount,
+                    new MappedBankAccount(),
+                    new MappedCounterparty(),
+                    transactionRequestType,
+                    transDetailsP2PJson,
+                    transDetailsSerialized,
+                    chargePolicy)
+                } yield createdTransactionRequest
+              }
+              case "ATM" => {
+                for {
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyATMJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  chargePolicy = transDetailsP2PJson.charge_policy
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
+                  transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
+                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
+                    viewId,
+                    fromAccount,
+                    new MappedBankAccount(),
+                    new MappedCounterparty(),
+                    transactionRequestType,
+                    transDetailsP2PJson,
+                    transDetailsSerialized,
+                    chargePolicy)
+                } yield createdTransactionRequest
+              }
+              case "ACCOUNT_TO_ACCOUNT" => {
+                for {
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyAccountToAccount]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
