@@ -1521,7 +1521,7 @@ trait APIMethods210 {
             u <- user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
 
