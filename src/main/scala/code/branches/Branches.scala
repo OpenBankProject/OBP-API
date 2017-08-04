@@ -296,16 +296,14 @@ trait BranchesProvider {
         val branchesWithLicense = for {
          branch <- branches if branch.meta.license.name.size > 3
         } yield branch
-        Option(branchesWithLicense)
         logger.debug(s"getBranches says there are ${branches.length} branchesWithLicense")
-        branchesWithLicense
+        Option(branchesWithLicense)
       }
       case None => {
         logger.debug(s"getBranches says there are None branches")
         None
       }
     }
-    branches
   }
 
   /*
