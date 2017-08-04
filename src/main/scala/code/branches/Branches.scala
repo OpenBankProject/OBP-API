@@ -287,16 +287,25 @@ trait BranchesProvider {
    */
   final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
     // If we get branches filter them
-    getBranchesFromProvider(bankId) match {
+    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId)
+
+    branches match {
       case Some(branches) => {
+        logger.debug(s"getBranches says there are ${branches.length} branches with or without license")
 
         val branchesWithLicense = for {
          branch <- branches if branch.meta.license.name.size > 3
         } yield branch
         Option(branchesWithLicense)
+        logger.debug(s"getBranches says there are ${branches.length} branchesWithLicense")
+        branchesWithLicense
       }
-      case None => None
+      case None => {
+        logger.debug(s"getBranches says there are None branches")
+        None
+      }
     }
+    branches
   }
 
   /*

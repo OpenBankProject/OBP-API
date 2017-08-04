@@ -832,18 +832,18 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             u <- if(getBranchesIsPublic)
               Box(Some(1))
             else
               user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory300.createBranchesJson(branches)
 
-            val x = print("\n getBranches json is: " + json)
+            // val x = print("\n getBranches json is: " + json)
             successJsonResponse(Extraction.decompose(json))
           }
         }

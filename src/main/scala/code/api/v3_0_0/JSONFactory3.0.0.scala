@@ -648,11 +648,11 @@ object JSONFactory300{
       ),
       BranchRoutingJsonV141(
         scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
-        address = branch.branchRouting.map(_.scheme).getOrElse("")
+        address = branch.branchRouting.map(_.address).getOrElse("")
       ),
-      is_accessible = "",
-      branch_type = "",
-      more_info = ""
+      is_accessible = (if (branch.isAccessible.isEmpty) "Unknown" else branch.isAccessible.toString),
+      branch_type = branch.branchType.getOrElse(""),
+      more_info = branch.moreInfo.getOrElse("")
     )
   }
 
