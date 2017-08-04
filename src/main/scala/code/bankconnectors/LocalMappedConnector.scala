@@ -1108,9 +1108,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .saveMe()
         }
       case _ =>
-        tryo {
+        //tryo {
           // Insert...
-          logger.info("No Branch found so create...")
+          logger.info("Creating Branch...")
           MappedBranch.create
             .mBranchId(branch.branchId.toString)
             .mBankId(branch.bankId.toString)
@@ -1127,8 +1127,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-//            .mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // OK like this?  only used by versions prior to v3.0.0
-//            .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
+            //.mLobbyHours(branch.lobbyString.map(_.hours).getOrElse("")) // null no good.
+            //.mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
 //            .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
 //            .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
 //            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
@@ -1180,7 +1180,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 //            .mBranchType(branch.branchType.orNull)
 //            .mMoreInfo(branch.moreInfo.orNull)
             .saveMe()
-        }
+        //}
     }
     // Return the recently created / updated Branch from the database
     val branchToReturn : Box[BranchT] = getBranch(branch.bankId, branch.branchId)
