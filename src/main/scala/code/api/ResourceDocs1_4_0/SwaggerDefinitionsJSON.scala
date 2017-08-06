@@ -3,11 +3,10 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
-import code.api.v3_0_0.BranchJsonV300
-import code.branches.Branches.{BranchId, DriveUp, Lobby, Branch}
+import code.api.v3_0_0.{AddressJsonV300, AtmJsonV300, BranchJsonV300}
+import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.common._
 import net.liftweb.common.Full
-
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 
 import scala.util.Try
@@ -957,6 +956,50 @@ object SwaggerDefinitionsJSON {
   )
 
   val atmsJson = AtmsJson(atms = List(atmJson))
+
+  val atmJsonV300 = AtmJsonV300(
+    id = "atm-id-123",
+    bank_id = "bank-id-123",
+    name = "Atm by the Lake",
+    address = AddressJsonV300(
+      line_1 = "No 1 the Road",
+      line_2 = "The Place",
+      line_3 = "The Hill",
+      city = "Berlin",
+      county = "",
+      state = "Brandenburg",
+      postcode = "13359",
+      //ISO_3166-1_alpha-2
+      country_code = "DE"
+    ),
+    location = locationJson,
+    meta = metaJson,
+    opening_time_on_monday = "10:00",
+    closing_time_on_monday = "15:00",
+
+    opening_time_on_tuesday = "10:00",
+    closing_time_on_tuesday = "15:00",
+
+    opening_time_on_wednesday = "10:00",
+    closing_time_on_wednesday = "15:00",
+
+    opening_time_on_thursday = "10:00",
+    closing_time_on_thursday= "15:00",
+
+    opening_time_on_friday = "10:00",
+    closing_time_on_friday = "15:00",
+
+    opening_time_on_saturday = "10:00",
+    closing_time_on_saturday = "15:00",
+
+    opening_time_on_sunday= "10:00",
+    closing_time_on_sunday = "15:00",
+
+    is_accessible = "true",
+    branch_type = "Full service store",
+    more_info = "short walk to the lake from here"
+
+  )
 
   val productJson = ProductJson(
     code = "String",
