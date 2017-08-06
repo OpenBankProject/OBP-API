@@ -715,20 +715,19 @@ trait APIMethods300 {
           for {
             u <- user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
-            canCreateBranch <- booleanToBox(
+            _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
               ||
               hasEntitlement("", u.userId, CanCreateBranchAtAnyBank) == true
-              , createBranchEntitlementsRequiredText)
-            _ = print("\n createBranch before json.extract: ")
+              , createBranchEntitlementsRequiredText
+            )
             branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
+            _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
-            success <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
-            _ = print("\n createBranch before json.extract: success is: " + success)
+            success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
-            //val json = branchJsonV300 // JSONFactory300.createBranchJson(success)
-            createdJsonResponse(Extraction.decompose(success))
-            // TODO remove the shortcut i.e. we should do the conversion back from branch to json rather than just echo the input
+            val json = JSONFactory300.createBranchJsonV300(success)
+            createdJsonResponse(Extraction.decompose(json))
           }
       }
     }

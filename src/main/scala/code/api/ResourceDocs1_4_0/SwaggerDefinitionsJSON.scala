@@ -931,13 +931,13 @@ object SwaggerDefinitionsJSON {
     meta = meta,
     lobbyString = None,
     driveUpString = None,
-    lobby = Full(lobby),
-    driveUp = Full(driveUp),
+    lobby = Some(lobby),
+    driveUp = Some(driveUp),
     branchRouting = branchRouting,
     // Easy access for people who use wheelchairs etc.
-    isAccessible = Full(isAccessible),
-    branchType = Full("Full service store"),
-    moreInfo = Full("short walk to the lake from here")
+    isAccessible = Some(isAccessible),
+    branchType = Some("Full service store"),
+    moreInfo = Some("short walk to the lake from here")
   )
 
 

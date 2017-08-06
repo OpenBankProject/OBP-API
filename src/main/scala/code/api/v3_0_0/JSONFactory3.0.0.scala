@@ -29,7 +29,7 @@ package code.api.v3_0_0
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
-import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.branches.Branches._
 import net.liftweb.common.{Box, Full}
 
@@ -650,7 +650,7 @@ object JSONFactory300{
         scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
         address = branch.branchRouting.map(_.address).getOrElse("")
       ),
-      is_accessible = (if (branch.isAccessible.isEmpty) "Unknown" else branch.isAccessible.toString),
+      is_accessible = branch.isAccessible.map(_.toString).getOrElse(""),
       branch_type = branch.branchType.getOrElse(""),
       more_info = branch.moreInfo.getOrElse("")
     )
@@ -753,15 +753,15 @@ object JSONFactory300{
       address = address,
       location = location,
       meta = meta,
-      lobbyString = null,
-      driveUpString = null,
-      lobby = Full(lobby),
-      driveUp = Full(driveUp),
+      lobbyString = None,
+      driveUpString = None,
+      lobby = Some(lobby),
+      driveUp = Some(driveUp),
       branchRouting = branchRouting,
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
-      isAccessible = Full(isAccessible),
-      branchType = Full(branchJsonV300.branch_type),
-      moreInfo = Full(branchJsonV300.more_info)
+      isAccessible = Some(isAccessible),
+      branchType = Some(branchJsonV300.branch_type),
+      moreInfo = Some(branchJsonV300.more_info)
     )
 
     Full(branch)
