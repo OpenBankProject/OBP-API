@@ -8,17 +8,17 @@ import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
 
-  override protected def getAtmFromProvider(atmId: AtmId): Option[Atm] =
+  override protected def getAtmFromProvider(atmId: AtmId): Option[AtmT] =
   MappedAtm.find(By(MappedAtm.mAtmId, atmId.value))
 
-  override protected def getAtmsFromProvider(bankId: BankId): Option[List[Atm]] = {
+  override protected def getAtmsFromProvider(bankId: BankId): Option[List[AtmT]] = {
     Some(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)))
   }
 
 
 }
 
-class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
+class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
 
   override def getSingleton = MappedAtm
 
@@ -107,33 +107,37 @@ class MappedAtm extends Atm with LongKeyedMapper[MappedAtm] with IdPK {
   )
 
 
-  override def  OpeningTimeOnMonday : String = mOpeningTimeOnMonday.get
-  override def  ClosingTimeOnMonday : String = mClosingTimeOnMonday.get
+  override def  OpeningTimeOnMonday = Some(mOpeningTimeOnMonday.get)
+  override def  ClosingTimeOnMonday = Some(mClosingTimeOnMonday.get)
 
-  override def  OpeningTimeOnTuesday : String = mOpeningTimeOnTuesday.get
-  override def  ClosingTimeOnTuesday : String = mClosingTimeOnTuesday.get
+  override def  OpeningTimeOnTuesday = Some(mOpeningTimeOnTuesday.get)
+  override def  ClosingTimeOnTuesday = Some(mClosingTimeOnTuesday.get)
 
-  override def  OpeningTimeOnWednesday : String = mOpeningTimeOnWednesday.get
-  override def  ClosingTimeOnWednesday : String = mClosingTimeOnWednesday.get
+  override def  OpeningTimeOnWednesday = Some(mOpeningTimeOnWednesday.get)
+  override def  ClosingTimeOnWednesday = Some(mClosingTimeOnWednesday.get)
 
-  override def  OpeningTimeOnThursday : String = mOpeningTimeOnThursday.get
-  override def  ClosingTimeOnThursday: String = mClosingTimeOnThursday.get
+  override def  OpeningTimeOnThursday = Some(mOpeningTimeOnThursday.get)
+  override def  ClosingTimeOnThursday = Some(mClosingTimeOnThursday.get)
 
-  override def  OpeningTimeOnFriday : String = mOpeningTimeOnFriday.get
-  override def  ClosingTimeOnFriday : String = mClosingTimeOnFriday.get
+  override def  OpeningTimeOnFriday = Some(mOpeningTimeOnFriday.get)
+  override def  ClosingTimeOnFriday = Some(mClosingTimeOnFriday.get)
 
-  override def  OpeningTimeOnSaturday : String = mOpeningTimeOnSaturday.get
-  override def  ClosingTimeOnSaturday : String = mClosingTimeOnSaturday.get
+  override def  OpeningTimeOnSaturday = Some(mOpeningTimeOnSaturday.get)
+  override def  ClosingTimeOnSaturday = Some(mClosingTimeOnSaturday.get)
 
-  override def  OpeningTimeOnSunday: String = mOpeningTimeOnSunday.get
-  override def  ClosingTimeOnSunday : String = mClosingTimeOnSunday.get
+  override def  OpeningTimeOnSunday = Some(mOpeningTimeOnSunday.get)
+  override def  ClosingTimeOnSunday = Some(mClosingTimeOnSunday.get)
 
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-  override def  isAccessible : String = mIsAccessible.get
+  override def  isAccessible = mIsAccessible.get match {
+    case "Y" => Some(true)
+    case "N" => Some(false)
+    case _ => None
+  }
 
-  override def  branchType : String = mBranchType.get
-  override def  moreInfo : String = mMoreInfo.get
+  override def  branchType = Some(mBranchType.get)
+  override def  moreInfo = Some(mMoreInfo.get)
 
 
 

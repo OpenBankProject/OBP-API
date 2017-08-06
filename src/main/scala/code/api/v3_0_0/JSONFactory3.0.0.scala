@@ -29,7 +29,8 @@ package code.api.v3_0_0
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
-import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
+import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import net.liftweb.common.{Box, Full}
 
@@ -316,8 +317,41 @@ case class BranchJsonV300(
 case class BranchesJsonV300(branches : List[BranchJsonV300])
 
 
+case class AtmJsonV300 (
+                 id : String,
+                 bank_id : String,
+                 name : String,
+                 address: AddressJsonV300,
+                 location: LocationJsonV140,
+                 meta: MetaJsonV140,
 
+                 opening_time_on_monday : String,
+                 closing_time_on_monday : String,
 
+                 opening_time_on_tuesday : String,
+                 closing_time_on_tuesday : String,
+
+                 opening_time_on_wednesday : String,
+                 closing_time_on_wednesday : String,
+
+                 opening_time_on_thursday : String,
+                 closing_time_on_thursday: String,
+
+                 opening_time_on_friday : String,
+                 closing_time_on_friday : String,
+
+                 opening_time_on_saturday : String,
+                 closing_time_on_saturday : String,
+
+                 opening_time_on_sunday: String,
+                 closing_time_on_sunday : String,
+
+                 is_accessible : String,
+                 branch_type : String,
+                 more_info : String
+               )
+
+case class AtmsJsonV300(branches : List[AtmJsonV300])
 
 
 object JSONFactory300{
@@ -650,7 +684,7 @@ object JSONFactory300{
         scheme = branch.branchRouting.map(_.scheme).getOrElse(""),
         address = branch.branchRouting.map(_.address).getOrElse("")
       ),
-      is_accessible = (if (branch.isAccessible.isEmpty) "Unknown" else branch.isAccessible.toString),
+      is_accessible = branch.isAccessible.map(_.toString).getOrElse(""),
       branch_type = branch.branchType.getOrElse(""),
       more_info = branch.moreInfo.getOrElse("")
     )
@@ -660,6 +694,43 @@ object JSONFactory300{
     BranchesJsonV300(branchesList.map(createBranchJsonV300))
   }
 
+  def createAtmJsonV300(atm: AtmT): AtmJsonV300 = {
+    AtmJsonV300(
+      id= atm.atmId.value,
+      bank_id= atm.bankId.value,
+      name= atm.name,
+      AddressJsonV300(atm.address.line1,
+        atm.address.line2,
+        atm.address.line3,
+        atm.address.city,
+        atm.address.county.getOrElse(""),
+        atm.address.state,
+        atm.address.postCode,
+        atm.address.countryCode),
+      createLocationJson(atm.location),
+      createMetaJson(atm.meta),
+      opening_time_on_monday = atm.OpeningTimeOnMonday.getOrElse(""),
+      closing_time_on_monday = atm.ClosingTimeOnMonday.getOrElse(""),
+      opening_time_on_tuesday = atm.OpeningTimeOnTuesday.getOrElse(""),
+      closing_time_on_tuesday = atm.ClosingTimeOnTuesday.getOrElse(""),
+      opening_time_on_wednesday = atm.OpeningTimeOnWednesday.getOrElse(""),
+      closing_time_on_wednesday = atm.ClosingTimeOnWednesday.getOrElse(""),
+      opening_time_on_thursday = atm.OpeningTimeOnThursday.getOrElse(""),
+      closing_time_on_thursday = atm.ClosingTimeOnThursday.getOrElse(""),
+      opening_time_on_friday = atm.OpeningTimeOnFriday.getOrElse(""),
+      closing_time_on_friday = atm.ClosingTimeOnFriday.getOrElse(""),
+      opening_time_on_saturday = atm.OpeningTimeOnSaturday.getOrElse(""),
+      closing_time_on_saturday = atm.ClosingTimeOnSaturday.getOrElse(""),
+      opening_time_on_sunday = atm.OpeningTimeOnSunday.getOrElse(""),
+      closing_time_on_sunday = atm.ClosingTimeOnSunday.getOrElse(""),
+      is_accessible = atm.isAccessible.map(_.toString).getOrElse(""),
+      branch_type = atm.branchType.getOrElse(""),
+      more_info = atm.moreInfo.getOrElse("")
+    )
+  }
+  def createAtmsJsonV300(atmList: List[AtmT]): AtmsJsonV300 = {
+    AtmsJsonV300(atmList.map(createAtmJsonV300))
+  }
 
 
   def transformToAddressFromV300(addressJsonV300: AddressJsonV300): Address = {
@@ -675,7 +746,46 @@ object JSONFactory300{
     )
   }
 
+  def transformToAtmFromV300(atmJsonV300: AtmJsonV300): Box[Atm] = {
+    val address : Address = transformToAddressFromV300(atmJsonV300.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV300.location)  // Note the location is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV300.meta)  // Note the meta  is V140
+    val isAccessible: Boolean = Try(atmJsonV300.is_accessible.toBoolean).getOrElse(false)
 
+    val atm = Atm(
+      atmId = AtmId(atmJsonV300.id),
+      bankId = BankId(atmJsonV300.bank_id),
+      name = atmJsonV300.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = Some(atmJsonV300.opening_time_on_monday),
+      ClosingTimeOnMonday = Some(atmJsonV300.closing_time_on_monday),
+
+      OpeningTimeOnTuesday = Some(atmJsonV300.opening_time_on_tuesday),
+      ClosingTimeOnTuesday = Some(atmJsonV300.closing_time_on_tuesday),
+
+      OpeningTimeOnWednesday = Some(atmJsonV300.opening_time_on_wednesday),
+      ClosingTimeOnWednesday = Some(atmJsonV300.closing_time_on_wednesday),
+
+      OpeningTimeOnThursday = Some(atmJsonV300.opening_time_on_thursday),
+      ClosingTimeOnThursday = Some(atmJsonV300.closing_time_on_thursday),
+
+      OpeningTimeOnFriday = Some(atmJsonV300.opening_time_on_friday),
+      ClosingTimeOnFriday = Some(atmJsonV300.closing_time_on_friday),
+
+      OpeningTimeOnSaturday = Some(atmJsonV300.opening_time_on_saturday),
+      ClosingTimeOnSaturday = Some(atmJsonV300.closing_time_on_saturday),
+
+      OpeningTimeOnSunday = Some(atmJsonV300.opening_time_on_sunday),
+      ClosingTimeOnSunday = Some(atmJsonV300.closing_time_on_sunday),
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = Some(isAccessible),
+      branchType = Some(atmJsonV300.branch_type),
+      moreInfo = Some(atmJsonV300.more_info)
+    )
+    Full(atm)
+  }
 
   // This goes FROM JSON TO internal representation of a Branch
   def transformToBranchFromV300(branchJsonV300: BranchJsonV300): Box[Branch] = {
@@ -753,15 +863,15 @@ object JSONFactory300{
       address = address,
       location = location,
       meta = meta,
-      lobbyString = null,
-      driveUpString = null,
-      lobby = Full(lobby),
-      driveUp = Full(driveUp),
+      lobbyString = None,
+      driveUpString = None,
+      lobby = Some(lobby),
+      driveUp = Some(driveUp),
       branchRouting = branchRouting,
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
-      isAccessible = Full(isAccessible),
-      branchType = Full(branchJsonV300.branch_type),
-      moreInfo = Full(branchJsonV300.more_info)
+      isAccessible = Some(isAccessible),
+      branchType = Some(branchJsonV300.branch_type),
+      moreInfo = Some(branchJsonV300.more_info)
     )
 
     Full(branch)
