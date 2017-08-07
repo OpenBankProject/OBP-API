@@ -739,7 +739,7 @@ object JSONFactory300{
       line2 = addressJsonV300.line_2,
       line3 = addressJsonV300.line_3,
       city = addressJsonV300.city,
-      county = None,
+      county = Some(addressJsonV300.county),
       state = addressJsonV300.state,
       postCode = addressJsonV300.postcode,
       countryCode = addressJsonV300.country_code // May not be a code
