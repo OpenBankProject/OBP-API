@@ -825,8 +825,12 @@ trait APIMethods300 {
               Box(Some(1))
             else
               user ?~! UserNotLoggedIn
-            b <- Bank(bankId) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId).filter(_.bankId.value==b.bankId.value)) ?~!
+            _ <- Bank(bankId) ?~! {BankNotFound}
+            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
+              case Some(l) => Full(l)
+              case _ => Empty
+            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
               s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
           } yield {
             // Format the data as json
@@ -921,8 +925,13 @@ trait APIMethods300 {
               Box(Some(1))
             else
               user ?~! UserNotLoggedIn
-            b <- Bank(bankId) ?~! {BankNotFound}
-            atm: Atms.AtmT <- Box(Atms.atmsProvider.vend.getAtm(atmId).filter(_.bankId.value==b.bankId.value)) ?~! {AtmNotFoundByAtmId}
+            _ <- Bank(bankId) ?~! {BankNotFound}
+            atms <- {Atms.atmsProvider.vend.getAtms(bankId) match {
+              case Some(l) => Full(l)
+              case _ => Empty
+            }} ?~!  {AtmNotFoundByAtmId}
+            atm <- Box(atms.filter(_.atmId.value==atmId.value)) ?~!
+              {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmJsonV300(atm)
