@@ -105,6 +105,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   object mBranchType extends MappedString(this, 32)
   object mMoreInfo extends MappedString(this, 128)
+  object mPhoneNumber extends MappedString(this, 32)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
@@ -239,6 +240,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   override def  branchType = Some(mBranchType.get)
   override def  moreInfo = Some(mMoreInfo.get)
+  override def  phoneNumber = Some(mPhoneNumber.get)
 
 }
 
