@@ -1198,6 +1198,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
+    val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
 
     //check the atm existence and update or insert data
     getAtm(atm.bankId, atm.atmId) match {
@@ -1237,8 +1238,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
             .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
             .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mBranchType(atm.branchType.orNull)
+            .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
+            .mHasDepositCapability(hasDepositCapabilityString)
             .saveMe()
         }
       case _ =>
@@ -1280,8 +1282,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
             .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
             .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mBranchType(atm.branchType.orNull)
+            .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
+            .mHasDepositCapability(hasDepositCapabilityString)
             .saveMe()
         }
     }
