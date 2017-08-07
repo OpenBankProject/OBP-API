@@ -722,7 +722,7 @@ trait APIMethods300 {
               , createBranchEntitlementsRequiredText
             )
             branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
-            _ <- booleanToBox(branchJsonV300.bank_id != bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
+            _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
             success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
@@ -777,7 +777,7 @@ trait APIMethods300 {
               createAtmEntitlementsRequiredText)
             atmJson <- tryo {json.extract[AtmJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
             atm <- transformToAtmFromV300(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
-            _ <- booleanToBox(atmJsonV300.bank_id != bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
+            _ <- booleanToBox(atmJson.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory300.createAtmJsonV300(success)
