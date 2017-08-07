@@ -1000,7 +1000,7 @@ object SwaggerDefinitionsJSON {
     is_accessible = "true",
     located_at = "Full service store",
     more_info = "short walk to the lake from here",
-    has_deposit_capability="Y"
+    has_deposit_capability="true"
 
   )
 
