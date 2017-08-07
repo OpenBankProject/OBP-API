@@ -936,7 +936,8 @@ object SwaggerDefinitionsJSON {
     // Easy access for people who use wheelchairs etc.
     isAccessible = Some(isAccessible),
     branchType = Some("Full service store"),
-    moreInfo = Some("short walk to the lake from here")
+    moreInfo = Some("short walk to the lake from here"),
+    phoneNumber = Some("+381631954907")
   )
 
 

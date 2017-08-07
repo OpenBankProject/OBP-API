@@ -1111,6 +1111,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
             .mBranchType(branch.branchType.orNull)
             .mMoreInfo(branch.moreInfo.orNull)
+            .mPhoneNumber(branch.phoneNumber.orNull)
 
             .saveMe()
         }
@@ -1186,6 +1187,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
             .mBranchType(branch.branchType.orNull)
             .mMoreInfo(branch.moreInfo.orNull)
+            .mPhoneNumber(branch.phoneNumber.orNull)
             .saveMe()
         }
     }

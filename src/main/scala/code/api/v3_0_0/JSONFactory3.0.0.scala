@@ -309,7 +309,8 @@ case class BranchJsonV300(
                            // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
                            is_accessible : String,
                            branch_type : String,
-                           more_info : String
+                           more_info : String,
+                           phone_number : String
                          )
 
 
@@ -674,7 +675,8 @@ object JSONFactory300{
       ),
       is_accessible = branch.isAccessible.map(_.toString).getOrElse(""),
       branch_type = branch.branchType.getOrElse(""),
-      more_info = branch.moreInfo.getOrElse("")
+      more_info = branch.moreInfo.getOrElse(""),
+      phone_number = branch.phoneNumber.getOrElse("")
     )
   }
 
@@ -869,7 +871,8 @@ object JSONFactory300{
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
       isAccessible = Some(isAccessible),
       branchType = Some(branchJsonV300.branch_type),
-      moreInfo = Some(branchJsonV300.more_info)
+      moreInfo = Some(branchJsonV300.more_info),
+      phoneNumber = Some(branchJsonV300.phone_number)
     )
 
     Full(branch)
