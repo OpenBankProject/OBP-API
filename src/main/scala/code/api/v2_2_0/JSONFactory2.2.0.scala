@@ -597,8 +597,9 @@ object JSONFactory220{
       ClosingTimeOnSunday = None,
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
       isAccessible = None,
-      branchType = None,
-      moreInfo = None
+      locatedAt = None,
+      moreInfo = None,
+      hasDepositCapability = None
     )
     Full(atm)
   }

@@ -325,30 +325,18 @@ case class AtmJsonV300 (
                  location: LocationJsonV140,
                  meta: MetaJsonV140,
 
-                 opening_time_on_monday : String,
-                 closing_time_on_monday : String,
-
-                 opening_time_on_tuesday : String,
-                 closing_time_on_tuesday : String,
-
-                 opening_time_on_wednesday : String,
-                 closing_time_on_wednesday : String,
-
-                 opening_time_on_thursday : String,
-                 closing_time_on_thursday: String,
-
-                 opening_time_on_friday : String,
-                 closing_time_on_friday : String,
-
-                 opening_time_on_saturday : String,
-                 closing_time_on_saturday : String,
-
-                 opening_time_on_sunday: String,
-                 closing_time_on_sunday : String,
+                 monday: OpeningTimesV300,
+                 tuesday: OpeningTimesV300,
+                 wednesday: OpeningTimesV300,
+                 thursday: OpeningTimesV300,
+                 friday: OpeningTimesV300,
+                 saturday: OpeningTimesV300,
+                 sunday: OpeningTimesV300,
 
                  is_accessible : String,
-                 branch_type : String,
-                 more_info : String
+                 located_at : String,
+                 more_info : String,
+                 has_deposit_capability : String
                )
 
 case class AtmsJsonV300(branches : List[AtmJsonV300])
@@ -709,23 +697,31 @@ object JSONFactory300{
         atm.address.countryCode),
       createLocationJson(atm.location),
       createMetaJson(atm.meta),
-      opening_time_on_monday = atm.OpeningTimeOnMonday.getOrElse(""),
-      closing_time_on_monday = atm.ClosingTimeOnMonday.getOrElse(""),
-      opening_time_on_tuesday = atm.OpeningTimeOnTuesday.getOrElse(""),
-      closing_time_on_tuesday = atm.ClosingTimeOnTuesday.getOrElse(""),
-      opening_time_on_wednesday = atm.OpeningTimeOnWednesday.getOrElse(""),
-      closing_time_on_wednesday = atm.ClosingTimeOnWednesday.getOrElse(""),
-      opening_time_on_thursday = atm.OpeningTimeOnThursday.getOrElse(""),
-      closing_time_on_thursday = atm.ClosingTimeOnThursday.getOrElse(""),
-      opening_time_on_friday = atm.OpeningTimeOnFriday.getOrElse(""),
-      closing_time_on_friday = atm.ClosingTimeOnFriday.getOrElse(""),
-      opening_time_on_saturday = atm.OpeningTimeOnSaturday.getOrElse(""),
-      closing_time_on_saturday = atm.ClosingTimeOnSaturday.getOrElse(""),
-      opening_time_on_sunday = atm.OpeningTimeOnSunday.getOrElse(""),
-      closing_time_on_sunday = atm.ClosingTimeOnSunday.getOrElse(""),
+      monday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnMonday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnMonday.getOrElse("")),
+      tuesday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnTuesday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnTuesday.getOrElse("")),
+      wednesday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnWednesday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnWednesday.getOrElse("")),
+      thursday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnThursday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnThursday.getOrElse("")),
+      friday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnFriday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnFriday.getOrElse("")),
+      saturday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnSaturday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnSaturday.getOrElse("")),
+      sunday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnSunday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnSunday.getOrElse("")),
       is_accessible = atm.isAccessible.map(_.toString).getOrElse(""),
-      branch_type = atm.branchType.getOrElse(""),
-      more_info = atm.moreInfo.getOrElse("")
+      located_at = atm.locatedAt.getOrElse(""),
+      more_info = atm.moreInfo.getOrElse(""),
+      has_deposit_capability = atm.hasDepositCapability.map(_.toString).getOrElse("")
     )
   }
   def createAtmsJsonV300(atmList: List[AtmT]): AtmsJsonV300 = {
@@ -751,6 +747,7 @@ object JSONFactory300{
     val location: Location =  transformToLocationFromV140(atmJsonV300.location)  // Note the location is V140
     val meta: Meta =  transformToMetaFromV140(atmJsonV300.meta)  // Note the meta  is V140
     val isAccessible: Boolean = Try(atmJsonV300.is_accessible.toBoolean).getOrElse(false)
+    val hdc: Boolean = Try(atmJsonV300.has_deposit_capability.toBoolean).getOrElse(false)
 
     val atm = Atm(
       atmId = AtmId(atmJsonV300.id),
@@ -759,30 +756,31 @@ object JSONFactory300{
       address = address,
       location = location,
       meta = meta,
-      OpeningTimeOnMonday = Some(atmJsonV300.opening_time_on_monday),
-      ClosingTimeOnMonday = Some(atmJsonV300.closing_time_on_monday),
+      OpeningTimeOnMonday = Some(atmJsonV300.monday.opening_time),
+      ClosingTimeOnMonday = Some(atmJsonV300.monday.closing_time),
 
-      OpeningTimeOnTuesday = Some(atmJsonV300.opening_time_on_tuesday),
-      ClosingTimeOnTuesday = Some(atmJsonV300.closing_time_on_tuesday),
+      OpeningTimeOnTuesday = Some(atmJsonV300.tuesday.opening_time),
+      ClosingTimeOnTuesday = Some(atmJsonV300.tuesday.closing_time),
 
-      OpeningTimeOnWednesday = Some(atmJsonV300.opening_time_on_wednesday),
-      ClosingTimeOnWednesday = Some(atmJsonV300.closing_time_on_wednesday),
+      OpeningTimeOnWednesday = Some(atmJsonV300.wednesday.opening_time),
+      ClosingTimeOnWednesday = Some(atmJsonV300.wednesday.closing_time),
 
-      OpeningTimeOnThursday = Some(atmJsonV300.opening_time_on_thursday),
-      ClosingTimeOnThursday = Some(atmJsonV300.closing_time_on_thursday),
+      OpeningTimeOnThursday = Some(atmJsonV300.thursday.opening_time),
+      ClosingTimeOnThursday = Some(atmJsonV300.thursday.closing_time),
 
-      OpeningTimeOnFriday = Some(atmJsonV300.opening_time_on_friday),
-      ClosingTimeOnFriday = Some(atmJsonV300.closing_time_on_friday),
+      OpeningTimeOnFriday = Some(atmJsonV300.friday.opening_time),
+      ClosingTimeOnFriday = Some(atmJsonV300.friday.closing_time),
 
-      OpeningTimeOnSaturday = Some(atmJsonV300.opening_time_on_saturday),
-      ClosingTimeOnSaturday = Some(atmJsonV300.closing_time_on_saturday),
+      OpeningTimeOnSaturday = Some(atmJsonV300.saturday.opening_time),
+      ClosingTimeOnSaturday = Some(atmJsonV300.saturday.closing_time),
 
-      OpeningTimeOnSunday = Some(atmJsonV300.opening_time_on_sunday),
-      ClosingTimeOnSunday = Some(atmJsonV300.closing_time_on_sunday),
+      OpeningTimeOnSunday = Some(atmJsonV300.sunday.opening_time),
+      ClosingTimeOnSunday = Some(atmJsonV300.sunday.closing_time),
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
       isAccessible = Some(isAccessible),
-      branchType = Some(atmJsonV300.branch_type),
-      moreInfo = Some(atmJsonV300.more_info)
+      locatedAt = Some(atmJsonV300.located_at),
+      moreInfo = Some(atmJsonV300.more_info),
+      hasDepositCapability = Some(hdc)
     )
     Full(atm)
   }

@@ -46,8 +46,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                       // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
                       isAccessible : Option[Boolean],
 
-                      branchType : Option[String],
-                      moreInfo : Option[String]
+                      locatedAt : Option[String],
+                      moreInfo : Option[String],
+                      hasDepositCapability : Option[Boolean]
                     ) extends AtmT
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],
@@ -88,6 +89,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   val fakeIsAccessible = Some(true)
   val fakeBranchType = Some("Main")
   val fakeMoreInfo = Some("Not available when it's snowing.")
+  val fakehasDepositCapability = Some(true)
 
 
 
@@ -101,7 +103,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo)
+    fakeMoreInfo,
+    fakehasDepositCapability)
   val fakeAtm2 = AtmTImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -112,7 +115,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo)
+    fakeMoreInfo,
+    fakehasDepositCapability)
   val fakeAtm3 = AtmTImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -123,7 +127,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo) // Should not be returned
+    fakeMoreInfo,
+    fakehasDepositCapability) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {

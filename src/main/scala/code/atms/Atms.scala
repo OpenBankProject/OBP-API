@@ -49,8 +49,10 @@ object Atms extends SimpleInjector {
 
     def  isAccessible : Option[Boolean]
 
-    def  branchType : Option[String]
+    def  locatedAt : Option[String]
     def  moreInfo : Option[String]
+    def  hasDepositCapability : Option[Boolean]
+
 
 
   }
@@ -86,8 +88,9 @@ object Atms extends SimpleInjector {
 
     isAccessible : Option[Boolean],
 
-    branchType : Option[String],
-    moreInfo : Option[String]
+    locatedAt : Option[String],
+    moreInfo : Option[String],
+    hasDepositCapability : Option[Boolean]
   )
 
   val atmsProvider = new Inject(buildOne _) {}
