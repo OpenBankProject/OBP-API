@@ -3,7 +3,7 @@ package code.branches
 import code.branches.Branches._
 import code.common._
 import code.model.BankId
-import code.util.{TwentyFourHourClockString, UUIDString}
+import code.util.{TwelveHourClockString, UUIDString}
 import net.liftweb.mapper._
 
 import net.liftweb.common.{Box, Logger}
@@ -55,49 +55,49 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   object mBranchRoutingAddress extends MappedString(this, 64)
 
   // Lobby
-  object mLobbyOpeningTimeOnMonday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnMonday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnMonday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnMonday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnTuesday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnTuesday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnTuesday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnTuesday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnWednesday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnWednesday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnWednesday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnWednesday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnThursday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnThursday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnThursday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnThursday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnFriday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnFriday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnFriday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnFriday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnSaturday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnSaturday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnSaturday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnSaturday extends TwelveHourClockString(this)
 
-  object mLobbyOpeningTimeOnSunday extends TwentyFourHourClockString(this)
-  object mLobbyClosingTimeOnSunday extends TwentyFourHourClockString(this)
+  object mLobbyOpeningTimeOnSunday extends TwelveHourClockString(this)
+  object mLobbyClosingTimeOnSunday extends TwelveHourClockString(this)
 
 
   // Drive Up
-  object mDriveUpOpeningTimeOnMonday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnMonday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnMonday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnMonday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnTuesday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnTuesday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnTuesday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnTuesday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnWednesday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnWednesday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnWednesday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnWednesday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnThursday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnThursday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnThursday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnThursday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnFriday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnFriday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnFriday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnFriday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnSaturday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnSaturday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnSaturday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnSaturday extends TwelveHourClockString(this)
 
-  object mDriveUpOpeningTimeOnSunday extends TwentyFourHourClockString(this)
-  object mDriveUpClosingTimeOnSunday extends TwentyFourHourClockString(this)
+  object mDriveUpOpeningTimeOnSunday extends TwelveHourClockString(this)
+  object mDriveUpClosingTimeOnSunday extends TwelveHourClockString(this)
 
 
 

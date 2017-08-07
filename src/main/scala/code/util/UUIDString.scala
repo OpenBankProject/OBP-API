@@ -32,8 +32,8 @@ object AccountIdString {
 So we can store a time of day without the date e.g. 23:33 - but also go past midnight e.g. 26:33 if we want to represent the following morning.
  Being string gives us flexibility to store other unstructured code too.
  */
-class TwentyFourHourClockString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, TwentyFourHourClockString.MaxLength)
+class TwelveHourClockString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, TwelveHourClockString.MaxLength)
 
-object TwentyFourHourClockString {
-  val MaxLength = 5
+object TwelveHourClockString {
+  val MaxLength = Props.getInt("time_string.length", 10)
 }
