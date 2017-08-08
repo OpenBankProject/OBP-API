@@ -38,7 +38,8 @@ object Branches extends SimpleInjector {
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
   def isAccessible : Option[Boolean]
   def branchType : Option[String]
-  def moreInfo : Option[String]}
+  def moreInfo : Option[String]
+  def phoneNumber : Option[String] }
 
 
 
@@ -60,7 +61,8 @@ object Branches extends SimpleInjector {
                      // Easy access for people who use wheelchairs etc.
                      isAccessible : Option[Boolean],
                      branchType : Option[String],
-                     moreInfo : Option[String]
+                     moreInfo : Option[String],
+                     phoneNumber : Option[String]
                    ) extends BranchT
 
 

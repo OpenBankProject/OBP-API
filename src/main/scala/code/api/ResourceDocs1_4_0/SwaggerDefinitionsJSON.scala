@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
-import code.api.v3_0_0.{AddressJsonV300, AtmJsonV300, BranchJsonV300}
+import code.api.v3_0_0.{AddressJsonV300, AtmJsonV300, BranchJsonV300, OpeningTimesV300}
 import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.common._
 import net.liftweb.common.Full
@@ -936,7 +936,8 @@ object SwaggerDefinitionsJSON {
     // Easy access for people who use wheelchairs etc.
     isAccessible = Some(isAccessible),
     branchType = Some("Full service store"),
-    moreInfo = Some("short walk to the lake from here")
+    moreInfo = Some("short walk to the lake from here"),
+    phoneNumber = Some("+381631954907")
   )
 
 
@@ -974,30 +975,32 @@ object SwaggerDefinitionsJSON {
     ),
     location = locationJson,
     meta = metaJson,
-    opening_time_on_monday = "10:00",
-    closing_time_on_monday = "15:00",
-
-    opening_time_on_tuesday = "10:00",
-    closing_time_on_tuesday = "15:00",
-
-    opening_time_on_wednesday = "10:00",
-    closing_time_on_wednesday = "15:00",
-
-    opening_time_on_thursday = "10:00",
-    closing_time_on_thursday= "15:00",
-
-    opening_time_on_friday = "10:00",
-    closing_time_on_friday = "15:00",
-
-    opening_time_on_saturday = "10:00",
-    closing_time_on_saturday = "15:00",
-
-    opening_time_on_sunday= "10:00",
-    closing_time_on_sunday = "15:00",
+    monday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    tuesday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    wednesday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "15:00"),
+    thursday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    friday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    saturday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    sunday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
 
     is_accessible = "true",
-    branch_type = "Full service store",
-    more_info = "short walk to the lake from here"
+    located_at = "Full service store",
+    more_info = "short walk to the lake from here",
+    has_deposit_capability="true"
 
   )
 

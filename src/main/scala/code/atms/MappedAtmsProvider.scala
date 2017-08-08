@@ -71,8 +71,10 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
 
   object mIsAccessible extends MappedString(this, 1) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
 
-  object mBranchType extends MappedString(this, 32)
+  object mLocatedAt extends MappedString(this, 32)
   object mMoreInfo extends MappedString(this, 128)
+
+  object mHasDepositCapability extends MappedString(this, 1)
 
 
 
@@ -136,10 +138,14 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
     case _ => None
   }
 
-  override def  branchType = Some(mBranchType.get)
+  override def  locatedAt = Some(mLocatedAt.get)
   override def  moreInfo = Some(mMoreInfo.get)
 
-
+  override def  hasDepositCapability = mHasDepositCapability.get match {
+    case "Y" => Some(true)
+    case "N" => Some(false)
+    case _ => None
+  }
 
 
 }
