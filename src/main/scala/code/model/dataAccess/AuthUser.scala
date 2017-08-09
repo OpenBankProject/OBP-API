@@ -888,10 +888,9 @@ import net.liftweb.util.Helpers._
       }
     }
 
-    //TODO not supported in lift3, find another way
-    def innerSignup = //bind("user",
-          signupXhtml(theUser)//,
-    //  "submit" -> signupSubmitButton(S.?("sign.up"), testSignup _))
+    def innerSignup = {
+      ("type=submit" #> signupSubmitButton(S ? "sign.up", testSignup _)) apply signupXhtml(theUser)
+    }
 
     innerSignup
   }
