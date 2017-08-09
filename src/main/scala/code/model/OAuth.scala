@@ -35,7 +35,8 @@ import java.util.Date
 import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Mobile, Web}
-import code.model.TokenType.TokenType
+import code.model.TokenType
+import code.model.TokenType.{Access, Request}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.users.Users
@@ -48,7 +49,6 @@ import code.util.Helper.MdcLoggable
 
 
 sealed trait AppType
-
 object AppType {
   case object Web extends AppType
   case object Mobile extends AppType
@@ -58,9 +58,14 @@ object AppType {
   }
 }
 
-object TokenType extends Enumeration {
-  type TokenType=Value
-  val Request, Access = Value
+sealed trait TokenType
+object TokenType {
+  case object Request extends TokenType
+  case object Access extends TokenType
+  def valueOf(value: String): TokenType = value match {
+    case "Request" => Request
+    case "Access" => Access
+  }
 }
 
 
@@ -467,7 +472,7 @@ object MappedTokenProvider extends TokensProvider {
     Token.find(By(Token.key, key))
   }
   override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
-    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType))
+    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType.toString))
     //println("token: " + token)
     token
   }
@@ -483,7 +488,10 @@ object MappedTokenProvider extends TokensProvider {
                            callbackURL: Option[String]): Box[Token] = {
     tryo {
       val t = Token.create
-      t.tokenType(tokenType)
+      tokenType match {
+        case Request => t.tokenType(Request.toString)
+        case Access => t.tokenType(Access.toString)
+      }
       consumerId match {
         case Some(v) => t.consumerId(v)
         case None =>
@@ -549,7 +557,7 @@ class Token extends LongKeyedMapper[Token]{
   def getSingleton = Token
   def primaryKeyField = id
   object id extends MappedLongIndex(this)
-  object tokenType extends MappedEnum(this, TokenType)
+  object tokenType extends MappedString(this,10)
   object consumerId extends MappedLongForeignKey(this, Consumer)
   object userForeignKey extends MappedLongForeignKey(this, ResourceUser)
   object key extends MappedString(this,250)
@@ -605,5 +613,5 @@ object Token extends Token with LongKeyedMetaMapper[Token]{
   }
 
   def getRequestToken(token: String): Box[Token] =
-    Token.find(By(Token.key, token), By(Token.tokenType, TokenType.Request))
+    Token.find(By(Token.key, token), By(Token.tokenType, TokenType.Request.toString))
 }
