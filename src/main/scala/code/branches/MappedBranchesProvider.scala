@@ -116,7 +116,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
       if (mBranchRoutingScheme == null || mBranchRoutingScheme == "") "BRANCH_ID" else mBranchRoutingScheme.get
     }
     override def address: String = {
-        if (mBranchRoutingAddress == null || mBranchRoutingAddress == "") mBranchId.get else mBranchRoutingAddress
+        if (mBranchRoutingAddress == null || mBranchRoutingAddress == "") mBranchId.get else mBranchRoutingAddress.get
       }
   })
 

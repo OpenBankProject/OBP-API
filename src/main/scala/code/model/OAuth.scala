@@ -34,6 +34,7 @@ import java.util.Date
 
 import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
+import code.model.AppType.{Mobile, Web}
 import code.model.TokenType.TokenType
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
@@ -45,9 +46,16 @@ import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
 import code.util.Helper.MdcLoggable
 
-object AppType extends Enumeration {
-  type AppType = Value
-  val Web, Mobile = Value
+
+sealed trait AppType
+
+object AppType {
+  case object Web extends AppType
+  case object Mobile extends AppType
+  def valueOf(value: String): AppType = value match {
+    case "Web" => Web
+    case "Mobile" => Mobile
+  }
 }
 
 object TokenType extends Enumeration {
@@ -69,7 +77,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                               secret: Option[String],
                               isActive: Option[Boolean],
                               name: Option[String],
-                              appType: Option[AppType.AppType],
+                              appType: Option[AppType],
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
@@ -93,7 +101,10 @@ object MappedConsumersProvider extends ConsumersProvider {
         case None =>
       }
       appType match {
-        case Some(v) => c.appType(v)
+        case Some(v) => v match {
+          case Web => c.appType(Web.toString)
+          case Mobile => c.appType(Mobile.toString)
+        }
         case None =>
       }
       description match {
@@ -121,7 +132,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                               secret: Option[String],
                               isActive: Option[Boolean],
                               name: Option[String],
-                              appType: Option[AppType.AppType],
+                              appType: Option[AppType],
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
@@ -146,7 +157,10 @@ object MappedConsumersProvider extends ConsumersProvider {
           case None =>
         }
         appType match {
-          case Some(v) => c.appType(v)
+          case Some(v) => v match {
+            case Web => c.appType(Web.toString)
+            case Mobile => c.appType(Mobile.toString)
+          }
           case None =>
         }
         description match {
@@ -176,7 +190,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                                    secret: Option[String],
                                    isActive: Option[Boolean],
                                    name: Option[String],
-                                   appType: Option[AppType.AppType],
+                                   appType: Option[AppType],
                                    description: Option[String],
                                    developerEmail: Option[String],
                                    redirectURL: Option[String],
@@ -204,7 +218,10 @@ object MappedConsumersProvider extends ConsumersProvider {
             case None =>
           }
           appType match {
-            case Some(v) => c.appType(v)
+            case Some(v) => v match {
+              case Web => c.appType(Web.toString)
+              case Mobile => c.appType(Mobile.toString)
+            }
             case None =>
           }
           description match {
@@ -267,7 +284,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def dbIndexed_? = true
     override def displayName = "Application name:"
   }
-  object appType extends MappedEnum(this,AppType) {
+  object appType extends MappedString(this, 20) {
     override def displayName = "Application type:"
   }
   object description extends MappedText(this) {
