@@ -34,9 +34,9 @@ import code.api.APIFailure
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.{Atm, AtmId}
-import code.atms.MappedAtm
-import code.branches.Branches.{BranchT, Branch, BranchId}
+import code.atms.Atms.{Atm, AtmId, AtmT}
+import code.atms.{Atms, MappedAtm}
+import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -1302,7 +1302,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getBranch(bankId, branchId)
   }
 
-  override def createOrUpdateAtm(atm: AtmJsonPost): Box[Atm] = {
+  override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
     LocalMappedConnector.createOrUpdateAtm(atm)
   }
 

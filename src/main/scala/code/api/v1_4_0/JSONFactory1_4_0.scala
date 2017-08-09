@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.BranchJsonV300
-import code.atms.Atms.Atm
+import code.atms.Atms.AtmT
 import code.branches.Branches.BranchT
 import code.common._
 import code.crm.CrmEvent.CrmEvent
@@ -215,7 +215,7 @@ object JSONFactory1_4_0 {
 
   // Atms
 
-  def createAtmJson(atm: Atm) : AtmJson = {
+  def createAtmJson(atm: AtmT) : AtmJson = {
     AtmJson(atm.atmId.value,
       atm.name,
       createAddressJson(atm.address),
@@ -223,7 +223,7 @@ object JSONFactory1_4_0 {
       createMetaJson(atm.meta))
   }
 
-  def createAtmsJson(AtmsList: List[Atm]) : AtmsJson = {
+  def createAtmsJson(AtmsList: List[AtmT]) : AtmsJson = {
     AtmsJson(AtmsList.map(createAtmJson))
   }
 

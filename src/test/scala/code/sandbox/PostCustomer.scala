@@ -29,13 +29,20 @@ TESOBE (http://www.tesobe.com/)
 
 /*
 * This is a utility script that can be used to POST data via the API as a logged-in User.
+* It POSTS customers and links them to existing Users
 * It requires the credentials of the user and logs in via OAuth using selenium.
-* TODO Move out of test - or into a separate project
+*
+* We use an "admin user" e.g. a user which has been assigned certain roles to perform the actions.
+* The roles required might include CanCreateCustomer , CanCreateUserCustomerLink
 *
 * To use this one-time script, put e.g.
 * target_api_hostname=https://localhost:8080
 * obp_consumer_key=xxx
 * obp_secret_key=yyy
+* import.main_data_path=path_to.json
+* import.customer_data_path=path_to.json
+* import.admin_user.username=username-of-user-that-has-correct-roles
+* import.admin_user.password=password
 *
 * into your props file.
 * */
@@ -49,6 +56,7 @@ import code.util.{OAuthClient, ObpGet, ObpPost}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.RequestVar
 import net.liftweb.json._
+import net.liftweb.util.Props
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -73,18 +81,6 @@ case class CustomerFullJson(customer_number : String,
 // Copied from 1.4 API
 case class CustomerFaceImageJson(url : String, date : Date)
 
-
-
-
-
-
-// Post customer data
-// Instructions for using this:
-// Run a copy of the API (here or somewhere else)
-// Set the paths for users and counterparties.
-
-// TODO Extract this into a separate application.
-
 object PostCustomer extends SendServerRequests {
 
 
@@ -102,19 +98,27 @@ object PostCustomer extends SendServerRequests {
     implicit val formats = DefaultFormats // Brings in default date formats etc.
 
 
+    val adminUserUsername = Props.get("import.admin_user.username").toString
+    val adminUserPassword = Props.get("import.admin_user.password").toString
+
+
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_RD_and_I/loaded_12/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = Props.get("import.customer_data_path")
+
+    println(s"customerDataPath is $customerDataPath")
 
     // This contains a list of customers.
-    val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
+    val customerListData = JsonParser.parse(Source.fromFile(customerDataPath.getOrElse("ERROR")) mkString)
+
     var customers = ListBuffer[CustomerFullJson]()
 
+    println(s"We have the following customer numbers, emails:")
 
     // Get customers from json
     for(i <- customerListData.children){
         //logger.info(s" extract customer records")
         val c = i.extract[CustomerFullJson]
-        println(c.customer_number + "  " + c.email)
+        println(c.customer_number + ", " + c.email)
         customers.append(c)
 
     }
@@ -124,9 +128,12 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_RD_and_I/loaded_12/OBP_sandbox_pretty.json"
+    val mainDataPath = Props.get("import.main_data_path")
 
-    val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
+    println(s"mainDataPath is $mainDataPath")
+
+    val mainData = JsonParser.parse(Source.fromFile(mainDataPath.getOrElse("ERROR")) mkString)
+
     val users = (mainData \ "users").children
     println("got " + users.length + " users")
 
@@ -147,6 +154,15 @@ object PostCustomer extends SendServerRequests {
                      website : String)
 
 
+    // Login once as an admin user. Will need to have some admin Roles
+    if(!OAuthClient.loggedIn) {
+      print("login as user: ")
+      println (adminUserUsername)
+      OAuthClient.authenticateWithOBPCredentials(adminUserUsername, adminUserPassword)
+      //println(" - ok.")
+    }
+
+
     val banks = for {
       a <- allBanks.toList
       b <- a.bankJsons
@@ -158,45 +174,48 @@ object PostCustomer extends SendServerRequests {
         b.short_name.getOrElse(""),
         b.full_name.getOrElse(""),
         b.logo.getOrElse(""),
-        b.website.getOrElse("")) // Add a flag to say if this bank is featured.
+        b.website.getOrElse("")
+      ) // Add a flag to say if this bank is featured.
 
 
-    //loop over users from json
+      //  println(s"bankid is ${b.id.get}")
+
+    // Loop over the users found in the json
     for (u <- users) {
       val user = u.extract[UserJSONRecord]
       println(" ")
-      print("login as user: ")
 
-      println (user.user_name + " - " + user.password)
 
-      if(!OAuthClient.loggedIn) {
-        OAuthClient.authenticateWithOBPCredentials(user.user_name, user.password)
-        //println(" - ok.")
-      }
+      val filteredCustomers = customers.filter(x => ( x.email == user.email))
 
-      val customer = customers.filter(x => ( x.email == user.email))
+      println(s"we got ${filteredCustomers.length} filtered customers by email ")
 
-      println(s"we got customer that matches ")
-
-      customer.foreach(c =>  {
-        println (s"email is ${c.email} has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
+      filteredCustomers.foreach(c =>  {
+        println (s"   email is ${c.email} has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
 
         // We are able to post this (no need to convert to string explicitly)
         val json = Extraction.decompose(c)
 
 
-
-
         // For now, create a customer
         for (b <- banks) {
-          val url = s"/v2.0.0/banks/${b.id}/customers"
-          val result = ObpPost(url, json)
-          if (!result.isEmpty) {
-            println("saved " + c.customer_number + " as customer " + result)
-          } else {
-            println("did NOT save customer " + result)
+
+          if (b.shortName == "uk") {
+
+            println(s"Posting a customer for bank ${b.shortName}")
+            println(s"json to post is $json")
+            val url = s"/v2.0.0/banks/${b.id}/customers"
+            val result = None
+            //val result = ObpPost(url, json)
+            if (!result.isEmpty) {
+              println("saved " + c.customer_number + " as customer " + result)
+            } else {
+              println("did NOT save customer " + result)
+            }
+
           }
-        }
+
+          }
 
       })
 

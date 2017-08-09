@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.api.util.APIUtil.OAuth._
-import code.atms.Atms.{Atm, AtmId}
+import code.atms.Atms.{AtmT, AtmId}
 import code.atms.{Atms, AtmsProvider}
 import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.model.BankId
@@ -14,41 +14,42 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   val bankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
-  case class AtmImpl(atmId : AtmId,
-                     bankId: BankId,
-                     name : String,
-                     address : AddressT,
-                     location : LocationT,
-                     meta : MetaT,
+  case class AtmTImpl(atmId : AtmId,
+                      bankId: BankId,
+                      name : String,
+                      address : AddressT,
+                      location : LocationT,
+                      meta : MetaT,
 
-                     // Opening times
-                     OpeningTimeOnMonday : String,
-                     ClosingTimeOnMonday : String,
+                      // Opening times
+                      OpeningTimeOnMonday : Option[String],
+                      ClosingTimeOnMonday : Option[String],
 
-                     OpeningTimeOnTuesday : String,
-                     ClosingTimeOnTuesday : String,
+                      OpeningTimeOnTuesday : Option[String],
+                      ClosingTimeOnTuesday : Option[String],
 
-                     OpeningTimeOnWednesday : String,
-                     ClosingTimeOnWednesday : String,
+                      OpeningTimeOnWednesday : Option[String],
+                      ClosingTimeOnWednesday : Option[String],
 
-                     OpeningTimeOnThursday : String,
-                     ClosingTimeOnThursday: String,
+                      OpeningTimeOnThursday : Option[String],
+                      ClosingTimeOnThursday: Option[String],
 
-                     OpeningTimeOnFriday : String,
-                     ClosingTimeOnFriday : String,
+                      OpeningTimeOnFriday : Option[String],
+                      ClosingTimeOnFriday : Option[String],
 
-                     OpeningTimeOnSaturday : String,
-                     ClosingTimeOnSaturday : String,
+                      OpeningTimeOnSaturday : Option[String],
+                      ClosingTimeOnSaturday : Option[String],
 
-                     OpeningTimeOnSunday: String,
-                     ClosingTimeOnSunday : String,
+                      OpeningTimeOnSunday: Option[String],
+                      ClosingTimeOnSunday : Option[String],
 
-                     // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-                     isAccessible : String,
+                      // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                      isAccessible : Option[Boolean],
 
-                     branchType : String,
-                     moreInfo : String
-                    ) extends Atm
+                      locatedAt : Option[String],
+                      moreInfo : Option[String],
+                      hasDepositCapability : Option[Boolean]
+                    ) extends AtmT
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],
                          state : String, postCode : String, countryCode : String) extends AddressT
@@ -82,16 +83,17 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     override def longitude: Double = 22.2222
   }
 
-  val fakeOpeningTime : String = "10:00"
-  val fakeClosingTime : String = "18:00"
+  val fakeOpeningTime = Some("10:00")
+  val fakeClosingTime = Some("18:00")
 
-  val fakeIsAccessible : String = "Y"
-  val fakeBranchType : String = "Main"
-  val fakeMoreInfo : String = "Not available when it's snowing."
+  val fakeIsAccessible = Some(true)
+  val fakeBranchType = Some("Main")
+  val fakeMoreInfo = Some("Not available when it's snowing.")
+  val fakehasDepositCapability = Some(true)
 
 
 
-  val fakeAtm1 = AtmImpl(AtmId("atm1"), bankWithLicense, "Atm 1", fakeAddress1, fakeLocation, fakeMeta,
+  val fakeAtm1 = AtmTImpl(AtmId("atm1"), bankWithLicense, "Atm 1", fakeAddress1, fakeLocation, fakeMeta,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -101,8 +103,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo)
-  val fakeAtm2 = AtmImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta,
+    fakeMoreInfo,
+    fakehasDepositCapability)
+  val fakeAtm2 = AtmTImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -112,8 +115,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo)
-  val fakeAtm3 = AtmImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense,
+    fakeMoreInfo,
+    fakehasDepositCapability)
+  val fakeAtm3 = AtmTImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -123,11 +127,12 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime,fakeClosingTime,
     fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo) // Should not be returned
+    fakeMoreInfo,
+    fakehasDepositCapability) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {
-    override protected def getAtmsFromProvider(bank: BankId): Option[List[Atm]] = {
+    override protected def getAtmsFromProvider(bank: BankId): Option[List[AtmT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case `bankWithLicense` | `bankWithoutLicense`=> Some(List(fakeAtm1, fakeAtm2, fakeAtm3))
@@ -136,7 +141,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getAtmFromProvider(AtmId: AtmId): Option[Atm] = {
+    override protected def getAtmFromProvider(AtmId: AtmId): Option[AtmT] = {
       AtmId match {
          case `bankWithLicense` => Some(fakeAtm1)
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
@@ -147,7 +152,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   }
 
   // TODO Extend to more fields
-  def verifySameData(atm: Atm, atmJson : AtmJson) = {
+  def verifySameData(atm: AtmT, atmJson : AtmJson) = {
     atm.name should equal (atmJson.name)
     atm.atmId should equal(AtmId(atmJson.id))
     atm.address.line1 should equal(atmJson.address.line_1)

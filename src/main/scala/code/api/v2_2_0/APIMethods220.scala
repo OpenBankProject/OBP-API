@@ -482,17 +482,9 @@ trait APIMethods220 {
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
               createAtmEntitlementsRequiredText)
-            atm <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
-            success <- Connector.connector.vend.createOrUpdateAtm(
-              AtmJsonPost(
-                atm.id,
-                atm.bank_id,
-                atm.name,
-                atm.address,
-                atm.location,
-                atm.meta
-              )
-            )
+            atmJson <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            atm <- JSONFactory220.transformToAtmFromV220(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
+            success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory220.createAtmJson(success)
             createdJsonResponse(Extraction.decompose(json))

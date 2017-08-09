@@ -1,6 +1,6 @@
 package code.atms
 
-import code.atms.Atms.Atm
+import code.atms.Atms.AtmT
 import code.model.BankId
 import code.setup.ServerSetup
 import net.liftweb.mapper.By
@@ -94,7 +94,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
       When("we try to get the atms for that bank")
-      val atmsOpt: Option[List[Atm]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX))
+      val atmsOpt: Option[List[AtmT]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX))
 
       Then("We should get a atms list")
       atmsOpt.isDefined should equal (true)

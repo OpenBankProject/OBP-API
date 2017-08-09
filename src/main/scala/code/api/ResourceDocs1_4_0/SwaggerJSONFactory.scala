@@ -424,7 +424,8 @@ object SwaggerJSONFactory {
     //      banks -> List(Bank(gh.29.uk) --> "banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
     val properties = for {
       (key, value) <- mapOfFields
-      _ = print("\n val properties for comprehension: " + key + " is " + value)
+      // Uncomment this to debug problems with json data etc.
+      // _ = print("\n val properties for comprehension: " + key + " is " + value)
     } yield {
       value match {
         case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"

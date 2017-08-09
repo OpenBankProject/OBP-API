@@ -37,9 +37,9 @@ import java.util.Date
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
-import code.atms.Atms.Atm
+import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
-import code.common.{Meta, Location, Address}
+import code.common.{Address, Location, Meta}
 import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -446,7 +446,7 @@ object JSONFactory220{
 
 
 
-  def createAtmJson(atm: Atm): AtmJsonV220 = {
+  def createAtmJson(atm: AtmT): AtmJsonV220 = {
     AtmJsonV220(
       id= atm.atmId.value,
       bank_id= atm.bankId.value,
@@ -560,9 +560,50 @@ object JSONFactory220{
       None,
       None,
       None,
+      None,
       None))
   }
 
+  def transformToAtmFromV220(atmJsonV220: AtmJsonV220): Box[Atm] = {
+    val address : Address = transformToAddressFromV140(atmJsonV220.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV220.location)  // Note the location in V220 is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV220.meta)  // Note the meta in V220 is V140
+
+    val atm = Atm(
+      atmId = AtmId(atmJsonV220.id),
+      bankId = BankId(atmJsonV220.bank_id),
+      name = atmJsonV220.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = None,
+      ClosingTimeOnMonday = None,
+
+      OpeningTimeOnTuesday = None,
+      ClosingTimeOnTuesday = None,
+
+      OpeningTimeOnWednesday = None,
+      ClosingTimeOnWednesday = None,
+
+      OpeningTimeOnThursday = None,
+      ClosingTimeOnThursday = None,
+
+      OpeningTimeOnFriday = None,
+      ClosingTimeOnFriday = None,
+
+      OpeningTimeOnSaturday = None,
+      ClosingTimeOnSaturday = None,
+
+      OpeningTimeOnSunday = None,
+      ClosingTimeOnSunday = None,
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = None,
+      locatedAt = None,
+      moreInfo = None,
+      hasDepositCapability = None
+    )
+    Full(atm)
+  }
 
 
   

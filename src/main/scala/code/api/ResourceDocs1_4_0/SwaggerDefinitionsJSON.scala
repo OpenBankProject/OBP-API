@@ -3,11 +3,10 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
-import code.api.v3_0_0.BranchJsonV300
-import code.branches.Branches.{BranchId, DriveUp, Lobby, Branch}
+import code.api.v3_0_0.{AddressJsonV300, AtmJsonV300, BranchJsonV300, OpeningTimesV300}
+import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.common._
 import net.liftweb.common.Full
-
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 
 import scala.util.Try
@@ -759,7 +758,7 @@ object SwaggerDefinitionsJSON {
     city = "Berlin",
     state = "Berlin Brandenburg",
     postcode = "13359",
-    country = "Germany"
+    country = "DE"
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(
     id = "b20dd004-93e3-494f-8773-69e3ff8c205e",
@@ -931,13 +930,14 @@ object SwaggerDefinitionsJSON {
     meta = meta,
     lobbyString = None,
     driveUpString = None,
-    lobby = Full(lobby),
-    driveUp = Full(driveUp),
+    lobby = Some(lobby),
+    driveUp = Some(driveUp),
     branchRouting = branchRouting,
     // Easy access for people who use wheelchairs etc.
-    isAccessible = Full(isAccessible),
-    branchType = Full("Full service store"),
-    moreInfo = Full("short walk to the lake from here")
+    isAccessible = Some(isAccessible),
+    branchType = Some("Full service store"),
+    moreInfo = Some("short walk to the lake from here"),
+    phoneNumber = Some("+381631954907")
   )
 
 
@@ -957,6 +957,52 @@ object SwaggerDefinitionsJSON {
   )
 
   val atmsJson = AtmsJson(atms = List(atmJson))
+
+  val atmJsonV300 = AtmJsonV300(
+    id = "atm-id-123",
+    bank_id = "bank-id-123",
+    name = "Atm by the Lake",
+    address = AddressJsonV300(
+      line_1 = "No 1 the Road",
+      line_2 = "The Place",
+      line_3 = "The Hill",
+      city = "Berlin",
+      county = "",
+      state = "Brandenburg",
+      postcode = "13359",
+      //ISO_3166-1_alpha-2
+      country_code = "DE"
+    ),
+    location = locationJson,
+    meta = metaJson,
+    monday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    tuesday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    wednesday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "15:00"),
+    thursday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    friday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    saturday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+    sunday = OpeningTimesV300(
+      opening_time = "10:00",
+      closing_time = "18:00"),
+
+    is_accessible = "true",
+    located_at = "Full service store",
+    more_info = "short walk to the lake from here",
+    has_deposit_capability="true"
+
+  )
 
   val productJson = ProductJson(
     code = "String",

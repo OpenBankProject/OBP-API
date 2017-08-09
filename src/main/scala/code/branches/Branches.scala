@@ -38,7 +38,8 @@ object Branches extends SimpleInjector {
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
   def isAccessible : Option[Boolean]
   def branchType : Option[String]
-  def moreInfo : Option[String]}
+  def moreInfo : Option[String]
+  def phoneNumber : Option[String] }
 
 
 
@@ -51,8 +52,8 @@ object Branches extends SimpleInjector {
                      name: String,
                      address: Address,
                      location: Location,
-                     lobbyString: Option[LobbyStringT],
-                     driveUpString: Option[DriveUpStringT],
+                     lobbyString: Option[LobbyString],
+                     driveUpString: Option[DriveUpString],
                      meta: Meta,
                      branchRouting: Option[Routing],
                      lobby: Option[Lobby],
@@ -60,7 +61,8 @@ object Branches extends SimpleInjector {
                      // Easy access for people who use wheelchairs etc.
                      isAccessible : Option[Boolean],
                      branchType : Option[String],
-                     moreInfo : Option[String]
+                     moreInfo : Option[String],
+                     phoneNumber : Option[String]
                    ) extends BranchT
 
 
@@ -287,15 +289,22 @@ trait BranchesProvider {
    */
   final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
     // If we get branches filter them
-    getBranchesFromProvider(bankId) match {
+    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId)
+
+    branches match {
       case Some(branches) => {
+        logger.debug(s"getBranches says there are ${branches.length} branches with or without license")
 
         val branchesWithLicense = for {
          branch <- branches if branch.meta.license.name.size > 3
         } yield branch
+        logger.debug(s"getBranches says there are ${branches.length} branchesWithLicense")
         Option(branchesWithLicense)
       }
-      case None => None
+      case None => {
+        logger.debug(s"getBranches says there are None branches")
+        None
+      }
     }
   }
 

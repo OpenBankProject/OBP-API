@@ -39,7 +39,7 @@ import code.TestServer
 import code.accountholder.AccountHolders
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
-import code.atms.Atms.{Atm, AtmId, countOfAtms}
+import code.atms.Atms.{AtmT, AtmId, countOfAtms}
 import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
@@ -199,7 +199,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val atmId = AtmId(atm.id)
 
     // check we have found a branch
-    val foundAtmOpt: Option[Atm] = Atms.atmsProvider.vend.getAtm(atmId)
+    val foundAtmOpt: Option[AtmT] = Atms.atmsProvider.vend.getAtm(atmId)
     foundAtmOpt.isDefined should equal(true)
 
     val foundAtm = foundAtmOpt.get
@@ -1750,7 +1750,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check we are starting from a clean slate (no atms for this bank)
     // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
-    val existingAtms: Option[List[Atm]] = Atms.atmsProvider.vend.getAtms(bankId1)
+    val existingAtms: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(bankId1)
 
     // We want the size of the list inside the Option
     val existingAtmsCount = countOfAtms(existingAtms)
