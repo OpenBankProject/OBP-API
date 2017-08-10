@@ -1187,7 +1187,7 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
-  val userJSONV200 = UserJSONV200(
+  val userJSONV200 = UserJsonV200(
     user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     email = "robert.x.0.gh@example.com",
     provider_id = "OBP",

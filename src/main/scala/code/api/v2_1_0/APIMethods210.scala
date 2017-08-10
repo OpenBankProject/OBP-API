@@ -1326,8 +1326,10 @@ trait APIMethods210 {
       }
     }
 
-    //////////////////
-    // createCustomer
+
+
+
+
     val createCustomerEntitlementsRequiredForSpecificBank = CanCreateCustomer ::
       CanCreateUserCustomerLink ::
       Nil
