@@ -126,12 +126,13 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
   def getSingleton = MappedCustomer
 
+  // Unique
   object mCustomerId extends MappedUUID(this)
 
-  //object mUser extends MappedLongForeignKey(this, ResourceUser)
+  // Combination of bank id and customer number is unique
   object mBank extends UUIDString(this)
-
   object mNumber extends MappedString(this, 50)
+
   object mMobileNumber extends MappedString(this, 50)
   object mLegalName extends MappedString(this, 255)
   object mEmail extends MappedEmail(this, 200)

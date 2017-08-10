@@ -1430,7 +1430,7 @@ trait APIMethods210 {
       metricsJson,
       List(
         UserNotLoggedIn,
-        CustomerDoNotExistsForUser,
+        UserCustomerLinksNotFoundByUserId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1442,7 +1442,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             //bank <- Bank(bankId) ?~! {BankNotFound}
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! CustomerDoNotExistsForUser
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundByUserId
           } yield {
             val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
@@ -1464,11 +1464,11 @@ trait APIMethods210 {
       emptyObjectJson,
       customerJsonV210,
       List(
-        UserNotLoggedIn, 
-        BankNotFound, 
-        CustomerDoNotExistsForUser, 
-        CustomerDoNotExistsForUser, 
-        CustomerNotFoundByCustomerId, 
+        UserNotLoggedIn,
+        BankNotFound,
+        UserCustomerLinksNotFoundByUserId,
+        UserCustomerLinksNotFoundByUserId,
+        CustomerNotFoundByCustomerId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1480,9 +1480,11 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! CustomerDoNotExistsForUser
+            // Find User Customer Links by the UserId
+            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! UserCustomerLinksNotFoundByUserId
+            // Find
             ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
-            isEmpty <- booleanToBox(ucl.size > 0, CustomerDoNotExistsForUser)
+            isEmpty <- booleanToBox(ucl.size > 0, UserCustomerLinkNotFound)
             u <- ucl
             info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! CustomerNotFoundByCustomerId
           } yield {

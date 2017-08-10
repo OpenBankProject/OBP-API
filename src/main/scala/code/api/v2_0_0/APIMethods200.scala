@@ -2235,7 +2235,7 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customersJsonV140,
-      List(UserNotLoggedIn, CustomerDoNotExistsForUser, UnknownError),
+      List(UserNotLoggedIn, UserCustomerLinksNotFoundByUserId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -2245,7 +2245,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             //bank <- Bank(bankId) ?~! BankNotFound
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! CustomerDoNotExistsForUser
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundByUserId
           } yield {
             val json = JSONFactory1_4_0.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
