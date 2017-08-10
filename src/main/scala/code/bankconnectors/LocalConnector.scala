@@ -6,8 +6,8 @@ import java.util.{Date, TimeZone, UUID}
 import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
-import code.branches.Branches.{BranchT, Branch, BranchId}
-import code.branches.MappedBranch
+import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}

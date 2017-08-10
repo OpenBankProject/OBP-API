@@ -37,7 +37,7 @@ import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommo
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments

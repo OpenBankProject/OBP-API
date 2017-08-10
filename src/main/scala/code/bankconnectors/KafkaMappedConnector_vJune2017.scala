@@ -27,13 +27,15 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.ErrorMessages
+import code.api.util.APIUtil.{MessageDoc, exampleDate, saveConnectorMetric}
+import code.api.util.{APIUtil, ErrorMessages}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.branches.Branches.{Branch, BranchId}
-import code.branches.MappedBranch
+import code.branches._
+import code.customer.Customer
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -48,6 +50,7 @@ import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.usercustomerlinks.UserCustomerLink
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -67,6 +70,8 @@ import com.google.common.cache.CacheBuilder
 import code.util.Helper.MdcLoggable
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.bankconnectors.vJune._
 
 
 object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -124,7 +129,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     )
   )
   override def getAdapterInfo: Box[InboundAdapterInfo] = {
-    val req = code.bankconnectors.GetAdapterInfo((new Date()).toString)
+    val req = GetAdapterInfo((new Date()).toString)
     val rr = process[GetAdapterInfo](req)
     val r = rr.extract[AdapterInfo].data
     Full(r)
@@ -234,7 +239,27 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
     exampleOutboundMessage = decompose(
-      GetAccounts(AuthInfo("userId", "username","cbsToken"))
+      OutboundGetAccounts(
+        AuthInfo("userId", "username","cbsToken"),
+        InternalCustomers(customers =List(InternalCustomer(
+          customer_id = "123",
+          customer_number = "123",
+          legal_name = "legal_name",
+          mobile_phone_number = "123",
+          email = "contact@tesobe.com",
+          face_image = customerFaceImageJson,
+          date_of_birth = exampleDate,
+          relationship_status = "123",
+          dependants = 123,
+          dob_of_dependants = List(exampleDate),
+          credit_rating = Option(customerCreditRatingJSON),
+          credit_limit = Option(amountOfMoneyJsonV121),
+          highest_education_attained = "123",
+          employment_status = "123",
+          kyc_status = true,
+          last_ok_date = exampleDate
+        )))
+      )
     ),
     exampleInboundMessage = decompose(
       InboundBankAccounts(
@@ -262,13 +287,16 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getBankAccounts(username: String): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
-    val req = GetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"))
-    
-    logger.debug(s"Kafka getBankAccounts says: req is: $req")
-    val rList = process[GetAccounts](req).extract[InboundBankAccounts].data
-    val res = rList //map (new BankAccountJune2017(_))
-    logger.debug(s"Kafka getBankAccounts says res is $res")
-    Full(res)
+      val customerIds: List[String]= UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(currentResourceUserId).map(_.customerId)
+      val customerList :List[Customer]= APIUtil.getCustomers(customerIds)
+      val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
+        
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"),internalCustomers)
+      logger.debug(s"Kafka getBankAccounts says: req is: $req")
+      val rList = process[OutboundGetAccounts](req).extract[InboundBankAccounts].data
+      val res = rList //map (new BankAccountJune2017(_))
+      logger.debug(s"Kafka getBankAccounts says res is $res")
+      Full(res)
   }}("getBankAccounts")
   
   

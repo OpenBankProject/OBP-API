@@ -11,8 +11,8 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector, InboundAdapterInfo}
-import code.branches.Branches
+import code.bankconnectors.Connector
+import code.branches.{Branches, InboundAdapterInfo}
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser

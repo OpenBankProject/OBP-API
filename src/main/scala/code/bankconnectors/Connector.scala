@@ -9,8 +9,9 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, AtmT}
+import code.bankconnectors.vJune.InboundAccountJune2017
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}

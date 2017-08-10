@@ -9,13 +9,12 @@ import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
-
 import code.api.v2_1_0._
 import code.api.v2_2_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
+import code.branches.KafkaJSONFactory_vMar2017
 import code.consumer.Consumers
 import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation

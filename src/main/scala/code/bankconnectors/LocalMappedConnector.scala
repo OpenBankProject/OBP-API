@@ -8,7 +8,7 @@ import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommo
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm, MappedAtmsProvider}
 import code.branches.Branches._
-import code.branches.MappedBranch
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.common.{Address, _}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
