@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.bankconnectors.vJune2017
 
 /*
 Open Bank Project - API
@@ -27,12 +27,12 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.{MessageDoc, exampleDate, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
+import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchId}
 import code.branches._
 import code.customer.Customer
@@ -51,27 +51,24 @@ import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.usercustomerlinks.UserCustomerLink
-import code.util.{Helper, TTLCache}
+import code.util.Helper
+import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
-import net.liftweb.json.Extraction
+import net.liftweb.json.Extraction._
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper._
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
-import scalacache.memoization.memoizeSync
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
-import concurrent.duration._
-import language.postfixOps
-import com.google.common.cache.CacheBuilder
-import code.util.Helper.MdcLoggable
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Extraction._
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.bankconnectors.vJune._
+import scalacache.memoization.memoizeSync
 
 
 object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -241,25 +238,14 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         AuthInfo("userId", "username","cbsToken"),
-        InternalCustomers(customers =List(InternalCustomer(
-          customer_id = "123",
-          customer_number = "123",
-          legal_name = "legal_name",
-          mobile_phone_number = "123",
-          email = "contact@tesobe.com",
-          face_image = customerFaceImageJson,
-          date_of_birth = exampleDate,
-          relationship_status = "123",
-          dependants = 123,
-          dob_of_dependants = List(exampleDate),
-          credit_rating = Option(customerCreditRatingJSON),
-          credit_limit = Option(amountOfMoneyJsonV121),
-          highest_education_attained = "123",
-          employment_status = "123",
-          kyc_status = true,
-          last_ok_date = exampleDate
-        )))
-      )
+        InternalBasicCustomers(customers =List(
+          InternalBasicCustomer(
+          bankId="bankId",
+          customerId = "customerId",
+          customerNumber = "customerNumber",
+          legalName = "legalName",
+          dateOfBirth = exampleDate
+      ))))
     ),
     exampleInboundMessage = decompose(
       InboundBankAccounts(

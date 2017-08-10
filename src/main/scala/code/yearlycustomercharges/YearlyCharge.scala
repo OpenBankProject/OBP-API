@@ -1,6 +1,6 @@
 package code.yearlycustomercharges
 
-import code.bankconnectors.{KafkaMappedConnector, LocalConnector, LocalMappedConnector}
+import code.bankconnectors.{KafkaMappedConnector, LocalRecordConnector, LocalMappedConnector}
 
 
 import code.model.{CustomerId, BankId}

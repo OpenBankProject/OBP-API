@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.bankconnectors.vMar2017
 
 /*
 Open Bank Project - API
@@ -24,7 +24,6 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
-import java.time.ZonedDateTime
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
@@ -33,6 +32,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
+import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches._
 import code.fx.{FXRate, fx}
@@ -52,7 +52,6 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
-import net.liftweb.json
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper._

@@ -1,4 +1,4 @@
-package code.bankconnectors.vJune
+package code.bankconnectors.vJune2017
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
@@ -26,7 +26,7 @@ case class GetAdapterInfo(date: String) extends GetAdapterInfoTopic
 case class GetBanks(authInfo: AuthInfo, criteria: String) extends GetBanksTopic
 case class GetBank(authInfo: AuthInfo, bankId: String) extends GetBankTopic
 case class GetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends GetUserByUsernamePasswordTopic
-case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalCustomers ) extends GetAccountsTopic
+case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends GetAccountsTopic
 case class GetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends GetAccountbyAccountIDTopic
 case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, accountNumber: String)extends GetAccountbyAccountNumberTopic
 case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends GetTransactionsTopic
@@ -94,52 +94,29 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 
 }
 
-case class InternalCustomer(
-  customer_id: String,
-  customer_number: String,
-  legal_name: String,
-  mobile_phone_number: String,
-  email: String,
-  face_image: CustomerFaceImageJson,
-  date_of_birth: Date,
-  relationship_status: String,
-  dependants: Int,
-  dob_of_dependants: List[Date],
-  credit_rating: Option[CustomerCreditRatingJSON],
-  credit_limit: Option[AmountOfMoneyJsonV121],
-  highest_education_attained: String,
-  employment_status: String,
-  kyc_status: Boolean,
-  last_ok_date: Date
+case class InternalBasicCustomer(
+  bankId:String,
+  customerId: String,
+  customerNumber: String,
+  legalName: String,
+  dateOfBirth: Date
 )
 
-case class InternalCustomers(customers: List[InternalCustomer])
+case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
 
 object JsonFactory_vJune2017 {
-  def createCustomerJson(cInfo : Customer) : InternalCustomer = {
-    InternalCustomer(
-      customer_id = cInfo.customerId,
-      customer_number = cInfo.number,
-      legal_name = cInfo.legalName,
-      mobile_phone_number = cInfo.mobileNumber,
-      email = cInfo.email,
-      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
-        date = cInfo.faceImage.date),
-      date_of_birth = cInfo.dateOfBirth,
-      relationship_status = cInfo.relationshipStatus,
-      dependants = cInfo.dependents,
-      dob_of_dependants = cInfo.dobOfDependents,
-      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
-      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
-      highest_education_attained = cInfo.highestEducationAttained,
-      employment_status = cInfo.employmentStatus,
-      kyc_status = cInfo.kycStatus,
-      last_ok_date = cInfo.lastOkDate
+  def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
+    InternalBasicCustomer(
+      bankId=customer.bank, 
+      customerId = customer.customerId, 
+      customerNumber = customer.number, 
+      legalName = customer.legalName, 
+      dateOfBirth = customer.dateOfBirth
     )
   }
   
-  def createCustomersJson(customers : List[Customer]) : InternalCustomers = {
-    InternalCustomers(customers.map(createCustomerJson))
+  def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
+    InternalBasicCustomers(customers.map(createCustomerJson))
   }
   
   

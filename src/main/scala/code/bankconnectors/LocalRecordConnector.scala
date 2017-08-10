@@ -31,11 +31,11 @@ import org.bson.types.ObjectId
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 
-private object LocalConnector extends Connector with MdcLoggable {
+private object LocalRecordConnector extends Connector with MdcLoggable {
 
   type AccountType = Account
 
-  implicit override val nameOfConnector = LocalConnector.getClass.getSimpleName
+  implicit override val nameOfConnector = LocalRecordConnector.getClass.getSimpleName
 
   override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 

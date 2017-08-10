@@ -80,6 +80,7 @@ import net.liftweb.json.MappingException
 
 import scala.concurrent.TimeoutException
 import code.api.util.ErrorMessages._
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
