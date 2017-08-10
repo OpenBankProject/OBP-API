@@ -6,8 +6,6 @@ sealed trait ApiRole{
 
 object ApiRole {
 
-  // TODO Is there a better way to define these. i.e. do we need to define the role in three places below?
-
   case object CanSearchAllTransactions extends ApiRole{
     val requiresBankId = false
   }
