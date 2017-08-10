@@ -179,5 +179,5 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
 object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {
   //one customer info per bank for each api user
-  override def dbIndexes = UniqueIndex(mCustomerId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mCustomerId) :: UniqueIndex(mBank, mNumber) :: super.dbIndexes
 }
