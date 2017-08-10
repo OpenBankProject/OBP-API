@@ -65,17 +65,17 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       val infoPost = responsePost2.body.extract[CustomerJsonV210]
 
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "customers").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
       responseGet.code should equal(200)
 
       And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJsonV210]
+      val infoGet: CustomerJSONs = responseGet.body.extract[CustomerJSONs]
 
       And("POST feedback and GET feedback must be the same")
-      infoGet should equal(infoPost)
+      infoGet.customers.filter(_.customer_id == infoPost.customer_id).head should equal(infoPost)
 
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
