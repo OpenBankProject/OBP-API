@@ -129,90 +129,54 @@ object ApiRole {
     val requiresBankId = false
   }
 
-  def valueOf(value: String): ApiRole = value match {
-    case "CanSearchAllTransactions" => CanSearchAllTransactions
-    case "CanSearchAllAccounts" => CanSearchAllAccounts
-    case "CanQueryOtherUser" => CanQueryOtherUser
-    case "CanSearchWarehouse" => CanSearchWarehouse
-    case "CanSearchMetrics" => CanSearchMetrics
-    case "CanCreateCustomer" => CanCreateCustomer
-    case "CanCreateCustomerAtAnyBank" => CanCreateCustomerAtAnyBank
-    case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
-    case "CanCreateUserCustomerLinkAtAnyBank" => CanCreateUserCustomerLinkAtAnyBank
-    case "CanCreateAccount" => CanCreateAccount
-    case "CanGetAnyUser" => CanGetAnyUser
-    case "CanCreateAnyTransactionRequest" => CanCreateAnyTransactionRequest
-    case "CanAddSocialMediaHandle" => CanAddSocialMediaHandle
-    case "CanGetSocialMediaHandles" => CanGetSocialMediaHandles
-    case "CanCreateSandbox" => CanCreateSandbox
-    case "CanGetEntitlementsForAnyUserAtOneBank" => CanGetEntitlementsForAnyUserAtOneBank
-    case "CanCreateEntitlementAtOneBank" => CanCreateEntitlementAtOneBank
-    case "CanDeleteEntitlementAtOneBank" => CanDeleteEntitlementAtOneBank
-    case "CanGetEntitlementsForAnyUserAtAnyBank" => CanGetEntitlementsForAnyUserAtAnyBank
-    case "CanCreateEntitlementAtAnyBank" => CanCreateEntitlementAtAnyBank
-    case "CanDeleteEntitlementAtAnyBank" => CanDeleteEntitlementAtAnyBank
-    case "CanGetConsumers" => CanGetConsumers
-    case "CanDisableConsumers" => CanDisableConsumers
-    case "CanEnableConsumers" => CanEnableConsumers
-    case "CanUpdateConsumerRedirectUrl" => CanUpdateConsumerRedirectUrl
-    case "CanCreateConsumer" => CanCreateConsumer
-    case "CanCreateTransactionType" => CanCreateTransactionType
-    case "CanCreateCardsForBank" => CanCreateCardsForBank
-    case "CanCreateBranch" => CanCreateBranch
-    case "CanCreateBranchAtAnyBank" => CanCreateBranchAtAnyBank
-    case "CanCreateAtm" => CanCreateAtm
-    case "CanCreateAtmAtAnyBank" => CanCreateAtmAtAnyBank
-    case "CanCreateProduct" => CanCreateProduct
-    case "CanCreateProductAtAnyBank" => CanCreateProductAtAnyBank
-    case "CanCreateFxRate" => CanCreateFxRate
-    case "CanCreateFxRateAtAnyBank" => CanCreateFxRateAtAnyBank
-    case "CanCreateBank" => CanCreateBank
-    case "CanReadMetrics" => CanReadMetrics
-    case "CanGetConfig" => CanGetConfig
-    case "CanGetConnectorMetrics" => CanGetConnectorMetrics
-    case _ => throw new IllegalArgumentException()
+  private val roles = CanSearchAllTransactions ::
+    CanSearchAllAccounts ::
+    CanQueryOtherUser ::
+    CanSearchWarehouse ::
+    CanSearchMetrics ::
+    CanCreateCustomer ::
+    CanCreateAccount ::
+    CanGetAnyUser ::
+    CanCreateAnyTransactionRequest ::
+    CanAddSocialMediaHandle ::
+    CanGetSocialMediaHandles ::
+    CanCreateSandbox ::
+    CanGetEntitlementsForAnyUserAtOneBank ::
+    CanCreateEntitlementAtOneBank ::
+    CanDeleteEntitlementAtOneBank ::
+    CanGetEntitlementsForAnyUserAtAnyBank ::
+    CanCreateEntitlementAtAnyBank ::
+    CanDeleteEntitlementAtAnyBank ::
+    CanGetConsumers ::
+    CanDisableConsumers ::
+    CanEnableConsumers ::
+    CanUpdateConsumerRedirectUrl ::
+    CanCreateConsumer ::
+    CanCreateTransactionType::
+    CanCreateCardsForBank ::
+    CanCreateUserCustomerLink ::
+    CanCreateBranch ::
+    CanCreateBranchAtAnyBank ::
+    CanCreateAtm ::
+    CanCreateAtmAtAnyBank ::
+    CanCreateProduct ::
+    CanCreateProductAtAnyBank ::
+    CanCreateFxRate ::
+    CanCreateFxRateAtAnyBank ::
+    CanCreateBank ::
+    CanReadMetrics ::
+    CanGetConfig ::
+    CanGetConnectorMetrics ::
+    Nil
+
+  def valueOf(value: String): ApiRole = {
+    roles.filter(_.toString == value) match {
+      case x :: Nil => x // We find exactly one Role
+      case _ :: _ => throw new Exception("Duplicated role") // We find more than one Role
+      case _ => throw new IllegalArgumentException() // There is no Role
+    }
   }
 
-  val availableRoles = "CanSearchAllTransactions" ::
-                      "CanSearchAllAccounts" ::
-                      "CanQueryOtherUser" ::
-                      "CanSearchWarehouse" ::
-                      "CanSearchMetrics" ::
-                      "CanCreateCustomer"  ::
-                      "CanCreateCustomerAtAnyBank"  ::
-                      "CanCreateUserCustomerLink"  ::
-                      "CanCreateUserCustomerLinkAtAnyBank"  ::
-                      "CanCreateAccount" ::
-                      "CanGetAnyUser" ::
-                      "CanCreateAnyTransactionRequest" ::
-                      "CanAddSocialMediaHandle" ::
-                      "CanGetSocialMediaHandles" ::
-                      "CanCreateSandbox" ::
-                      "CanGetEntitlementsForAnyUserAtOneBank" ::
-                      "CanCreateEntitlementAtOneBank" ::
-                      "CanDeleteEntitlementAtOneBank" ::
-                      "CanGetEntitlementsForAnyUserAtAnyBank" ::
-                      "CanCreateEntitlementAtAnyBank" ::
-                      "CanDeleteEntitlementAtAnyBank" ::
-                      "CanGetConsumers" ::
-                      "CanDisableConsumers" ::
-                      "CanEnableConsumers" ::
-                      "CanUpdateConsumerRedirectUrl" ::
-                      "CanCreateConsumer" ::
-                      "CanCreateTransactionType"::
-                      "CanCreateCardsForBank" ::
-                      "CanCreateBranch" ::
-                      "CanCreateBranchAtAnyBank" ::
-                      "CanCreateAtm" ::
-                      "CanCreateAtmAtAnyBank" ::
-                      "CanCreateProduct" ::
-                      "CanCreateProductAtAnyBank" ::
-                      "CanCreateFxRate" ::
-                      "CanCreateFxRateAtAnyBank" ::
-                      "CanCreateBank" ::
-                      "CanReadMetrics" ::
-                      "CanGetConfig" ::
-                      "CanGetConnectorMetrics" ::
-                       Nil
+  def availableRoles: List[String] = roles.map(_.toString)
 
 }
