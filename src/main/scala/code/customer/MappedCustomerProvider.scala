@@ -26,9 +26,10 @@ object MappedCustomerProvider extends CustomerProvider {
     available
   }
 
+  // TODO Rename
   override def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] = {
     // If there are more than customer linked to a user we take a first one in a list
-    val customerId = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(userId) match {
+    val customerId = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId) match {
       case x :: xs => x.customerId
       case _       => "There is no linked customer to this user"
     }
@@ -151,7 +152,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mLastOkDate extends MappedDateTime(this)
 
   override def customerId: String = mCustomerId.get // id.toString
-  override def bank: String = mBank.get
+  override def bankId: String = mBank.get
   override def number: String = mNumber.get
   override def mobileNumber: String = mMobileNumber.get
   override def legalName: String = mLegalName.get

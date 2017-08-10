@@ -30,6 +30,7 @@ import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
+import code.api.util.APIUtil.getCustomers
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -1417,32 +1418,32 @@ trait APIMethods210 {
     }
 
     resourceDocs += ResourceDoc(
-      getCustomers,
+      getCustomersForUser,
       apiVersion,
-      "getCustomers",
+      "getCustomersForUser",
       "GET",
       "/users/current/customers",
-      "Get all customers for logged in user",
-      """Information about the currently authenticated user.
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       metricsJson,
       List(
         UserNotLoggedIn,
-        UserCustomerLinksNotFoundByUserId,
+        UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
-    lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
             //bank <- Bank(bankId) ?~! {BankNotFound}
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundByUserId
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
@@ -1452,43 +1453,43 @@ trait APIMethods210 {
     }
 
     resourceDocs += ResourceDoc(
-      getCustomer,
+      getCustomersForCurrentUserAtBank,
       apiVersion,
-      "getCustomer",
+      "getCustomersForCurrentUserAtBank",
       "GET",
-      "/banks/BANK_ID/customer",
-      "Get customer for logged in user",
-      """Information about the currently authenticated user.
+      "/banks/BANK_ID/customers",
+      "Get Customers for current User at Bank",
+      s"""Retuns a list of Customers at the Bank that are linked to the currently authenticated User.
         |
-        |Authentication via OAuth is required.""",
+        |
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       customerJsonV210,
       List(
         UserNotLoggedIn,
         BankNotFound,
-        UserCustomerLinksNotFoundByUserId,
-        UserCustomerLinksNotFoundByUserId,
+        UserCustomerLinksNotFoundForUser,
+        UserCustomerLinksNotFoundForUser,
         CustomerNotFoundByCustomerId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
+    lazy val getCustomersForCurrentUserAtBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             // Find User Customer Links by the UserId
-            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! UserCustomerLinksNotFoundByUserId
-            // Find
-            ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
-            isEmpty <- booleanToBox(ucl.size > 0, UserCustomerLinkNotFound)
-            u <- ucl
-            info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! CustomerNotFoundByCustomerId
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
+            // Get the related Customers
+            customers = APIUtil.getCustomers(customerIds)
+            // Filter so we only see the ones for the bank in question
+            bankCustomers = customers.filter(_.bankId==bankId.value)
           } yield {
-            val json = JSONFactory210.createCustomerJson(info)
+            val json = JSONFactory210.createCustomersJson(bankCustomers)
             successJsonResponse(Extraction.decompose(json))
           }
         }

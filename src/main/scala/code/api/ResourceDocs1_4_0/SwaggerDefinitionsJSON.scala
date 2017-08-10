@@ -1494,6 +1494,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val customerJsonV210 = CustomerJsonV210(
+    bank_id = "bankid1234",
     customer_id = "123",
     customer_number = "123",
     legal_name = "legal_name",

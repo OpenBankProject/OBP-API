@@ -292,7 +292,9 @@ case class PostCustomerJsonV210(
                              kyc_status: Boolean,
                              last_ok_date: Date)
 
-case class CustomerJsonV210(customer_id: String,
+case class CustomerJsonV210(
+  bank_id: String,
+  customer_id: String,
   customer_number : String,
   legal_name : String,
   mobile_phone_number : String,
@@ -645,6 +647,7 @@ object JSONFactory210{
   def createCustomerJson(cInfo : Customer) : CustomerJsonV210 = {
 
     CustomerJsonV210(
+      bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,
       legal_name = cInfo.legalName,

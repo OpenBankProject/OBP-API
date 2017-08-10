@@ -252,8 +252,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
-                          Implementations2_1_0.getCustomer ::
-                          Implementations2_1_0.getCustomers ::
+                          Implementations2_1_0.getCustomersForCurrentUserAtBank ::
+                          Implementations2_1_0.getCustomersForUser ::
                           Implementations2_1_0.updateConsumerRedirectUrl ::
                           Implementations2_1_0.getMetrics ::
                           Nil

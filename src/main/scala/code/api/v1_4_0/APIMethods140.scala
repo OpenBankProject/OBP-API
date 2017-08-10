@@ -88,9 +88,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundByUserId
+            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
-            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.UserCustomerLinksNotFoundByUserId)
+            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.UserCustomerLinksNotFoundForUser)
             u <- ucl
             info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
@@ -158,7 +158,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.UserCustomerLinksNotFoundByUserId
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(

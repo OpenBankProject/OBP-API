@@ -1861,7 +1861,7 @@ trait APIMethods200 {
             hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
                                             hasAllEntitlements("", u.userId, createUserCustomerLinksEntitlementsRequiredForAnyBank),
                                             s"$createUserCustomerLinksrequiredEntitlementsText")
-            _ <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
+            _ <- booleanToBox(customer.bankId == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
           } yield {
@@ -2235,7 +2235,7 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       customersJsonV140,
-      List(UserNotLoggedIn, UserCustomerLinksNotFoundByUserId, UnknownError),
+      List(UserNotLoggedIn, UserCustomerLinksNotFoundForUser, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
@@ -2245,7 +2245,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             //bank <- Bank(bankId) ?~! BankNotFound
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundByUserId
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory1_4_0.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))

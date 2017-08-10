@@ -22,7 +22,7 @@ object UserCustomerLink extends SimpleInjector {
 trait UserCustomerLinkProvider {
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink]
   def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink]
-  def getUserCustomerLinkByUserId(userId: String): List[UserCustomerLink]
+  def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink]
   def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink]
   def getUserCustomerLinks: Box[List[UserCustomerLink]]
   def bulkDeleteUserCustomerLinks(): Boolean
