@@ -88,7 +88,7 @@ object RemotedataCustomerProviderCaseClasses extends RemotedataCustomerProviderC
 
 trait Customer {
   def customerId : String // The UUID for the customer. To be used in URLs
-  def bank : String
+  def bankId : String
   def number : String // The Customer number i.e. the bank identifier for the customer.
   def legalName : String
   def mobileNumber : String

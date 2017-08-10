@@ -29,6 +29,12 @@ object ApiRole {
   case object CanCreateCustomerAtAnyBank extends ApiRole{
     val requiresBankId = false
   }
+  case object CanCreateUserCustomerLink extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateUserCustomerLinkAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
   case object CanCreateAccount extends ApiRole{
     val requiresBankId = true
   }
@@ -86,12 +92,6 @@ object ApiRole {
   case object CanCreateCardsForBank extends ApiRole{
     val requiresBankId = true
   }
-  case object CanCreateUserCustomerLink extends ApiRole{
-    val requiresBankId = true
-  }
-  case object CanCreateUserCustomerLinkAtAnyBank extends ApiRole{
-    val requiresBankId = false
-  }
   case object CanCreateBranch extends ApiRole{
     val requiresBankId = true
   }
@@ -136,6 +136,9 @@ object ApiRole {
     case "CanSearchWarehouse" => CanSearchWarehouse
     case "CanSearchMetrics" => CanSearchMetrics
     case "CanCreateCustomer" => CanCreateCustomer
+    case "CanCreateCustomerAtAnyBank" => CanCreateCustomerAtAnyBank
+    case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
+    case "CanCreateUserCustomerLinkAtAnyBank" => CanCreateUserCustomerLinkAtAnyBank
     case "CanCreateAccount" => CanCreateAccount
     case "CanGetAnyUser" => CanGetAnyUser
     case "CanCreateAnyTransactionRequest" => CanCreateAnyTransactionRequest
@@ -155,7 +158,6 @@ object ApiRole {
     case "CanCreateConsumer" => CanCreateConsumer
     case "CanCreateTransactionType" => CanCreateTransactionType
     case "CanCreateCardsForBank" => CanCreateCardsForBank
-    case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case "CanCreateBranch" => CanCreateBranch
     case "CanCreateBranchAtAnyBank" => CanCreateBranchAtAnyBank
     case "CanCreateAtm" => CanCreateAtm
@@ -176,7 +178,10 @@ object ApiRole {
                       "CanQueryOtherUser" ::
                       "CanSearchWarehouse" ::
                       "CanSearchMetrics" ::
-                      "CanCreateCustomer" ::
+                      "CanCreateCustomer"  ::
+                      "CanCreateCustomerAtAnyBank"  ::
+                      "CanCreateUserCustomerLink"  ::
+                      "CanCreateUserCustomerLinkAtAnyBank"  ::
                       "CanCreateAccount" ::
                       "CanGetAnyUser" ::
                       "CanCreateAnyTransactionRequest" ::
@@ -196,7 +201,6 @@ object ApiRole {
                       "CanCreateConsumer" ::
                       "CanCreateTransactionType"::
                       "CanCreateCardsForBank" ::
-                      "CanCreateUserCustomerLink" ::
                       "CanCreateBranch" ::
                       "CanCreateBranchAtAnyBank" ::
                       "CanCreateAtm" ::

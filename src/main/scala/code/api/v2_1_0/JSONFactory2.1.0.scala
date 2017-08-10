@@ -292,22 +292,24 @@ case class PostCustomerJsonV210(
                              kyc_status: Boolean,
                              last_ok_date: Date)
 
-case class CustomerJsonV210(customer_id: String,
-                        customer_number : String,
-                        legal_name : String,
-                        mobile_phone_number : String,
-                        email : String,
-                        face_image : CustomerFaceImageJson,
-                        date_of_birth: Date,
-                        relationship_status: String,
-                        dependants: Int,
-                        dob_of_dependants: List[Date],
-                        credit_rating: Option[CustomerCreditRatingJSON],
-                        credit_limit: Option[AmountOfMoneyJsonV121],
-                        highest_education_attained: String,
-                        employment_status: String,
-                        kyc_status: Boolean,
-                        last_ok_date: Date)
+case class CustomerJsonV210(
+  bank_id: String,
+  customer_id: String,
+  customer_number : String,
+  legal_name : String,
+  mobile_phone_number : String,
+  email : String,
+  face_image : CustomerFaceImageJson,
+  date_of_birth: Date,
+  relationship_status: String,
+  dependants: Int,
+  dob_of_dependants: List[Date],
+  credit_rating: Option[CustomerCreditRatingJSON],
+  credit_limit: Option[AmountOfMoneyJsonV121],
+  highest_education_attained: String,
+  employment_status: String,
+  kyc_status: Boolean,
+  last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV210])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
@@ -645,6 +647,7 @@ object JSONFactory210{
   def createCustomerJson(cInfo : Customer) : CustomerJsonV210 = {
 
     CustomerJsonV210(
+      bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,
       legal_name = cInfo.legalName,

@@ -33,7 +33,7 @@ TESOBE (http://www.tesobe.com/)
 * It requires the credentials of the user and logs in via OAuth using selenium.
 *
 * We use an "admin user" e.g. a user which has been assigned certain roles to perform the actions.
-* The roles required might include CanCreateCustomer , CanCreateUserCustomerLink
+* The roles required include CanGetAnyUser, CanCreateCustomerAtAnyBank , CanCreateUserCustomerLinkAtAnyBank
 *
 * To use this one-time script, put e.g.
 * target_api_hostname=https://localhost:8080
@@ -47,8 +47,10 @@ TESOBE (http://www.tesobe.com/)
 * into your props file.
 * */
 
-import java.util.Date
+import java.util.{UUID, Date}
 
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.util.ObpJson._
 import code.api._
 import code.setup.SendServerRequests
@@ -60,6 +62,13 @@ import net.liftweb.util.Props
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
+
+import code.api.v2_1_0.{PostCustomerJsonV210, CustomerCreditRatingJSON, CustomerJsonV210}
+
+import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
+
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
+
 
 case class CustomerFullJson(customer_number : String,
                         legal_name : String,
@@ -75,12 +84,6 @@ case class CustomerFullJson(customer_number : String,
                         kyc_status: Boolean,
                         last_ok_date: Date)
 
-
-
-
-// Copied from 1.4 API
-case class CustomerFaceImageJson(url : String, date : Date)
-
 object PostCustomer extends SendServerRequests {
 
 
@@ -88,19 +91,16 @@ object PostCustomer extends SendServerRequests {
     println("Breakpoint hit!") // Manually set a breakpoint here
   }
 
-
-
-
   def main(args : Array[String]) {
-
 
     // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
     implicit val formats = DefaultFormats // Brings in default date formats etc.
 
+    val adminUserUsername = Props.get("import.admin_user.username").getOrElse("ERROR")
+    println(s"adminUserUsername is $adminUserUsername")
 
-    val adminUserUsername = Props.get("import.admin_user.username").toString
-    val adminUserPassword = Props.get("import.admin_user.password").toString
-
+    val adminUserPassword = Props.get("import.admin_user.password").getOrElse("ERROR")
+    println(s"adminUserPassword is $adminUserPassword")
 
     //load json for customers
     val customerDataPath = Props.get("import.customer_data_path")
@@ -159,7 +159,7 @@ object PostCustomer extends SendServerRequests {
       print("login as user: ")
       println (adminUserUsername)
       OAuthClient.authenticateWithOBPCredentials(adminUserUsername, adminUserPassword)
-      //println(" - ok.")
+      println(" - ok.")
     }
 
 
@@ -191,37 +191,92 @@ object PostCustomer extends SendServerRequests {
       println(s"we got ${filteredCustomers.length} filtered customers by email ")
 
       filteredCustomers.foreach(c =>  {
-        println (s"   email is ${c.email} has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
 
-        // We are able to post this (no need to convert to string explicitly)
-        val json = Extraction.decompose(c)
+        if (c.customer_number == "westpac1638421674") {
+
+        println (s"   email is ${c.email} customer number is ${c.customer_number} name is ${c.legal_name} and has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
 
 
-        // For now, create a customer
-        for (b <- banks) {
 
-          if (b.shortName == "uk") {
 
-            println(s"Posting a customer for bank ${b.shortName}")
-            println(s"json to post is $json")
-            val url = s"/v2.0.0/banks/${b.id}/customers"
-            val result = None
-            //val result = ObpPost(url, json)
-            if (!result.isEmpty) {
-              println("saved " + c.customer_number + " as customer " + result)
-            } else {
-              println("did NOT save customer " + result)
+          // We are able to post this (no need to convert to string explicitly)
+          val json = Extraction.decompose(c)
+
+
+          // For now, create a customer
+          for (b <- banks) {
+
+            if (b.shortName == "uk") {
+
+
+              println(s"Posting a customer for bank ${b.shortName}")
+
+              val url = s"/v2.1.0/banks/${b.id}/customers"
+
+              val customerId: String = UUID.randomUUID().toString
+
+              val customerFaceImageJson = CustomerFaceImageJson(url = c.face_image.url, date = c.face_image.date)
+
+
+              // Get user_id
+              var currentUser =  ObpGet(s"/v3.0.0/users/username/${user.user_name}").flatMap(_.extractOpt[UserJsonV200])
+
+              val customerCreditRatingJSON: CustomerCreditRatingJSON = CustomerCreditRatingJSON(rating = "A", source = "Unknown")
+              val creditLimit: AmountOfMoneyJsonV121 = AmountOfMoneyJsonV121(currency="AUD", amount="3000.00")
+
+
+              val cucstomerJsonV210 =
+                PostCustomerJsonV210(
+                  user_id = currentUser.openOrThrowException("User not found by username").user_id,
+    customer_number = c.customer_number,
+    legal_name = c.legal_name,
+    mobile_phone_number = c.mobile_phone_number,
+    email = c.email,
+    face_image = customerFaceImageJson,
+    date_of_birth = c.date_of_birth,
+    relationship_status = c.relationship_status,
+    dependants = c.dependants,
+    dob_of_dependants = c.dob_of_dependants,
+    credit_rating = customerCreditRatingJSON,  // Option[CustomerCreditRatingJSON],
+    credit_limit = creditLimit,
+    highest_education_attained = c.highest_education_attained,
+    employment_status = c.employment_status,
+    kyc_status = c.kyc_status,
+    last_ok_date = c.last_ok_date)
+
+
+
+              val json = Extraction.decompose(cucstomerJsonV210)
+
+              println(s"json to post is $json")
+
+              val lala = pretty(render(json))
+
+              println(s"lala to post is $lala")
+
+
+              val result = ObpPost(url, json)
+
+
+
+              if (!result.isEmpty) {
+                println("saved " + c.customer_number + " as customer " + result)
+              } else {
+                println("did NOT save customer " + result)
+              }
+
             }
 
           }
 
-          }
+        }
 
       })
 
-      OAuthClient.logoutAll()
+      //OAuthClient.logoutAll()
     }
 
+    OAuthClient.logoutAll()
     sys.exit(0)
   }
 }

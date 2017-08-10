@@ -25,7 +25,7 @@ class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with Md
 
     case cc.getUserCustomerLinkByUserId(userId: String) =>
       logger.debug("getUserCustomerLinkByUserId(" + userId + ")")
-      sender ! extractResult(mapper.getUserCustomerLinkByUserId(userId))
+      sender ! extractResult(mapper.getUserCustomerLinksByUserId(userId))
 
     case cc.getUserCustomerLink(userId: String, customerId: String) =>
       logger.debug("getUserCustomerLink(" + userId + ", " + customerId + ")")
