@@ -311,7 +311,7 @@ trait BranchesProvider {
   /*
   Return one Branch
    */
-  final def getBranch(branchId : BranchId) : Option[BranchT] = {
+  final def getBranch(bankId: BankId, branchId : BranchId) : Option[BranchT] = {
     // Filter out if no license data
     getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }

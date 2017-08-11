@@ -168,7 +168,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val branchId = BranchId(branch.id)
 
     // check we have found a branch
-    val foundBranchOpt: Option[BranchT] = Branches.branchesProvider.vend.getBranch(branchId)
+    val foundBranchOpt: Option[BranchT] = Branches.branchesProvider.vend.getBranch(bankId, branchId)
     foundBranchOpt.isDefined should equal(true)
 
     val foundBranch = foundBranchOpt.get
