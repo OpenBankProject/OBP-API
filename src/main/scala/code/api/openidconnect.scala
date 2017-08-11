@@ -218,7 +218,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       content = scala.io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
     } catch {
-      case e:Throwable => println(e)
+      case e:Throwable => logger.error(e)
     }
     content
   }

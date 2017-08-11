@@ -799,7 +799,6 @@ trait APIMethods220 {
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
             defaultStartDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            _  <- tryo{println(defaultStartDate + "defaultStartDate")}
             defaultEndDate <- Full(new Date(nowTime).toInstant.toString)
 
             //(defaults to one week before current date

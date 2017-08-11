@@ -60,10 +60,10 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
           val records = consumerMap.records(responseTopic).iterator
           while (records.hasNext) {
           val record = records.next
-          println("FILTERING: " + record + " => " + reqId)
+          logger.debug("FILTERING: " + record + " => " + reqId)
           retries = retries - 1
           if (record.key == reqId)
-            println("FOUND >>> " + record)
+            logger.debug("FOUND >>> " + record)
             run = false
             res = record.value
           }

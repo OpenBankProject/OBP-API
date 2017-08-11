@@ -159,7 +159,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           bank =>
              bank
                .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
-               .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress,bank.bankId.value))
+               .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
         )
      )
   }("getBanks")
