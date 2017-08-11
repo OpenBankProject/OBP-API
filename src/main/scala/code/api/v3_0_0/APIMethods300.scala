@@ -866,7 +866,7 @@ trait APIMethods300 {
          |
          |By default, 100 records are returned.
          |
-         |You can use the url query parameters *limit* and *ofset* for pagination
+         |You can use the url query parameters *limit* and *offset* for pagination
          |
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
@@ -994,7 +994,7 @@ trait APIMethods300 {
          |Pagination:|
           |By default, 100 records are returned.
           |
-          |You can use the url query parameters *limit* and *ofset* for pagination
+          |You can use the url query parameters *limit* and *offset* for pagination
          |
          |
          |

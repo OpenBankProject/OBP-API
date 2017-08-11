@@ -194,7 +194,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |Pagination:|
           |By default, 100 records are returned.
           |
-        |You can use the url query parameters *limit* and *ofset* for pagination
+        |You can use the url query parameters *limit* and *offset* for pagination
         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
@@ -259,7 +259,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           |Pagination:|
           |By default, 100 records are returned.
           |
-          |You can use the url query parameters *limit* and *ofset* for pagination
+          |You can use the url query parameters *limit* and *offset* for pagination
          |
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
