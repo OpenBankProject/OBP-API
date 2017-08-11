@@ -1188,7 +1188,7 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
-  val userJSONV200 = UserJSONV200(
+  val userJSONV200 = UserJsonV200(
     user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     email = "robert.x.0.gh@example.com",
     provider_id = "OBP",
@@ -1495,6 +1495,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val customerJsonV210 = CustomerJsonV210(
+    bank_id = "bankid1234",
     customer_id = "123",
     customer_number = "123",
     legal_name = "legal_name",

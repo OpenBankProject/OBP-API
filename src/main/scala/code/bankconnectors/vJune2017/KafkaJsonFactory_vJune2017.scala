@@ -107,7 +107,7 @@ case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
 object JsonFactory_vJune2017 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
     InternalBasicCustomer(
-      bankId=customer.bank, 
+      bankId=customer.bankId, 
       customerId = customer.customerId, 
       customerNumber = customer.number, 
       legalName = customer.legalName, 

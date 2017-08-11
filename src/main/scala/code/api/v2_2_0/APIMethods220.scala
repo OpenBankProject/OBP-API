@@ -5,7 +5,7 @@ import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
@@ -934,6 +934,43 @@ trait APIMethods220 {
           }
       }
     }
+
+
+/* WIP
+    resourceDocs += ResourceDoc(
+      getCustomerViewsForAccount,
+      apiVersion,
+      "getCustomerViews",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/customer_views",
+      "Get Customers that have access to a View",
+      s"""Returns the Customers (and the Users linked to the Customer) that have access to the view:
+          |
+          |* Customer: legal_name, customer_number, customer_id
+          |* User: username, user_id, email
+          |* View: view_id
+          |
+         |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      CustomerViewsJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagAccount, apiTagCustomer, apiTagView)
+    )
+*/
+
+
+
+
+
+
+
+
+
+
 
 
   }

@@ -43,7 +43,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
 
       val customerPostJSON = createCustomerJson(mockCustomerNumber1)
       Then("User is linked to 0 customers")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size should equal(0)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(0)
       val requestPost = (v2_1Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 400")
@@ -65,20 +65,20 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       val infoPost = responsePost2.body.extract[CustomerJsonV210]
 
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "customers").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
       responseGet.code should equal(200)
 
       And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJsonV210]
+      val infoGet: CustomerJSONs = responseGet.body.extract[CustomerJSONs]
 
       And("POST feedback and GET feedback must be the same")
-      infoGet should equal(infoPost)
+      infoGet.customers.filter(_.customer_id == infoPost.customer_id).head should equal(infoPost)
 
       And("User is linked to 1 customer")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size should equal(1)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
 
 
       When("We try to make the second request with same customer number at same bank")
@@ -89,7 +89,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
       error should contain (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 1 customer")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size should equal(1)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
 
       When("We try to make a request with changed customer number at same bank")
       val customerPostJSON3 = createCustomerJson(mockCustomerNumber2)
@@ -98,7 +98,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responsePost3.code should equal(201)
       And("User is linked to 2 customers")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON3.user_id).size should equal(2)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON3.user_id).size should equal(2)
 
       When("We try to make a request with same customer number at different bank")
       Then("first we add all required entitlements")
@@ -110,7 +110,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responsePost4.code should equal(201)
       And("User is linked to 3 customers")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON4.user_id).size should equal(3)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON4.user_id).size should equal(3)
 
       When("We try to make the second request with same customer number at same bank")
       val secondResponsePost4 = makePostRequest(requestPost4, write(customerPostJSON4))
@@ -120,7 +120,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
       error4 should contain (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 3 customers")
-      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON.user_id).size should equal(3)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(3)
     }
   }
 
