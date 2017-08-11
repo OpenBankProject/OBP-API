@@ -3,12 +3,12 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm, MappedAtmsProvider}
 import code.branches.Branches._
-import code.branches.MappedBranch
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.common.{Address, _}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -146,10 +146,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .find(By(MappedBank.permalink, bankId.value))
       .map(
         bank =>
-          bank.bankRoutingScheme ==null && bank.bankRoutingAddress == null match {
-            case true  => bank.mBankRoutingScheme("OBP_BANK_ID").mBankRoutingAddress(bank.bankId.value)
-            case _ => bank
-          }
+            bank
+              .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
+              .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress,bank.bankId.value))
       )
 
   //gets banks handled by this connector
@@ -158,10 +157,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .findAll()
         .map(
           bank =>
-            bank.bankRoutingScheme ==null && bank.bankRoutingAddress == null match {
-              case true  => bank.mBankRoutingScheme("OBP_BANK_ID").mBankRoutingAddress(bank.bankId.value)
-              case _ => bank
-            }
+             bank
+               .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
+               .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress,bank.bankId.value))
         )
      )
   }("getBanks")
@@ -243,11 +241,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedBankAccount.theAccountId, accountId.value))
       .map(
         account =>
-          account.accountRoutingScheme ==null && account.accountRoutingAddress == null match {
-            case true  => account.mAccountRoutingScheme("OBP_ACCOUNT_ID").mAccountRoutingAddress(account.accountId.value)
-            case _ => account
-        }
-    )
+            account
+              .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
+              .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
+      )
   }
 
   override def getEmptyBankAccount(): Box[AccountType] = {

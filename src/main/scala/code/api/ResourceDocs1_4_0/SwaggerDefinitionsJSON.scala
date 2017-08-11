@@ -8,6 +8,7 @@ import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.common._
 import net.liftweb.common.Full
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
+import code.branches.{MessageDocJson, MessageDocsJson}
 
 import scala.util.Try
 

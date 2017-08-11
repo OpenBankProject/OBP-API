@@ -2,7 +2,7 @@ package code.examplething
 
 
 // Need to import these one by one because in same package!
-import code.bankconnectors.{KafkaMappedConnector, LocalConnector, LocalMappedConnector}
+import code.bankconnectors.{KafkaMappedConnector, LocalRecordConnector, LocalMappedConnector}
 
 
 import code.model.{BankId}

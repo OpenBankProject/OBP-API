@@ -31,7 +31,7 @@ trait UserCustomerLinkProvider {
 class RemotedataUserCustomerLinkProviderCaseClass {
   case class createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean)
   case class getUserCustomerLinkByCustomerId(customerId: String)
-  case class getUserCustomerLinkByUserId(userId: String)
+  case class getUserCustomerLinksByUserId(userId: String)
   case class getUserCustomerLink(userId: String, customerId: String)
   case class getUserCustomerLinks()
   case class bulkDeleteUserCustomerLinks()

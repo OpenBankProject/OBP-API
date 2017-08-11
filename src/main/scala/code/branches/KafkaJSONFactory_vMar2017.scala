@@ -29,16 +29,17 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.bankconnectors
+package code.branches
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
+import code.bankconnectors.InboundUser
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.dataAccess.MappedBankAccountData
 import code.model._
+import code.model.dataAccess.MappedBankAccountData
 import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By

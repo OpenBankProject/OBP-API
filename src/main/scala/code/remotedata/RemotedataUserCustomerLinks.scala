@@ -18,7 +18,7 @@ object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkPro
     extractFutureToBox(actor ? cc.getUserCustomerLinkByCustomerId(customerId))
 
   def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] =
-    extractFuture(actor ? cc.getUserCustomerLinkByUserId(userId))
+    extractFuture(actor ? cc.getUserCustomerLinksByUserId(userId))
 
   def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink] =
     extractFutureToBox(actor ? cc.getUserCustomerLink(userId, customerId))
