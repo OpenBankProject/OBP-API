@@ -937,7 +937,7 @@ trait APIMethods220 {
     }
 
 
-/* WIP
+/*
     resourceDocs += ResourceDoc(
       getCustomerViewsForAccount,
       apiVersion,
@@ -961,8 +961,8 @@ trait APIMethods220 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagAccount, apiTagCustomer, apiTagView)
     )
-*/
 
+*/
 
 
 

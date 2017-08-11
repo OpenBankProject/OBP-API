@@ -796,14 +796,13 @@ trait APIMethods300 {
       "getBranch",
       "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
-      "Get Bank Branch",
-      s"""Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:
-         | meta.license.id and eta.license.name fields must not be empty.
+      "Get Branch",
+      s"""Returns information about a single Branch specified by BANK_ID and BRANCH_ID including:
          |
           |* Name
          |* Address
          |* Geo Location
-         |* License the data under this endpoint is released under
+         |* License the data under this endpoint is released under.
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
@@ -826,12 +825,16 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
-              case Some(l) => Full(l)
-              case _ => Empty
-            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
-            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
-              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+
+
+//            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
+//              case Some(l) => Full(l)
+//              case _ => Empty
+//            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+//            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
+//              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
           } yield {
             // Format the data as json
             val json = JSONFactory300.createBranchJsonV300(branch)

@@ -1116,8 +1116,7 @@ trait APIMethods210 {
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! 
-              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchJson(branch)
