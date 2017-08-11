@@ -106,7 +106,7 @@ class API3_0_0Test extends User1AllPrivileges with V300ServerSetup with DefaultU
       // Create json file and store all banks
       import java.io._
       val pw = new PrintWriter(new File(server.externalHost.getOrElse("") + "-banks.json"))
-      pw.write(pretty(render(reply.body)))
+      pw.write(prettyRender(reply.body))
       pw.close
 
       // Parse response to get list of bank ids

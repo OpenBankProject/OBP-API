@@ -53,17 +53,18 @@ import code.products.Products.ProductCode
 import code.users.Users
 import code.views.Views
 import dispatch._
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.{JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, ShouldMatchers}
+import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import net.liftweb.json.{JField, _}
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.{Connector, OBPLimit}
 import net.liftweb.common.{Empty, Full, ParamFailure}
 import code.api.util.APIUtil._
 import code.setup.{APIResponse, SendServerRequests}
+import net.liftweb.json
 
 /*
 This tests:
@@ -71,7 +72,7 @@ This tests:
 Posting of json to the sandbox creation API endpoint.
 Checking that the various objects were created OK via calling the Mapper.
  */
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers with BeforeAndAfterEach {
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Matchers with BeforeAndAfterEach {
 
   val SUCCESS: Int = 201
   val FAILED: Int = 400
@@ -126,7 +127,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       ("atms" -> atms) ~
       ("products" -> products) ~
       ("crm_events" -> crm_events)
-    compact(render(json))
+    compactRender(json)
   }
 
   // posts the json with the correct secret token
@@ -364,14 +365,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
   }
 
-  def removeField(json : JValue, fieldName : String) = {
-    json.remove {
-      case JField(`fieldName`, _) => true
-      case _ => false
-    }
+  def removeField(json : JValue, fieldName : String): JValue = {
+    removeField(json, List(fieldName))
   }
 
-  def removeField(json : JValue, fieldSpecifier : List[String]) = {
+  def removeField(json : JValue, fieldSpecifier : List[String]): JValue = {
     json.replace(fieldSpecifier, JNothing)
   }
 

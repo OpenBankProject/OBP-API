@@ -550,7 +550,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   def postTransaction(bankId: String, accountId: String, viewId: String, paymentJson: MakePaymentJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
-    makePostRequest(request, compact(render(Extraction.decompose(paymentJson))))
+    makePostRequest(request, compactRender(Extraction.decompose(paymentJson)))
   }
 
   def getNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {

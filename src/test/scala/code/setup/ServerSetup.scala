@@ -48,7 +48,7 @@ import org.scalatest._
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with ShouldMatchers with MdcLoggable {
+  with Matchers with MdcLoggable {
 
   implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
   implicit val dateFormats = net.liftweb.json.DefaultFormats

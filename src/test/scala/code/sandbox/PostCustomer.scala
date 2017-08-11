@@ -236,7 +236,7 @@ object PostCustomer extends SendServerRequests {
 
               println(s"json to post is $json")
 
-              val lala = pretty(render(json))
+              val lala = prettyRender(json)
 
               println(s"lala to post is $lala")
 

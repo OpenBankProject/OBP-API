@@ -30,7 +30,6 @@ import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
-import code.api.util.APIUtil.getCustomers
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -171,8 +170,7 @@ trait APIMethods210 {
 
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
+    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
 
 
     // This text is used in the various Create Transaction Request resource docs

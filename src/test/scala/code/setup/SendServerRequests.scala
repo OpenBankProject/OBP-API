@@ -31,6 +31,8 @@
  */
 package code.setup
 
+import java.nio.charset.Charset
+
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
 import code.token.Tokens
@@ -117,9 +119,10 @@ trait SendServerRequests {
   }
 
   def createRequest( reqData: ReqData ): Req = {
+    val charset = if(reqData.body_encoding == "") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
     val rb = url(reqData.url)
       .setMethod(reqData.method)
-      .setBodyEncoding(reqData.body_encoding)
+      .setBodyEncoding(charset)
       .setBody(reqData.body) <:< reqData.headers
     if (reqData.query_params.nonEmpty)
       rb <<? reqData.query_params
@@ -145,7 +148,7 @@ trait SendServerRequests {
     val r = req.toRequest
     val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> qp.getValue).toMap[String,String]
     val form_params: Map[String,String] = r.getFormParams.asScala.map( fp => fp.getName -> fp.getValue).toMap[String,String]
-    var headers:Map[String,String] = r.getHeaders.entrySet.asScala.map (h => h.getKey -> h.getValue.get(0)).toMap[String,String]
+    var headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
     val url:String = r.getUrl
     val method:String = r.getMethod
 
@@ -218,7 +221,7 @@ trait SendServerRequests {
    */
   def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
     val extra_headers = Map.empty ++ params
-    val reqData = extractParamsAndHeaders(req.GET, "", "", extra_headers)
+    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
     val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)
   }

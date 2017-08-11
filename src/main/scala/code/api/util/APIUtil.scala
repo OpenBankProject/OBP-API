@@ -33,6 +33,7 @@
 package code.api.util
 
 import java.io.InputStream
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
@@ -824,7 +825,7 @@ object APIUtil extends MdcLoggable {
         val form_params = r.getFormParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
             case (k, v) => k -> v.toString
           }
-        val body_encoding = r.getBodyEncoding
+        val body_encoding = r.getCharset
         var body = new String()
         if (r.getByteData != null )
           body = new String(r.getByteData)
@@ -833,9 +834,10 @@ object APIUtil extends MdcLoggable {
                                       consumer, token, verifier, callback)
 
         def createRequest( reqData: ReqData ): Request = {
+          val charset = if(reqData.body_encoding == "null") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
           val rb = url(reqData.url)
             .setMethod(reqData.method)
-            .setBodyEncoding(reqData.body_encoding)
+            .setBodyEncoding(charset)
             .setBody(reqData.body) <:< reqData.headers
           if (reqData.query_params.nonEmpty)
             rb <<? reqData.query_params
@@ -846,7 +848,7 @@ object APIUtil extends MdcLoggable {
           oauth_url,
           r.getMethod,
           body,
-          body_encoding,
+          if (body_encoding == null) "null" else body_encoding.name(),
           IMap("Authorization" -> ("OAuth " + oauth_params.map {
             case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
           }.mkString(",") )),

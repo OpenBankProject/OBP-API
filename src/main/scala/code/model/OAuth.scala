@@ -487,7 +487,7 @@ object MappedTokenProvider extends TokensProvider {
                            callbackURL: Option[String]): Box[Token] = {
     tryo {
       val t = Token.create
-      t.tokenType(tokenType)
+      t.tokenType(tokenType.toString)
       consumerId match {
         case Some(v) => t.consumerId(v)
         case None =>

@@ -525,8 +525,8 @@ trait APIMethods300 {
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compact(render(json \ "es_uri_part"))
-            val bodyPart = compact(render(json \ "es_body_part"))
+            val uriPart = compactRender(json \ "es_uri_part")
+            val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
       }
