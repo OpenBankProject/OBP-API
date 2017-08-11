@@ -1,11 +1,11 @@
 package code.branches
 
+import code.bankconnectors._
 import code.branches.Branches._
 import code.common._
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
-import net.liftweb.mapper._
-
+import net.liftweb.mapper.{By, _}
 import net.liftweb.common.{Box, Logger}
 
 object MappedBranchesProvider extends BranchesProvider {
@@ -15,9 +15,17 @@ object MappedBranchesProvider extends BranchesProvider {
   override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] =
     MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
-  override protected def getBranchesFromProvider(bankId: BankId): Option[List[BranchT]] = {
+  override protected def getBranchesFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[BranchT]] = {
     logger.debug(s"getBranchesFromProvider says bankId is $bankId")
-    val branches: Option[List[BranchT]] = Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))
+  
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedBranch](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedBranch](value) }.headOption
+    
+    val optionalParams : Seq[QueryParam[MappedBranch]] = Seq(limit.toSeq, offset.toSeq).flatten
+    val mapperParams = Seq(By(MappedBranch.mBankId, bankId.value)) ++ optionalParams
+    
+    val branches: Option[List[BranchT]] = Some(MappedBranch.findAll(mapperParams:_*))
+  
     branches
   }
 }

@@ -4,7 +4,8 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
-import code.branches.Branches.{BranchT, Branch, BranchId}
+import code.bankconnectors.OBPQueryParam
+import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.common._
 import code.model.BankId
 import net.liftweb.common.{Box, Logger}
@@ -287,9 +288,9 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-  final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
+  final def getBranches(bankId : BankId ,queryParams: OBPQueryParam*) : Option[List[BranchT]] = {
     // If we get branches filter them
-    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId)
+    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId : BankId ,queryParams:_*)
 
     branches match {
       case Some(branches) => {
@@ -317,7 +318,7 @@ trait BranchesProvider {
   }
 
   protected def getBranchFromProvider(branchId : BranchId) : Option[BranchT]
-  protected def getBranchesFromProvider(bank : BankId) : Option[List[BranchT]]
+  protected def getBranchesFromProvider(bank : BankId, queryParams:OBPQueryParam*): Option[List[BranchT]]
 
 // End of Trait
 }

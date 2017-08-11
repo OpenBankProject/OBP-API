@@ -3,6 +3,7 @@ package code.api.v1_4_0
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.v3_0_0.V300ServerSetup
+import code.bankconnectors.OBPQueryParam
 import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
 import code.common._
@@ -212,7 +213,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
-    override protected def getBranchesFromProvider(bank: BankId): Option[List[BranchT]] = {
+    override protected def getBranchesFromProvider(bank: BankId, queryParams:OBPQueryParam*): Option[List[BranchT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))

@@ -792,6 +792,7 @@ trait APIMethods220 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
+            //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
 
@@ -812,7 +813,7 @@ trait APIMethods220 {
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
                 case Full(l)                      => l.toInt
-                case _                            => 1000
+                case _                            => 100
               }
             ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
