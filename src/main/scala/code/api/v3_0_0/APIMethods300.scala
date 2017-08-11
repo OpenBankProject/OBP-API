@@ -862,6 +862,13 @@ trait APIMethods300 {
          |* Branch Type
          |* More Info
          |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchesJsonV300,
@@ -924,6 +931,8 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under
          |
+         |
+         |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJsonV300,
@@ -965,6 +974,14 @@ trait APIMethods300 {
          |* Address
          |* Geo Location
          |* License the data under this endpoint is released under
+         |
+         |Pagination:|
+          |By default, 100 records are returned.
+          |
+          |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
+         |
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
