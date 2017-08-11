@@ -942,23 +942,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 50
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-            atms <- {Atms.atmsProvider.vend.getAtms(bankId,OBPLimit(limit), OBPOffset(offset)) match {
-              case Some(l) => Full(l)
-              case _ => Empty
-            }} ?~!  {AtmNotFoundByAtmId}
-            atm <- Box(atms.filter(_.atmId.value==atmId.value)) ?~!
-              {AtmNotFoundByAtmId}
+            atm <- Box(Atms.atmsProvider.vend.getAtm(bankId,atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmJsonV300(atm)
