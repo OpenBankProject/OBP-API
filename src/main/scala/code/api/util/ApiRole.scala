@@ -133,6 +133,9 @@ object ApiRole {
     CanSearchWarehouse ::
     CanSearchMetrics ::
     CanCreateCustomer ::
+    CanCreateCustomerAtAnyBank ::
+    CanCreateUserCustomerLink ::
+    CanCreateUserCustomerLinkAtAnyBank ::
     CanCreateAccount ::
     CanGetAnyUser ::
     CanCreateAnyTransactionRequest ::
@@ -152,7 +155,6 @@ object ApiRole {
     CanCreateConsumer ::
     CanCreateTransactionType::
     CanCreateCardsForBank ::
-    CanCreateUserCustomerLink ::
     CanCreateBranch ::
     CanCreateBranchAtAnyBank ::
     CanCreateAtm ::
