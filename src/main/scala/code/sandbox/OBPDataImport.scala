@@ -165,7 +165,7 @@ trait OBPDataImport extends MdcLoggable {
    */
   protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[ResourceUser]): AnyVal = {
     val resourceUserOwner = createdUsers.find(user => owner == user.name)
-    println("{resourceUserOwner: " + resourceUserOwner)
+    //println("{resourceUserOwner: " + resourceUserOwner)
 
     resourceUserOwner match {
       case Some(o) => {

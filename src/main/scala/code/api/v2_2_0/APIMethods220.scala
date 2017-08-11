@@ -792,6 +792,7 @@ trait APIMethods220 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
+            //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
 
@@ -799,7 +800,6 @@ trait APIMethods220 {
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
             defaultStartDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            _  <- tryo{println(defaultStartDate + "defaultStartDate")}
             defaultEndDate <- Full(new Date(nowTime).toInstant.toString)
 
             //(defaults to one week before current date
@@ -813,7 +813,7 @@ trait APIMethods220 {
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
                 case Full(l)                      => l.toInt
-                case _                            => 1000
+                case _                            => 100
               }
             ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
