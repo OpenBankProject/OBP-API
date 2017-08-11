@@ -1,6 +1,7 @@
 package code.atms
 
 import code.atms.Atms._
+import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.common._
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
@@ -11,8 +12,15 @@ object MappedAtmsProvider extends AtmsProvider {
   override protected def getAtmFromProvider(atmId: AtmId): Option[AtmT] =
   MappedAtm.find(By(MappedAtm.mAtmId, atmId.value))
 
-  override protected def getAtmsFromProvider(bankId: BankId): Option[List[AtmT]] = {
-    Some(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)))
+  override protected def getAtmsFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[AtmT]] = {
+  
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedAtm](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedAtm](value) }.headOption
+  
+    val optionalParams : Seq[QueryParam[MappedAtm]] = Seq(limit.toSeq, offset.toSeq).flatten
+    val mapperParams = Seq(By(MappedAtm.mBankId, bankId.value)) ++ optionalParams
+    
+    Some(MappedAtm.findAll(mapperParams:_*))
   }
 
 

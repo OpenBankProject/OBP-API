@@ -473,7 +473,6 @@ object MappedTokenProvider extends TokensProvider {
   }
   override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
     val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType.toString))
-    //println("token: " + token)
     token
   }
 
@@ -488,10 +487,7 @@ object MappedTokenProvider extends TokensProvider {
                            callbackURL: Option[String]): Box[Token] = {
     tryo {
       val t = Token.create
-      tokenType match {
-        case Request => t.tokenType(Request.toString)
-        case Access => t.tokenType(Access.toString)
-      }
+      t.tokenType(tokenType)
       consumerId match {
         case Some(v) => t.consumerId(v)
         case None =>

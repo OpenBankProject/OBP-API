@@ -6,7 +6,7 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.{APIMethods300, OBPAPI3_0_0}
 import code.api.v3_0_0.OBPAPI3_0_0._
-import code.bankconnectors.{KafkaJSONFactory_vMar2017, KafkaMappedConnector_vMar2017}
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import net.liftweb.common.{Box, Empty, Full}
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.rest.RestHelper

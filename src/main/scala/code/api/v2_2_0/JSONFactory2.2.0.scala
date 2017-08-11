@@ -266,6 +266,70 @@ case class ConsumerJson(consumer_id: Long,
                         created: Date
                        )
 
+
+
+case class BasicUserJsonV220 (
+                               user_id: String,
+                               email: String,
+                               provider_id: String,
+                               provider: String,
+                               username: String
+                             )
+
+
+case class BasicCustomerJsonV220(
+                                  customer_id: String,
+                                  customer_number: String,
+                                  legal_name: String
+                                )
+
+
+case class BasicViewJsonV220(
+                              view_id: String,
+                              short_name: String,
+                              description: String,
+                              is_public: Boolean
+                            )
+
+
+case class CustomerViewJsonV220(
+  user: BasicUserJsonV220,
+  customer: BasicCustomerJsonV220,
+  view: BasicViewJsonV220
+)
+
+
+
+
+
+
+/*
+
+[{
+"user": {
+"user_id": "5995d6a2-01b3-423c-a173-5481df49bdaf",
+"email": "robert.x.0.gh@example.com",
+"provider_id": "robert.x.0.gh",
+"provider": "OBP",
+"username": "robert.x.0.gh"
+},
+"customer": {
+"customer_id": "yauiuy67876f",
+"customer_number": "12345",
+"legal_name": "Robert Manchester"
+},
+"view": {
+"view_id": "owner",
+"short_name": "Accountant",
+"description": "For the accountants",
+"is_public": false
+}
+}]
+
+*/
+
+
+
 object JSONFactory220{
 
   def stringOrNull(text : String) =

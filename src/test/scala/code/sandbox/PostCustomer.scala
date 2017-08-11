@@ -178,36 +178,24 @@ object PostCustomer extends SendServerRequests {
       ) // Add a flag to say if this bank is featured.
 
 
-      //  println(s"bankid is ${b.id.get}")
-
     // Loop over the users found in the json
     for (u <- users) {
       val user = u.extract[UserJSONRecord]
       println(" ")
 
-
       val filteredCustomers = customers.filter(x => ( x.email == user.email))
 
       println(s"we got ${filteredCustomers.length} filtered customers by email ")
 
-      filteredCustomers.foreach(c =>  {
-
-        if (c.customer_number == "westpac1638421674") {
+      filteredCustomers.foreach(c =>  { //(c.customer_number == "westpac1638421674")
 
         println (s"   email is ${c.email} customer number is ${c.customer_number} name is ${c.legal_name} and has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
-
-
-
 
           // We are able to post this (no need to convert to string explicitly)
           val json = Extraction.decompose(c)
 
-
-          // For now, create a customer
-          for (b <- banks) {
-
-            if (b.shortName == "uk") {
-
+          // Create Customer for Each bank
+          for (b <- banks) { // (b.shortName == "uk")
 
               println(s"Posting a customer for bank ${b.shortName}")
 
@@ -217,13 +205,11 @@ object PostCustomer extends SendServerRequests {
 
               val customerFaceImageJson = CustomerFaceImageJson(url = c.face_image.url, date = c.face_image.date)
 
-
               // Get user_id
               var currentUser =  ObpGet(s"/v3.0.0/users/username/${user.user_name}").flatMap(_.extractOpt[UserJsonV200])
 
               val customerCreditRatingJSON: CustomerCreditRatingJSON = CustomerCreditRatingJSON(rating = "A", source = "Unknown")
               val creditLimit: AmountOfMoneyJsonV121 = AmountOfMoneyJsonV121(currency="AUD", amount="3000.00")
-
 
               val cucstomerJsonV210 =
                 PostCustomerJsonV210(
@@ -254,10 +240,7 @@ object PostCustomer extends SendServerRequests {
 
               println(s"lala to post is $lala")
 
-
               val result = ObpPost(url, json)
-
-
 
               if (!result.isEmpty) {
                 println("saved " + c.customer_number + " as customer " + result)
@@ -265,11 +248,7 @@ object PostCustomer extends SendServerRequests {
                 println("did NOT save customer " + result)
               }
 
-            }
-
           }
-
-        }
 
       })
 

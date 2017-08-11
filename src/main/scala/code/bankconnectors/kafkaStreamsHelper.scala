@@ -9,6 +9,7 @@ import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
+import code.bankconnectors.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
@@ -152,8 +153,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         any
       }
 
-    // This is for KafkaMappedConnector_vJune2017, the request is TopicCaseClass  
-    case request: TopicCaseClass =>
+    // This is for KafkaMappedConnector_vJune2017, the request is TopicTrait  
+    case request: TopicTrait =>
       logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
@@ -230,5 +231,33 @@ object Topics {
     TopicPair(s"obp.${connectorVersion}.N." + className.replace("$", ""),
       s"obp.${connectorVersion}.S." + className.replace("$", ""))
   }
-
+  
+  // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala 
+  // This is for Kafka topics for both North and South sides.
+  // In OBP-API, these topics will be created automatically. 
+  sealed trait TopicTrait
+  
+  // There design for OutBound Topics : North --> South
+  trait GetAdapterInfoTopic extends TopicTrait
+  trait GetBanksTopic extends TopicTrait
+  trait GetBankTopic extends TopicTrait
+  trait GetUserByUsernamePasswordTopic extends TopicTrait
+  trait GetAccountsTopic extends TopicTrait
+  trait GetAccountbyAccountIDTopic extends TopicTrait
+  trait GetAccountbyAccountNumberTopic extends TopicTrait
+  trait GetTransactionsTopic extends TopicTrait
+  trait GetTransactionTopic extends TopicTrait
+  trait CreateCBSAuthTokenTopic extends TopicTrait
+  
+  
+  //There design for InBound Topics : South --> North
+  trait AdapterInfoTopic extends TopicTrait
+  trait UserWrapperTopic extends TopicTrait
+  trait BanksTopic extends TopicTrait
+  trait BankWrapperTopic extends TopicTrait
+  trait InboundBankAccountsTopic extends TopicTrait
+  trait InboundBankAccountTopic extends TopicTrait
+  trait InboundTransactionsTopic extends TopicTrait
+  trait InboundTransactionTopic extends TopicTrait
+  
 }

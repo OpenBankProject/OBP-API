@@ -337,7 +337,6 @@ trait APIMethods200 {
       }
       // Supports idea of default bank
       case "bank" :: "accounts" :: Nil JsonGet json => {
-        println("in accounts")
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn

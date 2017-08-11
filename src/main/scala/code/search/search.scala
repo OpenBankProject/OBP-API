@@ -118,7 +118,7 @@ class elasticsearch extends MdcLoggable {
       parameters = Seq(("source", source))
     }
     val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}", parameters )
-    println("[ES.URL]===> " + esUrl)
+    //println("[ES.URL]===> " + esUrl)
 
     // Use this incase we cant log to elastic search
     logger.info(s"esUrl is $esUrl parameters are $parameters user_id is $userId")
@@ -170,7 +170,7 @@ class elasticsearchMetrics extends elasticsearch {
       }
     }
     catch {
-      case e:Throwable => println("ERROR - "+ e.getMessage )
+      case e:Throwable => logger.error("ERROR - "+ e.getMessage )
     }
   }
 
@@ -191,7 +191,7 @@ class elasticsearchMetrics extends elasticsearch {
         }
       }
       catch {
-        case e:Throwable => println("ERROR - "+ e.getMessage )
+        case e:Throwable => logger.error("ERROR - "+ e.getMessage )
       }
     }
   }

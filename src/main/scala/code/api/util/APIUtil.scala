@@ -563,6 +563,21 @@ object APIUtil extends MdcLoggable {
     }
   }
   
+  
+  def ValueOrOBP(text : String) =
+    text match {
+      case t if t == null => "OBP"
+      case t if t.length > 0 => t
+      case _ => "OBP"
+    }
+  
+  def ValueOrOBPId(text : String, OBPId: String) =
+    text match {
+      case t if t == null => OBPId
+      case t if t.length > 0 => t
+      case _ => OBPId
+    }
+  
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
       null
