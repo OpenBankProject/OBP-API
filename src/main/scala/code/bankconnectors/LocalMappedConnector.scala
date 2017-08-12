@@ -319,6 +319,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     for (l <- list) yield
       new PhysicalCard(
+        bankId=l.mBankId,
         bankCardNumber = l.mBankCardNumber,
         nameOnCard = l.mNameOnCard,
         issueNumber = l.mIssueNumber,
@@ -343,6 +344,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
     for (l <- list) yield
       new PhysicalCard(
+        bankId= l.mBankId,
         bankCardNumber = l.mBankCardNumber,
         nameOnCard = l.mNameOnCard,
         issueNumber = l.mIssueNumber,
@@ -404,6 +406,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                             )
     for (l <- list) yield
     new PhysicalCard(
+      bankId = l.mBankId,
       bankCardNumber = l.mBankCardNumber,
       nameOnCard = l.mNameOnCard,
       issueNumber = l.mIssueNumber,
