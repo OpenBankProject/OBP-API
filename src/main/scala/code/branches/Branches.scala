@@ -314,10 +314,10 @@ trait BranchesProvider {
    */
   final def getBranch(bankId: BankId, branchId : BranchId) : Option[BranchT] = {
     // Filter out if no license data
-    getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getBranchFromProvider(bankId,branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
-  protected def getBranchFromProvider(branchId : BranchId) : Option[BranchT]
+  protected def getBranchFromProvider(bankId: BankId, branchId : BranchId) : Option[BranchT]
   protected def getBranchesFromProvider(bank : BankId, queryParams:OBPQueryParam*): Option[List[BranchT]]
 
 // End of Trait

@@ -656,6 +656,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val physicalCardJSON = PhysicalCardJSON(
+    bank_id = "String",
     bank_card_number = "String",
     name_on_card = "String",
     issue_number = "String",

@@ -142,7 +142,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getAtmFromProvider(AtmId: AtmId): Option[AtmT] = {
+    override protected def getAtmFromProvider(bank: BankId, AtmId: AtmId): Option[AtmT] = {
       AtmId match {
          case `bankWithLicense` => Some(fakeAtm1)
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
