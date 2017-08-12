@@ -232,7 +232,7 @@ trait Connector extends MdcLoggable{
 
   def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard]
 
-  def AddPhysicalCard(bankCardNumber: String,
+  def createOrUpdatePhysicalCard(bankCardNumber: String,
                               nameOnCard: String,
                               issueNumber: String,
                               serialNumber: String,
@@ -250,7 +250,7 @@ trait Connector extends MdcLoggable{
                               pinResets: List[PinResetInfo],
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
-                             ) : Box[PhysicalCard]
+                             ) : Box[PhysicalCard] = Failure("createOrUpdatePhysicalCard method not support yet! ")
 
 
 

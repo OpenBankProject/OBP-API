@@ -25,7 +25,7 @@ import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
 import code.metrics.{APIMetric, APIMetrics}
-import code.model.dataAccess.{AuthUser, MappedBankAccount}
+import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
@@ -881,15 +881,14 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      addCardsForBank,
+      addCardForBank,
       apiVersion,
       "addCardsForBank",
       "POST",
       "/banks/BANK_ID/cards",
-      "Add cards for a bank",
-      s"""Import bulk data into the sandbox (Authenticated access).
+      "Create Card",
+      s"""Create Card at bank specified by BANK_ID .
           |
-          |This is can be used to create cards which are stored in the local RDBMS.
           |${authenticationRequiredMessage(true)}
           |""",
       postPhysicalCardJSON,
@@ -903,7 +902,7 @@ trait APIMethods210 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
-    lazy val addCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCardForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -916,7 +915,7 @@ trait APIMethods210 {
               case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
             }
             account <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {AccountNotFound}
-            card <- Connector.connector.vend.AddPhysicalCard(
+            card <- Connector.connector.vend.createOrUpdatePhysicalCard(
                                 bankCardNumber=postJson.bank_card_number,
                                 nameOnCard=postJson.name_on_card,
                                 issueNumber=postJson.issue_number,

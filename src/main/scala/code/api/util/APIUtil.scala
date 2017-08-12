@@ -191,10 +191,13 @@ import code.api.util.APIUtil._
   val CreateProductError = "OBP-30030: Could not insert the Product"
   val UpdateProductError = "OBP-30031: Could not update the Product"
   
-  val ViewIdNotSupported = "OBP-30032: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
+  val CreateCardError = "OBP-30032: Could not insert the Card"
+  val UpdateCardError = "OBP-30033: Could not update the Card"
+  
+  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
 
-  val UserCustomerLinkNotFound = "OBP-30032: User Customer Link not found"
+  val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
   
 

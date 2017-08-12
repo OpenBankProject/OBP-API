@@ -4,12 +4,12 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
-import code.atms.{Atms, MappedAtm, MappedAtmsProvider}
+import code.atms.{Atms, MappedAtm}
 import code.branches.Branches._
 import code.branches.{InboundAdapterInfo, MappedBranch}
-import code.common.{Address, _}
+import code.cards.MappedPhysicalCard
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -365,7 +365,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
   }
 
-  def AddPhysicalCard(bankCardNumber: String,
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                               nameOnCard: String,
                               issueNumber: String,
                               serialNumber: String,
@@ -384,7 +384,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard] = {
-    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+    val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createOrUpdatePhysicalCard(
                                                                               bankCardNumber,
                                                                               nameOnCard,
                                                                               issueNumber,
@@ -404,7 +404,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                               collected,
                                                                               posted
                                                                             )
-    for (l <- list) yield
+    for (l <- physicalCardBox) yield
     new PhysicalCard(
       bankId = l.mBankId,
       bankCardNumber = l.mBankCardNumber,
