@@ -126,6 +126,9 @@ object ApiRole {
   case object CanGetConnectorMetrics extends ApiRole{
     val requiresBankId = false
   }
+  case object CanGetOtherAccountsAtBank extends ApiRole{
+    val requiresBankId = true
+  }
 
   private val roles = CanSearchAllTransactions ::
     CanSearchAllAccounts ::
@@ -167,6 +170,7 @@ object ApiRole {
     CanReadMetrics ::
     CanGetConfig ::
     CanGetConnectorMetrics ::
+    CanGetOtherAccountsAtBank ::
     Nil
 
   def valueOf(value: String): ApiRole = {
