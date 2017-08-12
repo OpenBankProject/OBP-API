@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -1042,6 +1043,50 @@ trait APIMethods300 {
         }
       }
     }
+
+
+
+/* WIP
+    resourceDocs += ResourceDoc(
+      getOtherAccountsForBank,
+      apiVersion,
+      "getOtherAccountsForBank",
+      "GET",
+      "/banks/BANK_ID/other_accounts",
+      "Get Other Accounts of a Bank.",
+      s"""Returns data about all the other accounts at BANK_ID.
+          |This is a fireho
+          |${authenticationRequiredMessage(true)}
+          |""",
+      emptyObjectJson,
+      otherAccountsJSON,
+      List(
+        BankAccountNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, PSD2, OBWG),
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+
+    lazy val getOtherAccountsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get other accounts for one account
+      case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+        user =>
+          for {
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- View.fromUrl(viewId, account)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+          } yield {
+            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+          }
+      }
+    }
+*/
+
+
+
+
 
 
   }
