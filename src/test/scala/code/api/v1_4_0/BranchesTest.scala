@@ -222,7 +222,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] = {
+    override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] = {
       branchId match {
          case BankWithLicense => Some(fakeBranch1)
          case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
