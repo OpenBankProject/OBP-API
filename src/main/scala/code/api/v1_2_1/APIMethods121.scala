@@ -2048,14 +2048,14 @@ trait APIMethods121 {
   
   
     private def getTransactionsForBankAccountCached(
-      json: Req ,
+      paramsBox:  Box[List[OBPQueryParam]],
       user: Box[User],
       accountId: AccountId,
       bankId: BankId,
       viewId : ViewId
     ): Box[JsonResponse] = memoizeSync(apiMethods121GetTransactionsTTL millisecond){
       for {
-        params <- getTransactionParams(json)
+        params <- paramsBox
         bankAccount <- BankAccount(bankId, accountId)
         view <- View.fromUrl(viewId, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
@@ -2068,8 +2068,9 @@ trait APIMethods121 {
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] =  {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+        val paramsBox: Box[List[OBPQueryParam]] = getTransactionParams(json)
         user =>getTransactionsForBankAccountCached(
-          json: Req ,
+          paramsBox:  Box[List[OBPQueryParam]],
           user: Box[User],
           accountId: AccountId,
           bankId: BankId,
