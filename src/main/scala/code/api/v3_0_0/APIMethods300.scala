@@ -844,7 +844,6 @@ trait APIMethods300 {
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
-        UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -859,6 +858,8 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
+        InvalidPhoneNumber,
+        InvalidChargePolicy,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
