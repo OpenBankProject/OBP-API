@@ -293,9 +293,10 @@ object SwaggerJSONFactory {
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.apiFunction match {
-                //TODO, the UUID is just a temporory way, need fix 
-                case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
-                case _ => s"${rd.apiVersion.toString }-${rd.apiFunction.toString }"
+                //No longer need this special case since all transaction reqquest Resource Docs have explicit URL
+                //case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
+                // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
+                case _ => s"v${rd.apiVersion.toString }-${rd.apiFunction.toString }"
               },
             //TODO, this is for Post Body 
             parameters =
