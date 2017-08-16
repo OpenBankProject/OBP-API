@@ -7,6 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
+import code.api.v3_0_0.TransactionRequestBodyPhoneToPhoneJson
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
@@ -16,7 +17,7 @@ import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequests._
@@ -993,7 +994,62 @@ trait Connector extends MdcLoggable{
       tr
     }
   }
-
+  
+  def createTransactionAfterChallengev300(
+    initiator: User,
+    fromAccount: BankAccount,
+    transReqId: TransactionRequestId, 
+    transactionRequestType: TransactionRequestType
+  ): Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+      
+      details = tr.details
+      
+      //Note, it should be four different type of details in mappedtransactionrequest.
+      //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
+      // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
+      transactionRequestCommonBody <-transactionRequestType.value match {
+        case "PHONE_TO_PHONE"  =>
+          Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
+        case _ =>
+          Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
+      }
+      
+      // Note for 'toCounterparty' in the following :
+      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
+      // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
+      toCounterparty  <- transactionRequestType.value match {
+        case "COUNTERPARTY" | "SEPA"  =>
+          val counterpartyId = tr.counterparty_id
+          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+          toCounterparty
+        case _ =>
+          Full(new MappedCounterparty())
+      }
+      
+      transId <- makePaymentv300(
+        initiator,
+        fromAccount,
+        new MappedBankAccount(),
+        toCounterparty,
+        transactionRequestCommonBody,
+        transactionRequestType,
+        tr.charge_policy
+      ) ?~ "Couldn't create Transaction"
+      
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      
+    } yield {
+      var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
+      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.
+      tr=tr.copy(transaction_ids =transId.value)
+      tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
+      tr
+    }
+  }
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */

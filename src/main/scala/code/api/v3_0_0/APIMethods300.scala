@@ -1181,7 +1181,100 @@ trait APIMethods300 {
           }
       }
     }
-
+  
+  
+    resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
+      apiVersion,
+      "answerTransactionRequestChallenge",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge.",
+      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
+      challengeAnswerJSON,
+      transactionRequestWithChargeJson,
+      List(
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNoPermissionAccessView,
+        TransactionRequestStatusNotInitiated,
+        TransactionRequestTypeHasChanged,
+        InvalidTransactionRequesChallengeId,
+        AllowedAttemptsUsedUp,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+  
+    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+            // Check we have a User
+              u: User <- user ?~ UserNotLoggedIn
+            
+              // Check format of bankId supplied in URL
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+            
+              // Check format of accountId supplied in URL
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
+            
+              // Check the Posted JSON is valid
+              challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {InvalidJsonFormat}
+            
+              // Check Bank exists on this server
+              fromBank <- Bank(bankId) ?~! {BankNotFound}
+            
+              // Check Account exists on this server
+              fromAccount <- BankAccount(bankId, accountId) ?~! {BankAccountNotFound}
+            
+              // Check User has access to the View
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
+            
+              // Check transReqId is valid
+              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {InvalidTransactionRequestId}
+            
+              // Check the Transaction Request is still INITIATED
+              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),TransactionRequestStatusNotInitiated)
+            
+              // Check the input transactionRequestType is the same as when the user created the TransactionRequest
+              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
+              isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
+            
+              // Check the challengeId is valid for this existingTransactionRequest
+              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{InvalidTransactionRequesChallengeId})
+            
+              //Check the allowed attemps, Note: not support yet, the default value is 3
+              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
+            
+              //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
+              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
+            
+              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
+            
+              // All Good, proceed with the Transaction creation...
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount,transReqId, transactionRequestType)
+            } yield {
+              // Format explicitly as v2.0.0 json
+              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
+              //successJsonResponse(Extraction.decompose(json))
+              val successJson = Extraction.decompose(json)
+              successJsonResponse(successJson, 202)
+            }
+          } else {
+            Full(errorJsonResponse(TransactionDisabled))
+          }
+      }
+    }
+  
+  
+    
     resourceDocs += ResourceDoc(
       getAdapter,
       apiVersion,
@@ -1608,97 +1701,6 @@ trait APIMethods300 {
 */
   
   
-  
-    resourceDocs += ResourceDoc(
-      answerTransactionRequestChallenge,
-      apiVersion,
-      "answerTransactionRequestChallenge",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
-      challengeAnswerJSON,
-      transactionRequestWithChargeJson,
-      List(
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        UserNoPermissionAccessView,
-        TransactionRequestStatusNotInitiated,
-        TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
-        AllowedAttemptsUsedUp,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-  
-    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
-        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
-        user =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
-            for {
-            // Check we have a User
-              u: User <- user ?~ UserNotLoggedIn
-            
-              // Check format of bankId supplied in URL
-              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            
-              // Check format of accountId supplied in URL
-              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-            
-              // Check the Posted JSON is valid
-              challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {InvalidJsonFormat}
-            
-              // Check Bank exists on this server
-              fromBank <- Bank(bankId) ?~! {BankNotFound}
-            
-              // Check Account exists on this server
-              fromAccount <- BankAccount(bankId, accountId) ?~! {BankAccountNotFound}
-            
-              // Check User has access to the View
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
-            
-              // Check transReqId is valid
-              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {InvalidTransactionRequestId}
-            
-              // Check the Transaction Request is still INITIATED
-              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),TransactionRequestStatusNotInitiated)
-            
-              // Check the input transactionRequestType is the same as when the user created the TransactionRequest
-              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
-              isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
-            
-              // Check the challengeId is valid for this existingTransactionRequest
-              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{InvalidTransactionRequesChallengeId})
-            
-              //Check the allowed attemps, Note: not support yet, the default value is 3
-              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
-            
-              //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
-            
-              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
-            
-              // All Good, proceed with the Transaction creation...
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
-            } yield {
-              // Format explicitly as v2.0.0 json
-              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
-              //successJsonResponse(Extraction.decompose(json))
-              val successJson = Extraction.decompose(json)
-              successJsonResponse(successJson, 202)
-            }
-          } else {
-            Full(errorJsonResponse(TransactionDisabled))
-          }
-      }
-    }
-
 
 
   }
