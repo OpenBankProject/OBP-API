@@ -24,7 +24,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   def transactionCount(accounts: BankAccount*): Int = {
     accounts.foldLeft(0)((accumulator, account) => {
-      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
+      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
     })
   }
 
@@ -70,7 +70,11 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       var beforeToBalance = toAccount.balance
 
       //we expected transfer amount
-      var expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
+      val zero: BigDecimal = BigDecimal(0)
+      var expectedAmtTo = fx.exchangeRate(fromCurrency, toCurrency) match {
+        case Some(exchangeRate) => amt * exchangeRate
+        case _ => amt * BigDecimal("0")
+      }
       // We debit the From
       var expectedFromNewBalance = beforeFromBalance - amt
       // We credit the To

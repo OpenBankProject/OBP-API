@@ -92,7 +92,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         //remove the request token so the application could not exchange it
         //again to get an other access token
          Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
-            case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id) match {
+            case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id.get) match {
               case true  =>
               case false => logger.warn("Request token: " + requestToken + " is not deleted. The application could exchange it again to get an other access token!")
             }
@@ -158,7 +158,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     //return true if the authorization header has a duplicated parameter
     def duplicatedParameters = {
       var output=false
-      val authorizationParameters = S.request.get.header("Authorization").get.split(",")
+      val authorizationParameters = S.request.openOrThrowException("Attempted to open an empty Box.").header("Authorization").openOrThrowException("Attempted to open an empty Box.").split(",")
 
       //count the iterations of a parameter in the authorization header
       def countPram(parameterName : String, parametersArray :Array[String] )={
@@ -268,7 +268,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).get
+      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException("Attempted to open an empty Box.")
       var secret= consumer.secret.toString
 
       OAuthparameters.get("oauth_token") match {
@@ -552,7 +552,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     if(httpCode==200)
     {
       //logger.debug("OAuth header correct ")
-      Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
+      Tokens.tokens.vend.getTokenByKey(tokenID.openOrThrowException("Attempted to open an empty Box.")) match {
         case Full(token) => {
           //logger.debug("access token: "+ token + " found")
           val user = token.user

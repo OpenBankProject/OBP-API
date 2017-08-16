@@ -312,7 +312,7 @@ object OBPAPI1_0 extends RestHelper with MdcLoggable {
       //log the API call
       logAPICall
 
-      JsonResponse("banks" -> Bank.toJson(Bank.all.get))
+      JsonResponse("banks" -> Bank.toJson(Bank.all.getOrElse(Nil)))
     }
   })
 

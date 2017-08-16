@@ -39,7 +39,6 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
-import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
 
 /**
@@ -82,7 +81,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       consumer_name = consumerName
     )
     val header = JwtHeader("HS256")
-    val claimsSet = JwtClaimsSet(compact(render(Extraction.decompose(json))))
+    val claimsSet = JwtClaimsSet(compactRender(Extraction.decompose(json)))
     val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
     val jwt: String = JsonWebToken(header, claimsSet, secretKey)
     jwt
@@ -151,7 +150,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
-          Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
+          Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
         case Empty =>
           Empty
         case Failure(msg, _, _) =>
@@ -299,7 +298,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   private def getFieldFromPayloadJson(payloadAsJsonString: String, fieldName: String) = {
     val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
-    compact(render(jwtJson.\\(fieldName))).replace("\"", "")
+    compactRender(jwtJson.\\(fieldName)).replace("\"", "")
   }
 
   // Try to find errorCode in Json string received from South side and extract to list

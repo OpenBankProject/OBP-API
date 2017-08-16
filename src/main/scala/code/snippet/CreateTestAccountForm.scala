@@ -34,7 +34,7 @@ object CreateTestAccountForm{
       }
     }
 
-    val banks = Connector.connector.vend.getBanks.get
+    val banks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
     val bankOptions = banks.map{b =>
       val id = b.bankId.value
       (id, id)

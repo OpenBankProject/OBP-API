@@ -114,7 +114,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
   if(httpCode==200)
   {
     logger.debug("OAuth header correct ")
-    Tokens.tokens.vend.getTokenByKey(tokenID.get) match {
+    Tokens.tokens.vend.getTokenByKey(tokenID.openOrThrowException("Attempted to open an empty Box.")) match {
       case Full(token) => {
         logger.debug("access token: "+ token + " found")
         val user = User.findByResourceUserId(token.userForeignKey.get)
@@ -305,7 +305,7 @@ object OBPAPI1_1 extends RestHelper with MdcLoggable {
         )
       }
 
-      JsonResponse("banks" -> Bank.all.get.map(bankToJson _ ))
+      JsonResponse("banks" -> Bank.all.getOrElse(Nil).map(bankToJson _ ))
     }
 
   })

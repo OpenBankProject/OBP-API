@@ -1,10 +1,12 @@
 package code.users
 
 import code.model.User
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import code.remotedata.RemotedataUsers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
+import scala.concurrent.Future
 
 object Users  extends SimpleInjector {
 
@@ -37,6 +39,8 @@ trait Users {
 
   def getAllUsers() : Box[List[ResourceUser]]
 
+  def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]]
+
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
@@ -56,6 +60,7 @@ class RemotedataUsersCaseClasses {
   case class getUserByUserName(userName : String)
   case class getUserByEmail(email : String)
   case class getAllUsers()
+  case class getAllUsersF()
   case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)

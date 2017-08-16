@@ -30,7 +30,6 @@ import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
-import code.api.util.APIUtil.getCustomers
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -171,8 +170,7 @@ trait APIMethods210 {
 
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
+    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
 
 
     // This text is used in the various Create Transaction Request resource docs
@@ -427,7 +425,7 @@ trait APIMethods210 {
               s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
             amountOfMoneyJSON <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
-            isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+            isMapped: Boolean <- Full((Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped"))
 
             createdTransactionRequest <- transactionRequestType.value match {
               case "SANDBOX_TAN" => {
@@ -877,7 +875,7 @@ trait APIMethods210 {
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
-            val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
+            val json = createConsumerJSONs(consumers.sortWith(_.id.get < _.id.get))
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -916,10 +914,10 @@ trait APIMethods210 {
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
             }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.toLong)
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
           } yield {
             // Format the data as json
-            val json = PutEnabledJSON(updatedConsumer.isActive)
+            val json = PutEnabledJSON(updatedConsumer.isActive.get)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -1660,9 +1658,9 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! UserNoPermissionUpdateConsumer
+            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))
@@ -1780,19 +1778,19 @@ trait APIMethods210 {
             setFilterPart1 <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate))
 
             setFilterPart2 <- if (!consumerId.isEmpty)
-              Full(parameters += OBPConsumerId(consumerId.get))
+              Full(parameters += OBPConsumerId(consumerId.openOrThrowException("Attempted to open an empty Box.")))
             else if (!userId.isEmpty)
-              Full(parameters += OBPUserId(userId.get))
+              Full(parameters += OBPUserId(userId.openOrThrowException("Attempted to open an empty Box.")))
             else if (!url.isEmpty)
-              Full(parameters += OBPUrl(url.get))
+              Full(parameters += OBPUrl(url.openOrThrowException("Attempted to open an empty Box.")))
             else if (!appName.isEmpty)
-              Full(parameters += OBPAppName(appName.get))
+              Full(parameters += OBPAppName(appName.openOrThrowException("Attempted to open an empty Box.")))
             else if (!implementedInVersion.isEmpty)
-              Full(parameters += OBPImplementedInVersion(implementedInVersion.get))
+              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException("Attempted to open an empty Box.")))
             else if (!implementedByPartialFunction.isEmpty)
-              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.get))
+              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException("Attempted to open an empty Box.")))
             else if (!verb.isEmpty)
-              Full(parameters += OBPVerb(verb.get))
+              Full(parameters += OBPVerb(verb.openOrThrowException("Attempted to open an empty Box.")))
             else
               Full(parameters)
             

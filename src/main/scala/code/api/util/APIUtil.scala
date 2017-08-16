@@ -33,6 +33,7 @@
 package code.api.util
 
 import java.io.InputStream
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
@@ -53,10 +54,10 @@ import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -340,7 +341,7 @@ object APIUtil extends MdcLoggable {
 
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(application) => application.isActive
+      case Full(application) => application.isActive.get
       case _ => false
     }
   }
@@ -392,9 +393,9 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.get.view
+      val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.get.requestType.method
+      val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
       val url = S.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
@@ -455,7 +456,7 @@ object APIUtil extends MdcLoggable {
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
   def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(Extraction.decompose(cc), getHeaders() ::: headers.list, Nil, httpCode)
+    JsonResponse(snakify(Extraction.decompose(cc)), getHeaders() ::: headers.list, Nil, httpCode)
 
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
@@ -606,10 +607,10 @@ object APIUtil extends MdcLoggable {
       }
       
       if(parsedDate.isDefined){
-        Full(parsedDate.get)
+        Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.get)
+        Full(fallBackParsedDate.openOrThrowException("Attempted to open an empty Box."))
       }
       else{
         Failure(FilterDateFormatError)
@@ -824,7 +825,7 @@ object APIUtil extends MdcLoggable {
         val form_params = r.getFormParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
             case (k, v) => k -> v.toString
           }
-        val body_encoding = r.getBodyEncoding
+        val body_encoding = r.getCharset
         var body = new String()
         if (r.getByteData != null )
           body = new String(r.getByteData)
@@ -833,9 +834,10 @@ object APIUtil extends MdcLoggable {
                                       consumer, token, verifier, callback)
 
         def createRequest( reqData: ReqData ): Request = {
+          val charset = if(reqData.body_encoding == "null") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
           val rb = url(reqData.url)
             .setMethod(reqData.method)
-            .setBodyEncoding(reqData.body_encoding)
+            .setBodyEncoding(charset)
             .setBody(reqData.body) <:< reqData.headers
           if (reqData.query_params.nonEmpty)
             rb <<? reqData.query_params
@@ -846,7 +848,7 @@ object APIUtil extends MdcLoggable {
           oauth_url,
           r.getMethod,
           body,
-          body_encoding,
+          if (body_encoding == null) "null" else body_encoding.name(),
           IMap("Authorization" -> ("OAuth " + oauth_params.map {
             case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
           }.mkString(",") )),
@@ -1272,6 +1274,45 @@ Returns a string showed to the developer
       case Full(h) => List((gatewayResponseHeaderName, h))
       case _ => Nil
     }
+  }
+
+
+  /**
+    * Turn a string of format "FooBar" into snake case "foo_bar"
+    *
+    * Note: snakify is not reversible, ie. in general the following will _not_ be true:
+    *
+    * s == camelify(snakify(s))
+    *
+    * @return the underscored JValue
+    */
+  def snakify(json: JValue): JValue = json mapField {
+    case JField(name, x) => JField(StringHelpers.snakify(name), x)
+  }
+
+
+  /**
+    * Turns a string of format "foo_bar" into camel case "FooBar"
+    *
+    * Functional code courtesy of Jamie Webb (j@jmawebb.cjb.net) 2006/11/28
+    * @param json the JValue to CamelCase
+    *
+    * @return the CamelCased JValue
+    */
+  def camelify(json: JValue): JValue = json mapField {
+    case JField(name, x) => JField(StringHelpers.camelify(name), x)
+  }
+
+  /**
+    * Turn a string of format "foo_bar" into camel case with the first letter in lower case: "fooBar"
+    * This function is especially used to camelCase method names.
+    *
+    * @param json the JValue to CamelCase
+    *
+    * @return the CamelCased JValue
+    */
+  def camelifyMethod(json: JValue): JValue = json mapField {
+    case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
   }
 
 

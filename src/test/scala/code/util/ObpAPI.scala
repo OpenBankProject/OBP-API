@@ -242,7 +242,7 @@ object OBPRequest extends MdcLoggable {
       if(jsonBody.isDefined) {
         val output = request.getOutputStream()
         val writer = new BufferedWriter(new OutputStreamWriter(output, "UTF-8"))
-        writer.write(compact(render(jsonBody.get)).toString)
+        writer.write(compactRender(jsonBody.get)).toString
         writer.flush()
         writer.close()
       }
@@ -304,7 +304,7 @@ object OBPInternalRequest extends MdcLoggable {
       //Set the request body
       if(jsonBody.isDefined) {
         val output = request.getOutputStream()
-        val body = compact(render(jsonBody.get)).getBytes()
+        val body = compactRender(jsonBody.get).getBytes()
         output.write(body)
         output.flush()
         output.close()

@@ -111,7 +111,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   def expires: Date = mExpires.get
   def enabled: Boolean = mEnabled.get
   def cancelled: Boolean = mCancelled.get
-  def onHotList: Boolean = mOnHotList
+  def onHotList: Boolean = mOnHotList.get
   def technology: String = mTechnology.get
   def networks: List[String] = mNetworks.get.split(",").toList
   def allows: List[code.model.CardAction] = Option(mAllows.get) match {
@@ -129,7 +129,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
     }
     case _ => None
   }
-  def pinResets: List[code.model.PinResetInfo] = mPinResets.map(a => PinResetInfo(a.mReplacementDate, PinResetReason.valueOf(a.mReplacementReason))).toList
+  def pinResets: List[code.model.PinResetInfo] = mPinResets.map(a => PinResetInfo(a.mReplacementDate.get, PinResetReason.valueOf(a.mReplacementReason.get))).toList
   def collected: Option[CardCollectionInfo] = Option(mCollected.get) match {
     case Some(x) => Some(CardCollectionInfo(x))
     case _ => None

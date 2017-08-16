@@ -1,16 +1,17 @@
 package code.api
 
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import net.liftweb.json.{Extraction, compact, render}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
+import net.liftweb.json
+import net.liftweb.json.Extraction
 import org.scalatest._
 
 class gateWayloginTest extends FeatureSpec 
   with BeforeAndAfterEach 
   with GivenWhenThen 
   with BeforeAndAfterAll 
-  with ShouldMatchers 
+  with Matchers
   with MdcLoggable {
   
   implicit val formats = net.liftweb.json.DefaultFormats
@@ -57,12 +58,12 @@ class gateWayloginTest extends FeatureSpec
   
   feature("Unit Tests for two getCbsToken and getErrors: ") {
     scenario("test the getErrors") {
-      val reply: List[String] =  GatewayLogin.getErrors(compact(render(Extraction.decompose(fakeResultFromAdapter.get))))
+      val reply: List[String] =  GatewayLogin.getErrors(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
       reply.forall(_.equalsIgnoreCase("")) should equal(true)
     }
   
     scenario("test the getCbsToken") {
-      val reply: List[String] =  GatewayLogin.getCbsTokens(compact(render(Extraction.decompose(fakeResultFromAdapter.get))))
+      val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
       reply(0) should equal("cbsToken1")
       reply(1) should equal("cbsToken2")
   

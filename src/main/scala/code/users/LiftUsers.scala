@@ -2,10 +2,12 @@ package code.users
 
 import net.liftweb.common.{Box, Full}
 import code.model.User
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object LiftUsers extends Users {
 
@@ -37,6 +39,11 @@ object LiftUsers extends Users {
 
   override def getAllUsers(): Box[List[ResourceUser]] = {
     Full(ResourceUser.findAll())
+  }
+
+  override def getAllUsersF(): Future[Box[List[ResourceUserCaseClass]]] = {
+    val users = Full(ResourceUser.findAll().map(_.toCaseClass))
+    Future{users}
   }
 
   override def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {

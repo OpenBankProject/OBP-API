@@ -85,7 +85,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
     //accountHolders --> user
     accountHolders.flatMap { accHolder =>
-      ResourceUser.find(By(ResourceUser.id, accHolder.user))
+      ResourceUser.find(By(ResourceUser.id, accHolder.user.get))
     }.toSet
   }
 

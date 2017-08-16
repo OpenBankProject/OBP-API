@@ -57,7 +57,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       val bankNationalIdentifier = "bank-identifier"
       val bankName = "A Bank"
       Given("A bank that does not exist")
-      Connector.connector.vend.getBanks.get.size should equal(0)
+      Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.").size should equal(0)
 
       When("We create an account at that bank")
       val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(
@@ -67,7 +67,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       ) 
 
       Then("A bank should now exist, with the correct parameters")
-      val allBanks = Connector.connector.vend.getBanks.get
+      val allBanks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
       allBanks.size should equal(1)
       val newBank = allBanks(0)
       newBank.fullName should equal(bankName)
@@ -76,7 +76,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       And("An account should now exist, with the correct parameters")
       val foundAccountBox = Connector.connector.vend.getBankAccount(newBank.bankId, returnedAccount.accountId)
       foundAccountBox.isDefined should equal(true)
-      val foundAccount = foundAccountBox.get
+      val foundAccount = foundAccountBox.openOrThrowException("Attempted to open an empty Box.")
 
       foundAccount.number should equal(accountNumber)
       foundAccount.accountHolder should equal(accountHolderName)
@@ -86,7 +86,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       val existingBank = createBank("some-bank")
 
       Given("A bank that does exist")
-      val allBanksBefore = Connector.connector.vend.getBanks.get
+      val allBanksBefore = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
       allBanksBefore.size should equal(1)
       allBanksBefore(0).bankId should equal(existingBank.bankId)
 
@@ -102,7 +102,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       )
 
       Then("No new bank should be created")
-      val allBanksAfter = Connector.connector.vend.getBanks.get
+      val allBanksAfter = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
       allBanksAfter.size should equal(1)
       allBanksAfter(0).fullName should equal(existingBank.fullName)
       allBanksAfter(0).nationalIdentifier should equal(existingBank.nationalIdentifier)
@@ -110,7 +110,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       And("An account should now exist, with the correct parameters")
       val foundAccountBox = Connector.connector.vend.getBankAccount(existingBank.bankId, returnedAccount.accountId)
       foundAccountBox.isDefined should equal(true)
-      val foundAccount = foundAccountBox.get
+      val foundAccount = foundAccountBox.openOrThrowException("Attempted to open an empty Box.")
 
       foundAccount.number should equal(accountNumber)
       foundAccount.accountHolder should equal(accountHolderName)
@@ -158,7 +158,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
       createdAccBox.isDefined should be(true)
-      val createdAcc = createdAccBox.get
+      val createdAcc = createdAccBox.openOrThrowException("Attempted to open an empty Box.")
 
       createdAcc.bankId should equal(bankId)
       createdAcc.accountId should equal(accountId)
@@ -180,7 +180,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
       createdAccBox.isDefined should be(true)
-      val createdAcc = createdAccBox.get
+      val createdAcc = createdAccBox.openOrThrowException("Attempted to open an empty Box.")
 
       createdAcc.bankId should equal(bankId)
       createdAcc.accountId should equal(accountId)
