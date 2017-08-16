@@ -252,7 +252,7 @@ trait Connector extends MdcLoggable{
                               pinResets: List[PinResetInfo],
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
-                             ) : Box[PhysicalCard] = Failure("createOrUpdatePhysicalCard method not support yet! ")
+                             ) : Box[PhysicalCard]
 
 
 
@@ -635,9 +635,16 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
 
-        // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
+        val challengeId = UUID.randomUUID().toString
+        val salt = BCrypt.gensalt()
+        val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
+  
+        //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
+        ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+  
+        // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
         val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
         saveTransactionRequestChallenge(transactionRequest.id, challenge)
         transactionRequest = transactionRequest.copy(challenge = challenge)
@@ -740,9 +747,7 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
-
-        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
   
         val challengeId = UUID.randomUUID().toString
         val salt = BCrypt.gensalt()

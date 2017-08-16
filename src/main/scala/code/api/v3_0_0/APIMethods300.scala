@@ -27,6 +27,7 @@ import code.metadata.counterparties.MappedCounterparty
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
+import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests
 import code.users.Users
 import code.util.Helper.booleanToBox
@@ -1255,8 +1256,12 @@ trait APIMethods300 {
             
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
               challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
-            
-              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
+
+              challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
+              challengeAnswerOBPOK <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)
+
+              challengeAnswerKafka <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
+              challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
             
               // All Good, proceed with the Transaction creation...
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount,transReqId, transactionRequestType)
