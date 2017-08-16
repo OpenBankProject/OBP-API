@@ -31,6 +31,9 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
+import code.api.v2_2_0.CustomerViewJsonV220
+
+
 
 trait APIMethods220 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -942,7 +945,7 @@ trait APIMethods220 {
       apiVersion,
       "getCustomerViews",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/customer_views",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/customer-views",
       "Get Customers that have access to a View",
       s"""Returns the Customers (and the Users linked to the Customer) that have access to the view:
           |
@@ -952,22 +955,64 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      CustomerViewsJsonV220,
+      customerViewsJsonV220,
       List(
         UserNotLoggedIn,
         BankNotFound,
-        UnknownError),
+        AccountNotFound,
+        ViewNotFound
+      ),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagAccount, apiTagCustomer, apiTagView)
     )
+
+    lazy val getCustomerViewsForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get account by id
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet json => {
+        user =>
+          for {
+            bank <- Bank(bankId) ?~ BankNotFound
+            account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
+            view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
+            availableViews <- Full(account.permittedViews(user))
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
+            moderatedAccount <- account.moderatedBankAccount(view, user)
+          } yield {
+            val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
+            val moderatedAccountJson = createBankAccountJSON(moderatedAccount, viewsAvailable)
+            successJsonResponse(Extraction.decompose(moderatedAccountJson))
+          }
+      }
+    }
 
 */
 
 
 
+/*
+    lazy val getCustomerViewsForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
+
+                     } yield {
+            val json = {}
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+*/
+
+/*
 
 
 
+
+ */
 
 
 

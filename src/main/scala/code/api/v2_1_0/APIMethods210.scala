@@ -1779,6 +1779,9 @@ trait APIMethods210 {
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
             setFilterPart1 <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate))
 
+
+            // TODO check / comment this logic
+
             setFilterPart2 <- if (!consumerId.isEmpty)
               Full(parameters += OBPConsumerId(consumerId.get))
             else if (!userId.isEmpty)
@@ -1800,8 +1803,8 @@ trait APIMethods210 {
      
             // the anon field is not in database, so here use different way to filer it.
             filterByFields: List[APIMetric] = metrics
-              .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
-              .filter(rd => (if (!anon.isEmpty && anon.get.equals("false")) (!rd.getUserId().equals("null")) else true))
+              .filter(m => (if (!anon.isEmpty && anon.get.equals("true")) (m.getUserId().equals("null")) else true))
+              .filter(m => (if (!anon.isEmpty && anon.get.equals("false")) (!m.getUserId().equals("null")) else true))
             
           } yield {
             val json = JSONFactory210.createMetricsJson(filterByFields)

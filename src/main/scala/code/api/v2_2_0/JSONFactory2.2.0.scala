@@ -40,6 +40,8 @@ import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
+import code.customer.Customer
+import code.model.dataAccess.{ResourceUser, AuthUser}
 import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -286,7 +288,7 @@ case class BasicCustomerJsonV220(
 
 case class BasicViewJsonV220(
                               view_id: String,
-                              short_name: String,
+                              name: String,
                               description: String,
                               is_public: Boolean
                             )
@@ -602,6 +604,45 @@ object JSONFactory220{
       created=c.createdAt
     )
   }
+
+
+
+  def createUserCustomerViewJsonV220(user: ResourceUser, customer: Customer, view: View): CustomerViewJsonV220 = {
+
+    var basicUser = BasicUserJsonV220(
+      user_id = user.resourceUserId.toString,
+      email = user.email,
+      provider_id = user.idGivenByProvider,
+      provider = user.provider,
+      username = user.name_ // TODO Double check this is the same as AuthUser.username ??
+    )
+
+    val basicCustomer = BasicCustomerJsonV220(
+      customer_id = customer.customerId,
+      customer_number = customer.number.toString,
+      legal_name = customer.legalName
+    )
+
+    val basicView = BasicViewJsonV220(
+      view_id = view.viewId.value,
+      name = view.name,
+      description = view.description,
+      is_public = view.isPublic
+    )
+
+    val customerViewJsonV220: CustomerViewJsonV220 =
+      CustomerViewJsonV220(
+        user = basicUser,
+        customer = basicCustomer,
+        view = basicView
+      )
+
+    customerViewJsonV220
+  }
+
+
+
+
 
 
   def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
