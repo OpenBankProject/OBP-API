@@ -1,6 +1,6 @@
 package code.bankconnectors
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil._
@@ -19,6 +19,7 @@ import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
+import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.users.Users
@@ -27,7 +28,7 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.{BCrypt, Props, SimpleInjector, StringHelpers}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
@@ -610,8 +611,14 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
-
+        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+  
+        val challengeId = UUID.randomUUID().toString
+        val salt = BCrypt.gensalt()
+        val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
+  
+        //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
+        ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
 
         // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
         val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
@@ -667,6 +674,8 @@ trait Connector extends MdcLoggable{
   protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
 
   protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
+  
+  final def saveExpectedChallengeAnswer(challengeId: String, salt: String, challengeAnswerHashed: String):Box[Boolean] = Failure("Not support in this connector version")
 
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
