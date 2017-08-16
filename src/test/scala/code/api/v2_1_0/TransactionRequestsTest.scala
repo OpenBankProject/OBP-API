@@ -86,7 +86,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
       var transRequestId = ""
-      var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123456")
+      var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
@@ -101,7 +101,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
         this.challengeId = challengeId
         this.transRequestId = transRequestId
-        answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123456")
+        answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
         val answerRequestNew = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         answerRequest = answerRequestNew

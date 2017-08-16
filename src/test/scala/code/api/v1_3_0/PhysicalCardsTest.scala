@@ -99,7 +99,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       Empty
     override def getTransaction(bankId : BankId, accountID : AccountId, transactionID : TransactionId): Box[Transaction] =
       Empty
-    def AddPhysicalCard(bankCardNumber: String,
+    override def createOrUpdatePhysicalCard(bankCardNumber: String,
                         nameOnCard: String,
                         issueNumber: String,
                         serialNumber: String,

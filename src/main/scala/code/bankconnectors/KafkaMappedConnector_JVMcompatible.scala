@@ -734,8 +734,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
     List()
-
-  def AddPhysicalCard(bankCardNumber: String,
+  
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
                       serialNumber: String,

@@ -1331,7 +1331,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
     List()
   
-  def AddPhysicalCard(bankCardNumber: String,
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
     nameOnCard: String,
     issueNumber: String,
     serialNumber: String,

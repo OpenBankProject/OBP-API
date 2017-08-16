@@ -4,12 +4,12 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
-import code.atms.{Atms, MappedAtm, MappedAtmsProvider}
+import code.atms.{Atms, MappedAtm}
 import code.branches.Branches._
 import code.branches.{InboundAdapterInfo, MappedBranch}
-import code.common.{Address, _}
+import code.cards.MappedPhysicalCard
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -85,17 +85,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String] = {
-    val challengeId = UUID.randomUUID().toString
-    val challenge = StringHelpers.randomString(6)
-    // Random string. For instance: EONXOA
-    val salt = BCrypt.gensalt()
-    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
-    // TODO Extend database model in order to store users salt and hash
-    // Store salt and hash and bind to challengeId
-    // TODO Send challenge to the user over an separate communication channel
-    //Return id of challenge
-    Full(challengeId)
+  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = {
+//    val challengeId = UUID.randomUUID().toString
+//    val challenge = StringHelpers.randomString(6)
+//    // Random string. For instance: EONXOA
+//    val salt = BCrypt.gensalt()
+//    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
+//    // TODO Extend database model in order to store users salt and hash
+//    // Store salt and hash and bind to challengeId
+//    // TODO Send challenge to the user over an separate communication channel
+//    //Return id of challenge
+//    Full(challengeId)
+    Full("123")
   }
 
   /**
@@ -365,7 +367,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
   }
 
-  def AddPhysicalCard(bankCardNumber: String,
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                               nameOnCard: String,
                               issueNumber: String,
                               serialNumber: String,
@@ -384,7 +386,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard] = {
-    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+    val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createOrUpdatePhysicalCard(
                                                                               bankCardNumber,
                                                                               nameOnCard,
                                                                               issueNumber,
@@ -404,7 +406,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                               collected,
                                                                               posted
                                                                             )
-    for (l <- list) yield
+    for (l <- physicalCardBox) yield
     new PhysicalCard(
       bankId = l.mBankId,
       bankCardNumber = l.mBankCardNumber,

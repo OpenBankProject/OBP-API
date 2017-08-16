@@ -191,10 +191,13 @@ import code.api.util.APIUtil._
   val CreateProductError = "OBP-30030: Could not insert the Product"
   val UpdateProductError = "OBP-30031: Could not update the Product"
   
-  val ViewIdNotSupported = "OBP-30032: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
+  val CreateCardError = "OBP-30032: Could not insert the Card"
+  val UpdateCardError = "OBP-30033: Could not update the Card"
+  
+  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
 
-  val UserCustomerLinkNotFound = "OBP-30032: User Customer Link not found"
+  val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
   
 
@@ -247,7 +250,8 @@ import code.api.util.APIUtil._
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
-  val InvalidPhoneNumber = "OBP-40016: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
+  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body."
+  val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
 
 
 

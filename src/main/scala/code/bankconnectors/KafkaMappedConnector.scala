@@ -573,8 +573,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
     List()
-
-  def AddPhysicalCard(bankCardNumber: String,
+  
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
                       serialNumber: String,
