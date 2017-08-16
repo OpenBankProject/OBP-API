@@ -12,8 +12,11 @@ object MappedBranchesProvider extends BranchesProvider {
 
   private val logger = Logger(classOf[BranchesProvider])
 
-  override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] =
-    MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
+  override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] =
+    MappedBranch.find(
+      By(MappedBranch.mBankId, bankId.value),
+      By(MappedBranch.mBranchId, branchId.value)
+    )
 
   override protected def getBranchesFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[BranchT]] = {
     logger.debug(s"getBranchesFromProvider says bankId is $bankId")

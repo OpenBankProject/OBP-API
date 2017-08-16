@@ -9,8 +9,8 @@ import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
 
-  override protected def getAtmFromProvider(atmId: AtmId): Option[AtmT] =
-  MappedAtm.find(By(MappedAtm.mAtmId, atmId.value))
+  override protected def getAtmFromProvider(bankId: BankId, atmId: AtmId): Option[AtmT] =
+  MappedAtm.find(By(MappedAtm.mAtmId, atmId.value),By(MappedAtm.mBankId, bankId.value))
 
   override protected def getAtmsFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[AtmT]] = {
   

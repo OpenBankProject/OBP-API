@@ -200,7 +200,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val atmId = AtmId(atm.id)
 
     // check we have found a branch
-    val foundAtmOpt: Option[AtmT] = Atms.atmsProvider.vend.getAtm(atmId)
+    val foundAtmOpt: Option[AtmT] = Atms.atmsProvider.vend.getAtm(bankId, atmId)
     foundAtmOpt.isDefined should equal(true)
 
     val foundAtm = foundAtmOpt.get

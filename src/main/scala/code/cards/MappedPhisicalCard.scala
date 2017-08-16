@@ -82,6 +82,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
 class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPhysicalCard] with IdPK with OneToMany[Long, MappedPhysicalCard] {
   def getSingleton = MappedPhysicalCard
 
+  object mBankId extends MappedString(this, 50)
   object mBankCardNumber extends MappedString(this, 50)
   object mNameOnCard extends MappedString(this, 128)
   object mIssueNumber extends MappedString(this, 10)
@@ -101,6 +102,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   object mCollected extends MappedDateTime(this)
   object mPosted extends MappedDateTime(this)
 
+  def bankId: String = mBankId.get
   def bankCardNumber: String = mBankCardNumber.get
   def nameOnCard: String = mNameOnCard.get
   def issueNumber: String = mIssueNumber.get
@@ -140,7 +142,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
 }
 
 object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[MappedPhysicalCard] {
-  override def dbIndexes = UniqueIndex(mBankCardNumber) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mBankId, mBankCardNumber) :: super.dbIndexes
 }
 
 

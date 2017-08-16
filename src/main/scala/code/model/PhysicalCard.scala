@@ -10,6 +10,7 @@ import java.util.Date
  */
 
 trait PhysicalCardTrait {
+  def bankId: String
   def bankCardNumber: String
   def nameOnCard: String
   def issueNumber: String
@@ -30,6 +31,7 @@ trait PhysicalCardTrait {
 }
 
 case class PhysicalCard  (
+  val bankId: String,
   val bankCardNumber : String,
   val nameOnCard : String,
   val issueNumber : String,
