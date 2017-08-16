@@ -248,6 +248,8 @@ object Topics {
   trait GetTransactionsTopic extends TopicTrait
   trait GetTransactionTopic extends TopicTrait
   trait CreateCBSAuthTokenTopic extends TopicTrait
+  trait CreateTransactionTopic extends TopicTrait
+  trait OutboundCreateChallengeJune2017Topic extends TopicTrait
   
   
   //There design for InBound Topics : South --> North

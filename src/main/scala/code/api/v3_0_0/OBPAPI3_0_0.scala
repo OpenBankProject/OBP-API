@@ -243,7 +243,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
                           // Implementations2_1_0.createTransactionRequest ::
-                          Implementations2_1_0.answerTransactionRequestChallenge ::
+                          // Implementations2_1_0.answerTransactionRequestChallenge ::
                           Implementations2_1_0.getTransactionRequests ::
                           Implementations2_1_0.getRoles ::
                           Implementations2_1_0.getEntitlementsByBankAndUser ::
@@ -311,6 +311,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
                           Implementations3_0_0.createTransactionRequest ::
+                          Implementations3_0_0.answerTransactionRequestChallenge ::
                           Implementations3_0_0.getAdapter ::
                           Implementations3_0_0.createBranch ::
                           Implementations3_0_0.getBranches ::
