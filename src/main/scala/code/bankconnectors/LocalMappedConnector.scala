@@ -319,11 +319,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     for (l <- list) yield
       new PhysicalCard(
-        bankId=l.mBankId,
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankId=l.bankId,
+        bankCardNumber = l.bankCardNumber,
+        nameOnCard = l.nameOnCard,
+        issueNumber = l.issueNumber,
+        serialNumber = l.serialNumber,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -344,11 +344,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
     for (l <- list) yield
       new PhysicalCard(
-        bankId= l.mBankId,
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankId= l.bankId,
+        bankCardNumber = l.bankCardNumber,
+        nameOnCard = l.nameOnCard,
+        issueNumber = l.issueNumber,
+        serialNumber = l.serialNumber,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -406,11 +406,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                             )
     for (l <- list) yield
     new PhysicalCard(
-      bankId = l.mBankId,
-      bankCardNumber = l.mBankCardNumber,
-      nameOnCard = l.mNameOnCard,
-      issueNumber = l.mIssueNumber,
-      serialNumber = l.mSerialNumber,
+      bankId = l.bankId,
+      bankCardNumber = l.bankCardNumber,
+      nameOnCard = l.nameOnCard,
+      issueNumber = l.issueNumber,
+      serialNumber = l.serialNumber,
       validFrom = l.validFrom,
       expires = l.expires,
       enabled = l.enabled,

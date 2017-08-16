@@ -3,8 +3,9 @@ package code.remotedata
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
+import akka.routing.RoundRobinPool
 import bootstrap.liftweb.ToSchemify
-import code.actorsystem.{ObpActorConfig}
+import code.actorsystem.ObpActorConfig
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
@@ -46,7 +47,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataEntitlementsActor]         -> RemotedataEntitlements.actorName
     )
 
-    actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
+    actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(RoundRobinPool(10).props(a._1), name = a._2)) }
   }
 
   def startRemoteWorkerSystem(): Unit = {

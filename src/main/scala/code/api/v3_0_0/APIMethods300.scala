@@ -7,23 +7,22 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.branches.{Branches, InboundAdapterInfo}
 import code.branches.Branches.BranchId
+import code.branches.{Branches, InboundAdapterInfo}
 import code.entitlement.Entitlement
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUserCaseClass}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req, S}
+import net.liftweb.http.rest.{RestContinuation, RestHelper}
+import net.liftweb.http.{BadResponse, JsonResponse, NotAcceptableResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -31,6 +30,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 
 
 
@@ -892,7 +892,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             // Get branches from the active provider
-          
+
           limit <- tryo(
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
@@ -903,8 +903,8 @@ trait APIMethods300 {
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-          
+
+
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -952,7 +952,23 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            atm <- Box(Atms.atmsProvider.vend.getAtm(bankId,atmId)) ?~! {AtmNotFoundByAtmId}
+            limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 50
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+
+            atms <- {Atms.atmsProvider.vend.getAtms(bankId,OBPLimit(limit), OBPOffset(offset)) match {
+              case Some(l) => Full(l)
+              case _ => Empty
+            }} ?~!  {AtmNotFoundByAtmId}
+            atm <- Box(atms.filter(_.atmId.value==atmId.value)) ?~!
+              {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmJsonV300(atm)
@@ -1028,9 +1044,63 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getUsers,
+      apiVersion,
+      "getUsers",
+      "GET",
+      "/users",
+      "Get all Users",
+      """Get all users
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagPerson, apiTagUser))
 
+    import scala.concurrent.ExecutionContext.Implicits.global
+    lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: Nil JsonGet _ => {
+        user => {
+          RestContinuation.async {
+            reply => {
+              // Guards
+              user match {
+                case Full(u) if hasEntitlement("", u.userId, ApiRole.CanGetAnyUser) == false =>
+                  //reply(BadRequestResponse(UserHasMissingRoles + CanGetAnyUser))
+                case Empty =>
+                  //reply(BadRequestResponse(ErrorMessages.UserNotLoggedIn))
+              } // End of Guards
 
-/* WIP
+              // Processing endpoint
+              val future1: Future[Box[List[ResourceUserCaseClass]]] = Users.users.vend.getAllUsersF()
+              future1 onSuccess {
+                case Full(l) =>  {
+                  case class Users(users: List[ResourceUserCaseClass])
+                  reply(successJsonResponseFromCaseClass(Users(l)))
+                }
+                case _ => reply(BadResponse())
+              }
+              future1 onFailure {
+                case failure => reply(NotAcceptableResponse(failure.getMessage))
+              }
+              // End of processing endpoint
+            }
+          }
+        }
+      }
+    }
+
+    /* WIP
     resourceDocs += ResourceDoc(
       getOtherAccountsForBank,
       apiVersion,

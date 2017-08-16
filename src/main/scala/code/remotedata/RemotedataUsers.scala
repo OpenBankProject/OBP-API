@@ -3,10 +3,12 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.model.User
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import code.users.{RemotedataUsersCaseClasses, Users}
 import net.liftweb.common.Box
+
 import scala.collection.immutable.List
+import scala.concurrent.Future
 
 object RemotedataUsers extends ObpActorInit with Users {
 
@@ -32,6 +34,11 @@ object RemotedataUsers extends ObpActorInit with Users {
 
   def getAllUsers() : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getAllUsers())
+
+  def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]] = {
+    val res = (actor ? cc.getAllUsersF())
+      res.mapTo[Future[Box[List[ResourceUserCaseClass]]]].flatten
+  }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] =
     extractFutureToBox(actor ? cc.createResourceUser(provider, providerId, name, email, userId))
