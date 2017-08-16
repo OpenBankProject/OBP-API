@@ -47,9 +47,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
 
-
-
-
 trait APIMethods300 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
@@ -856,7 +853,6 @@ trait APIMethods300 {
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
-        UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -871,6 +867,8 @@ trait APIMethods300 {
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
         TransactionDisabled,
+        InvalidPhoneNumber,
+        InvalidChargePolicy,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),

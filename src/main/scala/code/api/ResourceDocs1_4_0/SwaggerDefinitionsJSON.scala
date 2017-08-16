@@ -1979,7 +1979,7 @@ object SwaggerDefinitionsJSON {
   
   // mapping NTBD_1_135 Sample.txt and NTBD_2_135 Sample.txt
   val transactionRequestBodyPhoneToPhoneJson = TransactionRequestBodyPhoneToPhoneJson(
-    from_account_phone_number="123",
+    from_account_phone_number="+9722398712",
     value = amountOfMoneyJsonV121,                                
     description = "This is a PHONE_TO_PHONE Transaction Request", 
     charge_policy = "SHARED",
