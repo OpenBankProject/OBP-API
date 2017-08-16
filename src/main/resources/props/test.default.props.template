@@ -105,7 +105,7 @@ sandbox_data_import_secret=change_me
 allow_account_deletion=true
 
 # This needs to be a list all the types of transaction_requests that we have tests for. Else those tests will fail
-transactionRequests_supported_types=SANDBOX_TAN,FREE_FORM,SEPA,COUNTERPARTY,PHONE_TO_PHONE
+transactionRequests_supported_types=SANDBOX_TAN,FREE_FORM,SEPA,COUNTERPARTY,TRANSFER_TO_PHONE
 
 # control the create and access to public views. 
 allow_public_views =true

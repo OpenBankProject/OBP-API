@@ -1981,7 +1981,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyPhoneToPhoneJson = TransactionRequestBodyPhoneToPhoneJson(
     from_account_phone_number="+9722398712",
     value = amountOfMoneyJsonV121,                                
-    description = "This is a PHONE_TO_PHONE Transaction Request", 
+    description = "This is a TRANSFER_TO_PHONE Transaction Request", 
     charge_policy = "SHARED",
     couterparty = couterparty
   )
@@ -1989,7 +1989,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyATMJson = TransactionRequestBodyATMJson(
     from_account_phone_number="123",
     value = amountOfMoneyJsonV121,
-    description = "This is a PHONE_TO_PHONE Transaction Request",
+    description = "This is a TRANSFER_TO_PHONE Transaction Request",
     charge_policy = "SHARED",
     couterparty = couterparty
   )
@@ -1997,7 +1997,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyAccountToAccount(
     from_account_phone_number="123",
     value = amountOfMoneyJsonV121,
-    description = "This is a PHONE_TO_PHONE Transaction Request",
+    description = "This is a TRANSFER_TO_PHONE Transaction Request",
     charge_policy = "SHARED",
     couterparty = couterparty
   )

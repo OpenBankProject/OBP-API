@@ -834,19 +834,19 @@ trait APIMethods300 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    // Transaction Request (PHONE_TO_PHONE)
+    // Transaction Request (TRANSFER_TO_PHONE)
     resourceDocs += ResourceDoc(
       createTransactionRequestPhoneToPhone,
       apiVersion,
       "createTransactionRequestPhoneToPhone",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/PHONE_TO_PHONE/transaction-requests",
-      "Create Transaction Request (PHONE_TO_PHONE)",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSFER_TO_PHONE/transaction-requests",
+      "Create Transaction Request (TRANSFER_TO_PHONE)",
       s"""$transactionRequestGeneralText
          |
-         |Special instructions for PHONE_TO_PHONE:
+         |Special instructions for TRANSFER_TO_PHONE:
          |
-         |When using a PHONE_TO_PHONE Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |When using a TRANSFER_TO_PHONE Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
@@ -1118,9 +1118,9 @@ trait APIMethods300 {
                 } yield
                   createdTransactionRequest
               }
-              case "PHONE_TO_PHONE" => {
+              case "TRANSFER_TO_PHONE" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
@@ -1139,7 +1139,7 @@ trait APIMethods300 {
               }
               case "ATM" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyATMJson]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyATMJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
@@ -1158,7 +1158,7 @@ trait APIMethods300 {
               }
               case "ACCOUNT_TO_ACCOUNT" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyAccountToAccount]} ?~! s"${InvalidJsonFormat}, it should be PHONE_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyAccountToAccount]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber

@@ -1024,7 +1024,7 @@ trait Connector extends MdcLoggable{
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
       transactionRequestCommonBody <-transactionRequestType.value match {
-        case "PHONE_TO_PHONE"  =>
+        case "TRANSFER_TO_PHONE"  =>
           Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
         case _ =>
           Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
