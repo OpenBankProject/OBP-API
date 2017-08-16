@@ -98,6 +98,8 @@ import code.api.util.APIUtil._
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
   val InvalidInputJsonFormat = "OBP-10006: Invalid input JSON format." // Why do we need this as well as InvalidJsonFormat?
   val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
+  val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
+  val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -160,7 +162,7 @@ import code.api.util.APIUtil._
 
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
-  val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at the bank specified by BANK_ID"
+  val UserCustomerLinksNotFoundForUser = "OBP-30008: User Customer Link not found by USER_ID"
   val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
   val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
   val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
@@ -190,6 +192,9 @@ import code.api.util.APIUtil._
   val UpdateProductError = "OBP-30031: Could not update the Product"
   
   val ViewIdNotSupported = "OBP-30032: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
+
+
+  val UserCustomerLinkNotFound = "OBP-30032: User Customer Link not found"
 
   
 
@@ -558,6 +563,21 @@ object APIUtil extends MdcLoggable {
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
+  
+  
+  def ValueOrOBP(text : String) =
+    text match {
+      case t if t == null => "OBP"
+      case t if t.length > 0 => t
+      case _ => "OBP"
+    }
+  
+  def ValueOrOBPId(text : String, OBPId: String) =
+    text match {
+      case t if t == null => OBPId
+      case t if t.length > 0 => t
+      case _ => OBPId
+    }
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)

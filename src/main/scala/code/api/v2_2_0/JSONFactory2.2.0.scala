@@ -37,9 +37,9 @@ import java.util.Date
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
-import code.atms.Atms.Atm
+import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
-import code.common.{Meta, Location, Address}
+import code.common.{Address, Location, Meta}
 import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -266,6 +266,70 @@ case class ConsumerJson(consumer_id: Long,
                         created: Date
                        )
 
+
+
+case class BasicUserJsonV220 (
+                               user_id: String,
+                               email: String,
+                               provider_id: String,
+                               provider: String,
+                               username: String
+                             )
+
+
+case class BasicCustomerJsonV220(
+                                  customer_id: String,
+                                  customer_number: String,
+                                  legal_name: String
+                                )
+
+
+case class BasicViewJsonV220(
+                              view_id: String,
+                              short_name: String,
+                              description: String,
+                              is_public: Boolean
+                            )
+
+
+case class CustomerViewJsonV220(
+  user: BasicUserJsonV220,
+  customer: BasicCustomerJsonV220,
+  view: BasicViewJsonV220
+)
+
+
+
+
+
+
+/*
+
+[{
+"user": {
+"user_id": "5995d6a2-01b3-423c-a173-5481df49bdaf",
+"email": "robert.x.0.gh@example.com",
+"provider_id": "robert.x.0.gh",
+"provider": "OBP",
+"username": "robert.x.0.gh"
+},
+"customer": {
+"customer_id": "yauiuy67876f",
+"customer_number": "12345",
+"legal_name": "Robert Manchester"
+},
+"view": {
+"view_id": "owner",
+"short_name": "Accountant",
+"description": "For the accountants",
+"is_public": false
+}
+}]
+
+*/
+
+
+
 object JSONFactory220{
 
   def stringOrNull(text : String) =
@@ -446,7 +510,7 @@ object JSONFactory220{
 
 
 
-  def createAtmJson(atm: Atm): AtmJsonV220 = {
+  def createAtmJson(atm: AtmT): AtmJsonV220 = {
     AtmJsonV220(
       id= atm.atmId.value,
       bank_id= atm.bankId.value,
@@ -542,9 +606,9 @@ object JSONFactory220{
 
   def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
 
-    val address : Address = transformV140ToAddress(branchJsonV220.address) // Note the address in V220 is V140
-    val location: Location =  transformV140ToLocation(branchJsonV220.location)  // Note the location in V220 is V140
-    val meta: Meta =  transformV140ToMeta(branchJsonV220.meta)  // Note the meta in V220 is V140
+    val address : Address = transformToAddressFromV140(branchJsonV220.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(branchJsonV220.location)  // Note the location in V220 is V140
+    val meta: Meta =  transformToMetaFromV140(branchJsonV220.meta)  // Note the meta in V220 is V140
 
     Full(Branch(
       BranchId(branchJsonV220.id),
@@ -560,9 +624,50 @@ object JSONFactory220{
       None,
       None,
       None,
+      None,
       None))
   }
 
+  def transformToAtmFromV220(atmJsonV220: AtmJsonV220): Box[Atm] = {
+    val address : Address = transformToAddressFromV140(atmJsonV220.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV220.location)  // Note the location in V220 is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV220.meta)  // Note the meta in V220 is V140
+
+    val atm = Atm(
+      atmId = AtmId(atmJsonV220.id),
+      bankId = BankId(atmJsonV220.bank_id),
+      name = atmJsonV220.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = None,
+      ClosingTimeOnMonday = None,
+
+      OpeningTimeOnTuesday = None,
+      ClosingTimeOnTuesday = None,
+
+      OpeningTimeOnWednesday = None,
+      ClosingTimeOnWednesday = None,
+
+      OpeningTimeOnThursday = None,
+      ClosingTimeOnThursday = None,
+
+      OpeningTimeOnFriday = None,
+      ClosingTimeOnFriday = None,
+
+      OpeningTimeOnSaturday = None,
+      ClosingTimeOnSaturday = None,
+
+      OpeningTimeOnSunday = None,
+      ClosingTimeOnSunday = None,
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = None,
+      locatedAt = None,
+      moreInfo = None,
+      hasDepositCapability = None
+    )
+    Full(atm)
+  }
 
 
   

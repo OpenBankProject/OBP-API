@@ -16,7 +16,7 @@ case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] 
 }
 
 /**
- * Imports data into the format used by LocalConnector (e.g. HostedBank)
+ * Imports data into the format used by LocalRecordConnector (e.g. HostedBank)
  */
 
 
@@ -24,7 +24,7 @@ case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] 
 
 Not currently using this connector so not updating it at the moment.
 
-object LocalConnectorDataImport extends OBPDataImport with CreateAuthUsers {
+object LocalRecordConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   type BankType = HostedBank
   type AccountType = Account

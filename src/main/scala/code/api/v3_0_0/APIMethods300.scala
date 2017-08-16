@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.ChargePolicy
+import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -10,12 +11,18 @@ import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors.{Connector, InboundAdapterInfo, LocalMappedConnector}
 import code.bankconnectors.{Connector, InboundAdapterInfo}
 import code.common.{Meta, Location, Address}
+import code.atms.Atms
+import code.atms.Atms.AtmId
+import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
+import code.branches.{Branches, InboundAdapterInfo}
+import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
@@ -28,14 +35,20 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.{Extraction, NoTypeHints, Serialization}
+import net.liftweb.http.{JsonResponse, Req, S}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import shapeless.test
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+
+
+
 
 
 trait APIMethods300 {
@@ -1204,6 +1217,402 @@ trait APIMethods300 {
           }
       }
     }
+
+
+    // Create Branch
+    val createBranchEntitlementsRequiredForSpecificBank = CanCreateBranch :: Nil
+    val createBranchEntitlementsRequiredForAnyBank = CanCreateBranchAtAnyBank :: Nil
+    val createBranchEntitlementsRequiredText = UserHasMissingRoles + createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required OR " + createBranchEntitlementsRequiredForAnyBank.mkString(" and ")
+
+
+    // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
+
+    resourceDocs += ResourceDoc(
+      createBranch,
+      apiVersion,
+      "createBranch",
+      "POST",
+      "/banks/BANK_ID/branches",
+      "Create Branch",
+      s"""Create Branch for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createBranchEntitlementsRequiredText
+          |""",
+      branchJsonV300,
+      branchJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InsufficientAuthorisationToCreateBranch,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+    lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            _ <- booleanToBox(
+              hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
+              ||
+              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank) == true
+              , createBranchEntitlementsRequiredText
+            )
+            branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
+            _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
+            branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
+            success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
+          } yield {
+            val json = JSONFactory300.createBranchJsonV300(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
+    val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
+    val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
+
+    val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
+
+    resourceDocs += ResourceDoc(
+      createAtm,
+      apiVersion,
+      "createAtm",
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM for the Bank.
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createAtmEntitlementsRequiredText
+          |""",
+      atmJsonV300,
+      atmJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      Nil
+    )
+
+
+
+    lazy val createAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! BankNotFound
+            _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
+              ||
+              hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
+              createAtmEntitlementsRequiredText)
+            atmJson <- tryo {json.extract[AtmJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
+            atm <- transformToAtmFromV300(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
+            _ <- booleanToBox(atmJson.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
+            success <- Connector.connector.vend.createOrUpdateAtm(atm)
+          } yield {
+            val json = JSONFactory300.createAtmJsonV300(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
+
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      getBranch,
+      apiVersion,
+      "getBranch",
+      "GET",
+      "/banks/BANK_ID/branches/BRANCH_ID",
+      "Get Branch",
+      s"""Returns information about a single Branch specified by BANK_ID and BRANCH_ID including:
+         |
+          |* Name
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under.
+         |
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+      emptyObjectJson,
+      branchJsonV300,
+      List(
+        UserNotLoggedIn,
+        "License may not be set. meta.license.id and eta.license.name can not be empty",
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- if (getBranchesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! UserNotLoggedIn
+            _ <- Bank(bankId) ?~! {BankNotFound}
+
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+
+
+//            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
+//              case Some(l) => Full(l)
+//              case _ => Empty
+//            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+//            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
+//              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+          } yield {
+            // Format the data as json
+            val json = JSONFactory300.createBranchJsonV300(branch)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getBranches,
+      apiVersion,
+      "getBranches",
+      "GET",
+      "/banks/BANK_ID/branches",
+      "Get Branches for a Bank",
+      s"""Returns information about branches for a single bank specified by BANK_ID including:
+         |
+        |* Name
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |* Structured opening hours
+         |* Accessible flag
+         |* Branch Type
+         |* More Info
+         |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+      emptyObjectJson,
+      branchesJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No branches available. License may not be set.",
+        UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
+        user => {
+          for {
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            u <- if(getBranchesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! UserNotLoggedIn
+            // Get branches from the active provider
+          
+          limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 100
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+          
+          
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory300.createBranchesJson(branches)
+
+            // val x = print("\n getBranches json is: " + json)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      getAtm,
+      apiVersion,
+      "getAtm",
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |
+         |
+          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+      emptyObjectJson,
+      atmJsonV300,
+      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
+        user => {
+          for {
+          // Get atm from the active provider
+            u <- if (getAtmsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! UserNotLoggedIn
+            _ <- Bank(bankId) ?~! {BankNotFound}
+            atm <- Box(Atms.atmsProvider.vend.getAtm(bankId,atmId)) ?~! {AtmNotFoundByAtmId}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory300.createAtmJsonV300(atm)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getAtms,
+      apiVersion,
+      "getAtms",
+      "GET",
+      "/banks/BANK_ID/atms",
+      "Get Bank ATMS",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |Pagination:|
+          |By default, 100 records are returned.
+          |
+          |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
+         |
+         |
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+      emptyObjectJson,
+      atmJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        "No ATMs available. License may not be set.",
+        UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
+        user => {
+          for {
+          // Get atms from the active provider
+
+            u <- if(getAtmsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! UserNotLoggedIn
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 50
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory300.createAtmsJsonV300(atms)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
+
+/* WIP
+    resourceDocs += ResourceDoc(
+      getOtherAccountsForBank,
+      apiVersion,
+      "getOtherAccountsForBank",
+      "GET",
+      "/banks/BANK_ID/other_accounts",
+      "Get Other Accounts of a Bank.",
+      s"""Returns data about all the other accounts at BANK_ID.
+          |This is a fireho
+          |${authenticationRequiredMessage(true)}
+          |""",
+      emptyObjectJson,
+      otherAccountsJSON,
+      List(
+        BankAccountNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, PSD2, OBWG),
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+
+    lazy val getOtherAccountsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get other accounts for one account
+      case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+        user =>
+          for {
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- View.fromUrl(viewId, account)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+          } yield {
+            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+          }
+      }
+    }
+*/
+
+
+
+
 
 
   }

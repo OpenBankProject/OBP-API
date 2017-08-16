@@ -10,6 +10,7 @@ case class PhysicalCardsJSON(
   cards : List[PhysicalCardJSON])
 
 case class PhysicalCardJSON(
+   bank_id : String,
    bank_card_number : String,
    name_on_card : String,
    issue_number : String,
@@ -100,6 +101,7 @@ object JSONFactory1_3_0 {
 
   def createPhysicalCardJSON(card: PhysicalCard, user : User): PhysicalCardJSON = {
     PhysicalCardJSON(
+      bank_id = stringOrNull(card.bankCardNumber),
       bank_card_number = stringOrNull(card.bankCardNumber),
       name_on_card = stringOrNull(card.nameOnCard),
       issue_number = stringOrNull(card.issueNumber),

@@ -47,6 +47,13 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
+
+
+/*
+This file defines which endpoints from all the versions are available in v3.0.0
+ */
+
+
 object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with MdcLoggable {
   
   
@@ -162,8 +169,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //First step - make a list of allowed endpoints
   val endpointsOf1_4_0 = Implementations1_4_0.getCustomerMessages ::
                           Implementations1_4_0.addCustomerMessage ::
-                          Implementations1_4_0.getBranches ::
-                          Implementations1_4_0.getAtms ::
+                          // Implementations1_4_0.getBranches :: //now in V300
+                          // Implementations1_4_0.getAtms :: //now in V300
                           Implementations1_4_0.getCrmEvents ::
                           Implementations1_4_0.getTransactionRequestTypes ::
                          Nil
@@ -247,16 +254,14 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getUsers ::
                           Implementations2_1_0.createTransactionType ::
                           Implementations2_1_0.createCounterparty ::
-                          Implementations2_1_0.getAtm ::
-                          Implementations2_1_0.getBranch ::
+                          // Implementations2_1_0.getAtm :: //now in V300
+                          // Implementations2_1_0.getBranch :: //now in V300
                           Implementations2_1_0.updateBranch ::
-                          //now in V220
-                          //Implementations2_1_0.createBranch ::
                           Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
-                          Implementations2_1_0.getCustomer ::
-                          Implementations2_1_0.getCustomers ::
+                          Implementations2_1_0.getCustomersForCurrentUserAtBank ::
+                          Implementations2_1_0.getCustomersForUser ::
                           Implementations2_1_0.updateConsumerRedirectUrl ::
                           Implementations2_1_0.getMetrics ::
                           Nil
@@ -272,16 +277,12 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
   // ### VERSION 2.1.0 - BEGIN ###
   //First step - make a list of allowed endpoints
-  val endpointsOf2_2_0 = //V300 Implementations2_2_0.getViewsForBankAccount ::
-                          //V300 Implementations2_2_0.createViewForBankAccount ::
-                          //V300 Implementations2_2_0.updateViewForBankAccount ::
-                          Implementations2_2_0.getCurrentFxRate ::
+  val endpointsOf2_2_0 =  Implementations2_2_0.getCurrentFxRate ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getMessageDocs ::
                           Implementations2_2_0.createBank ::
                           Implementations2_2_0.createAccount ::
-                          Implementations2_2_0.createBranch ::
-                          Implementations2_2_0.createAtm ::
+                          //Implementations2_2_0.createAtm ::
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
@@ -311,6 +312,12 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUserByUsername ::
                           Implementations3_0_0.createTransactionRequest ::
                           Implementations3_0_0.getAdapter ::
+                          Implementations3_0_0.createBranch ::
+                          Implementations3_0_0.getBranches ::
+                          Implementations3_0_0.getBranch ::
+                          Implementations3_0_0.createAtm ::
+                          Implementations3_0_0.getAtm ::
+                          Implementations3_0_0.getAtms ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

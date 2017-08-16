@@ -4,7 +4,8 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
-import code.branches.Branches.{BranchT, Branch, BranchId}
+import code.bankconnectors.OBPQueryParam
+import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.common._
 import code.model.BankId
 import net.liftweb.common.{Box, Logger}
@@ -38,7 +39,8 @@ object Branches extends SimpleInjector {
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
   def isAccessible : Option[Boolean]
   def branchType : Option[String]
-  def moreInfo : Option[String]}
+  def moreInfo : Option[String]
+  def phoneNumber : Option[String] }
 
 
 
@@ -51,8 +53,8 @@ object Branches extends SimpleInjector {
                      name: String,
                      address: Address,
                      location: Location,
-                     lobbyString: Option[LobbyStringT],
-                     driveUpString: Option[DriveUpStringT],
+                     lobbyString: Option[LobbyString],
+                     driveUpString: Option[DriveUpString],
                      meta: Meta,
                      branchRouting: Option[Routing],
                      lobby: Option[Lobby],
@@ -60,7 +62,8 @@ object Branches extends SimpleInjector {
                      // Easy access for people who use wheelchairs etc.
                      isAccessible : Option[Boolean],
                      branchType : Option[String],
-                     moreInfo : Option[String]
+                     moreInfo : Option[String],
+                     phoneNumber : Option[String]
                    ) extends BranchT
 
 
@@ -285,30 +288,37 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-  final def getBranches(bankId : BankId) : Option[List[BranchT]] = {
+  final def getBranches(bankId : BankId ,queryParams: OBPQueryParam*) : Option[List[BranchT]] = {
     // If we get branches filter them
-    getBranchesFromProvider(bankId) match {
+    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId : BankId ,queryParams:_*)
+
+    branches match {
       case Some(branches) => {
+        logger.debug(s"getBranches says there are ${branches.length} branches with or without license")
 
         val branchesWithLicense = for {
          branch <- branches if branch.meta.license.name.size > 3
         } yield branch
+        logger.debug(s"getBranches says there are ${branches.length} branchesWithLicense")
         Option(branchesWithLicense)
       }
-      case None => None
+      case None => {
+        logger.debug(s"getBranches says there are None branches")
+        None
+      }
     }
   }
 
   /*
   Return one Branch
    */
-  final def getBranch(branchId : BranchId) : Option[BranchT] = {
+  final def getBranch(bankId: BankId, branchId : BranchId) : Option[BranchT] = {
     // Filter out if no license data
-    getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getBranchFromProvider(bankId,branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
-  protected def getBranchFromProvider(branchId : BranchId) : Option[BranchT]
-  protected def getBranchesFromProvider(bank : BankId) : Option[List[BranchT]]
+  protected def getBranchFromProvider(bankId: BankId, branchId : BranchId) : Option[BranchT]
+  protected def getBranchesFromProvider(bank : BankId, queryParams:OBPQueryParam*): Option[List[BranchT]]
 
 // End of Trait
 }

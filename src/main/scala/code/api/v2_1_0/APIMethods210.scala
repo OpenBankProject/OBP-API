@@ -30,6 +30,7 @@ import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
+import code.api.util.APIUtil.getCustomers
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -195,8 +196,6 @@ trait APIMethods210 {
           |
           |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
           |
-          |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
-          |
           |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
           |
           |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
@@ -229,15 +228,19 @@ trait APIMethods210 {
 
 
 
-    // Transaction Request General case (no TRANSACTION_REQUEST_TYPE specified)
+    // SANDBOX_TAN. (we no longer create a resource doc for the general case)
     resourceDocs += ResourceDoc(
-      createTransactionRequest,
+      createTransactionRequestSandboxTan,
       apiVersion,
-      "createTransactionRequest",
+      "createTransactionRequestSandboxTan",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request.",
-      s"""$transactionRequestGeneralText
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SANDBOX_TAN/transaction-requests",
+      "Create Transaction Request (SANDBOX_TAN)",
+      s"""When using SANDBOX_TAN, the payee is set in the request body.
+         |
+         |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+         |
+         |$transactionRequestGeneralText
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
@@ -272,12 +275,13 @@ trait APIMethods210 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
       "Create Transaction Request (COUNTERPARTY)",
-      s"""$transactionRequestGeneralText
-         |
+      s"""
          |Special instructions for COUNTERPARTY:
          |
          |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.
          |The routing details of the counterparty will be forwarded for the transfer.
+         |
+         |$transactionRequestGeneralText
          |
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
@@ -316,12 +320,13 @@ trait APIMethods210 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
       "Create Transaction Request (SEPA)",
-      s"""$transactionRequestGeneralText
-         |
+      s"""
          |Special instructions for SEPA:
          |
          |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |
+         |$transactionRequestGeneralText
          |
        """.stripMargin,
       transactionRequestBodySEPAJSON,
@@ -348,8 +353,52 @@ trait APIMethods210 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
+
+    // FREE_FORM.
+    resourceDocs += ResourceDoc(
+      createTransactionRequestFreeForm,
+      apiVersion,
+      "createTransactionRequestFreeForm",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
+      "Create Transaction Request (FREE_FORM).",
+      s"""$transactionRequestGeneralText
+         |
+       """.stripMargin,
+      transactionRequestBodyJsonV200,
+      transactionRequestWithChargeJSON210,
+      List(
+        UserNotLoggedIn,
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        UserNoPermissionAccessView,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+
+
+
+
+    // Different Transaction Request approaches:
+    lazy val createTransactionRequestSandboxTan = createTransactionRequest
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCouterparty = createTransactionRequest
+    lazy val createTransactionRequestFreeForm = createTransactionRequest
+
+    // This handles the above cases
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
@@ -1066,7 +1115,7 @@ trait APIMethods210 {
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            atm  <- Box(Atms.atmsProvider.vend.getAtm(atmId)) ?~! {AtmNotFoundByAtmId}
+            atm  <- Box(Atms.atmsProvider.vend.getAtm(bankId, atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmJson(atm)
@@ -1115,8 +1164,7 @@ trait APIMethods210 {
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! 
-              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchJson(branch)
@@ -1326,8 +1374,10 @@ trait APIMethods210 {
       }
     }
 
-    //////////////////
-    // createCustomer
+
+
+
+
     val createCustomerEntitlementsRequiredForSpecificBank = CanCreateCustomer ::
       CanCreateUserCustomerLink ::
       Nil
@@ -1415,32 +1465,32 @@ trait APIMethods210 {
     }
 
     resourceDocs += ResourceDoc(
-      getCustomers,
+      getCustomersForUser,
       apiVersion,
-      "getCustomers",
+      "getCustomersForUser",
       "GET",
       "/users/current/customers",
-      "Get all customers for logged in user",
-      """Information about the currently authenticated user.
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       metricsJson,
       List(
         UserNotLoggedIn,
-        CustomerDoNotExistsForUser,
+        UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
-    lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
             //bank <- Bank(bankId) ?~! {BankNotFound}
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! CustomerDoNotExistsForUser
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
             successJsonResponse(Extraction.decompose(json))
@@ -1450,41 +1500,43 @@ trait APIMethods210 {
     }
 
     resourceDocs += ResourceDoc(
-      getCustomer,
+      getCustomersForCurrentUserAtBank,
       apiVersion,
-      "getCustomer",
+      "getCustomersForCurrentUserAtBank",
       "GET",
-      "/banks/BANK_ID/customer",
-      "Get customer for logged in user",
-      """Information about the currently authenticated user.
+      "/banks/BANK_ID/customers",
+      "Get Customers for current User at Bank",
+      s"""Retuns a list of Customers at the Bank that are linked to the currently authenticated User.
         |
-        |Authentication via OAuth is required.""",
+        |
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       customerJsonV210,
       List(
-        UserNotLoggedIn, 
-        BankNotFound, 
-        CustomerDoNotExistsForUser, 
-        CustomerDoNotExistsForUser, 
-        CustomerNotFoundByCustomerId, 
+        UserNotLoggedIn,
+        BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UserCustomerLinksNotFoundForUser,
+        CustomerNotFoundByCustomerId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
+    lazy val getCustomersForCurrentUserAtBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
-            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! CustomerDoNotExistsForUser
-            ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
-            isEmpty <- booleanToBox(ucl.size > 0, CustomerDoNotExistsForUser)
-            u <- ucl
-            info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! CustomerNotFoundByCustomerId
+            // Find User Customer Links by the UserId
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
+            // Get the related Customers
+            customers = APIUtil.getCustomers(customerIds)
+            // Filter so we only see the ones for the bank in question
+            bankCustomers = customers.filter(_.bankId==bankId.value)
           } yield {
-            val json = JSONFactory210.createCustomerJson(info)
+            val json = JSONFactory210.createCustomersJson(bankCustomers)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -1521,7 +1573,7 @@ trait APIMethods210 {
             u <- user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
 

@@ -1,11 +1,12 @@
 package code.api.v1_4_0
 
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
-import dispatch._
-import code.common._
-import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
+import code.api.v3_0_0.V300ServerSetup
+import code.bankconnectors.OBPQueryParam
+import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
+import code.common._
 import code.model.BankId
 import code.setup.DefaultUsers
 
@@ -13,7 +14,7 @@ import code.setup.DefaultUsers
 Note This does not test retrieval from a backend.
 We mock the backend so get test the API
  */
-class BranchesTest extends V140ServerSetup with DefaultUsers {
+class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("testBank1")
   val BankWithoutLicense = BankId("testBank2")
@@ -84,7 +85,8 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
                          moreInfo : Option[String],
                          driveUp: Option[DriveUp],
                          lobby: Option[Lobby],
-                         branchRouting: Option[RoutingT]
+                         branchRouting: Option[RoutingT],
+                         phoneNumber : Option[String]
 
   ) extends BranchT
 
@@ -171,7 +173,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo, None, None, None)
+    fakeMoreInfo, None, None, None, None)
   val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -189,7 +191,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo, None, None, None)
+    fakeMoreInfo, None, None, None, None)
   val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -207,11 +209,11 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
-    fakeMoreInfo, None, None, None) // Should not be returned
+    fakeMoreInfo, None, None, None, None) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
-    override protected def getBranchesFromProvider(bank: BankId): Option[List[BranchT]] = {
+    override protected def getBranchesFromProvider(bank: BankId, queryParams:OBPQueryParam*): Option[List[BranchT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))
@@ -220,7 +222,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] = {
+    override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] = {
       branchId match {
          case BankWithLicense => Some(fakeBranch1)
          case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
@@ -265,12 +267,19 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
     scenario("We try to get bank branches for a bank without a data license for branch information") {
 
-      When("We make a request")
+      When("We make a request v1.4.0")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
+
+      When("We make a request v3.0.0")
+      val request300 = (v3_0Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
+      val response300 = makeGetRequest(request300)
+
+      Then("We should get a 200")
+      response300.code should equal(200)
     }
 
     scenario("We try to get bank branches for a bank with a data license for branch information") {

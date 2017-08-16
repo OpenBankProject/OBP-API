@@ -1,27 +1,35 @@
 package code.branches
 
+import code.bankconnectors._
 import code.branches.Branches._
 import code.common._
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
-import net.liftweb.mapper._
+import net.liftweb.mapper.{By, _}
+import net.liftweb.common.{Box, Logger}
 
 object MappedBranchesProvider extends BranchesProvider {
 
-  override protected def getBranchFromProvider(branchId: BranchId): Option[BranchT] =
-    MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
+  private val logger = Logger(classOf[BranchesProvider])
 
-  override protected def getBranchesFromProvider(bankId: BankId): Option[List[BranchT]] = {
-    Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
-      // For all found set the routing scheme and address (default it to the branchId)
-      .map(
-        branch =>
-          branch.mBranchRoutingScheme == null && branch.mBranchRoutingAddress == null match {
-            case true => branch.mBranchRoutingScheme("BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
-            case _ => branch
-          }
-      )
+  override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] =
+    MappedBranch.find(
+      By(MappedBranch.mBankId, bankId.value),
+      By(MappedBranch.mBranchId, branchId.value)
     )
+
+  override protected def getBranchesFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[BranchT]] = {
+    logger.debug(s"getBranchesFromProvider says bankId is $bankId")
+  
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedBranch](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedBranch](value) }.headOption
+    
+    val optionalParams : Seq[QueryParam[MappedBranch]] = Seq(limit.toSeq, offset.toSeq).flatten
+    val mapperParams = Seq(By(MappedBranch.mBankId, bankId.value)) ++ optionalParams
+    
+    val branches: Option[List[BranchT]] = Some(MappedBranch.findAll(mapperParams:_*))
+  
+    branches
   }
 }
 
@@ -108,17 +116,21 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   object mBranchType extends MappedString(this, 32)
   object mMoreInfo extends MappedString(this, 128)
+  object mPhoneNumber extends MappedString(this, 32)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
+  // If not set, use BRANCH_ID and this value
   override def branchRouting: Option[RoutingT] = Some(new RoutingT {
-    override def scheme: String = mBranchRoutingScheme.get
-    override def address: String = mBranchRoutingAddress.get
+    override def scheme: String = {
+      if (mBranchRoutingScheme == null || mBranchRoutingScheme == "") "BRANCH_ID" else mBranchRoutingScheme.get
+    }
+    override def address: String = {
+        if (mBranchRoutingAddress == null || mBranchRoutingAddress == "") mBranchId.get else mBranchRoutingAddress
+      }
   })
 
-//  override def branchRoutingScheme: String = mBranchRoutingScheme.get
-//  override def branchRoutingAddress: String = mBranchRoutingAddress.get
 
   override def bankId: BankId = BankId(mBankId.get)
 
@@ -155,6 +167,10 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     override def hours: String = mDriveUpHours.get
   }
   )
+
+
+// Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
+// but could also be 25:44 if we want to represent a time after midnight.
 
   override def lobby = Some(
     Lobby(
@@ -224,79 +240,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   )
 
 
-  /*
 
-  override def lobby: LobbyStringT = new LobbyStringT {
-    override def openingHours: String = mLobbyHours
-  }
-
-
-
-
-  override def lobby = Lobby(
-    monday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnMonday.get,
-      closingTime = mLobbyClosingTimeOnMonday.get
-    ),
-    tuesday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnTuesday.get,
-      closingTime = mLobbyClosingTimeOnTuesday.get
-    ),
-    wednesday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnWednesday.get,
-      closingTime = mLobbyClosingTimeOnWednesday.get
-    ),
-    thursday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnThursday.get,
-      closingTime = mLobbyClosingTimeOnThursday.get
-    ),
-    friday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnFriday.get,
-      closingTime = mLobbyClosingTimeOnFriday.get
-    ),
-    saturday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnSaturday.get,
-      closingTime = mLobbyClosingTimeOnSaturday.get
-    ),
-    sunday = OpeningTimes(
-      openingTime = mLobbyOpeningTimeOnSunday.get,
-      closingTime = mLobbyClosingTimeOnSunday.get
-    )
-  )
-  // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
-  // but could also be 25:44 if we want to represent a time after midnight.
-  override def driveUp = DriveUp(
-    monday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnMonday.get,
-      closingTime = mDriveUpClosingTimeOnMonday.get
-    ),
-    tuesday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnTuesday.get,
-      closingTime = mDriveUpClosingTimeOnTuesday.get
-    ),
-    wednesday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnWednesday.get,
-      closingTime = mDriveUpClosingTimeOnWednesday.get
-    ),
-    thursday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnThursday.get,
-      closingTime = mDriveUpClosingTimeOnThursday.get
-    ),
-    friday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnFriday.get,
-      closingTime = mDriveUpClosingTimeOnFriday.get
-    ),
-    saturday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnSaturday.get,
-      closingTime = mDriveUpClosingTimeOnSaturday.get
-    ),
-    sunday = OpeningTimes(
-      openingTime = mDriveUpOpeningTimeOnSunday.get,
-      closingTime = mDriveUpClosingTimeOnSunday.get
-    )
-  )
-
-*/
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
   override def  isAccessible = mIsAccessible.get match {
@@ -307,6 +251,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   override def  branchType = Some(mBranchType.get)
   override def  moreInfo = Some(mMoreInfo.get)
+  override def  phoneNumber = Some(mPhoneNumber.get)
 
 }
 

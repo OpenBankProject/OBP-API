@@ -293,9 +293,10 @@ object SwaggerJSONFactory {
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.apiFunction match {
-                //TODO, the UUID is just a temporory way, need fix 
-                case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
-                case _ => s"${rd.apiVersion.toString }-${rd.apiFunction.toString }"
+                //No longer need this special case since all transaction reqquest Resource Docs have explicit URL
+                //case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
+                // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
+                case _ => s"v${rd.apiVersion.toString }-${rd.apiFunction.toString }"
               },
             //TODO, this is for Post Body 
             parameters =
@@ -422,7 +423,11 @@ object SwaggerJSONFactory {
     //      name -> Tesobe,              --> "name" : {"type":"string"}              
     //      bank -> Bank(gh.29.uk),      --> "bank": {"$ref":"#/definitions/Bank"}    
     //      banks -> List(Bank(gh.29.uk) --> "banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
-    val properties = for ((key, value) <- mapOfFields) yield {
+    val properties = for {
+      (key, value) <- mapOfFields
+      // Uncomment this to debug problems with json data etc.
+      // _ = print("\n val properties for comprehension: " + key + " is " + value)
+    } yield {
       value match {
         case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"

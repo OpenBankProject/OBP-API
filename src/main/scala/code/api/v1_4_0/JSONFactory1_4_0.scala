@@ -4,7 +4,8 @@ import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.atms.Atms.Atm
+import code.api.v3_0_0.BranchJsonV300
+import code.atms.Atms.AtmT
 import code.branches.Branches.BranchT
 import code.common._
 import code.crm.CrmEvent.CrmEvent
@@ -82,9 +83,11 @@ object JSONFactory1_4_0 {
                         lobby : LobbyStringJson,
                         drive_up: DriveUpStringJson,
                         meta : MetaJsonV140,
-                        branch_routing: BranchRoutingJsonV141)
+                        branch_routing: BranchRoutingJsonV141) // This is bad branch_routing should not have been put in V140
 
   case class BranchesJson (branches : List[BranchJson])
+
+  case class BranchesJsonV300 (branches : List[BranchJsonV300])
 
 
   case class AtmJson(id : String,
@@ -212,7 +215,7 @@ object JSONFactory1_4_0 {
 
   // Atms
 
-  def createAtmJson(atm: Atm) : AtmJson = {
+  def createAtmJson(atm: AtmT) : AtmJson = {
     AtmJson(atm.atmId.value,
       atm.name,
       createAddressJson(atm.address),
@@ -220,7 +223,7 @@ object JSONFactory1_4_0 {
       createMetaJson(atm.meta))
   }
 
-  def createAtmsJson(AtmsList: List[Atm]) : AtmsJson = {
+  def createAtmsJson(AtmsList: List[AtmT]) : AtmsJson = {
     AtmsJson(AtmsList.map(createAtmJson))
   }
 
@@ -470,7 +473,7 @@ object JSONFactory1_4_0 {
 
   // It seems we can't overload this function i.e. have to give it specific name because
   // else cant use it with a nested case class when the top case class is a different version
-  def transformV140ToLocation(locationJsonV140: LocationJsonV140): Location = {
+  def transformToLocationFromV140(locationJsonV140: LocationJsonV140): Location = {
     Location (
       latitude = locationJsonV140.latitude,
       longitude = locationJsonV140.longitude,
@@ -488,7 +491,7 @@ object JSONFactory1_4_0 {
   }
 
 
-  def transformV140ToMeta(metaJsonV140: MetaJsonV140): Meta = {
+  def transformToMetaFromV140(metaJsonV140: MetaJsonV140): Meta = {
     Meta (
       license = transformV140ToLicence (
         metaJsonV140.license)
@@ -496,7 +499,7 @@ object JSONFactory1_4_0 {
   }
 
 
-  def transformV140ToAddress(addressJsonV140: AddressJsonV140): Address = {
+  def transformToAddressFromV140(addressJsonV140: AddressJsonV140): Address = {
     Address(
       line1 = addressJsonV140.line_1,
       line2 = addressJsonV140.line_2,

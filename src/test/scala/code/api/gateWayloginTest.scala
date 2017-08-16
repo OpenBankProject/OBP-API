@@ -1,9 +1,9 @@
 package code.api
 
-import code.bankconnectors.InboundAccountJune2017
+import code.bankconnectors.vJune2017.InboundAccountJune2017
 import net.liftweb.json.{Extraction, compact, render}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{ Full}
+import net.liftweb.common.Full
 import org.scalatest._
 
 class gateWayloginTest extends FeatureSpec 

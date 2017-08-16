@@ -5,17 +5,16 @@ import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{isValidCurrencyISOCode, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
-
 import code.api.v2_1_0._
 import code.api.v2_2_0._
 import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
 import code.bankconnectors._
+import code.branches.KafkaJSONFactory_vMar2017
 import code.consumer.Consumers
 import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
@@ -482,17 +481,9 @@ trait APIMethods220 {
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
               createAtmEntitlementsRequiredText)
-            atm <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
-            success <- Connector.connector.vend.createOrUpdateAtm(
-              AtmJsonPost(
-                atm.id,
-                atm.bank_id,
-                atm.name,
-                atm.address,
-                atm.location,
-                atm.meta
-              )
-            )
+            atmJson <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            atm <- JSONFactory220.transformToAtmFromV220(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
+            success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory220.createAtmJson(success)
             createdJsonResponse(Extraction.decompose(json))
@@ -801,6 +792,7 @@ trait APIMethods220 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
+            //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
 
@@ -808,7 +800,6 @@ trait APIMethods220 {
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
             defaultStartDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            _  <- tryo{println(defaultStartDate + "defaultStartDate")}
             defaultEndDate <- Full(new Date(nowTime).toInstant.toString)
 
             //(defaults to one week before current date
@@ -822,7 +813,7 @@ trait APIMethods220 {
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
                 case Full(l)                      => l.toInt
-                case _                            => 1000
+                case _                            => 100
               }
             ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
@@ -943,6 +934,43 @@ trait APIMethods220 {
           }
       }
     }
+
+
+/*
+    resourceDocs += ResourceDoc(
+      getCustomerViewsForAccount,
+      apiVersion,
+      "getCustomerViews",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/customer_views",
+      "Get Customers that have access to a View",
+      s"""Returns the Customers (and the Users linked to the Customer) that have access to the view:
+          |
+          |* Customer: legal_name, customer_number, customer_id
+          |* User: username, user_id, email
+          |* View: view_id
+          |
+         |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      CustomerViewsJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagAccount, apiTagCustomer, apiTagView)
+    )
+
+*/
+
+
+
+
+
+
+
+
+
 
 
   }

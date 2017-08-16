@@ -451,7 +451,6 @@ object MappedTokenProvider extends TokensProvider {
   }
   override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
     val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType))
-    //println("token: " + token)
     token
   }
 

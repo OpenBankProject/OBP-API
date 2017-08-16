@@ -7,9 +7,12 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.atms.Atms.{Atm, AtmId}
-import code.branches.Branches.{BranchT, Branch, BranchId}
-import code.branches.MappedBranch
+import code.atms.Atms
+import code.atms.Atms.{AtmId, AtmT}
+import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
@@ -61,10 +64,12 @@ object Connector extends SimpleInjector {
 
     connectorProps match {
       case "mapped" => LocalMappedConnector
-      case "mongodb" => LocalConnector
+      case "mongodb" => LocalRecordConnector
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
       case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
+      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
+      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }
@@ -1134,9 +1139,7 @@ trait Connector extends MdcLoggable{
   ): Box[Bank] = Empty
 
 
-  def createOrUpdateAtm(
-                          atm: AtmJsonPost
-                        ): Box[Atm] = Empty
+  def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = Empty
 
 
   def createOrUpdateProduct(
@@ -1166,7 +1169,7 @@ trait Connector extends MdcLoggable{
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]
 
-  def getAtm(bankId : BankId, atmId: AtmId) : Box[Atm]
+  def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT]
 
   //This method is only existing in mapper
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {

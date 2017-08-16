@@ -6,8 +6,9 @@ import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
+import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
