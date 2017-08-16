@@ -29,10 +29,8 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.ErrorMessages
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
@@ -774,48 +772,49 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
 
 
 
-  messageDocs += MessageDoc(
-    process = "obp.validate.ChallengeAnswer",
-    messageFormat = messageFormat,
-    description = "validateChallengeAnswer from kafka ",
-    exampleOutboundMessage = decompose(
-      OutboundChallengeAnswerBase(
-        messageFormat = messageFormat,
-        action = "obp.validate.ChallengeAnswer",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com",
-        challengeId = "1234",
-        hashOfSuppliedAnswer = ""
-      )
-    ),
-    exampleInboundMessage = decompose(
-      InboundValidateChallangeAnswer(
-        errorCode = "OBP-6001: ...",
-        answer = ""
-      )
-    )
-  )
+//  messageDocs += MessageDoc(
+//    process = "obp.validate.ChallengeAnswer",
+//    messageFormat = messageFormat,
+//    description = "validateChallengeAnswer from kafka ",
+//    exampleOutboundMessage = decompose(
+//      OutboundChallengeAnswerBase(
+//        messageFormat = messageFormat,
+//        action = "obp.validate.ChallengeAnswer",
+//        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
+//        username = "susan.uk.29@example.com",
+//        challengeId = "1234",
+//        hashOfSuppliedAnswer = ""
+//      )
+//    ),
+//    exampleInboundMessage = decompose(
+//      InboundValidateChallangeAnswer(
+//        errorCode = "OBP-6001: ...",
+//        answer = ""
+//      )
+//    )
+//  )
 
   override def validateChallengeAnswer(
                                         challengeId: String,
                                         hashOfSuppliedAnswer: String
                                       ): Box[Boolean] = {
-    // Create argument list
-    val req = OutboundChallengeAnswerBase(
-      messageFormat = messageFormat,
-      action = "obp.validate.ChallengeAnswer",
-      userId = currentResourceUserId,
-      username = currentResourceUsername,
-      challengeId = challengeId,
-      hashOfSuppliedAnswer = hashOfSuppliedAnswer)
+//    // Create argument list
+//    val req = OutboundChallengeAnswerBase(
+//      messageFormat = messageFormat,
+//      action = "obp.validate.ChallengeAnswer",
+//      userId = currentResourceUserId,
+//      username = currentResourceUsername,
+//      challengeId = challengeId,
+//      hashOfSuppliedAnswer = hashOfSuppliedAnswer)
 
-    val r: Option[InboundValidateChallangeAnswer] = process(req).extractOpt[InboundValidateChallangeAnswer]
+//    val r: Option[InboundValidateChallangeAnswer] = process(req).extractOpt[InboundValidateChallangeAnswer]
     // Return result
-    r match {
-      // Check does the response data match the requested data
-      case Some(x) => Full(x.answer.toBoolean)
-      case _ => Empty
-    }
+//    r match {
+//       //Check does the response data match the requested data
+//      case Some(x) => Full(x.answer.toBoolean)
+//      case _ => Empty
+//    }
+    Full(true)
   }
 
 

@@ -10,14 +10,12 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
-import code.bankconnectors.{Connector, InboundAdapterInfo, LocalMappedConnector}
-import code.bankconnectors.{Connector, InboundAdapterInfo}
-import code.common.{Meta, Location, Address}
+import code.bankconnectors.{LocalMappedConnector, LocalRecordConnector}
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
@@ -29,6 +27,7 @@ import code.metadata.counterparties.MappedCounterparty
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
+import code.transactionrequests.TransactionRequests
 import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
