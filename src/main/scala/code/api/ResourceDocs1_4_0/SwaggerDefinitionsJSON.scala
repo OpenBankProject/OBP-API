@@ -3,8 +3,8 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.defaultJValue
 import code.api.util.APIUtil._
-import code.api.v3_0_0.{AddressJsonV300, AtmJsonV300, BranchJsonV300, OpeningTimesV300}
-import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
+import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import net.liftweb.common.Full
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
@@ -22,6 +22,19 @@ import scala.util.Try
   */
 object SwaggerDefinitionsJSON {
   
+  
+  
+  val license =  License(
+    id = "id",
+    name ="String"
+  )
+  
+  val routing = Routing(
+    scheme ="String",
+    address ="String"
+  )
+  
+  val branchId = BranchId(value = "String")
   
   // from code.model, not from normal version JSON Factory
   ///////////////////////////////////////////////////////////////////////////
@@ -852,77 +865,68 @@ object SwaggerDefinitionsJSON {
   // Use transform... to convert these to our various json formats for differernt API versions
 
   val meta: Meta =  Meta(license = License (id = "PDDL", name = "Open Data Commons Public Domain Dedication and License "))  // Note the meta  is V140
-
+  val openingTimesV300 =OpeningTimesV300(
+    opening_time = "10:00",
+    closing_time = "18:00")
+  val openingTimes = OpeningTimes(
+    openingTime = "10:00",
+    closingTime = "18:00"
+  )
+  
   val address : Address = Address(
     line1 = "No 1 the Road",
     line2 = "The Place",
     line3 = "The Hill",
     city = "Berlin",
-    county = None,
+    county = Some("String"),
     state = "Brandenburg",
     postCode = "13359",
     countryCode = "DE"
   )
 
   val lobby: Lobby = Lobby(
-    monday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    tuesday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    wednesday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "15:00"),
-    thursday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    friday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    saturday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    sunday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00")
+    monday = openingTimes,
+    tuesday = openingTimes,
+    wednesday = openingTimes,
+    thursday = openingTimes,
+    friday = openingTimes,
+    saturday = openingTimes,
+    sunday = openingTimes
   )
 
 
   val driveUp: DriveUp = DriveUp(
-    monday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    tuesday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    wednesday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "15:00"),
-    thursday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    friday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    saturday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00"),
-    sunday = OpeningTimes(
-      openingTime = "10:00",
-      closingTime = "18:00")
+    monday = openingTimes,
+    tuesday = openingTimes,
+    wednesday = openingTimes,
+    thursday = openingTimes,
+    friday = openingTimes,
+    saturday = openingTimes,
+    sunday = openingTimes
   )
 
-  val branchRouting = Some(Routing("OBP", "123abc"))
+  val branchRouting = Routing("OBP", "123abc")
 
-  val isAccessible: Boolean = true
-
-  val location : Location = Location (10.0,
+  val basicResourceUser = BasicResourceUser(
+    userId= "String", // Should come from Resource User Id
+    provider= " String",
+    username= " String"
+  )
+  
+  val location : Location = Location (
     10.0,
-    None,
-    None)
-
-
+    10.0,
+    Some(exampleDate),
+    Some(basicResourceUser))
+  
+  val lobbyString = LobbyString (
+    hours ="String "
+  )
+  
+  val driveUpString = DriveUpString (
+    hours ="String "
+  )
+  
   val branch: Branch = Branch(
     branchId = BranchId("branch-id-123"),
     bankId = BankId("bank-id-123"),
@@ -930,18 +934,38 @@ object SwaggerDefinitionsJSON {
     address = address,
     location = location,
     meta = meta,
-    lobbyString = None,
-    driveUpString = None,
+    lobbyString = Some(lobbyString),
+    driveUpString = Some(driveUpString),
     lobby = Some(lobby),
     driveUp = Some(driveUp),
-    branchRouting = branchRouting,
+    branchRouting = Some(branchRouting),
     // Easy access for people who use wheelchairs etc.
-    isAccessible = Some(isAccessible),
+    isAccessible = Some(true),
     branchType = Some("Full service store"),
     moreInfo = Some("short walk to the lake from here"),
     phoneNumber = Some("+381631954907")
   )
-
+  
+  
+  val lobbyJsonV330 = LobbyJsonV330(
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday =  openingTimesV300,
+    friday =  openingTimesV300,
+    saturday =  openingTimesV300,
+    sunday =  openingTimesV300
+  )
+  
+  val driveUpJsonV330 = DriveUpJsonV330(
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday =  openingTimesV300,
+    friday =  openingTimesV300,
+    saturday =  openingTimesV300,
+    sunday =  openingTimesV300
+  )
 
 
   val branchJsonV300: BranchJsonV300 = createBranchJsonV300 (branch)
@@ -960,44 +984,34 @@ object SwaggerDefinitionsJSON {
 
   val atmsJson = AtmsJson(atms = List(atmJson))
 
+ 
+  
+  val addressJsonV300 = AddressJsonV300(
+    line_1 = "No 1 the Road",
+    line_2 = "The Place",
+    line_3 = "The Hill",
+    city = "Berlin",
+    county = "",
+    state = "Brandenburg",
+    postcode = "13359",
+    //ISO_3166-1_alpha-2
+    country_code = "DE"
+  )
+  
   val atmJsonV300 = AtmJsonV300(
     id = "atm-id-123",
     bank_id = "bank-id-123",
     name = "Atm by the Lake",
-    address = AddressJsonV300(
-      line_1 = "No 1 the Road",
-      line_2 = "The Place",
-      line_3 = "The Hill",
-      city = "Berlin",
-      county = "",
-      state = "Brandenburg",
-      postcode = "13359",
-      //ISO_3166-1_alpha-2
-      country_code = "DE"
-    ),
+    address = addressJsonV300,
     location = locationJson,
     meta = metaJson,
-    monday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
-    tuesday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
-    wednesday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "15:00"),
-    thursday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
-    friday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
-    saturday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
-    sunday = OpeningTimesV300(
-      opening_time = "10:00",
-      closing_time = "18:00"),
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday = openingTimesV300,
+    friday = openingTimesV300,
+    saturday = openingTimesV300,
+    sunday = openingTimesV300,
 
     is_accessible = "true",
     located_at = "Full service store",
