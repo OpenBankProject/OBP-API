@@ -4,7 +4,8 @@ package code.atms
 
 // Need to import these one by one because in same package!
 
-import code.atms.Atms.{AtmT, AtmId}
+import code.atms.Atms.{AtmId, AtmT}
+import code.bankconnectors.OBPQueryParam
 import code.model.BankId
 import code.common._
 import net.liftweb.common.Logger
@@ -117,11 +118,10 @@ trait AtmsProvider {
   /*
   Common logic for returning atms.
    */
-  final def getAtms(bankId : BankId) : Option[List[AtmT]] = {
+  final def getAtms(bankId : BankId, queryParams:OBPQueryParam*) : Option[List[AtmT]] = {
     // If we get atms filter them
-    getAtmsFromProvider(bankId) match {
+    getAtmsFromProvider(bankId,queryParams:_*) match {
       case Some(atms) => {
-
         val atmsWithLicense = for {
          branch <- atms if branch.meta.license.name.size > 3 && branch.meta.license.name.size > 3
         } yield branch
@@ -134,13 +134,13 @@ trait AtmsProvider {
   /*
   Return one Atm
    */
-  final def getAtm(branchId : AtmId) : Option[AtmT] = {
+  final def getAtm(bankId: BankId, branchId : AtmId) : Option[AtmT] = {
     // Filter out if no license data
-    getAtmFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getAtmFromProvider(bankId,branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
-  protected def getAtmFromProvider(branchId : AtmId) : Option[AtmT]
-  protected def getAtmsFromProvider(bank : BankId) : Option[List[AtmT]]
+  protected def getAtmFromProvider(bankId: BankId, branchId : AtmId) : Option[AtmT]
+  protected def getAtmsFromProvider(bank : BankId, queryParams:OBPQueryParam*) : Option[List[AtmT]]
 
 // End of Trait
 }

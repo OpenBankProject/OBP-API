@@ -39,7 +39,7 @@ import code.TestServer
 import code.accountholder.AccountHolders
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
-import code.atms.Atms.{AtmT, AtmId, countOfAtms}
+import code.atms.Atms.{AtmId, AtmT, countOfAtms}
 import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
@@ -60,7 +60,7 @@ import org.scalatest.{BeforeAndAfterEach, FlatSpec, ShouldMatchers}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPLimit}
 import net.liftweb.common.{Empty, Full, ParamFailure}
 import code.api.util.APIUtil._
 import code.setup.{APIResponse, SendServerRequests}
@@ -168,7 +168,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val branchId = BranchId(branch.id)
 
     // check we have found a branch
-    val foundBranchOpt: Option[BranchT] = Branches.branchesProvider.vend.getBranch(branchId)
+    val foundBranchOpt: Option[BranchT] = Branches.branchesProvider.vend.getBranch(bankId, branchId)
     foundBranchOpt.isDefined should equal(true)
 
     val foundBranch = foundBranchOpt.get
@@ -199,7 +199,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val atmId = AtmId(atm.id)
 
     // check we have found a branch
-    val foundAtmOpt: Option[AtmT] = Atms.atmsProvider.vend.getAtm(atmId)
+    val foundAtmOpt: Option[AtmT] = Atms.atmsProvider.vend.getAtm(bankId, atmId)
     foundAtmOpt.isDefined should equal(true)
 
     val foundAtm = foundAtmOpt.get
@@ -1750,7 +1750,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check we are starting from a clean slate (no atms for this bank)
     // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
-    val existingAtms: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(bankId1)
+    val existingAtms: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(bankId1, OBPLimit(1000)) //OBPLimit(1000) is just a place holder
 
     // We want the size of the list inside the Option
     val existingAtmsCount = countOfAtms(existingAtms)
@@ -1761,7 +1761,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     response should equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
-    val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1))
+    val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1, OBPLimit(1000))) //OBPLimit(1000) is just a place holder
     countAtmsAfter should equal(standardBranches.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good

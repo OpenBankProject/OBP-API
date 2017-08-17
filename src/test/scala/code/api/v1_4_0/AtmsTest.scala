@@ -2,8 +2,9 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.api.util.APIUtil.OAuth._
-import code.atms.Atms.{AtmT, AtmId}
+import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, AtmsProvider}
+import code.bankconnectors.OBPQueryParam
 import code.common.{AddressT, LicenseT, LocationT, MetaT}
 import code.model.BankId
 import code.setup.DefaultUsers
@@ -132,7 +133,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {
-    override protected def getAtmsFromProvider(bank: BankId): Option[List[AtmT]] = {
+    override protected def getAtmsFromProvider(bank: BankId, queryParams:OBPQueryParam*): Option[List[AtmT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case `bankWithLicense` | `bankWithoutLicense`=> Some(List(fakeAtm1, fakeAtm2, fakeAtm3))
@@ -141,7 +142,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getAtmFromProvider(AtmId: AtmId): Option[AtmT] = {
+    override protected def getAtmFromProvider(bank: BankId, AtmId: AtmId): Option[AtmT] = {
       AtmId match {
          case `bankWithLicense` => Some(fakeAtm1)
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard

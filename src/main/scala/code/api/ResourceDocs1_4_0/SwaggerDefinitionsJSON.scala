@@ -8,6 +8,7 @@ import code.branches.Branches.{Branch, BranchId, DriveUp, Lobby}
 import code.common._
 import net.liftweb.common.Full
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
+import code.branches.{MessageDocJson, MessageDocsJson}
 
 import scala.util.Try
 
@@ -655,6 +656,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val physicalCardJSON = PhysicalCardJSON(
+    bank_id = "String",
     bank_card_number = "String",
     name_on_card = "String",
     issue_number = "String",
@@ -1187,7 +1189,7 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
-  val userJSONV200 = UserJSONV200(
+  val userJSONV200 = UserJsonV200(
     user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     email = "robert.x.0.gh@example.com",
     provider_id = "OBP",
@@ -1494,6 +1496,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val customerJsonV210 = CustomerJsonV210(
+    bank_id = "bankid1234",
     customer_id = "123",
     customer_number = "123",
     legal_name = "legal_name",

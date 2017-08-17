@@ -26,9 +26,10 @@ object MappedCustomerProvider extends CustomerProvider {
     available
   }
 
+  // TODO Rename
   override def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] = {
     // If there are more than customer linked to a user we take a first one in a list
-    val customerId = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(userId) match {
+    val customerId = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId) match {
       case x :: xs => x.customerId
       case _       => "There is no linked customer to this user"
     }
@@ -126,12 +127,13 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
   def getSingleton = MappedCustomer
 
+  // Unique
   object mCustomerId extends MappedUUID(this)
 
-  //object mUser extends MappedLongForeignKey(this, ResourceUser)
+  // Combination of bank id and customer number is unique
   object mBank extends UUIDString(this)
-
   object mNumber extends MappedString(this, 50)
+
   object mMobileNumber extends MappedString(this, 50)
   object mLegalName extends MappedString(this, 255)
   object mEmail extends MappedEmail(this, 200)
@@ -150,7 +152,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mLastOkDate extends MappedDateTime(this)
 
   override def customerId: String = mCustomerId.get // id.toString
-  override def bank: String = mBank.get
+  override def bankId: String = mBank.get
   override def number: String = mNumber.get
   override def mobileNumber: String = mMobileNumber.get
   override def legalName: String = mLegalName.get
@@ -179,5 +181,5 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
 object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {
   //one customer info per bank for each api user
-  override def dbIndexes = UniqueIndex(mCustomerId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mCustomerId) :: UniqueIndex(mBank, mNumber) :: super.dbIndexes
 }

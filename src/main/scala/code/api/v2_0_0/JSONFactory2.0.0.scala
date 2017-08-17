@@ -554,7 +554,7 @@ object JSONFactory200{
 
 
 
-  case class UserJSONV200(
+  case class UserJsonV200(
                        user_id: String,
                        email : String,
                        provider_id: String,
@@ -564,16 +564,16 @@ object JSONFactory200{
                      )
 
   case class UsersJSONV200(
-                      users: List[UserJSONV200]
+                      users: List[UserJsonV200]
                       )
 
 
-  def createUserJSONfromAuthUser(user : AuthUser) : UserJSONV200 = {
+  def createUserJSONfromAuthUser(user : AuthUser) : UserJsonV200 = {
     val (userId, entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
       case Full(u) => (u.userId, u.assignedEntitlements)
       case _       => ("", List())
     }
-    new UserJSONV200(user_id = userId,
+    new UserJsonV200(user_id = userId,
       email = user.email,
       username = stringOrNull(user.username),
       provider_id = stringOrNull(user.provider),
@@ -584,8 +584,8 @@ object JSONFactory200{
 
 
 
-  def createUserJSON(user : User) : UserJSONV200 = {
-    new UserJSONV200(
+  def createUserJSON(user : User) : UserJsonV200 = {
+    new UserJsonV200(
       user_id = user.userId,
       email = user.emailAddress,
       username = stringOrNull(user.name),
@@ -595,7 +595,7 @@ object JSONFactory200{
     )
   }
 
-  def createUserJSON(user : Box[User]) : UserJSONV200 = {
+  def createUserJSON(user : Box[User]) : UserJsonV200 = {
     user match {
       case Full(u) => createUserJSON(u)
       case _ => null
@@ -608,7 +608,7 @@ object JSONFactory200{
 
 
 
-  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJSONV200 = {
+  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJsonV200 = {
     user match {
       case Full(u) => createUserJSONfromAuthUser(u)
       case _ => null

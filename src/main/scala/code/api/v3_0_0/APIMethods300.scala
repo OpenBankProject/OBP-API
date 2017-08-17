@@ -7,12 +7,13 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector, InboundAdapterInfo}
-import code.branches.Branches
+import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
+import code.branches.{Branches, InboundAdapterInfo}
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
@@ -22,7 +23,7 @@ import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -796,14 +797,13 @@ trait APIMethods300 {
       "getBranch",
       "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
-      "Get Bank Branch",
-      s"""Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:
-         | meta.license.id and eta.license.name fields must not be empty.
+      "Get Branch",
+      s"""Returns information about a single Branch specified by BANK_ID and BRANCH_ID including:
          |
           |* Name
          |* Address
          |* Geo Location
-         |* License the data under this endpoint is released under
+         |* License the data under this endpoint is released under.
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
@@ -826,12 +826,16 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
-              case Some(l) => Full(l)
-              case _ => Empty
-            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
-            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
-              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+
+
+//            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
+//              case Some(l) => Full(l)
+//              case _ => Empty
+//            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+//            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
+//              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
           } yield {
             // Format the data as json
             val json = JSONFactory300.createBranchJsonV300(branch)
@@ -859,6 +863,13 @@ trait APIMethods300 {
          |* Branch Type
          |* More Info
          |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchesJsonV300,
@@ -881,7 +892,20 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             // Get branches from the active provider
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
+          
+          limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 100
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+          
+          
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory300.createBranchesJson(branches)
@@ -908,6 +932,8 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under
          |
+         |
+         |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJsonV300,
@@ -917,7 +943,7 @@ trait APIMethods300 {
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
         user => {
           for {
           // Get atm from the active provider
@@ -926,12 +952,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            atms <- {Atms.atmsProvider.vend.getAtms(bankId) match {
-              case Some(l) => Full(l)
-              case _ => Empty
-            }} ?~!  {AtmNotFoundByAtmId}
-            atm <- Box(atms.filter(_.atmId.value==atmId.value)) ?~!
-              {AtmNotFoundByAtmId}
+            atm <- Box(Atms.atmsProvider.vend.getAtm(bankId,atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmJsonV300(atm)
@@ -955,6 +976,14 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under
          |
+         |Pagination:|
+          |By default, 100 records are returned.
+          |
+          |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
+         |
+         |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmJsonV300,
@@ -968,7 +997,7 @@ trait APIMethods300 {
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
         user => {
           for {
           // Get atms from the active provider
@@ -978,7 +1007,17 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 50
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmsJsonV300(atms)
@@ -988,6 +1027,50 @@ trait APIMethods300 {
         }
       }
     }
+
+
+
+/* WIP
+    resourceDocs += ResourceDoc(
+      getOtherAccountsForBank,
+      apiVersion,
+      "getOtherAccountsForBank",
+      "GET",
+      "/banks/BANK_ID/other_accounts",
+      "Get Other Accounts of a Bank.",
+      s"""Returns data about all the other accounts at BANK_ID.
+          |This is a fireho
+          |${authenticationRequiredMessage(true)}
+          |""",
+      emptyObjectJson,
+      otherAccountsJSON,
+      List(
+        BankAccountNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, PSD2, OBWG),
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+
+    lazy val getOtherAccountsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get other accounts for one account
+      case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+        user =>
+          for {
+            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            view <- View.fromUrl(viewId, account)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+          } yield {
+            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+          }
+      }
+    }
+*/
+
+
+
+
 
 
   }

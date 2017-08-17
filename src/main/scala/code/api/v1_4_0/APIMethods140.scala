@@ -4,12 +4,12 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
@@ -19,6 +19,7 @@ import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
 import code.api.v1_2_1.{Akka, AmountOfMoneyJsonV121}
 import code.api.v2_0_0.CreateCustomerJson
+import code.metrics.ConnectorMetricsProvider
 
 import scala.collection.immutable.Nil
 
@@ -88,9 +89,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
-            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.CustomerDoNotExistsForUser)
+            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.UserCustomerLinksNotFoundForUser)
             u <- ucl
             info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
@@ -158,7 +159,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
@@ -188,6 +189,13 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Geo Location
         |* License the data under this endpoint is released under
         |
+        |
+        |
+        |Pagination:|
+          |By default, 100 records are returned.
+          |
+        |You can use the url query parameters *limit* and *offset* for pagination
+        |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       branchesJson,
@@ -201,7 +209,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet json => {
         user => {
           for {
             u <- if(getBranchesIsPublic)
@@ -210,7 +218,18 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
+            limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 100
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+          
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
@@ -236,6 +255,13 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |* Geo Location
          |* License the data under this endpoint is released under
          |
+         |
+          |Pagination:|
+          |By default, 100 records are returned.
+          |
+          |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       atmsJson,
@@ -249,7 +275,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
         user => {
           for {
           // Get atms from the active provider
@@ -259,7 +285,18 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             else
               user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            limit <- tryo(
+              S.param("limit") match {
+                case Full(l) if (l.toInt > 1000) => 1000
+                case Full(l)                      => l.toInt
+                case _                            => 100
+              }
+            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${InvalidNumber } offset:${S.param("offset").get }"
+          
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmsJson(atms)
