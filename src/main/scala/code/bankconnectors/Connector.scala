@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.api.v3_0_0.TransactionRequestBodyPhoneToPhoneJson
+import code.api.v3_0_0.TransactionRequestBodyTransferToPhoneJson
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
@@ -1025,9 +1025,9 @@ trait Connector extends MdcLoggable{
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
       transactionRequestCommonBody <-transactionRequestType.value match {
         case "TRANSFER_TO_PHONE"  =>
-          Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
+          Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
         case _ =>
-          Full(details.extract[TransactionRequestBodyPhoneToPhoneJson])
+          Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
       }
       
       // Note for 'toCounterparty' in the following :

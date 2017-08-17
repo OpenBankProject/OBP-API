@@ -199,7 +199,7 @@ case class CoreTransactionsJsonV300(
 )
 
 //for create transaction request
-case class CounterpartyPhoneToPhoneJson(
+case class CounterpartyTransferToPhoneJson(
   other_account_owner: String,
   other_account_owner_birthday: String,
   other_account_phone_number: String
@@ -207,12 +207,12 @@ case class CounterpartyPhoneToPhoneJson(
 
 // the data from endpoint, extract as valid JSON
 
-case class TransactionRequestBodyPhoneToPhoneJson(
+case class TransactionRequestBodyTransferToPhoneJson(
   value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
   description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
   from_account_phone_number: String,
   charge_policy: String,
-  couterparty: CounterpartyPhoneToPhoneJson
+  couterparty: CounterpartyTransferToPhoneJson
 ) extends TransactionRequestCommonBodyJSON
 
 
@@ -221,7 +221,7 @@ case class TransactionRequestBodyAccountToAccount(
   description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
   from_account_phone_number: String,
   charge_policy: String,
-  couterparty: CounterpartyPhoneToPhoneJson
+  couterparty: CounterpartyTransferToPhoneJson
 ) extends TransactionRequestCommonBodyJSON
 
 case class TransactionRequestBodyATMJson(
@@ -229,7 +229,7 @@ case class TransactionRequestBodyATMJson(
   description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
   from_account_phone_number: String,
   charge_policy: String,
-  couterparty: CounterpartyPhoneToPhoneJson
+  couterparty: CounterpartyTransferToPhoneJson
 ) extends TransactionRequestCommonBodyJSON
 
 //ended -- Transaction relevant case classes /////

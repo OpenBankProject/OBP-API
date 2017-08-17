@@ -836,9 +836,9 @@ trait APIMethods300 {
 
     // Transaction Request (TRANSFER_TO_PHONE)
     resourceDocs += ResourceDoc(
-      createTransactionRequestPhoneToPhone,
+      createTransactionRequestTransferToPhone,
       apiVersion,
-      "createTransactionRequestPhoneToPhone",
+      "createTransactionRequestTransferToPhone",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSFER_TO_PHONE/transaction-requests",
       "Create Transaction Request (TRANSFER_TO_PHONE)",
@@ -850,7 +850,7 @@ trait APIMethods300 {
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
-      transactionRequestBodyPhoneToPhoneJson,
+      transactionRequestBodyTransferToPhoneJson,
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
@@ -958,7 +958,7 @@ trait APIMethods300 {
 
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCouterparty = createTransactionRequest
-    lazy val createTransactionRequestPhoneToPhone = createTransactionRequest
+    lazy val createTransactionRequestTransferToPhone = createTransactionRequest
     lazy val createTransactionRequestATM = createTransactionRequest
     lazy val createTransactionRequestAccountToAccount = createTransactionRequest
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1120,7 +1120,7 @@ trait APIMethods300 {
               }
               case "TRANSFER_TO_PHONE" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyPhoneToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber

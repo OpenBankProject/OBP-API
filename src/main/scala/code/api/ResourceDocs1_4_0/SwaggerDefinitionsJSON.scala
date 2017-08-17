@@ -1985,14 +1985,14 @@ object SwaggerDefinitionsJSON {
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
   
   
-  val couterparty = CounterpartyPhoneToPhoneJson(
+  val couterparty = CounterpartyTransferToPhoneJson(
     other_account_owner= "TOM",
     other_account_owner_birthday = "19900101",
     other_account_phone_number= "+9722398746"
   )
   
   // mapping NTBD_1_135 Sample.txt and NTBD_2_135 Sample.txt
-  val transactionRequestBodyPhoneToPhoneJson = TransactionRequestBodyPhoneToPhoneJson(
+  val transactionRequestBodyTransferToPhoneJson = TransactionRequestBodyTransferToPhoneJson(
     from_account_phone_number="+9722398712",
     value = amountOfMoneyJsonV121,                                
     description = "This is a TRANSFER_TO_PHONE Transaction Request", 
