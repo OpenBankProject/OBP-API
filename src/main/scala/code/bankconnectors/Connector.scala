@@ -37,6 +37,7 @@ import net.liftweb.util.{BCrypt, Props, SimpleInjector, StringHelpers}
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
 import scala.util.Random
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 /*
@@ -373,7 +374,7 @@ trait Connector extends MdcLoggable{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isMapped: Boolean <- tryo{Props.get("connector", "").equalsIgnoreCase("mapped")}
-      toAccount <-if(isMapped || transactionRequestType.value.equals("SANDBOX_TAN")){
+      toAccount <-if(isMapped || transactionRequestType.value.equals(SANDBOX_TAN.toString)){
         getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       }else{
         getEmptyBankAccount()
@@ -1000,9 +1001,9 @@ trait Connector extends MdcLoggable{
 
       // Note for 'toCounterparty' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
-      // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
-      toCounterparty  <- transactionRequestType.value match {
-        case "COUNTERPARTY" | "SEPA"  =>
+      // And it only used for COUNTERPARTY.toString and  SEPA.toString ,other types keep it empty now.
+      toCounterparty  <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+        case COUNTERPARTY | SEPA  =>
           val counterpartyId = tr.counterparty_id
           val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
           toCounterparty

@@ -9,6 +9,7 @@ import code.common._
 import net.liftweb.common.Full
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.branches.{MessageDocJson, MessageDocsJson}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 import scala.util.Try
 
@@ -750,7 +751,7 @@ object SwaggerDefinitionsJSON {
   val challengeJsonV140 = ChallengeJsonV140(
     id = "be1a183d-b301-4b83-b855-5eeffdd3526f",
     allowed_attempts = 3,
-    challenge_type = "SANDBOX_TAN"
+    challenge_type = SANDBOX_TAN.toString
   )
 
   val driveUpJson = DriveUpStringJson(
@@ -1258,7 +1259,7 @@ object SwaggerDefinitionsJSON {
 
   val transactionRequestWithChargeJson = TransactionRequestWithChargeJson(
     id = "82f92531-9c63-4246-abfc-96c20ec46188",
-    `type` = "SANDBOX_TAN",
+    `type` = SANDBOX_TAN.toString,
     from = transactionRequestAccountJsonV140,
     details = defaultJValue,
     transaction_ids = "666666-9c63-4246-abfc-96c20ec46188",
@@ -1565,7 +1566,7 @@ object SwaggerDefinitionsJSON {
 
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
-    `type` = "SANDBOX_TAN",
+    `type` = SANDBOX_TAN.toString,
     from = transactionRequestAccountJsonV140,
     details = defaultJValue,
     transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),

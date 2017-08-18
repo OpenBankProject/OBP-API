@@ -32,6 +32,7 @@ import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
 import code.api.util.APIUtil.getCustomers
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -55,6 +56,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 trait APIMethods210 {
@@ -430,8 +432,8 @@ trait APIMethods210 {
 
             isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
 
-            createdTransactionRequest <- transactionRequestType.value match {
-              case "SANDBOX_TAN" => {
+            createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              case SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${InvalidJsonFormat}, it should be SANDBOX_TAN input format"
                   toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
@@ -449,7 +451,7 @@ trait APIMethods210 {
                                                                                                      sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield createdTransactionRequest
               }
-              case "COUNTERPARTY" => {
+              case COUNTERPARTY => {
                 for {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
@@ -498,7 +500,7 @@ trait APIMethods210 {
                 } yield createdTransactionRequest
 
               }
-              case "SEPA" => {
+              case SEPA => {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
@@ -537,7 +539,7 @@ trait APIMethods210 {
                                                                                                      chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "FREE_FORM" => {
+              case FREE_FORM => {
                 for {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'

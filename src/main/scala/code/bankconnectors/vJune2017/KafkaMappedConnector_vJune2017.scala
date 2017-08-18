@@ -31,6 +31,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.api.util.{APIUtil, ErrorMessages}
+import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
@@ -70,7 +71,7 @@ import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -635,7 +636,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         viewId = "owner",
-        transactionRequestType = "SANDBOX_TAN",
+        transactionRequestType = SANDBOX_TAN.toString,
         currency = "GBP",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com"
@@ -689,7 +690,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       viewId = "owner",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
-      transactionRequestType = "SANDBOX_TAN",
+      transactionRequestType = SANDBOX_TAN.toString,
       currency = "EUR"
     )
     ),

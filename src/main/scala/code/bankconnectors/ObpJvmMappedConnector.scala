@@ -47,6 +47,7 @@ import language.postfixOps
 import memoization._
 import com.google.common.cache.CacheBuilder
 import code.util.Helper.MdcLoggable
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 /**
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
@@ -628,7 +629,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     parameters.put("type", "obp.mar.2017")
 
     // toCounterparty
-    if( transactionRequestType.value == "SANDBOX_TAN" ) {
+    if( transactionRequestType.value == SANDBOX_TAN.toString ) {
       fields.put("toCounterpartyId",                 toAccount.accountId.value)//not used 
       fields.put("toCounterpartyName",               toAccount.name)//optional name, no need to be correct
       fields.put("toCounterpartyCurrency",           toAccount.currency)
@@ -636,8 +637,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       fields.put("toCounterpartyRoutingScheme",      "BKCOM_ACCOUNT")
       fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
       fields.put("toCounterpartyBankRoutingScheme",  "BKCOM_ACCOUNT")
-    } else if(  transactionRequestType.value == "SEPA" ||
-                transactionRequestType.value == "COUNTERPARTY") {
+    } else if(  transactionRequestType.value == SEPA.toString ||
+                transactionRequestType.value == COUNTERPARTY.toString) {
       fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
       fields.put("toCounterpartyName",               toCounterparty.name)
       fields.put("toCounterpartyCurrency",           fromAccount.currency) // TODO toCounterparty.currency
@@ -783,7 +784,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransactionRequestType("SANDBOX_TAN")))
+    Full(List(TransactionRequestType(SANDBOX_TAN.toString)))
   }
 
   /*
