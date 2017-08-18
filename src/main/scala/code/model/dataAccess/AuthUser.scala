@@ -434,7 +434,7 @@ import net.liftweb.util.Helpers._
           {localForm(user, false, signupFields)}
           {agreeTerms}
           <div id="signup-submit">
-            <user:submit />
+            <input type="submit" />
           </div>
       </form>
     </div>
@@ -889,7 +889,8 @@ import net.liftweb.util.Helpers._
     }
 
     def innerSignup = {
-      ("type=submit" #> signupSubmitButton(S ? "sign.up", testSignup _)) apply signupXhtml(theUser)
+      val bind = "type=submit" #> signupSubmitButton(S.?("sign.up"), testSignup _)
+      bind(signupXhtml(theUser))
     }
 
     innerSignup
