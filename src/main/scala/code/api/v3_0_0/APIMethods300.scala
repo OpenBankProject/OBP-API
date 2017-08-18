@@ -452,7 +452,7 @@ trait APIMethods300 {
         ViewNotFound, 
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG, Support),
       List(apiTagAccount, apiTagTransaction)
     )
   
