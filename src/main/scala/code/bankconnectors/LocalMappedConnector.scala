@@ -255,7 +255,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   /**
     * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
-    * details in createTransactionRequest - V210 ,case "COUNTERPARTY"
+    * details in createTransactionRequest - V210 ,case COUNTERPARTY.toString
     *
     */
   def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {

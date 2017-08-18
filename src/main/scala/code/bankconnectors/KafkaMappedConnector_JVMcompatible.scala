@@ -81,6 +81,7 @@ import net.liftweb.json.MappingException
 import scala.concurrent.TimeoutException
 import code.api.util.ErrorMessages._
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
@@ -819,19 +820,19 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                               chargePolicy: String) = {
   
     val toCounterpartyAccountRoutingAddress =
-      if (transactionRequestType.value == "SANDBOX_TAN")
+      if (transactionRequestType.value == SANDBOX_TAN.toString)
         toAccount.accountId.value
       else
         toCounterparty.otherAccountRoutingAddress
   
     val toCounterpartyBankRoutingAddress =
-      if (transactionRequestType.value == "SANDBOX_TAN")
+      if (transactionRequestType.value == SANDBOX_TAN.toString)
         toAccount.bankId.value
       else
         toCounterparty.otherBankRoutingAddress
     
     val toCounterpartyName =
-      if (transactionRequestType.value == "SANDBOX_TAN")
+      if (transactionRequestType.value == SANDBOX_TAN.toString)
         getAccountHolderCached(BankId(toCounterpartyBankRoutingAddress), AccountId(toCounterpartyAccountRoutingAddress))
       else
         toCounterparty.name

@@ -61,6 +61,7 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import code.util.Helper.MdcLoggable
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -309,7 +310,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         viewId = "owner",
-        transactionRequestType = "SANDBOX_TAN",
+        transactionRequestType = SANDBOX_TAN.toString,
         currency = "GBP",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com"
@@ -364,7 +365,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       viewId = "owner",
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
-      transactionRequestType = "SANDBOX_TAN",
+      transactionRequestType = SANDBOX_TAN.toString,
       currency = "EUR"
     )
     ),
@@ -423,7 +424,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
-        transactionRequestType = "SANDBOX_TAN",
+        transactionRequestType = SANDBOX_TAN.toString,
         transactionRequestId = "1234567"
       )
     ),
@@ -1029,7 +1030,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
 
         // transaction details
         transactionId = "1234",
-        transactionRequestType = "SANDBOX_TAN",
+        transactionRequestType = SANDBOX_TAN.toString,
         transactionAmount = "100",
         transactionCurrency = "EUR",
         transactionChargePolicy = "RECEIVER",

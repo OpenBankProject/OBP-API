@@ -56,6 +56,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import code.util.Helper.MdcLoggable
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
 
@@ -552,7 +553,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         "userId" -> AuthUser.getCurrentResourceUserUserId,
         "username" -> AuthUser.getCurrentUserUsername,
         "name" -> "get",
-        "target" -> "counterparty",
+        "target" -> COUNTERPARTY.toString,
         "action" -> "obp.getCounterpartyByIban",
         "otherAccountRoutingAddress" -> iban,
         "otherAccountRoutingScheme" -> "IBAN"
