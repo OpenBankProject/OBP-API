@@ -205,31 +205,54 @@ case class CounterpartyTransferToPhoneJson(
   other_account_phone_number: String
 )
 
-// the data from endpoint, extract as valid JSON
-
 case class TransactionRequestBodyTransferToPhoneJson(
-  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
-  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+  value: AmountOfMoneyJsonV121, 
+  description: String, 
   from_account_phone_number: String,
   charge_policy: String,
   couterparty: CounterpartyTransferToPhoneJson
 ) extends TransactionRequestCommonBodyJSON
 
+case class CounterpartyTransferToAtmJson(
+  other_account_owner: String,
+  other_account_owner_passport_id_or_national_id: String,
+  other_account_owner_id_type: String,
+  other_account_owner_birthday: String,
+  other_account_phone_number: String
+)
 
-case class TransactionRequestBodyAccountToAccount(
-  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
-  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
+case class TransactionRequestBodyTransferToAtmJson(
+  value: AmountOfMoneyJsonV121,  
+  description: String, 
   from_account_phone_number: String,
   charge_policy: String,
-  couterparty: CounterpartyTransferToPhoneJson
+  couterparty: CounterpartyTransferToAtmJson
 ) extends TransactionRequestCommonBodyJSON
 
-case class TransactionRequestBodyATMJson(
-  value: AmountOfMoneyJsonV121,  // "K135_SCHUM": "", //- Amount to transfer - has to be divisible by 100
-  description: String, // "K135_MATRAT_HAAVARA": "Rent payment",   //- Transaction description (purpose of the transfer)
-  from_account_phone_number: String,
+case class CounterpartyTransferToAccount(
+//1 - K050_OFEN_HAVARA - Transfer type: 1=regular; 2=RTGS - real time
+//2 - K050_SW_ATIDI - if the transfer is scheduled to a future date then 1 otherwise 0
+//3 - K050_TA_ATIDI[8] - The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD
+//4- K050_BANK_ZCUT[3] - Bank code of the target account
+//5- K050_SNIF_ZCUT[3] - Branch number of the target account
+//6- K050_CHN_ZCUT[10] - Account number of the target account
+//7- K050_IBAN_ZCUT[23] - IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored
+//8- K050_SUG_BANK_YAAD[3] - Target bank type: 0-Leumi; 1-other bank
+  transfer_type: String,
+  transfer_is_scheduled : String,
+  future_date : String,
+  bank_code:String,
+  branch_number: String,
+  account_number: String,
+  iban: String,
+  bank_type: String
+)
+
+case class TransactionRequestBodyTransferToAccount(
+  value: AmountOfMoneyJsonV121,  
+  description: String, 
   charge_policy: String,
-  couterparty: CounterpartyTransferToPhoneJson
+  couterparty: CounterpartyTransferToAccount
 ) extends TransactionRequestCommonBodyJSON
 
 //ended -- Transaction relevant case classes /////

@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
-import code.api.v3_0_0.TransactionRequestBodyTransferToPhoneJson
+import code.api.v3_0_0.{TransactionRequestBodyTransferToAccount, TransactionRequestBodyTransferToAtmJson, TransactionRequestBodyTransferToPhoneJson}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
@@ -27,6 +27,7 @@ import code.users.Users
 import code.util.Helper._
 import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{BCrypt, Props, SimpleInjector, StringHelpers}
@@ -1018,7 +1019,7 @@ trait Connector extends MdcLoggable{
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       
-      details = tr.details
+      details: JValue = tr.details
       
       //Note, it should be four different type of details in mappedtransactionrequest.
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
@@ -1026,6 +1027,10 @@ trait Connector extends MdcLoggable{
       transactionRequestCommonBody <-transactionRequestType.value match {
         case "TRANSFER_TO_PHONE"  =>
           Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
+        case "TRANSFER_TO_ATM"  =>
+          Full(details.extract[TransactionRequestBodyTransferToAtmJson])
+        case "TRANSFER_TO_ACCOUNT"  =>
+          Full(details.extract[TransactionRequestBodyTransferToAccount])
         case _ =>
           Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
       }
@@ -1033,20 +1038,20 @@ trait Connector extends MdcLoggable{
       // Note for 'toCounterparty' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
-      toCounterparty  <- transactionRequestType.value match {
-        case "COUNTERPARTY" | "SEPA"  =>
-          val counterpartyId = tr.counterparty_id
-          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-          toCounterparty
-        case _ =>
-          Full(new MappedCounterparty())
-      }
+//      toCounterparty  <- transactionRequestType.value match {
+//        case "COUNTERPARTY" | "SEPA"  =>
+//          val counterpartyId = tr.counterparty_id
+//          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+//          toCounterparty
+//        case _ =>
+//          Full(new MappedCounterparty())
+//      }
       
       transId <- makePaymentv300(
         initiator,
         fromAccount,
         new MappedBankAccount(),
-        toCounterparty,
+        new MappedCounterparty(),
         transactionRequestCommonBody,
         transactionRequestType,
         tr.charge_policy

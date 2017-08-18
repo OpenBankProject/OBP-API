@@ -2000,20 +2000,37 @@ object SwaggerDefinitionsJSON {
     couterparty = couterparty
   )
   
-  val transactionRequestBodyATMJson = TransactionRequestBodyATMJson(
-    from_account_phone_number="123",
+  val counterpartyTransferToAtmJson  = CounterpartyTransferToAtmJson(
+    other_account_owner = "Tom",
+    other_account_owner_passport_id_or_national_id= "NationalId",
+    other_account_owner_id_type = "ID Type of the money receiver: 1 - National; 5- Passport",
+    other_account_owner_birthday ="19900101",
+    other_account_phone_number ="+9722398746"
+  )
+  val transactionRequestBodyTransferToAtmJson = TransactionRequestBodyTransferToAtmJson(
+    from_account_phone_number = "Tom",
     value = amountOfMoneyJsonV121,
     description = "This is a TRANSFER_TO_PHONE Transaction Request",
     charge_policy = "SHARED",
-    couterparty = couterparty
+    couterparty = counterpartyTransferToAtmJson
   )
   
-  val transactionRequestBodyAccountToAccount = TransactionRequestBodyAccountToAccount(
-    from_account_phone_number="123",
+  val counterpartyTransferToAccount= CounterpartyTransferToAccount(
+    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
+    transfer_is_scheduled ="if the transfer is scheduled to a future date then 1 otherwise 0",
+    future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
+    bank_code= "Bank code of the target account",
+    branch_number= "Branch number of the target account",
+    account_number ="Account number of the target account",
+    iban = "IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored",
+    bank_type ="Target bank type: 0-Leumi; 1-other bank"
+  )
+  
+  val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
     description = "This is a TRANSFER_TO_PHONE Transaction Request",
     charge_policy = "SHARED",
-    couterparty = couterparty
+    couterparty = counterpartyTransferToAccount
   )
   
   //The commont error or success format.

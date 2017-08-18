@@ -532,53 +532,27 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     
     val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     
-    val req: CreateTransaction =
-      if (toCounterparty != null) {
-        CreateTransaction(
-          authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
-    
-          // fromAccount
-          fromAccountId = fromAccount.accountId.value,
-          fromAccountBankId = fromAccount.bankId.value,
-    
-          // transaction details
-          transactionRequestType = transactionRequestType.value,
-          transactionChargePolicy = chargePolicy,
-          transactionRequestCommonBody=transactionRequestCommonBody,
-          
-          // toAccount or toCounterparty
-          toCounterpartyId = toCounterparty.counterpartyId,
-          toCounterpartyName = toCounterparty.name,
-          toCounterpartyCurrency = fromAccount.currency,
-          toCounterpartyRoutingAddress = toCounterparty.otherAccountRoutingAddress,
-          toCounterpartyRoutingScheme = toCounterparty.otherAccountRoutingScheme,
-          toCounterpartyBankRoutingAddress = toCounterparty.otherBankRoutingAddress,
-          toCounterpartyBankRoutingScheme = toCounterparty.otherBankRoutingScheme
-        )
-      } else {
-        CreateTransaction(
-          authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
-    
-          // fromAccount
-          fromAccountId = fromAccount.accountId.value,
-          fromAccountBankId = fromAccount.bankId.value,
-    
-          // transaction details
-          transactionRequestType = transactionRequestType.value,
-          transactionChargePolicy = chargePolicy,
-          transactionRequestCommonBody=transactionRequestCommonBody,
-          
-          // toAccount or toCounterparty
-          toCounterpartyId = toAccount.accountId.value,
-          toCounterpartyName = toAccount.name,
-          toCounterpartyCurrency = toAccount.currency,
-          toCounterpartyRoutingAddress = toAccount.accountId.value,
-          toCounterpartyRoutingScheme = "OBP",
-          toCounterpartyBankRoutingAddress = toAccount.bankId.value,
-          toCounterpartyBankRoutingScheme = "OBP"
-        )
-      }
-    
+    val req = CreateTransaction(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),
+  
+      // fromAccount
+      fromAccountId = fromAccount.accountId.value,
+      fromAccountBankId = fromAccount.bankId.value,
+  
+      // transaction details
+      transactionRequestType = transactionRequestType.value,
+      transactionChargePolicy = chargePolicy,
+      transactionRequestCommonBody = transactionRequestCommonBody,
+  
+      // toAccount or toCounterparty
+      toCounterpartyId = toAccount.accountId.value,
+      toCounterpartyName = toAccount.name,
+      toCounterpartyCurrency = toAccount.currency,
+      toCounterpartyRoutingAddress = toAccount.accountId.value,
+      toCounterpartyRoutingScheme = "OBP",
+      toCounterpartyBankRoutingAddress = toAccount.bankId.value,
+      toCounterpartyBankRoutingScheme = "OBP"
+    )
     
     // Since result is single account, we need only first list entry
   

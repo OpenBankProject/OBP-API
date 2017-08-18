@@ -877,9 +877,9 @@ trait APIMethods300 {
   
     // Transaction Request (ATM)
     resourceDocs += ResourceDoc(
-      createTransactionRequestATM,
+      createTransactionRequestTransferToATM,
       apiVersion,
-      "createTransactionRequestATM",
+      "createTransactionRequestTransferToATM",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ATM/transaction-requests",
       "Create Transaction Request (ATM)",
@@ -891,7 +891,7 @@ trait APIMethods300 {
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
-      transactionRequestBodyATMJson,
+      transactionRequestBodyTransferToAtmJson,
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
@@ -912,14 +912,14 @@ trait APIMethods300 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG, Support),
       List(apiTagTransactionRequest))
   
     // Transaction Request (ACCOUNT_TO_ACCOUNT)
     resourceDocs += ResourceDoc(
-      createTransactionRequestAccountToAccount,
+      createTransactionRequestTransferToAccount,
       apiVersion,
-      "createTransactionRequestAccountToAccount",
+      "createTransactionRequestTransferToAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT_TO_ACCOUNT/transaction-requests",
       "Create Transaction Request (ACCOUNT_TO_ACCOUNT)",
@@ -952,15 +952,15 @@ trait APIMethods300 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG, Support),
       List(apiTagTransactionRequest))
   
 
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCouterparty = createTransactionRequest
     lazy val createTransactionRequestTransferToPhone = createTransactionRequest
-    lazy val createTransactionRequestATM = createTransactionRequest
-    lazy val createTransactionRequestAccountToAccount = createTransactionRequest
+    lazy val createTransactionRequestTransferToATM = createTransactionRequest
+    lazy val createTransactionRequestTransferToAccount = createTransactionRequest
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
@@ -1013,7 +1013,7 @@ trait APIMethods300 {
               case "COUNTERPARTY" => {
                 for {
                 //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
-                  transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
+                  transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}. It should be COUNTERPARTY input format"
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                   // Get the Counterparty by id
                   toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
@@ -1062,7 +1062,7 @@ trait APIMethods300 {
               case "SEPA" => {
                 for {
                 //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
-                  transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
+                  transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}. It should be SEPA input format"
                   toIban <- Full(transDetailsSEPAJson.to.iban)
                   toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
@@ -1099,7 +1099,7 @@ trait APIMethods300 {
               }
               case "FREE_FORM" => {
                 for {
-                  transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
+                  transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}. It should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                   transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value))
                   transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
@@ -1120,7 +1120,7 @@ trait APIMethods300 {
               }
               case "TRANSFER_TO_PHONE" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_PHONE input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
@@ -1137,9 +1137,9 @@ trait APIMethods300 {
                     chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "ATM" => {
+              case "TRANSFER_TO_ATM" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyATMJson]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ATM input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
@@ -1156,12 +1156,10 @@ trait APIMethods300 {
                     chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "ACCOUNT_TO_ACCOUNT" => {
+              case "TRANSFER_TO_ACCOUNT" => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyAccountToAccount]} ?~! s"${InvalidJsonFormat}, it should be TRANSFER_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ACCOUNT input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
