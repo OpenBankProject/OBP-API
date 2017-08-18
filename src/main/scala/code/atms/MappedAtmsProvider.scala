@@ -4,7 +4,7 @@ import code.atms.Atms._
 import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.common._
 import code.model.BankId
-import code.util.{TwelveHourClockString, UUIDString}
+import code.util.{TwentyFourHourClockString, UUIDString}
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {
@@ -54,26 +54,26 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
 
 
   // Drive Up
-  object mOpeningTimeOnMonday extends TwelveHourClockString(this)
-  object mClosingTimeOnMonday extends TwelveHourClockString(this)
+  object mOpeningTimeOnMonday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnMonday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnTuesday extends TwelveHourClockString(this)
-  object mClosingTimeOnTuesday extends TwelveHourClockString(this)
+  object mOpeningTimeOnTuesday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnTuesday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnWednesday extends TwelveHourClockString(this)
-  object mClosingTimeOnWednesday extends TwelveHourClockString(this)
+  object mOpeningTimeOnWednesday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnWednesday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnThursday extends TwelveHourClockString(this)
-  object mClosingTimeOnThursday extends TwelveHourClockString(this)
+  object mOpeningTimeOnThursday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnThursday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnFriday extends TwelveHourClockString(this)
-  object mClosingTimeOnFriday extends TwelveHourClockString(this)
+  object mOpeningTimeOnFriday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnFriday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnSaturday extends TwelveHourClockString(this)
-  object mClosingTimeOnSaturday extends TwelveHourClockString(this)
+  object mOpeningTimeOnSaturday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnSaturday extends TwentyFourHourClockString(this)
 
-  object mOpeningTimeOnSunday extends TwelveHourClockString(this)
-  object mClosingTimeOnSunday extends TwelveHourClockString(this)
+  object mOpeningTimeOnSunday extends TwentyFourHourClockString(this)
+  object mClosingTimeOnSunday extends TwentyFourHourClockString(this)
 
 
 
