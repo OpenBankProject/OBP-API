@@ -15,7 +15,7 @@ import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
@@ -208,9 +208,36 @@ trait Connector extends MdcLoggable{
     */
   def getEmptyBankAccount(): Box[AccountType]
 
-  def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
+  def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] = {
+    // Please note that Metadata and Transaction can be at different locations
+    // Obtain all necessary data and then intersect they
+    val metadata: List[CounterpartyMetadata] = Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).toList
+    val list: List[Transaction] = getTransactions(bankId, accountId).toList.flatten
+    val x = for {
+      l <- list
+      m <- metadata if l.otherAccount.thisAccountId.value == m.getAccountNumber
+    } yield {
+      getCounterpartyFromTransaction(bankId, accountId, m, l).toList
+    }
+    x.flatten match {
+      case List() => Empty
+      case x :: xs => Full(x)
+    }
+  }
 
-  def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty]
+  def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] = {
+    // Please note that Metadata and Transaction can be at different locations
+    // Obtain all necessary data and then intersect they
+    val metadata: List[CounterpartyMetadata] = Counterparties.counterparties.vend.getMetadatas(bankId, accountId)
+    val list: List[Transaction] = getTransactions(bankId, accountId).toList.flatten
+    val x = for {
+      l <- list
+      m <- metadata if l.otherAccount.thisAccountId.value == m.getAccountNumber
+    } yield {
+      getCounterpartyFromTransaction(bankId, accountId, m, l).toList
+    }
+    x.flatten
+  }
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]
 
@@ -259,17 +286,11 @@ trait Connector extends MdcLoggable{
     AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
   }
 
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata, t: Transaction) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
-    for {
-    //TODO, performance issue, when many metadata and many transactions, this will course a big problem .
-      tlist <-  getTransactions(thisBankId, thisAccountId).map(_.filter(_.otherAccount.thisAccountId.value == metadata.getAccountNumber))
-    } yield {
-      tlist match {
-        case list: List[Transaction] if list.nonEmpty =>
-          val t = tlist.head
-          new Counterparty(
+         Full(
+           new Counterparty(
             //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
             counterPartyId = metadata.metadataId,
             label = metadata.getHolder,
@@ -288,9 +309,7 @@ trait Connector extends MdcLoggable{
             otherAccountProvider = "",
             isBeneficiary = true
           )
-        case _ => return Empty
-      }
-    }
+         )
   }
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
