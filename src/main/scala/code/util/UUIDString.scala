@@ -35,5 +35,5 @@ So we can store a time of day without the date e.g. 23:33 - but also go past mid
 class TwentyFourHourClockString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, TwentyFourHourClockString.MaxLength)
 
 object TwentyFourHourClockString {
-  val MaxLength = 5
+  val MaxLength = Props.getInt("time_string.length", 5)
 }
