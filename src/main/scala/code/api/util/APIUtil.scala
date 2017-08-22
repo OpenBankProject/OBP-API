@@ -100,6 +100,7 @@ import code.api.util.APIUtil._
   val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
+  val NotImplemented = "OBP-10010: Not Implemented "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -467,7 +468,7 @@ object APIUtil extends MdcLoggable {
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
-  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
 

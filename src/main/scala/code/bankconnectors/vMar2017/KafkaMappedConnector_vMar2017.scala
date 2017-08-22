@@ -128,8 +128,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-
-  def getUser(
+  
+  override def getUser(
     username: String,
     password: String
   ): Box[InboundUser] = {
@@ -584,7 +584,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = OutboundTransactionQueryBase(
       messageFormat = messageFormat,
       action = "obp.get.Transaction",
@@ -899,8 +899,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }

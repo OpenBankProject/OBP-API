@@ -242,7 +242,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getBank")
   
   //TODO this is not implement in adapter
-  def getUser( username: String, password: String ): Box[InboundUser] = saveConnectorMetric {
+  override def getUser( username: String, password: String ): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(getUserTTL millisecond) {
       try {
         for {
@@ -424,7 +424,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("validateChallengeAnswer")
 
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(
+  override def getTransaction(
     bankId: BankId, 
     accountId: AccountId, 
     transactionId: TransactionId
@@ -716,13 +716,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     // Get the metadata and pass it to getCounterparty to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
   }
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
 
   // Get one counterparty by the Counterparty Id
-   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = 
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = 
     LocalMappedConnector.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId)
   
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =

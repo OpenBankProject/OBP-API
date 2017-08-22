@@ -98,7 +98,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   // TODO Create and use a case class for each Map so we can document each structure.
 
 
-  def getUser( username: String, password: String ): Box[InboundUser] = {
+  override def getUser( username: String, password: String ): Box[InboundUser] = {
     for {
       req <- tryo {Map[String, String](
         "north" -> "getUser",
@@ -318,7 +318,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = Map(
       "north" -> "getTransaction",
       "version" -> formatVersion,
@@ -510,8 +510,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }

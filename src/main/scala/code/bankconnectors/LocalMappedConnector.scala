@@ -136,8 +136,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(AmountOfMoney(currency, chargeLevel.toString))
   }
 
-  def getUser(name: String, password: String): Box[InboundUser] = ???
-
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
     getMappedBank(bankId)
@@ -280,9 +278,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
   // Get the metadata and pass it to getOtherBankAccount to construct the other account.
   Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
-
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     for {
       t <- Counterparties.counterparties.vend.getMetadata(thisBankId, thisAccountId, couterpartyId)
     } yield {
@@ -307,8 +305,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
     }
   }
-
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
+  
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
 

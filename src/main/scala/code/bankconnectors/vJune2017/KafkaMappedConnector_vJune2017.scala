@@ -110,27 +110,27 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
-  messageDocs += MessageDoc(
-    process = "obp.get.AdapterInfo",
-    messageFormat = messageFormat,
-    description = "getAdapterInfo from kafka ",
-    exampleOutboundMessage = decompose(GetAdapterInfo(date = (new Date()).toString)),
-    exampleInboundMessage = decompose(
-      InboundAdapterInfo(
-        errorCode = "OBP-6001: ...",
-        name = "Obp-Kafka-South",
-        version = "June2017",
-        git_commit = "...",
-        date = (new Date()).toString
-      )
-    )
-  )
-  override def getAdapterInfo: Box[InboundAdapterInfo] = {
-    val req = GetAdapterInfo((new Date()).toString)
-    val rr = process[GetAdapterInfo](req)
-    val r = rr.extract[AdapterInfo].data
-    Full(r)
-  }
+//  messageDocs += MessageDoc(
+//    process = "obp.get.AdapterInfo",
+//    messageFormat = messageFormat,
+//    description = "getAdapterInfo from kafka ",
+//    exampleOutboundMessage = decompose(GetAdapterInfo(date = (new Date()).toString)),
+//    exampleInboundMessage = decompose(
+//      InboundAdapterInfo(
+//        errorCode = "OBP-6001: ...",
+//        name = "Obp-Kafka-South",
+//        version = "June2017",
+//        git_commit = "...",
+//        date = (new Date()).toString
+//      )
+//    )
+//  )
+//  override def getAdapterInfo: Box[InboundAdapterInfo] = {
+//    val req = GetAdapterInfo((new Date()).toString)
+//    val rr = process[GetAdapterInfo](req)
+//    val r = rr.extract[AdapterInfo].data
+//    Full(r)
+//  }
 
 
   messageDocs += MessageDoc(
@@ -152,7 +152,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         )))
     )
   )
-  def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
+  override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(getUserTTL millisecond) {
       for {
         req <- Full(
@@ -466,7 +466,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       )
     ))
   )
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = GetTransaction(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
       bankId = bankId.toString,
@@ -766,8 +766,8 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
   // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }

@@ -117,8 +117,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
 
   override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
-
-  def getUser( username: String, password: String ): Box[InboundUser] = {
+  
+  override def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
     parameters.put("username", username)
     parameters.put("password", password)
@@ -272,7 +272,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -564,10 +564,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     // Get the metadata and pass it to getCounterparty to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
   }
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
-
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =
+  
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =
     LocalMappedConnector.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId)
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =

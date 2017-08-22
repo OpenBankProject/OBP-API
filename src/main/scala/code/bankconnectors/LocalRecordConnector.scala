@@ -59,11 +59,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
                                         transactionRequestType: String, currency: String)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
-
-  def getUser(name: String, password: String): Box[InboundUser] = ???
-
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
 
@@ -139,10 +134,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     })
   }
 
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
-
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
-  
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
