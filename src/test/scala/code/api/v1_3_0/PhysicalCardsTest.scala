@@ -80,37 +80,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       }
       Full(cardList)
     }
-   
-    override def accountExists(
-      bankId: BankId,
-      accountNumber: String
-    ): Boolean = ???
-    override def removeAccount(
-      bankId: BankId,
-      accountId: AccountId
-    ): Boolean = ???
-    override def getMatchingTransactionCount(
-      bankNationalIdentifier: String,
-      accountNumber: String,
-      amount: String,
-      completed: Date,
-      otherAccountHolder: String
-    ): Int = ???
-    override def updateAccountBalance(
-      bankId: BankId,
-      accountId: AccountId,
-      newBalance: BigDecimal
-    ): Boolean = ???
-    override def setBankAccountLastUpdated(
-      bankNationalIdentifier: String,
-      accountNumber: String,
-      updateDate: Date
-    ): Boolean = ???
-    override def updateAccountLabel(
-      bankId: BankId,
-      accountId: AccountId,
-      label: String
-    ): Boolean = ???
   }
 
   override def beforeAll() {

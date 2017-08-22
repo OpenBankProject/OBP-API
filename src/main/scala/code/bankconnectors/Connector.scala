@@ -13,7 +13,7 @@ import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
+import code.branches.InboundAdapterInfo
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
@@ -21,6 +21,7 @@ import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.users.Users
@@ -29,12 +30,11 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{BCrypt, Props, SimpleInjector, StringHelpers}
+import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
 import scala.util.Random
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 /*
@@ -260,13 +260,6 @@ trait Connector extends MdcLoggable{
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard] = Failure(NotImplemented + currentMethodName)
-
-
-
-  //gets the users who are the legal owners/holders of the account
-  def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
-    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
-  }
 
   def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
@@ -915,7 +908,7 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = {
     val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).get
 
       def appendUntilOkay(number : String) : String = {
         val newNumber = number + Random.nextInt(10)
@@ -978,7 +971,7 @@ trait Connector extends MdcLoggable{
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
-          if ( ! accountOwnerExists(owner, bankId, accountId)) {
+          if ( ! accountOwnerExists(owner, bankId, accountId).get) {
             val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
@@ -992,20 +985,20 @@ trait Connector extends MdcLoggable{
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  def accountExists(bankId : BankId, accountNumber : String) : Boolean  //TODO 6
+  def accountExists(bankId : BankId, accountNumber : String) : Box[Boolean] = Failure(NotImplemented + currentMethodName)
 
   //remove an account and associated transactions
-  def removeAccount(bankId: BankId, accountId: AccountId) : Boolean //TODO 7
+  def removeAccount(bankId: BankId, accountId: AccountId) : Box[Boolean]  = Failure(NotImplemented + currentMethodName)
 
   //used by transaction import api call to check for duplicates
 
   //the implementation is responsible for dealing with the amount as a string
-  def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount : String, completed : Date, otherAccountHolder : String) : Int //TODO 8
+  def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount : String, completed : Date, otherAccountHolder : String) : Box[Int] = Failure(NotImplemented + currentMethodName)
   def createImportedTransaction(transaction: ImporterTransaction) : Box[Transaction]  = Failure(NotImplemented + currentMethodName)
-  def updateAccountBalance(bankId : BankId, accountId : AccountId, newBalance : BigDecimal) : Boolean //TODO 9
-  def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean //TODO 10
+  def updateAccountBalance(bankId : BankId, accountId : AccountId, newBalance : BigDecimal) : Box[Boolean]  = Failure(NotImplemented + currentMethodName)
+  def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Box[Boolean] = Failure(NotImplemented + currentMethodName)
 
-  def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean  //TODO 11
+  def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(NotImplemented + currentMethodName)
 
   def getProducts(bankId : BankId) : Box[List[Product]] = Failure(NotImplemented + currentMethodName)
 
@@ -1061,7 +1054,7 @@ trait Connector extends MdcLoggable{
   def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT] = Failure(NotImplemented + currentMethodName)
 
   //This method is only existing in mapper
-  def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
+  def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Box[Boolean]= {
     val res =
       MapperAccountHolders.findAll(
         By(MapperAccountHolders.user, user),
@@ -1069,7 +1062,7 @@ trait Connector extends MdcLoggable{
         By(MapperAccountHolders.accountPermalink, accountId.value)
       )
 
-    res.nonEmpty
+    Full(res.nonEmpty)
   }
   
 

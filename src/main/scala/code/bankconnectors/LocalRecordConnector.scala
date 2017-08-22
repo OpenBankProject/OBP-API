@@ -488,19 +488,19 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
+  override def accountExists(bankId: BankId, accountNumber: String) = {
     import net.liftweb.mongodb.BsonDSL._
 
     getHostedBank(bankId).map(_.id.get) match {
       case Full(mongoId) =>
-        Account.count((Account.accountNumber.name -> accountNumber) ~ (Account.bankID.name -> mongoId)) > 0
+        Full(Account.count((Account.accountNumber.name -> accountNumber) ~ (Account.bankID.name -> mongoId)) > 0)
       case _ =>
         logger.warn("tried to check account existence for an account at a bank that doesn't exist")
-        false
+        Full(false)
     }
   }
 
-  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) = {
     import net.liftweb.mongodb.BsonDSL._
     for {
         account <- Account.find((Account.bankID.name -> bankId.value) ~ (Account.accountId.value -> accountId.value)) ?~
@@ -509,7 +509,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
         account.delete_!
       }
 
-    false
+    Full(false)
 /*          account
       } match {
         case Full(acc) => acc.
@@ -539,7 +539,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String) = {
 
     val baseQuery = QueryBuilder.start("obp_transaction.details.value.amount")
       .is(amount)
@@ -561,16 +561,16 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       }
 
       val partialMatches = OBPEnvelope.findAll(baseQuery.get())
-
-      partialMatches.filter(e => {
+  
+      Full(partialMatches.filter(e => {
         emptyHolderOrEmptyString(e.obp_transaction.get.other_account.get.holder.valueBox)
-      }).size
+      }).size)
     }
     else{
       val qry = baseQuery.put("obp_transaction.other_account.holder").is(otherAccountHolder).get
 
       val partialMatches = OBPEnvelope.count(qry)
-      partialMatches.toInt //icky
+      Full(partialMatches.toInt)//icky
     }
   }
 
@@ -596,33 +596,33 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
     getBankAccount(bankId, accountId) match {
       case Full(acc) =>
         acc.accountBalance(newBalance).saveTheRecord().isDefined
-        true
+        Full(true)
       case _ =>
-        false
+        Full(false)
     }
   }
 
-  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) = {
     Account.find(
       (Account.accountNumber.name -> accountNumber)~
         (Account.nationalIdentifier.name -> bankNationalIdentifier)
     ) match {
-      case Full(acc) => acc.accountLastUpdate(updateDate).saveTheRecord().isDefined
-      case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+      case Full(acc) => Full(acc.accountLastUpdate(updateDate).saveTheRecord().isDefined)
+      case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); Full(false)
     }
   }
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     getBankAccount(bankId, accountId) match {
       case Full(acc) =>
         acc.accountLabel(label).saveTheRecord().isDefined
-        true
+        Full(true)
       case _ =>
-        false
+        Full(false)
     }
   }
 

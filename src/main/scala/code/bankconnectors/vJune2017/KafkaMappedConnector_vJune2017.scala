@@ -1307,53 +1307,53 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
 
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
-    getAccountByNumber(bankId, accountNumber) != null
+  override def accountExists(bankId: BankId, accountNumber: String) = {
+    Full(getAccountByNumber(bankId, accountNumber) != null)
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountId: AccountId): Boolean = {
-    //delete comments on transactions of this account
-    val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
-
-    //delete narratives on transactions of this account
-    val narrativesDeleted = MappedNarrative.bulkDelete_!!(
-      By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountId.value)
-    )
-
-    //delete narratives on transactions of this account
-    val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)
-
-    //delete WhereTags on transactions of this account
-    val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
-
-    //delete transaction images on transactions of this account
-    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
-
-    //delete transactions of account
-    val transactionsDeleted = MappedTransaction.bulkDelete_!!(
-      By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountId.value)
-    )
-
-    //remove view privileges
-    val privilegesDeleted = Views.views.vend.removeAllPermissions(bankId, accountId)
-
-    //delete views of account
-    val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
-
-    //delete account
-    val account = getBankAccount(bankId, accountId)
-
-    val accountDeleted = account match {
-      case acc => true //acc.delete_! //TODO
-      case _ => false
-    }
-
-    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
-      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
-  }
+//  override def removeAccount(bankId: BankId, accountId: AccountId): Boolean = {
+//    //delete comments on transactions of this account
+//    val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
+//
+//    //delete narratives on transactions of this account
+//    val narrativesDeleted = MappedNarrative.bulkDelete_!!(
+//      By(MappedNarrative.bank, bankId.value),
+//      By(MappedNarrative.account, accountId.value)
+//    )
+//
+//    //delete narratives on transactions of this account
+//    val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)
+//
+//    //delete WhereTags on transactions of this account
+//    val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
+//
+//    //delete transaction images on transactions of this account
+//    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
+//
+//    //delete transactions of account
+//    val transactionsDeleted = MappedTransaction.bulkDelete_!!(
+//      By(MappedTransaction.bank, bankId.value),
+//      By(MappedTransaction.account, accountId.value)
+//    )
+//
+//    //remove view privileges
+//    val privilegesDeleted = Views.views.vend.removeAllPermissions(bankId, accountId)
+//
+//    //delete views of account
+//    val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
+//
+//    //delete account
+//    val account = getBankAccount(bankId, accountId)
+//
+//    val accountDeleted = account match {
+//      case acc => true //acc.delete_! //TODO
+//      case _ => false
+//    }
+//
+//    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
+//      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
+//  }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(
@@ -1434,19 +1434,19 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
-
-    //this will be Full(true) if everything went well
-    val result = for {
-      acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
-    } yield {
-      //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
-    }
-
-    result.getOrElse(false)
-  }
+//  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
+//
+//    //this will be Full(true) if everything went well
+//    val result = for {
+//      acc <- getBankAccount(bankId, accountId)
+//      bank <- getBank(bankId)
+//    } yield {
+//      //acc.balance = newBalance
+//      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
+//    }
+//  
+//    Full(result.getOrElse(false))
+//  }
 
   //transaction import api uses bank national identifiers to uniquely indentify banks,
   //which is unfortunate as theoretically the national identifier is unique to a bank within
@@ -1462,29 +1462,29 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     }
   }
 
-  //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier: String, accountNumber: String, amount: String, completed: Date, otherAccountHolder: String): Int = {
-    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
-    val count = for {
-      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
-      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(amount))
-    } yield {
-
-      val amountInSmallestCurrencyUnits =
-        Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
-
-      MappedTransaction.count(
-        By(MappedTransaction.bank, bankId.value),
-        By(MappedTransaction.account, account.accountId.value),
-        By(MappedTransaction.amount, amountInSmallestCurrencyUnits),
-        By(MappedTransaction.tFinishDate, completed),
-        By(MappedTransaction.counterpartyAccountHolder, otherAccountHolder))
-    }
-
-    //icky
-    count.map(_.toInt) getOrElse 0
-  }
+//  //used by transaction import api call to check for duplicates
+//  override def getMatchingTransactionCount(bankNationalIdentifier: String, accountNumber: String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+//    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
+//    val count = for {
+//      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
+//      account <- getAccountByNumber(bankId, accountNumber)
+//      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(amount))
+//    } yield {
+//
+//      val amountInSmallestCurrencyUnits =
+//        Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
+//
+//      MappedTransaction.count(
+//        By(MappedTransaction.bank, bankId.value),
+//        By(MappedTransaction.account, account.accountId.value),
+//        By(MappedTransaction.amount, amountInSmallestCurrencyUnits),
+//        By(MappedTransaction.tFinishDate, completed),
+//        By(MappedTransaction.counterpartyAccountHolder, otherAccountHolder))
+//    }
+//
+//    //icky
+//    count.map(_.toInt) getOrElse 0
+//  }
 
   //used by transaction import api
   override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
@@ -1525,26 +1525,26 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     } yield transaction
   }
 
-  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber: String, updateDate: Date): Boolean = {
-    val result = for {
-      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
-    } yield {
-      val acc = getBankAccount(bankId, account.accountId)
-      acc match {
-        case a => true //a.lastUpdate = updateDate //TODO
-        case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
-      }
-    }
-    result.getOrElse(false)
-  }
+//  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber: String, updateDate: Date): Boolean = {
+//    val result = for {
+//      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
+//      account <- getAccountByNumber(bankId, accountNumber)
+//    } yield {
+//      val acc = getBankAccount(bankId, account.accountId)
+//      acc match {
+//        case a => true //a.lastUpdate = updateDate //TODO
+//        case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+//      }
+//    }
+//    result.getOrElse(false)
+//  }
 
   /*
     End of transaction importer api
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
@@ -1554,7 +1554,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       d.setLabel(label)
       d.save()
     }
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
 

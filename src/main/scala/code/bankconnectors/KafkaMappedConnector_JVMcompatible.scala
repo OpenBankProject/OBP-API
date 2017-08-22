@@ -1019,13 +1019,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 //  //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = true
+  override def accountExists(bankId: BankId, accountNumber: String) = Full(true)
   // {
 //    getAccountByNumber(bankId, accountNumber) != null
 //  }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) = {
     //delete comments on transactions of this account
     val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
@@ -1064,8 +1064,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       case _ => false
     }
 
-    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
-      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
+    Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
+      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
@@ -1142,7 +1142,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
 
     //this will be Full(true) if everything went well
     val result = for {
@@ -1150,10 +1150,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
     }
-
-    result.getOrElse(false)
+  
+    Full(result.getOrElse(false))
   }
 
   //transaction import api uses bank national identifiers to uniquely indentify banks,
@@ -1171,7 +1171,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 //
 //  //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = 5
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String) = Full(5)
 //   {
 //    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
 //    val count = for {
@@ -1235,7 +1235,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //    } yield transaction
 //  }
 
-  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = true
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date)  = Full(true)
   // {
 //    val result = for {
 //      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
@@ -1255,7 +1255,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
@@ -1265,7 +1265,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       d.setLabel(label)
       d.save()
     }
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
 
