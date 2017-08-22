@@ -155,8 +155,7 @@ trait Connector extends MdcLoggable{
   // before we attempt to create a transaction on the south side
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
-  //TODO 1
-  def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney 
+  def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = Failure(NotImplemented + currentMethodName)
 
   //Gets current charge level for transaction request
   def getChargeLevel(bankId: BankId,
@@ -168,8 +167,8 @@ trait Connector extends MdcLoggable{
                      currency: String): Box[AmountOfMoney] = Failure(NotImplemented + currentMethodName)
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = Empty //TODO 12 //Failure(NotImplemented + currentMethodName)
-  // Validates an answer for a challenge and returs if the answer is correct or not
+  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = Failure(NotImplemented + currentMethodName)
+  // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Failure(NotImplemented + currentMethodName)
 
   //gets a particular bank handled by this connector
@@ -218,9 +217,9 @@ trait Connector extends MdcLoggable{
     */
   def getEmptyBankAccount(): Box[AccountType]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]= Failure(NotImplemented + currentMethodName)
+  def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] = Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty]//TODO 2
+  def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): Box[List[Counterparty]] = Failure(NotImplemented + currentMethodName)
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
 
@@ -236,11 +235,11 @@ trait Connector extends MdcLoggable{
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
 
-  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction]= Failure(NotImplemented + currentMethodName)
+  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction] = Failure(NotImplemented + currentMethodName)
 
-  def getPhysicalCards(user : User) : List[PhysicalCard] //TODO 3 
-
-  def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard] //TODO 4 
+  def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
+  
+  def getPhysicalCardsForBank(bank: Bank, user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
 
   def createOrUpdatePhysicalCard(bankCardNumber: String,
                               nameOnCard: String,
@@ -544,7 +543,7 @@ trait Connector extends MdcLoggable{
                                                    transactionRequestType.value,
                                                    transactionRequestCommonBody.value.currency,
                                                    initiator.userId,
-                                                   initiator.name)
+                                                   initiator.name).get //TODO need error handling ,throw the error to API level 
 
     // Set initial status
     val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.amount)) {
@@ -900,7 +899,7 @@ trait Connector extends MdcLoggable{
     branchId: String,
     accountRoutingScheme: String,  //added field in V220
     accountRoutingAddress: String   //added field in V220
-  ): (Bank, BankAccount) //TODO 5
+  ): Box[(Bank, BankAccount)] = Failure(NotImplemented + currentMethodName)
 
   //generates an unused account number and then creates the sandbox account using that number
   def createSandboxBankAccount(

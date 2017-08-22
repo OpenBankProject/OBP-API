@@ -194,7 +194,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String) = {
     // Create argument list
     val req = Map(
       "north" -> "getChallengeThreshold",
@@ -213,12 +213,12 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => AmountOfMoney(x.currency, x.limit)
+      case Some(x)  => Full(AmountOfMoney(x.currency, x.limit))
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        AmountOfMoney(currency,convertedLimit.toString())
+        Full(AmountOfMoney(currency,convertedLimit.toString()))
       }
     }
   }
@@ -503,8 +503,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId) =
+    Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _)))
 
   // Get one counterparty related to a bank account
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
@@ -569,12 +569,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
   }
-  override def getPhysicalCards(user: User): List[PhysicalCard] =
-    List()
 
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
-    List()
-  
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
@@ -765,7 +760,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  ) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -794,7 +789,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       accountHolderName
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number

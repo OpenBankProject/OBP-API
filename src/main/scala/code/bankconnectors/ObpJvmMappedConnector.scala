@@ -211,7 +211,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String) = {
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)
@@ -226,12 +226,12 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
-      case c:ChallengeThresholdReader => AmountOfMoney(c.currency, c.amount)
+      case c:ChallengeThresholdReader => Full(AmountOfMoney(c.currency, c.amount))
       case _ =>
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        AmountOfMoney(currency, convertedLimit.toString())
+        Full(AmountOfMoney(currency, convertedLimit.toString()))
     }
 
   }
@@ -555,8 +555,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] = memoizeSync(getCounterpartyFromTransactionTTL millisecond) {
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId) = memoizeSync(getCounterpartyFromTransactionTTL millisecond) {
+    Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _)))
   }
 
   // Get one counterparty related to a bank account
@@ -571,11 +571,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
     LocalMappedConnector.getCounterpartyByIban(iban: String)
 
-  override def getPhysicalCards(user: User): List[PhysicalCard] =
-    List()
-
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
-    List()
   
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
@@ -813,7 +808,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  ) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -842,7 +837,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       accountHolderName
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number

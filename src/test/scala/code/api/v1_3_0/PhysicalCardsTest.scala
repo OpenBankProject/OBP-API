@@ -3,23 +3,11 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
-import code.bankconnectors.{Connector, InboundUser, OBPQueryParam}
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
-import code.fx.FXRate
-import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.CounterpartyTrait
-import code.model.dataAccess.ResourceUser
-import code.model.{Consumer, PhysicalCard, _}
-import code.products.Products.{Product, ProductCode}
+import code.bankconnectors.Connector
+import code.model.{PhysicalCard, _}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
-import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Full}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
@@ -68,144 +56,31 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     implicit override val nameOfConnector = "MockedCardConnector"
 
-    override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
-
-    override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
-
-    //these methods aren't required by our test
-    // override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
-
-    override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = AmountOfMoney("EUR", "0")
-    override def getChargeLevel(bankId: BankId,
-                                accountId: AccountId,
-                                viewId: ViewId,
-                                userId: String,
-                                userName: String,
-                                transactionRequestType: String,
-                                currency: String): Box[AmountOfMoney] = Empty
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
-    override def getBanks(): Box[List[Bank]] = Empty
-    override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
-    override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
-    override def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =
-      Empty
-    override def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty] =
-      Nil
-    override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
-      Empty
-    override def getTransaction(bankId : BankId, accountID : AccountId, transactionID : TransactionId): Box[Transaction] =
-      Empty
-    override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                        nameOnCard: String,
-                        issueNumber: String,
-                        serialNumber: String,
-                        validFrom: Date,
-                        expires: Date,
-                        enabled: Boolean,
-                        cancelled: Boolean,
-                        onHotList: Boolean,
-                        technology: String,
-                        networks: List[String],
-                        allows: List[String],
-                        accountId: String,
-                        bankId: String,
-                        replacement: Option[CardReplacementInfo],
-                        pinResets: List[PinResetInfo],
-                        collected: Option[CardCollectionInfo],
-                        posted: Option[CardPostedInfo]
-                       ) : Box[PhysicalCard] = {
-      Empty
-    }
-
-    override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
-
-    protected override def makePaymentImpl(fromAccount:AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] =
-      Failure("not supported")
-    override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                              account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-      Failure("not supported")
-    }
-    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                           transactionRequestType: TransactionRequestType,
-                                                           account: BankAccount, toAccount: BankAccount,
-                                                           toCounterparty: CounterpartyTrait,
-                                                           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                           details: String, status: String,
-                                                           charge: TransactionRequestCharge,
-                                                           chargePolicy: String): Box[TransactionRequest] = {
-      Failure("not supported")
-    }
-    override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
-      Failure("not supported")
-    }
-
- 
-
-    override def getProducts(bankId: BankId): Box[List[Product]] = Empty
-    override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
-
-    override def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
-    override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
-    override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
-
-    
-    override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
-
-    override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
-    
-    override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
-
-    override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
-
-    override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
-
-    override def getEmptyBankAccount(): Box[AccountType] = Empty
-  
-    override def createOrUpdateBank(
-      bankId: String,
-      fullBankName: String,
-      shortBankName: String,
-      logoURL: String,
-      websiteURL: String,
-      swiftBIC: String,
-      national_identifier: String,
-      bankRoutingScheme: String,
-      bankRoutingAddress: String
-    ): Box[Bank] = Empty
   
     //these methods are required in this test, there is no need to extends connector.
-    override def getPhysicalCards(user : User) : List[PhysicalCard] = {
-      if(user == resourceUser1) {
+    override def getPhysicalCards(user : User) = {
+      val cardList = if(user == resourceUser1) {
         user1AllCards
       } else if (user == resourceUser2) {
         user2AllCards
       } else {
         List()
       }
+      Full(cardList)
     }
   
-    override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = {
-      if(user == resourceUser1) {
+    override def getPhysicalCardsForBank(bank : Bank, user : User) = {
+      val cardList = if(user == resourceUser1) {
         user1CardsForOneBank
       } else if (user == resourceUser2) {
         user2CardsForOneBank
       } else {
         List()
       }
+      Full(cardList)
     }
-    override def createBankAndAccount(
-      bankName: String,
-      bankNationalIdentifier: String,
-      accountNumber: String,
-      accountType: String,
-      accountLabel: String,
-      currency: String,
-      accountHolderName: String,
-      branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String
-    ): (Bank, BankAccount) = ???
+   
     override def accountExists(
       bankId: BankId,
       accountNumber: String

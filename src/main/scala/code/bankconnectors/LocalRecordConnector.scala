@@ -41,11 +41,11 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String) = {
     val limit = BigDecimal("50")
     val rate = fx.exchangeRate ("EUR", currency)
     val convertedLimit = fx.convert(limit, rate)
-    AmountOfMoney(currency,convertedLimit.toString())
+    Full(AmountOfMoney(currency,convertedLimit.toString()))
   }
   
   override def getChargeLevel(bankId: BankId,
@@ -107,14 +107,14 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       }
   }
 
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId : AccountId): List[Counterparty] = {
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId : AccountId) = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
      * "other account metadata" object.
      */
 
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).map(meta => {
+    Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
@@ -131,7 +131,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
         }
       }
       createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction)
-    })
+    }))
   }
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
@@ -158,14 +158,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getPhysicalCards(user : User) : List[PhysicalCard] = {
-    List()
-  }
-
-  override def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard] = {
-    List()
-  }
-  
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
@@ -461,7 +453,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  ) = {
 
     // TODO: use a more unique id for the long term
     val hostedBank = {
@@ -491,7 +483,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     val createdAccount = createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
       accountNumber, accountType, accountLabel, currency, BigDecimal("0.00"), accountHolderName)
 
-    (hostedBank, createdAccount)
+    Full((hostedBank, createdAccount))
   }
 
 

@@ -348,7 +348,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     currency: String,
     userId: String,
     userName: String
-  ): AmountOfMoney =  saveConnectorMetric {
+  ): Box[AmountOfMoney] =  saveConnectorMetric {
     // Create argument list
 //    val req = Map(
 //      "version" -> formatVersion,
@@ -370,7 +370,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         val limit = BigDecimal("1000")
         val rate = fx.exchangeRate ("XAF", currency)
         val convertedLimit = fx.convert(limit, rate)
-        AmountOfMoney(currency,convertedLimit.toString())
+        Full(AmountOfMoney(currency,convertedLimit.toString()))
 //      }
 //    }
   }("getChallengeThreshold")
@@ -708,8 +708,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] = memoizeSync(getCounterpartyFromTransactionTTL millisecond) {
-  Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))}
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId) = memoizeSync(getCounterpartyFromTransactionTTL millisecond) {
+    Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _)))
+  }
   
   // Get one counterparty related to a bank account
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] = memoizeSync(getCounterpartiesFromTransactionTTL millisecond) {
@@ -727,12 +728,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
     LocalMappedConnector.getCounterpartyByIban(iban: String)
-  
-  override def getPhysicalCards(user: User): List[PhysicalCard] =
-    List()
-
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
-    List()
   
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
@@ -991,7 +986,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  ) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -1020,7 +1015,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       accountHolderName
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
 //  //for sandbox use -> allows us to check if we can generate a new test account with the given number

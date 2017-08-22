@@ -62,7 +62,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -74,7 +74,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    AmountOfMoney(currency, convertedThreshold.toString())
+    Full(AmountOfMoney(currency, convertedThreshold.toString()))
   }
 
   /**
@@ -270,9 +270,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId) =
   //TODO, performance issue, when many metadata and many transactions, this will course a big problem .
-  Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
+   Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _)))
 
   // Get one counterparty related to a bank account
   override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
@@ -315,9 +315,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getPhysicalCards(user: User): List[PhysicalCard] = {
+  override def getPhysicalCards(user: User) = {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
-    for (l <- list) yield
+    val cardList = for (l <- list) yield
       new PhysicalCard(
         bankId=l.mBankId,
         bankCardNumber = l.mBankCardNumber,
@@ -338,11 +338,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         collected = l.collected,
         posted = l.posted
       )
+    Full(cardList)
   }
 
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] = {
+  override def getPhysicalCardsForBank(bank: Bank, user: User)= {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
-    for (l <- list) yield
+    val cardList = for (l <- list) yield
       new PhysicalCard(
         bankId= l.mBankId,
         bankCardNumber = l.mBankCardNumber,
@@ -363,6 +364,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         collected = l.collected,
         posted = l.posted
       )
+    Full(cardList)
   }
 
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
@@ -606,7 +608,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  )  = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -633,7 +635,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       "", "", "" //added field in V220
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number

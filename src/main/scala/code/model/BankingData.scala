@@ -567,7 +567,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).get.map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**
