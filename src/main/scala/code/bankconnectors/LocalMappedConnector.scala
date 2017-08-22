@@ -267,18 +267,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     Full(mappedBankAccount)
   }
-
-
-  // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId) =
-  //TODO, performance issue, when many metadata and many transactions, this will course a big problem .
-   Full(Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _)))
-
-  // Get one counterparty related to a bank account
-  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
-  // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-  Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
-  
   
   override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     for {
