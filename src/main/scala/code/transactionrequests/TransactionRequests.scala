@@ -5,9 +5,8 @@ import java.util.Date
 
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
-import code.metadata.wheretags.{MapperWhereTags, WhereTags}
 import code.model._
-import code.remotedata.{RemotedataTransactionRequests, RemotedataWhereTags}
+import code.remotedata.{RemotedataTransactionRequests}
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
@@ -23,6 +22,11 @@ object TransactionRequests extends SimpleInjector {
   val STATUS_COMPLETED = "COMPLETED"
 
   val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
+  
+  object TransactionRequestTypes extends Enumeration {
+    type TransactionRequestTypes = Value
+    val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT = Value
+  }
 
   def updatestatus(newStatus: String) = {}
 

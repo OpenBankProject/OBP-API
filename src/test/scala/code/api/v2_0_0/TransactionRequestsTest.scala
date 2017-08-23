@@ -14,6 +14,7 @@ import net.liftweb.util.Props
 import org.scalatest.Tag
 import code.api.util.ApiRole._
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
@@ -78,7 +79,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest
         var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user3)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@(user3)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -222,7 +223,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest
         var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -348,7 +349,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest with a user without owner view access
         val request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user2)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@(user2)
         val response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 400 created code")
         response.code should equal(400)
@@ -408,7 +409,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest
         val request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (user3)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@ (user3)
         val response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 400 created code")
         response.code should equal(400)
@@ -488,7 +489,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest
         var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -683,7 +684,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest API method
         var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -739,7 +740,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //call answerTransactionRequestChallenge, give a false answer
         var answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "hello") //wrong answer, not a number
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 400 bad request code")
         response.code should equal(400)
@@ -749,7 +750,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //call answerTransactionRequestChallenge again, give a good answer
         answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "12345") //good answer, not a number
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 202 accepted code")
         response.code should equal(202)
@@ -872,7 +873,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         //call createTransactionRequest
         var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -930,7 +931,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //call answerTransactionRequestChallenge, give a false answer
         var answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "hello") //wrong answer, not a number
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 400 bad request code")
         response.code should equal(400)
@@ -940,7 +941,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //call answerTransactionRequestChallenge again, give a good answer
         answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "12345") //good answer, not a number
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / SANDBOX_TAN.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 202 accepted code")
         response.code should equal(202)

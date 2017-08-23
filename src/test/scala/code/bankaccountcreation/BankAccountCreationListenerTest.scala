@@ -1,5 +1,6 @@
 package code.bankaccountcreation
 
+import code.accountholder.AccountHolders
 import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
@@ -54,7 +55,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       createdAccount.accountId should equal(accountNumber)
 
       And("The account holder should be set correctly")
-      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))
+      AccountHolders.accountHolders.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))
     }
 
     if (Props.getBool("messageQueue.createBankAccounts", false) == false) {

@@ -42,6 +42,11 @@ object MappedCustomerProvider extends CustomerProvider {
     )
   }
 
+  override def getCustomersByUserId(userId: String): List[Customer] = {
+    val customerIds = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId).map(_.customerId)
+    MappedCustomer.findAll(ByList(MappedCustomer.mCustomerId, customerIds))
+  }
+
   override def getBankIdByCustomerId(customerId: String): Box[String] = {
     val customer: Box[MappedCustomer] = MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId)

@@ -4,12 +4,12 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
-import code.atms.{Atms, MappedAtm, MappedAtmsProvider}
+import code.atms.{Atms, MappedAtm}
 import code.branches.Branches._
 import code.branches.{InboundAdapterInfo, MappedBranch}
-import code.common.{Address, _}
+import code.cards.MappedPhysicalCard
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -62,7 +62,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -74,7 +74,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    AmountOfMoney(currency, convertedThreshold.toString())
+    Full(AmountOfMoney(currency, convertedThreshold.toString()))
   }
 
   /**
@@ -85,17 +85,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
+  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = {
-    val challengeId = UUID.randomUUID().toString
-    val challenge = StringHelpers.randomString(6)
-    // Random string. For instance: EONXOA
-    val salt = BCrypt.gensalt()
-    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
-    // TODO Extend database model in order to store users salt and hash
-    // Store salt and hash and bind to challengeId
-    // TODO Send challenge to the user over an separate communication channel
-    //Return id of challenge
-    Full(challengeId)
+//    val challengeId = UUID.randomUUID().toString
+//    val challenge = StringHelpers.randomString(6)
+//    // Random string. For instance: EONXOA
+//    val salt = BCrypt.gensalt()
+//    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
+//    // TODO Extend database model in order to store users salt and hash
+//    // Store salt and hash and bind to challengeId
+//    // TODO Send challenge to the user over an separate communication channel
+//    //Return id of challenge
+//    Full(challengeId)
+    Full("123")
   }
 
   /**
@@ -133,8 +135,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     Full(AmountOfMoney(currency, chargeLevel.toString))
   }
-
-  def getUser(name: String, password: String): Box[InboundUser] = ???
 
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
@@ -253,7 +253,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   /**
     * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
-    * details in createTransactionRequest - V210 ,case "COUNTERPARTY"
+    * details in createTransactionRequest - V210 ,case COUNTERPARTY.toString
     *
     */
   def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
@@ -267,8 +267,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     Full(mappedBankAccount)
   }
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     for {
       t <- Counterparties.counterparties.vend.getMetadata(thisBankId, thisAccountId, couterpartyId)
     } yield {
@@ -293,8 +293,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
     }
   }
-
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
+  
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
 
@@ -303,9 +303,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getPhysicalCards(user: User): List[PhysicalCard] = {
+  override def getPhysicalCards(user: User) = {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
-    for (l <- list) yield
+    val cardList = for (l <- list) yield
       new PhysicalCard(
         bankId=l.mBankId,
         bankCardNumber = l.mBankCardNumber,
@@ -326,11 +326,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         collected = l.collected,
         posted = l.posted
       )
+    Full(cardList)
   }
 
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] = {
+  override def getPhysicalCardsForBank(bank: Bank, user: User)= {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
-    for (l <- list) yield
+    val cardList = for (l <- list) yield
       new PhysicalCard(
         bankId= l.mBankId,
         bankCardNumber = l.mBankCardNumber,
@@ -351,9 +352,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         collected = l.collected,
         posted = l.posted
       )
+    Full(cardList)
   }
 
-  def AddPhysicalCard(bankCardNumber: String,
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                               nameOnCard: String,
                               issueNumber: String,
                               serialNumber: String,
@@ -372,7 +374,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               collected: Option[CardCollectionInfo],
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard] = {
-    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+    val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createOrUpdatePhysicalCard(
                                                                               bankCardNumber,
                                                                               nameOnCard,
                                                                               issueNumber,
@@ -392,7 +394,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                               collected,
                                                                               posted
                                                                             )
-    for (l <- list) yield
+    for (l <- physicalCardBox) yield
     new PhysicalCard(
       bankId = l.mBankId,
       bankCardNumber = l.mBankCardNumber,
@@ -594,7 +596,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  )  = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -621,18 +623,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       "", "", "" //added field in V220
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
-    MappedBankAccount.count(
+  override def accountExists(bankId: BankId, accountNumber: String) = {
+    Full(MappedBankAccount.count(
       By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.accountNumber, accountNumber)) > 0
+      By(MappedBankAccount.accountNumber, accountNumber)) > 0)
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) = {
     //delete comments on transactions of this account
     val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
@@ -671,8 +673,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case _ => false
     }
 
-    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
-      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
+    Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
+      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
@@ -757,7 +759,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
 
     //this will be Full(true) if everything went well
     val result = for {
@@ -765,10 +767,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
     }
 
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
   //transaction import api uses bank national identifiers to uniquely indentify banks,
@@ -791,7 +793,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String) = {
     //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
     val count = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
@@ -811,7 +813,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     //icky
-    count.map(_.toInt) getOrElse 0
+    Full(count.map(_.toInt) getOrElse 0)
   }
 
   //used by transaction import api
@@ -853,7 +855,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield transaction
   }
 
-  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) = {
     val result = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
       account <- getAccountByNumber(bankId, accountNumber)
@@ -867,7 +869,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
         }
     }
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
   /*
@@ -875,7 +877,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
@@ -884,7 +886,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         acc.accountLabel(label).save
       }
 
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
   override def getProducts(bankId: BankId): Box[List[MappedProduct]] = {

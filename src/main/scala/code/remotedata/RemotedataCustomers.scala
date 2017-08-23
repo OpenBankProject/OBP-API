@@ -16,6 +16,9 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] =
     extractFutureToBox(actor ? cc.getCustomerByUserId(bankId, userId))
 
+  def getCustomersByUserId(userId: String): List[Customer] =
+    extractFuture(actor ? cc.getCustomersByUserId(userId))
+
   def getCustomerByCustomerId(customerId: String) : Box[Customer] =
     extractFutureToBox(actor ? cc.getCustomerByCustomerId(customerId))
 
