@@ -635,10 +635,10 @@ trait Connector extends MdcLoggable{
   
         val challengeId = UUID.randomUUID().toString
         val salt = BCrypt.gensalt()
-        val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
+        val expectedAnswer = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
   
         //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
-        ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+        ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, expectedAnswer)
 
         // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
         val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
@@ -695,7 +695,7 @@ trait Connector extends MdcLoggable{
 
   protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = Failure(NotImplemented + currentMethodName)
   
-  final def saveExpectedChallengeAnswer(challengeId: String, salt: String, challengeAnswerHashed: String):Box[Boolean]  = Failure(NotImplemented + currentMethodName)
+  final def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String):Box[Boolean]  = Failure(NotImplemented + currentMethodName)
 
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
