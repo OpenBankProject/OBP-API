@@ -273,8 +273,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getBankAccounts(username: String): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
-      val customerIds: List[String]= UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(currentResourceUserId).map(_.customerId)
-      val customerList :List[Customer]= APIUtil.getCustomers(customerIds)
+      val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
         
       val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"),internalCustomers)

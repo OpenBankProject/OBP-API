@@ -1496,9 +1496,9 @@ trait APIMethods210 {
           for {
             u <- user ?~! UserNotLoggedIn
             //bank <- Bank(bankId) ?~! {BankNotFound}
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
+            customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
-            val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
+            val json = JSONFactory210.createCustomersJson(customers)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -1534,11 +1534,8 @@ trait APIMethods210 {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
-            bank <- Bank(bankId) ?~! {BankNotFound}
-            // Find User Customer Links by the UserId
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
-            // Get the related Customers
-            customers = APIUtil.getCustomers(customerIds)
+            _ <- Bank(bankId) ?~! {BankNotFound}
+            customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
             // Filter so we only see the ones for the bank in question
             bankCustomers = customers.filter(_.bankId==bankId.value)
           } yield {

@@ -2244,9 +2244,9 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             //bank <- Bank(bankId) ?~! BankNotFound
-            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId).map(x=>x.customerId)} ?~! UserCustomerLinksNotFoundForUser
+            customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
-            val json = JSONFactory1_4_0.createCustomersJson(APIUtil.getCustomers(customerIds))
+            val json = JSONFactory1_4_0.createCustomersJson(customers)
             successJsonResponse(Extraction.decompose(json))
           }
         }
