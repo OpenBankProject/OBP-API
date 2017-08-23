@@ -71,6 +71,7 @@ import code.remotedata.RemotedataActors
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
@@ -469,7 +470,8 @@ object ToSchemify {
     MappedMetric,
     MapperAccountHolders,
     MappedEntitlement,
-    MappedConnectorMetric
+    MappedConnectorMetric,
+    MappedExpectedChallengeAnswer
   )
 
   // The following tables are accessed directly via Mapper / JDBC

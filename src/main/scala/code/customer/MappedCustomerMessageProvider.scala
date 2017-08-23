@@ -50,5 +50,4 @@ class MappedCustomerMessage extends CustomerMessage
 
 object MappedCustomerMessage extends MappedCustomerMessage with LongKeyedMetaMapper[MappedCustomerMessage] {
   override def dbIndexes = UniqueIndex(mMessageId) :: super.dbIndexes
-  // Index(user, bank, updatedAt) ::
 }

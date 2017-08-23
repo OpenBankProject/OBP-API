@@ -25,12 +25,14 @@ import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
 import code.metrics.{APIMetric, APIMetrics}
-import code.model.dataAccess.{AuthUser, MappedBankAccount}
+import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.usercustomerlinks.UserCustomerLink
 import code.api.util.APIUtil.getCustomers
+import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -54,6 +56,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 trait APIMethods210 {
@@ -429,8 +432,8 @@ trait APIMethods210 {
 
             isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
 
-            createdTransactionRequest <- transactionRequestType.value match {
-              case "SANDBOX_TAN" => {
+            createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              case SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${InvalidJsonFormat}, it should be SANDBOX_TAN input format"
                   toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
@@ -448,7 +451,7 @@ trait APIMethods210 {
                                                                                                      sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield createdTransactionRequest
               }
-              case "COUNTERPARTY" => {
+              case COUNTERPARTY => {
                 for {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
@@ -497,7 +500,7 @@ trait APIMethods210 {
                 } yield createdTransactionRequest
 
               }
-              case "SEPA" => {
+              case SEPA => {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
@@ -536,7 +539,7 @@ trait APIMethods210 {
                                                                                                      chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "FREE_FORM" => {
+              case FREE_FORM => {
                 for {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
@@ -634,12 +637,16 @@ trait APIMethods210 {
               isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{InvalidTransactionRequesChallengeId})
             
               //Check the allowed attemps, Note: not support yet, the default value is 3
-              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
+              allowedAttemptOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
               challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
             
-              challengeAnswerOk <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
+              challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
+              challengeAnswerOBPOK <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)
+            
+              challengeAnswerKafka <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
+              challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
 
               // All Good, proceed with the Transaction creation...
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
@@ -929,15 +936,14 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      addCardsForBank,
+      addCardForBank,
       apiVersion,
       "addCardsForBank",
       "POST",
       "/banks/BANK_ID/cards",
-      "Add cards for a bank",
-      s"""Import bulk data into the sandbox (Authenticated access).
+      "Create Card",
+      s"""Create Card at bank specified by BANK_ID .
           |
-          |This is can be used to create cards which are stored in the local RDBMS.
           |${authenticationRequiredMessage(true)}
           |""",
       postPhysicalCardJSON,
@@ -951,7 +957,7 @@ trait APIMethods210 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
-    lazy val addCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCardForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -964,7 +970,7 @@ trait APIMethods210 {
               case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
             }
             account <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {AccountNotFound}
-            card <- Connector.connector.vend.AddPhysicalCard(
+            card <- Connector.connector.vend.createOrUpdatePhysicalCard(
                                 bankCardNumber=postJson.bank_card_number,
                                 nameOnCard=postJson.name_on_card,
                                 issueNumber=postJson.issue_number,

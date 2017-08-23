@@ -42,16 +42,10 @@ trait APIMethods130 {
       case "cards" :: Nil JsonGet _ => {
         user => {
             for {
-              u <- user ?~! ErrorMessages.UserNotLoggedIn
+              u <- user ?~! ErrorMessages.UserNotLoggedIn 
+              cards <- Connector.connector.vend.getPhysicalCards(u)
             } yield {
-              val cardsJson = user match {
-                case Full(u) => {
-                  val cards: List[PhysicalCard] = Connector.connector.vend.getPhysicalCards(u)
-                  JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
-                }
-                case _ => PhysicalCardsJSON(Nil)
-              }
-
+              val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
               successJsonResponse(Extraction.decompose(cardsJson))
             }
           }
@@ -80,15 +74,9 @@ trait APIMethods130 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            cards <- Connector.connector.vend.getPhysicalCardsForBank(bank, u)
           } yield {
-            val cardsJson = user match {
-              case Full(u) => {
-                val cards = Connector.connector.vend.getPhysicalCardsForBank(bank, u)
-                JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
-              }
-              case _ => PhysicalCardsJSON(Nil)
-            }
-
+             val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
             successJsonResponse(Extraction.decompose(cardsJson))
           }
         }

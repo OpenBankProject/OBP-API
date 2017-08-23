@@ -124,7 +124,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
             Connector.connector.vend.updateAccountBalance(
               mostRecentTransaction.bankId,
               mostRecentTransaction.accountId,
-              mostRecentTransaction.balance)
+              mostRecentTransaction.balance).get
           }
         }
 
@@ -166,7 +166,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
               //refresh account lastUpdate in case transactions were posted but they were all duplicates (account was still "refreshed")
               val mostRecentTransaction = importerTransactions.maxBy(t => t.obp_transaction.details.completed)
               val account = mostRecentTransaction.obp_transaction.this_account
-              Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now)
+              Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now).get
             }
             val jsonList = insertedTs.map(whenAddedJson)
             JsonResponse(JArray(jsonList))

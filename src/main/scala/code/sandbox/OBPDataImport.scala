@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.util.ErrorMessages
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
@@ -210,7 +211,7 @@ trait OBPDataImport extends MdcLoggable {
 
   final protected def createDataLicences(data : SandboxDataImport) = {
 
-    throw new Exception ("Not implemented")
+    throw new Exception (ErrorMessages.NotImplemented)
 
   }
 
