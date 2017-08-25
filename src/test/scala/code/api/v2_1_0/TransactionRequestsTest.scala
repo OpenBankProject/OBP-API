@@ -17,6 +17,7 @@ import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
@@ -28,7 +29,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     })
   }
 
-  def defaultSetup(transactionRequestTypeInput : String= "SANDBOX_TAN") =
+  def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) =
     new {
 
       val sharedChargePolicy = ChargePolicy.withName("SHARED").toString
@@ -90,7 +91,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
       var transRequestId = ""
-      var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123456")
+      var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
@@ -105,7 +106,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
         this.challengeId = challengeId
         this.transRequestId = transRequestId
-        answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123456")
+        answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
         val answerRequestNew = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         answerRequest = answerRequestNew
@@ -232,12 +233,12 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
 
         if (finishedTranscation ) {
-          if(transactionRequestTypeInput.equals("FREE_FORM")){
+          if(transactionRequestTypeInput.equals(FREE_FORM.toString)){
             Then("FREE_FORM just transfer money to itself, the money should be the same as before ")
             fromAccountBalance should equal((beforeFromBalance))
             And("there should now be 2 new transactions in the database")
             transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore+2)
-          } else if(transactionRequestTypeInput.equals("SANDBOX_TAN")){
+          } else if(transactionRequestTypeInput.equals(SANDBOX_TAN.toString)){
             Then("check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least) ")
             fromAccountBalance should equal((beforeFromBalance - amt))
             And("the account receiving the payment should have a new balance plus the amount paid")
@@ -549,7 +550,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("FREE_FORM")
+        val helper = defaultSetup(FREE_FORM.toString)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
         val createTransactionRequestResponse = helper.makeCreateTransReqRequest
@@ -579,7 +580,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("FREE_FORM")
+        val helper = defaultSetup(FREE_FORM.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -618,7 +619,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("FREE_FORM")
+        val helper = defaultSetup(FREE_FORM.toString)
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
@@ -664,7 +665,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("FREE_FORM")
+        val helper = defaultSetup(FREE_FORM.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -707,7 +708,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("SEPA")
+        val helper = defaultSetup(SEPA.toString)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
         val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
@@ -737,7 +738,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("SEPA")
+        val helper = defaultSetup(SEPA.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -776,7 +777,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("SEPA")
+        val helper = defaultSetup(SEPA.toString)
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
@@ -822,7 +823,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("SEPA")
+        val helper = defaultSetup(SEPA.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -865,7 +866,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("COUNTERPARTY")
+        val helper = defaultSetup(COUNTERPARTY.toString)
 
         Then("we call the 'V210 Create Transaction Request' endpoint")
         val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
@@ -895,7 +896,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("COUNTERPARTY")
+        val helper = defaultSetup(COUNTERPARTY.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -934,7 +935,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("COUNTERPARTY")
+        val helper = defaultSetup(COUNTERPARTY.toString)
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
@@ -980,7 +981,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     } else {
       scenario("With challenge, With FX", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup("COUNTERPARTY")
+        val helper = defaultSetup(COUNTERPARTY.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"

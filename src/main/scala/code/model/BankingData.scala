@@ -36,6 +36,8 @@ import code.util.Helper
 import scala.math.BigDecimal
 import java.util.Date
 
+import code.accountholder.AccountHolders
+
 import scala.collection.immutable.Set
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
@@ -308,7 +310,7 @@ trait BankAccount extends MdcLoggable {
   * */
   final def remove(user : User): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId))
+      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException("Attempted to open an empty Box."))
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
@@ -316,14 +318,14 @@ trait BankAccount extends MdcLoggable {
 
   final def updateLabel(user : User, label : String): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Full(Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label))
+      Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label)
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
   }
 
   final def owners: Set[User] = {
-    val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
+    val accountHolders = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
     if(accountHolders.isEmpty) {
       //account holders are not all set up in the db yet, so we might not get any back.
       //In this case, we just use the previous behaviour, which did not return very much information at all
@@ -567,7 +569,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**

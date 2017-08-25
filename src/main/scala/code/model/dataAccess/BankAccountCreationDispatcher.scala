@@ -168,15 +168,15 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
           val result = for {
             user <- foundUser ?~!
               s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
-          } yield {
-            val (_, bankAccount) = Connector.connector.vend.createBankAndAccount(
-              message.bankName, 
-              message.bankIdentifier, 
+            (_, bankAccount) <- Connector.connector.vend.createBankAndAccount(
+              message.bankName,
+              message.bankIdentifier,
               message.accountNumber,
-              accountType, accountLabel, 
+              accountType, accountLabel,
               currency, user.name,
               "","","" //added field in V220
-              )
+            )
+          } yield {
             logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
             BankAccountCreation.setAsOwner(bankAccount.bankId, bankAccount.accountId, user)
           }

@@ -22,6 +22,8 @@ object Customer extends SimpleInjector {
 trait CustomerProvider {
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer]
 
+  def getCustomersByUserId(userId: String): List[Customer]
+
   def getCustomerByCustomerId(customerId: String): Box[Customer]
 
   def getBankIdByCustomerId(customerId: String): Box[String]
@@ -58,6 +60,7 @@ trait CustomerProvider {
 
 class RemotedataCustomerProviderCaseClasses {
   case class getCustomerByUserId(bankId: BankId, userId: String)
+  case class getCustomersByUserId(userId: String)
   case class getCustomerByCustomerId(customerId: String)
   case class getBankIdByCustomerId(customerId: String)
   case class getCustomerByCustomerNumber(customerNumber: String, bankId : BankId)

@@ -64,7 +64,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
         bankName, bankNationalIdentifier, accountNumber, accountType,
         accountLabel, currency, accountHolderName,
         "","", "" //added field in V220
-      ) 
+      ).openOrThrowException("Attempted to open an empty Box.")
 
       Then("A bank should now exist, with the correct parameters")
       val allBanks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
@@ -99,7 +99,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
         accountType, accountLabel, currency, 
         accountHolderName,
         "","", "" //added field in V220
-      )
+      ).openOrThrowException("Attempted to open an empty Box.")
 
       Then("No new bank should be created")
       val allBanksAfter = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
