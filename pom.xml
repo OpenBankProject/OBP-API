@@ -11,8 +11,8 @@
   <name>Open Bank Project API</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
-    <scala.version>2.12</scala.version>
-    <scala.compiler>2.12.2</scala.compiler>
+    <scala.version>2.11</scala.version>
+    <scala.compiler>2.11.8</scala.compiler>
     <akka.version>2.5.1</akka.version>
     <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
     <avro.version>1.7.0</avro.version>
@@ -318,7 +318,7 @@
     <dependency>
      <groupId>com.github.romix.akka</groupId>
       <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
-      <version>0.5.1</version>
+      <version>0.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.github.cb372</groupId>

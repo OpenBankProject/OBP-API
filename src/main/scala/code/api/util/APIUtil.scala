@@ -1281,7 +1281,6 @@ Returns a string showed to the developer
     }
   }
 
-
   /**
     * Turn a string of format "FooBar" into snake case "foo_bar"
     *

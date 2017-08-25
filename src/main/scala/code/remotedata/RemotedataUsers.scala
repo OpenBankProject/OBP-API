@@ -9,6 +9,7 @@ import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object RemotedataUsers extends ObpActorInit with Users {
 
@@ -37,7 +38,7 @@ object RemotedataUsers extends ObpActorInit with Users {
 
   def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]] = {
     val res = (actor ? cc.getAllUsersF())
-      res.mapTo[Future[Box[List[ResourceUserCaseClass]]]].flatten
+      res.mapTo[Future[Box[List[ResourceUserCaseClass]]]].flatMap { x => x }
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] =
