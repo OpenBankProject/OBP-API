@@ -767,7 +767,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
     }
 
     Full(result.getOrElse(false))

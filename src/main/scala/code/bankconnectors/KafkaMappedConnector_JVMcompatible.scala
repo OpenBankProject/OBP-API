@@ -1140,7 +1140,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
     }
   
     Full(result.getOrElse(false))

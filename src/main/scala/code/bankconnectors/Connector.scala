@@ -555,7 +555,7 @@ trait Connector extends MdcLoggable{
                                                    transactionRequestType.value,
                                                    transactionRequestCommonBody.value.currency,
                                                    initiator.userId,
-                                                   initiator.name).get //TODO need error handling ,throw the error to API level 
+                                                   initiator.name).openOrThrowException("Attempted to open an empty Box.") //TODO need error handling ,throw the error to API level
 
     // Set initial status
     val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.amount)) {
@@ -927,7 +927,7 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = {
     val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).get
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException("Attempted to open an empty Box.")
 
       def appendUntilOkay(number : String) : String = {
         val newNumber = number + Random.nextInt(10)
@@ -990,7 +990,7 @@ trait Connector extends MdcLoggable{
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
-          if ( ! accountOwnerExists(owner, bankId, accountId).get) {
+          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException("Attempted to open an empty Box.")) {
             val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }

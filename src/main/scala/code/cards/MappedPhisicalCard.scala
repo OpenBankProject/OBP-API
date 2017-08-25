@@ -38,9 +38,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
 
     val mappedBankAccountPrimaryKey: Long = MappedBankAccount
       .find(
-        By(MappedBankAccount.bank, bankId), 
+        By(MappedBankAccount.bank, bankId),
         By(MappedBankAccount.theAccountId, accountId))
-      .openOrThrowException(s"$accountId do not have Primary key, please contact admin, check the database! ").id
+      .openOrThrowException(s"$accountId do not have Primary key, please contact admin, check the database! ").id.get
     
     def getPhysicalCard(bankId: BankId, bankCardNumber: String): Box[MappedPhysicalCard] = {
       MappedPhysicalCard.find(

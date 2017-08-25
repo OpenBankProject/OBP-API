@@ -611,10 +611,10 @@ object JSONFactory220{
 
     var basicUser = BasicUserJsonV220(
       user_id = user.resourceUserId.toString,
-      email = user.email,
+      email = user.email.get,
       provider_id = user.idGivenByProvider,
       provider = user.provider,
-      username = user.name_ // TODO Double check this is the same as AuthUser.username ??
+      username = user.name_.get // TODO Double check this is the same as AuthUser.username ??
     )
 
     val basicCustomer = BasicCustomerJsonV220(
