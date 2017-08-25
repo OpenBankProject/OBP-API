@@ -101,6 +101,7 @@ import code.api.util.APIUtil._
   val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
+  val NotImplemented = "OBP-10010: Not Implemented "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -192,10 +193,13 @@ import code.api.util.APIUtil._
   val CreateProductError = "OBP-30030: Could not insert the Product"
   val UpdateProductError = "OBP-30031: Could not update the Product"
   
-  val ViewIdNotSupported = "OBP-30032: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
+  val CreateCardError = "OBP-30032: Could not insert the Card"
+  val UpdateCardError = "OBP-30033: Could not update the Card"
+  
+  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
 
-  val UserCustomerLinkNotFound = "OBP-30032: User Customer Link not found"
+  val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
   
 
@@ -248,6 +252,7 @@ import code.api.util.APIUtil._
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
+  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body."
 
 
 
@@ -464,7 +469,7 @@ object APIUtil extends MdcLoggable {
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
-  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
 

@@ -16,7 +16,7 @@ object PhysicalCard extends SimpleInjector {
 
 trait PhysicalCardProvider {
 
-  def AddPhysicalCard(bankCardNumber: String,
+  def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
                       serialNumber: String,

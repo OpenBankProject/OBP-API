@@ -2,11 +2,13 @@ package code.cards
 
 import java.util.Date
 
+import code.api.util.ErrorMessages
 import code.model.dataAccess.MappedBankAccount
 import code.model._
 import code.views.Views
-import net.liftweb.mapper.{MappedString, _}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.mapper.{By, MappedString, _}
+import net.liftweb.common.{Box, Full}
+import net.liftweb.util.Helpers.tryo
 
 
 /**
@@ -14,7 +16,7 @@ import net.liftweb.common.{Box, Empty, Full}
   */
 
 object MappedPhysicalCardProvider extends PhysicalCardProvider {
-  def AddPhysicalCard(bankCardNumber: String,
+  override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,
                       serialNumber: String,
@@ -34,25 +36,56 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
                       posted: Option[CardPostedInfo]
                      ): Box[MappedPhysicalCard] = {
 
-    val accountId1 = MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId)) match {
-      case Full(a) => a.id.get
-      case _ => 0
+    val mappedBankAccountPrimaryKey: Long = MappedBankAccount
+      .find(
+        By(MappedBankAccount.bank, bankId), 
+        By(MappedBankAccount.theAccountId, accountId))
+      .openOrThrowException(s"$accountId do not have Primary key, please contact admin, check the database! ").id
+    
+    def getPhysicalCard(bankId: BankId, bankCardNumber: String): Box[MappedPhysicalCard] = {
+      MappedPhysicalCard.find(
+        By(MappedPhysicalCard.mBankId, bankId.value),
+        By(MappedPhysicalCard.mBankCardNumber, bankCardNumber)
+      )
     }
-      Some(
-      MappedPhysicalCard.create
-        .mBankCardNumber(bankCardNumber)
-        .mIssueNumber(nameOnCard)
-        .mNameOnCard(issueNumber)
-        .mSerialNumber(serialNumber)
-        .mValidFrom(validFrom)
-        .mExpires(expires)
-        .mEnabled(enabled)
-        .mCancelled(cancelled)
-        .mOnHotList(onHotList)
-        .mAllows(allows.mkString(","))
-        .mAccount(accountId1)
-        .saveMe()
-        )
+    
+    //check the product existence and update or insert data
+    getPhysicalCard(BankId(bankId), bankCardNumber) match {
+      case Full(mappedPhysicalCard) =>
+        tryo {
+          mappedPhysicalCard
+            .mBankId(bankId)
+            .mBankCardNumber(bankCardNumber)
+            .mIssueNumber(nameOnCard)
+            .mNameOnCard(issueNumber)
+            .mSerialNumber(serialNumber)
+            .mValidFrom(validFrom)
+            .mExpires(expires)
+            .mEnabled(enabled)
+            .mCancelled(cancelled)
+            .mOnHotList(onHotList)
+            .mAllows(allows.mkString(","))
+            .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
+            .saveMe()
+        } ?~! ErrorMessages.UpdateCardError
+      case _ =>
+        tryo {
+          MappedPhysicalCard.create
+            .mBankId(bankId)
+            .mBankCardNumber(bankCardNumber)
+            .mIssueNumber(nameOnCard)
+            .mNameOnCard(issueNumber)
+            .mSerialNumber(serialNumber)
+            .mValidFrom(validFrom)
+            .mExpires(expires)
+            .mEnabled(enabled)
+            .mCancelled(cancelled)
+            .mOnHotList(onHotList)
+            .mAllows(allows.mkString(","))
+            .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
+            .saveMe()
+        } ?~! ErrorMessages.CreateCardError
+    }
   }
   def getPhysicalCards(user: User) = {
     val accounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
