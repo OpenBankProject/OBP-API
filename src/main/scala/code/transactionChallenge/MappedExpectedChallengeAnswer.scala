@@ -9,11 +9,11 @@ class MappedExpectedChallengeAnswer extends ExpectedChallengeAnswer with LongKey
 
   // Unique
   object mChallengeId extends MappedUUID(this)
-  object mEncryptedAnswer extends MappedString(this,50)
+  object mExpectedAnswer extends MappedString(this,50)
   object mSalt extends MappedString(this, 50)
   
   override def challengeId: String = mChallengeId.get
-  override def encryptedAnswer: String = mEncryptedAnswer.get
+  override def expectedAnswer: String = mExpectedAnswer.get
   override def salt: String = mSalt.get
 }
 

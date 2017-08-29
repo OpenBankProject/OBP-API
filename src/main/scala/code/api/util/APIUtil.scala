@@ -53,10 +53,10 @@ import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -100,6 +100,7 @@ import code.api.util.APIUtil._
   val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
+  val NotImplemented = "OBP-10010: Not Implemented "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -468,7 +469,7 @@ object APIUtil extends MdcLoggable {
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
-  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
 
 
@@ -1281,6 +1282,43 @@ Returns a string showed to the developer
     }
   }
 
+  /**
+    * Turn a string of format "FooBar" into snake case "foo_bar"
+    *
+    * Note: snakify is not reversible, ie. in general the following will _not_ be true:
+    *
+    * s == camelify(snakify(s))
+    *
+    * @return the underscored JValue
+    */
+  def snakify(json: JValue): JValue = json transform {
+    case JField(name, x) => JField(StringHelpers.snakify(name), x)
+  }
+
+
+  /**
+    * Turns a string of format "foo_bar" into camel case "FooBar"
+    *
+    * Functional code courtesy of Jamie Webb (j@jmawebb.cjb.net) 2006/11/28
+    * @param json the JValue to CamelCase
+    *
+    * @return the CamelCased JValue
+    */
+  def camelify(json: JValue): JValue = json transform {
+    case JField(name, x) => JField(StringHelpers.camelify(name), x)
+  }
+
+  /**
+    * Turn a string of format "foo_bar" into camel case with the first letter in lower case: "fooBar"
+    * This function is especially used to camelCase method names.
+    *
+    * @param json the JValue to CamelCase
+    *
+    * @return the CamelCased JValue
+    */
+  def camelifyMethod(json: JValue): JValue = json transform {
+    case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
+  }
 
 
   def validatePhoneNumber(number: String): Boolean = {

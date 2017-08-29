@@ -9,14 +9,14 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
   override def saveExpectedChallengeAnswer(
     challengeId: String,
     salt: String,
-    challengeAnswerHashed: String
+    expectedAnswer: String
   ): Box[ExpectedChallengeAnswer] = 
     Full(
       MappedExpectedChallengeAnswer
         .create
         .mChallengeId(challengeId)
         .mSalt(salt)
-        .mEncryptedAnswer(challengeAnswerHashed)
+        .mExpectedAnswer(expectedAnswer)
         .saveMe()
     )
   
@@ -31,7 +31,7 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
     val expectedChallengeAnswer = getExpectedChallengeAnswer(challengeId).openOrThrowException("No expectedChallengeAnswer, just for debug !!!")
     
     val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, expectedChallengeAnswer.salt).substring(0, 44)
-    val expectedHashedAnswer = expectedChallengeAnswer.encryptedAnswer
+    val expectedHashedAnswer = expectedChallengeAnswer.expectedAnswer
   
     Full(currentHashedAnswer==expectedHashedAnswer)
     
