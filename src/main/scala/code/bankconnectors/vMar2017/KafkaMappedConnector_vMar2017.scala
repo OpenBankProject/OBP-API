@@ -128,8 +128,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-
-  def getUser(
+  
+  override def getUser(
     username: String,
     password: String
   ): Box[InboundUser] = {
@@ -326,7 +326,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   )
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String): AmountOfMoney = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String): Box[AmountOfMoney] = {
     // Create argument list
     val req = OutboundChallengeThresholdBase(
       action = "obp.get.ChallengeThreshold",
@@ -343,12 +343,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => AmountOfMoney(x.currency, x.limit)
+      case Some(x)  => Full(AmountOfMoney(x.currency, x.limit))
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        AmountOfMoney(currency,convertedLimit.toString())
+        Full(AmountOfMoney(currency,convertedLimit.toString()))
       }
     }
   }
@@ -585,7 +585,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     )
   )
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = OutboundTransactionQueryBase(
       messageFormat = messageFormat,
       action = "obp.get.Transaction",
@@ -891,8 +891,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
     Full(new BankAccount2(r))
   }
-
-  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  
+  override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
@@ -1317,11 +1317,6 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     //note: kafka mode just used the mapper data
     LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
   }
-  override def getPhysicalCards(user: User): List[PhysicalCard] =
-    List()
-  
-  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
-    List()
   
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
     nameOnCard: String,
@@ -1449,7 +1444,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): (Bank, BankAccount) = {
+  ) = {
     //don't require and exact match on the name, just the identifier
     val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -1478,16 +1473,16 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       accountHolderName
     )
 
-    (bank, account)
+    Full((bank, account))
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
-    getAccountByNumber(bankId, accountNumber) != null
+  override def accountExists(bankId: BankId, accountNumber: String) = {
+    Full(getAccountByNumber(bankId, accountNumber) != null)
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) = {
     //delete comments on transactions of this account
     val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
@@ -1526,8 +1521,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       case _ => false
     }
 
-    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
-      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
+    Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
+      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
@@ -1609,7 +1604,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
 
     //this will be Full(true) if everything went well
     val result = for {
@@ -1617,10 +1612,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
     }
-
-    result.getOrElse(false)
+  
+    Full(result.getOrElse(false))
   }
 
   //transaction import api uses bank national identifiers to uniquely indentify banks,
@@ -1638,7 +1633,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   }
 
   //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String) = {
     //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
     val count = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
@@ -1658,7 +1653,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     }
 
     //icky
-    count.map(_.toInt) getOrElse 0
+    Full(count.map(_.toInt) getOrElse 0)
   }
 
   //used by transaction import api
@@ -1700,7 +1695,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     } yield transaction
   }
 
-  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) = {
     val result = for {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
       account <- getAccountByNumber(bankId, accountNumber)
@@ -1711,7 +1706,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
           case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
         }
     }
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
   /*
@@ -1719,7 +1714,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
@@ -1729,7 +1724,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
       d.setLabel(label)
       d.save()
     }
-    result.getOrElse(false)
+    Full(result.getOrElse(false))
   }
 
 

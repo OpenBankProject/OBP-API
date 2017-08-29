@@ -5,7 +5,7 @@ import net.liftweb.common.Box
 
 
 trait ExpectedChallengeAnswerProvider {
-  def saveExpectedChallengeAnswer(challengeId: String, salt: String, challengeAnswerHashed: String): Box[ExpectedChallengeAnswer]
+  def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String): Box[ExpectedChallengeAnswer]
   def getExpectedChallengeAnswer(challengeId: String): Box[ExpectedChallengeAnswer]
   
   /**
@@ -18,7 +18,7 @@ trait ExpectedChallengeAnswerProvider {
 
 
 class RemotedataExpectedChallengeAnswerProviderCaseClasses {
-  case class saveExpectedChallengeAnswer(challengeId: String, salt: String, challengeAnswerHashed: String)
+  case class saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String)
   case class getExpectedChallengeAnswer(challengeId: String)
   case class validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String)
 }
