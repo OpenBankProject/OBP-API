@@ -1,26 +1,22 @@
 package code.api.v3_0_0
 
-import code.api.ChargePolicy
-import code.api.APIFailure
+import code.api.{APIFailure, ChargePolicy}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanGetAnyUser, CanSearchWarehouse}
-import code.api.util.ApiRole._
+import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanGetAnyUser, CanSearchWarehouse, _}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
-import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
-import code.bankconnectors.{LocalMappedConnector, LocalRecordConnector}
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.branches.{Branches, InboundAdapterInfo}
+import code.bankconnectors.{Connector, LocalMappedConnector, OBPLimit, OBPOffset}
 import code.branches.Branches.BranchId
+import code.branches.{Branches, InboundAdapterInfo}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
@@ -29,19 +25,17 @@ import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.json.{Extraction, NoTypeHints, Serialization}
 import net.liftweb.http.{JsonResponse, Req, S}
-import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
+import net.liftweb.json.{Extraction, NoTypeHints, Serialization}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
-import shapeless.test
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -840,13 +834,13 @@ trait APIMethods300 {
       apiVersion,
       "createTransactionRequestTransferToPhone",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSFER_TO_PHONE/transaction-requests",
-      "Create Transaction Request (TRANSFER_TO_PHONE)",
+      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_PHONE.toString}/transaction-requests",
+      s"Create Transaction Request ${TRANSFER_TO_PHONE.toString}",
       s"""$transactionRequestGeneralText
          |
-         |Special instructions for TRANSFER_TO_PHONE:
+         |Special instructions for ${TRANSFER_TO_PHONE.toString}:
          |
-         |When using a TRANSFER_TO_PHONE Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |When using a ${TRANSFER_TO_PHONE.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
@@ -875,19 +869,19 @@ trait APIMethods300 {
       Catalogs(Core, PSD2, OBWG, Support),
       List(apiTagTransactionRequest))
   
-    // Transaction Request (ATM)
+    // Transaction Request (TRANSFER_TO_ATM)
     resourceDocs += ResourceDoc(
       createTransactionRequestTransferToATM,
       apiVersion,
       "createTransactionRequestTransferToATM",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ATM/transaction-requests",
-      "Create Transaction Request (ATM)",
+      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ATM.toString}/transaction-requests",
+      s"Create Transaction Request (${TRANSFER_TO_ATM.toString})",
       s"""$transactionRequestGeneralText
          |
-         |Special instructions for ATM:
+         |Special instructions for ${TRANSFER_TO_ATM.toString}:
          |
-         |When using a ATM Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |When using a ${TRANSFER_TO_ATM.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
@@ -915,19 +909,19 @@ trait APIMethods300 {
       Catalogs(Core, PSD2, OBWG, Support),
       List(apiTagTransactionRequest))
   
-    // Transaction Request (ACCOUNT_TO_ACCOUNT)
+    // Transaction Request (TRANSFER_TO_ACCOUNT)
     resourceDocs += ResourceDoc(
       createTransactionRequestTransferToAccount,
       apiVersion,
       "createTransactionRequestTransferToAccount",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT_TO_ACCOUNT/transaction-requests",
-      "Create Transaction Request (ACCOUNT_TO_ACCOUNT)",
+      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ACCOUNT.toString}/transaction-requests",
+      s"Create Transaction Request (${TRANSFER_TO_ACCOUNT.toString})",
       s"""$transactionRequestGeneralText
          |
-         |Special instructions for ACCOUNT_TO_ACCOUNT:
+         |Special instructions for ${TRANSFER_TO_ACCOUNT.toString}:
          |
-         |When using a ATM Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |When using a ${TRANSFER_TO_ACCOUNT.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
@@ -991,8 +985,8 @@ trait APIMethods300 {
 
             isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
 
-            createdTransactionRequest <- transactionRequestType.value match {
-              case "SANDBOX_TAN" => {
+            createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              case SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${InvalidJsonFormat}, it should be SANDBOX_TAN input format"
                   toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
@@ -1010,7 +1004,7 @@ trait APIMethods300 {
                     sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield createdTransactionRequest
               }
-              case "COUNTERPARTY" => {
+              case COUNTERPARTY => {
                 for {
                 //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}. It should be COUNTERPARTY input format"
@@ -1059,7 +1053,7 @@ trait APIMethods300 {
                 } yield createdTransactionRequest
 
               }
-              case "SEPA" => {
+              case SEPA => {
                 for {
                 //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}. It should be SEPA input format"
@@ -1097,7 +1091,7 @@ trait APIMethods300 {
                     chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "FREE_FORM" => {
+              case FREE_FORM => {
                 for {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}. It should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
@@ -1118,9 +1112,9 @@ trait APIMethods300 {
                 } yield
                   createdTransactionRequest
               }
-              case "TRANSFER_TO_PHONE" => {
+              case TRANSFER_TO_PHONE => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_PHONE input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_PHONE.toString()} input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
@@ -1137,7 +1131,7 @@ trait APIMethods300 {
                     chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "TRANSFER_TO_ATM" => {
+              case TRANSFER_TO_ATM => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ATM input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
@@ -1156,9 +1150,9 @@ trait APIMethods300 {
                     chargePolicy)
                 } yield createdTransactionRequest
               }
-              case "TRANSFER_TO_ACCOUNT" => {
+              case TRANSFER_TO_ACCOUNT => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ACCOUNT input format"
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
                   chargePolicy = transDetailsP2PJson.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}

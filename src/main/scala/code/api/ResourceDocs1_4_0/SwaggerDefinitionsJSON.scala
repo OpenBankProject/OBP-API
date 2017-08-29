@@ -1,17 +1,13 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.defaultJValue
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{defaultJValue, _}
+import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.branches.Branches.{DriveUpString, _}
-import code.common._
-import net.liftweb.common.Full
-import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.branches.{MessageDocJson, MessageDocsJson}
+import code.common._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-
-import scala.util.Try
 
 /**
   * This object prepare all the JSON case classes for Swagger .
@@ -286,7 +282,6 @@ object SwaggerDefinitionsJSON {
   // from code.bankconnectors, not from normal version Factory
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
-  import code.bankconnectors._
   
   val messageDocJson = MessageDocJson(
     process = "getBanks",
@@ -1996,7 +1991,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyTransferToPhoneJson = TransactionRequestBodyTransferToPhoneJson(
     from_account_phone_number="+9722398712",
     value = amountOfMoneyJsonV121,                                
-    description = "This is a TRANSFER_TO_PHONE Transaction Request", 
+    description = s"This is a ${TRANSFER_TO_PHONE.toString} Transaction Request", 
     charge_policy = "SHARED",
     couterparty = couterparty
   )
@@ -2011,7 +2006,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyTransferToAtmJson = TransactionRequestBodyTransferToAtmJson(
     from_account_phone_number = "Tom",
     value = amountOfMoneyJsonV121,
-    description = "This is a TRANSFER_TO_PHONE Transaction Request",
+    description = s"This is a ${TRANSFER_TO_ATM.toString} Transaction Request",
     charge_policy = "SHARED",
     couterparty = counterpartyTransferToAtmJson
   )
@@ -2029,7 +2024,7 @@ object SwaggerDefinitionsJSON {
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
-    description = "This is a TRANSFER_TO_PHONE Transaction Request",
+    description = s"This is a ${TRANSFER_TO_ACCOUNT.toString} Transaction Request",
     charge_policy = "SHARED",
     couterparty = counterpartyTransferToAccount
   )
