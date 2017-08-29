@@ -576,7 +576,7 @@ trait Connector extends MdcLoggable{
     )
 
     // Set initial status
-    val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.amount)) {
+    val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.get.amount)) {
 
       // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
       // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
@@ -808,6 +808,7 @@ trait Connector extends MdcLoggable{
     * @param chargePolicy  SHARED, SENDER, RECEIVER
     * @return  Always create a new Transaction Request in mapper, and return all the fields
     */
+  //TODO not sure, why it is in Connector.scala, maybe move out of here.
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                 transactionRequestType: TransactionRequestType,
                                                 fromAccount: BankAccount,
@@ -817,7 +818,18 @@ trait Connector extends MdcLoggable{
                                                 details: String,
                                                 status: String,
                                                 charge: TransactionRequestCharge,
-                                                chargePolicy: String): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName)
+                                                chargePolicy: String): Box[TransactionRequest] =
+    LocalMappedConnector.createTransactionRequestImpl210(
+      transactionRequestId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      fromAccount: BankAccount, toAccount: BankAccount,
+      toCounterparty: CounterpartyTrait,
+      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+      details: String,
+      status: String,
+      charge: TransactionRequestCharge,
+      chargePolicy: String
+    )
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
     //put connector agnostic logic here if necessary
@@ -835,9 +847,6 @@ trait Connector extends MdcLoggable{
 
   protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = Failure(NotImplemented + currentMethodName)
   
-  //TODO ???
-  final def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String):Box[Boolean]  = Failure(NotImplemented + currentMethodName)
-
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
     for {
@@ -897,11 +906,11 @@ trait Connector extends MdcLoggable{
 
   protected def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Failure(NotImplemented + currentMethodName)
 
-  protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = Failure(NotImplemented + currentMethodName)
+  protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
 
-  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = Failure(NotImplemented + currentMethodName)
-
-  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = Failure(NotImplemented + currentMethodName)
+  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
+  
+  protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
