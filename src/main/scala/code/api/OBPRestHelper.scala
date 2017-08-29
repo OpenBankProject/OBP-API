@@ -153,11 +153,18 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           httpCode match {
             case 200 =>
               val payload = GatewayLogin.parseJwt(parameters)
-              GatewayLogin.getOrCreateResourceUser(payload: String) match {
-                case Full(u) => // Authentication is successful
-                  fn(Full(u))
-                case Failure(msg, _, _) => errorJsonResponse(msg)
-                case _ => errorJsonResponse(payload, httpCode)
+              payload match {
+                case Full(payload) =>
+                  GatewayLogin.getOrCreateResourceUser(payload: String) match {
+                    case Full(u) => // Authentication is successful
+                      fn(Full(u))
+                    case Failure(msg, _, _) => errorJsonResponse(msg)
+                    case _ => errorJsonResponse(payload, httpCode)
+                  }
+                case Failure(msg, _, _) =>
+                  errorJsonResponse(msg)
+                case _ =>
+                  errorJsonResponse(ErrorMessages.GatewayLoginUnknownError)
               }
             case _ => errorJsonResponse(message, httpCode)
           }

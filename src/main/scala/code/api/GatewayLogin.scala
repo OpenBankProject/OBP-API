@@ -87,19 +87,19 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     jwt
   }
 
-  def parseJwt(parameters: Map[String, String]): String = {
+  def parseJwt(parameters: Map[String, String]): Box[String] = {
     val jwt = getToken(parameters)
     validateJwtToken(jwt) match {
       case true => {
         jwt match {
           case JsonWebToken(header, payload, signature) =>
             logger.debug("payload" + payload)
-            payload.asJsonString
-          case _ => "Cannot extract token!"
+            Full(payload.asJsonString)
+          case _ => Failure("Cannot extract token!")
         }
       }
       case false  => {
-        "JWT token is not valid!"
+        Failure("JWT token is not valid!")
       }
     }
   }
