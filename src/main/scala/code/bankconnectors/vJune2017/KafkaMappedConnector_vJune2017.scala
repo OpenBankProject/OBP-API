@@ -24,42 +24,21 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.{Date, Locale}
 
-import code.accountholder.AccountHolders
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0._
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
+import code.api.util.ErrorMessages
 import code.bankconnectors._
-import code.branches.Branches.{Branch, BranchId}
 import code.branches._
 import code.customer.Customer
-import code.fx.{FXRate, fx}
-import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
-import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.Tags
-import code.metadata.transactionimages.TransactionImages
-import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
-import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
-import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.views.Views
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mapper._
-import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
@@ -69,7 +48,6 @@ import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -158,9 +136,10 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         req <- Full(
           GetUserByUsernamePassword(AuthInfo(currentResourceUserId, username,"cbsToken"), password = password)
         )
-        user <- process[GetUserByUsernamePassword](req).extract[UserWrapper].data
-        recUsername <- tryo(user.displayName)
-      } yield if (username == user.displayName) new InboundUser(recUsername,
+        user: Option[InboundValidatedUser] <- processToBox[GetUserByUsernamePassword](req).map(_.extract[UserWrapper].data)
+        u <- user
+        recUsername <- Some(u.displayName)
+      } yield if (username == u.displayName) new InboundUser(recUsername,
         password, recUsername
       ) else null
     }}("getUser")
@@ -192,13 +171,22 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   //gets banks handled by this connector
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond){
-    val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
-    logger.debug(s"Kafka getBanks says: req is: $req")
-    val rList = process[GetBanks](req).extract[Banks].data
-    val res = rList map (new Bank2(_))
-    logger.debug(s"Kafka getBanks says res is $res")
-    Full(res)
-  }}("getBanks")
+      val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
+      logger.debug(s"Kafka getBanks says: req is: $req")
+      val box: Box[List[InboundBank]] = processToBox[GetBanks](req).map(_.extract[Banks].data)
+      val res = box match {
+        case Full(list) =>
+          Full(list map (new Bank2(_)))
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse)
+        case Failure(msg, _, _) =>
+          Failure(msg)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+      logger.debug(s"Kafka getBanks says res is $res")
+      res
+      }}("getBanks")
 
   
   messageDocs += MessageDoc(
@@ -220,15 +208,25 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(getBankTTL millisecond){
-    val req = GetBank(
-      authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, "cbsToken"),
-      bankId = bankId.toString)
-    
-    val r =  process[GetBank](req).extract[BankWrapper].data
-      
-    Full(new Bank2(r))
-      
-  }}("getBank")
+      val req = GetBank(
+        authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, "cbsToken"),
+        bankId = bankId.toString
+      )
+
+      val r =  processToBox[GetBank](req).map(_.extract[BankWrapper].data)
+
+      r match {
+        case Full(v) =>
+          Full(new Bank2(v))
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse)
+        case Failure(msg, _, _) =>
+          Failure(msg)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+
+    }}("getBank")
   
   
   messageDocs += MessageDoc(
@@ -278,10 +276,20 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         
       val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"),internalCustomers)
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
-      val rList = process[OutboundGetAccounts](req).extract[InboundBankAccounts].data
+      val rList: Box[List[InboundAccountJune2017]] = processToBox[OutboundGetAccounts](req).map(_.extract[InboundBankAccounts].data)
       val res = rList //map (new BankAccountJune2017(_))
       logger.debug(s"Kafka getBankAccounts says res is $res")
-      Full(res)
+      res match {
+        // Check does the response data match the requested data
+        case Full(list) =>
+          Full(list)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case Failure(msg, _, _) =>
+          Failure(msg)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
   }}("getBankAccounts")
   
   
@@ -322,23 +330,31 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccountJune2017] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
-    // Generate random uuid to be used as request-response match id
-    val req = GetAccountbyAccountID(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
-      bankId = bankId.toString,
-      accountId = accountId.value
-    )
-    logger.debug(s"Kafka getBankAccount says: req is: $req")
-      // 1 there is error in Adapter code,
-      // 2 there is no account in Adapter code,
-      // 3 there is error in Kafka
-      // 4 there is error in Akka
-      // 5 there is error in Future
-    val res = process[GetAccountbyAccountID](req).extract[InboundBankAccount].data
-    
-    logger.debug(s"Kafka getBankAccount says res is $res")
-    
-    Full(new BankAccountJune2017(res))
+      // Generate random uuid to be used as request-response match id
+      val req = GetAccountbyAccountID(
+        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
+        bankId = bankId.toString,
+        accountId = accountId.value
+      )
+      logger.debug(s"Kafka getBankAccount says: req is: $req")
+        // 1 there is error in Adapter code,
+        // 2 there is no account in Adapter code,
+        // 3 there is error in Kafka
+        // 4 there is error in Akka
+        // 5 there is error in Future
+      val res: Box[InboundAccountJune2017] = processToBox[GetAccountbyAccountID](req).map(_.extract[InboundBankAccount].data)
+      logger.debug(s"Kafka getBankAccount says res is $res")
+      res match {
+        // Check does the response data match the requested data
+        case Full(r) =>
+          Full(new BankAccountJune2017(r))
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case Failure(msg, _, _) =>
+          Failure(msg)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
   }}("getBankAccount")
   
   
@@ -415,20 +431,29 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     
     implicit val formats = net.liftweb.json.DefaultFormats
     logger.debug(s"Kafka getTransactions says: req is: $req")
-    val rList = process[GetTransactions](req).extract[InboundTransactions].data
-    logger.debug(s"Kafka getTransactions says: req is: $rList")
-    // Check does the response data match the requested data
-    val isCorrect = rList.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
-    // Populate fields and generate result
-    val res = for {
-      r <- rList
-      transaction <- createNewTransaction(r)
-    } yield {
-      transaction
+    processToBox[GetTransactions](req).map(_.extract[InboundTransactions].data) match {
+      case Full(list) =>
+        logger.debug(s"Kafka getTransactions says: req is: $list")
+        // Check does the response data match the requested data
+        val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
+        if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
+        // Populate fields and generate result
+        val res = for {
+          r: InternalTransaction <- list
+          transaction: Transaction <- createNewTransaction(r)
+        } yield {
+          transaction
+        }
+        Full(res)
+      //TODO is this needed updateAccountTransactions(bankId, accountId)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
     }
-    Full(res)
-    //TODO is this needed updateAccountTransactions(bankId, accountId)
+
   }
   
   messageDocs += MessageDoc(
@@ -474,13 +499,20 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     
     // Since result is single account, we need only first list entry
     logger.debug(s"Kafka getTransaction request says:  is: $req")
-    val r = process[GetTransaction](req).extract[InboundTransaction].data
+    val r: Box[InternalTransaction] = processToBox[GetTransaction](req).map(_.extract[InboundTransaction].data)
     logger.debug(s"Kafka getTransaction response says: is: $r")
     r match {
       // Check does the response data match the requested data
-      case x if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case x if transactionId.value == x.transactionId => createNewTransaction(x)
-      case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      case Full(x) if transactionId.value != x.transactionId =>
+        Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
+      case Full(x) if transactionId.value == x.transactionId =>
+        createNewTransaction(x)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
     }
     
   }
