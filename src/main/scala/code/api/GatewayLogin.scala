@@ -96,11 +96,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           case JsonWebToken(header, payload, signature) =>
             logger.debug("payload" + payload)
             Full(payload.asJsonString)
-          case _ => Failure("Cannot extract token!")
+          case _ => Failure(ErrorMessages.GatewayLoginCannotExtractJwtToken)
         }
       }
       case false  => {
-        Failure("JWT token is not valid!")
+        Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
       }
     }
   }
