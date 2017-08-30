@@ -24,46 +24,26 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.{Date, Locale}
 
-import code.accountholder.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
-import code.api.v2_1_0._
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors._
-import code.branches.Branches.{Branch, BranchId}
 import code.branches._
 import code.customer.Customer
-import code.fx.{FXRate, fx}
-import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
-import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.Tags
-import code.metadata.transactionimages.TransactionImages
-import code.metadata.wheretags.WhereTags
+import code.fx.fx
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
-import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
-import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.util.Helper.MdcLoggable
-import code.views.Views
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{tryo, _}
-import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
@@ -73,25 +53,49 @@ import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
-
+  
   type AccountType = BankAccountJune2017
-
+  
   implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.getClass.getSimpleName
-  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
-  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
-  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
-  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
-  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
-  val getAccountHolderTTL                   = Props.get("connector.cache.ttl.seconds.getAccountHolderTTL", "0").toInt * 1000 // Miliseconds
-  val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
-  val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
-  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
-  val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
-  val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
+  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L
+  ).build[String, Object]
+  implicit val scalaCache = ScalaCache(GuavaCache(underlyingGuavaCache))
+  val getBankTTL = Props.get("connector.cache.ttl.seconds.getBank", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getBanksTTL = Props.get("connector.cache.ttl.seconds.getBanks", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getUserTTL = Props.get("connector.cache.ttl.seconds.getUser", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getAccountTTL = Props.get("connector.cache.ttl.seconds.getAccount", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getAccountHolderTTL = Props.get(
+    "connector.cache.ttl.seconds.getAccountHolderTTL", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getAccountsTTL = Props.get("connector.cache.ttl.seconds.getAccounts", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getTransactionTTL = Props.get(
+    "connector.cache.ttl.seconds.getTransaction", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getTransactionsTTL = Props.get(
+    "connector.cache.ttl.seconds.getTransactions", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getCounterpartyFromTransactionTTL = Props.get(
+    "connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0"
+  ).toInt * 1000
+  // Miliseconds
+  val getCounterpartiesFromTransactionTTL = Props.get(
+    "connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0"
+  ).toInt * 1000 // Miliseconds
   
   
   // "Versioning" of the messages sent by this or similar connector works like this:
@@ -102,7 +106,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
   val messageFormat: String = "June2017"
-
+  
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -110,7 +114,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
   def currentResourceUsername = AuthUser.getCurrentUserUsername
-
+  
   
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
@@ -118,7 +122,9 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "getAdapterInfo from kafka ",
-    exampleOutboundMessage = decompose(GetAdapterInfo(date = (new Date()).toString)),
+    exampleOutboundMessage = decompose(
+      GetAdapterInfo(date = (new Date()).toString)
+    ),
     exampleInboundMessage = decompose(
       InboundAdapterInfo(
         errorCode = "OBP-6001: ...",
@@ -131,9 +137,20 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getAdapterInfo: Box[InboundAdapterInfo] = {
     val req = GetAdapterInfo((new Date()).toString)
-    val rr = process[GetAdapterInfo](req)
-    val r = rr.extract[AdapterInfo].data
-    Full(r)
+    
+    val box = processToBox[GetAdapterInfo](req).map(_.extract[AdapterInfo].data)
+    val res = box match {
+      case Full(list) =>
+        Full(list)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    
+    res
   }
 
 
@@ -165,9 +182,11 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         user: Option[InboundValidatedUser] <- processToBox[GetUserByUsernamePassword](req).map(_.extract[UserWrapper].data)
         u <- user
         recUsername <- Some(u.displayName)
-      } yield if (username == u.displayName) new InboundUser(recUsername,
-        password, recUsername
-      ) else null
+      } yield 
+        if (username == u.displayName) 
+          new InboundUser(recUsername, password, recUsername
+      ) else 
+          null
     }}("getUser")
 
   
@@ -611,15 +630,20 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     )
     
     // Since result is single account, we need only first list entry
+     val box= processToBox[CreateTransaction](req).map(_.extract[InboundCreateTransactionId].data)
+     
+     val res = box match {
+       case Full(r) =>
+         Full(TransactionId(r.id))
+       case Empty =>
+         Failure(ErrorMessages.ConnectorEmptyResponse)
+       case Failure(msg, _, _) =>
+         Failure(msg)
+       case _ =>
+         Failure(ErrorMessages.UnknownError)
+     }
   
-     val r = process[CreateTransaction](req).extract[InboundCreateTransactionId].data
-    
-    val transactionId = r match {
-      case r: InternalTransactionId => Full(TransactionId(r.id))
-      case _ => Empty
-    }
-  
-     transactionId
+     res
   }
   
   
@@ -667,13 +691,22 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       phoneNumber=phoneNumber
     )
     
-    val r: Option[InboundCreateChallengeJune2017] = process[OutboundCreateChallengeJune2017](req).extractOpt[InboundCreateChallengeJune2017]
-    
-    r match {
-      //       Check does the response data match the requested data
-      case Some(x) => Full(x.data.answer)
-      case _ => Empty
+  
+    val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateChallengeJune2017](req).map(_.extract[InboundCreateChallengeJune2017].data)
+  
+    val res = box match {
+      case Full(r) =>
+        Full(r.answer)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
     }
+  
+    res
+    
     
   }
   
