@@ -290,7 +290,8 @@ object SwaggerJSONFactory {
           OperationObjectJson(
             tags = List(s"${rd.apiVersion.toString}"), 
             summary = rd.summary,
-            description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+            //description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+            description = rd.description.stripMargin,
             operationId =
               rd.apiFunction match {
                 //No longer need this special case since all transaction reqquest Resource Docs have explicit URL

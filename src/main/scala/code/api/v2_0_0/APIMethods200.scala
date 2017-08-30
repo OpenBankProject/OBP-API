@@ -255,7 +255,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG, Support),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 

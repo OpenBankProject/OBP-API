@@ -14,13 +14,11 @@ import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
+import code.branches.InboundAdapterInfo
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -34,12 +32,11 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{BCrypt, Props, SimpleInjector, StringHelpers}
+import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
 import scala.util.Random
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 /*
@@ -836,16 +833,20 @@ trait Connector extends MdcLoggable{
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
-  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
 
   def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
-  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
 
-  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
+  
+  
+  
+  
   
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
@@ -910,7 +911,7 @@ trait Connector extends MdcLoggable{
 
   protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   
-  protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
+  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
@@ -1059,28 +1060,16 @@ trait Connector extends MdcLoggable{
       //Note, it should be four different type of details in mappedtransactionrequest.
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
-      transactionRequestCommonBody <-transactionRequestType.value match {
-        case "TRANSFER_TO_PHONE"  =>
+      transactionRequestCommonBody <-TransactionRequestTypes.withName(transactionRequestType.value) match {
+        case TRANSFER_TO_PHONE =>
           Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
-        case "TRANSFER_TO_ATM"  =>
+        case TRANSFER_TO_ATM =>
           Full(details.extract[TransactionRequestBodyTransferToAtmJson])
-        case "TRANSFER_TO_ACCOUNT"  =>
+        case TRANSFER_TO_ACCOUNT =>
           Full(details.extract[TransactionRequestBodyTransferToAccount])
         case _ =>
           Full(details.extract[TransactionRequestBodyTransferToPhoneJson])
       }
-      
-      // Note for 'toCounterparty' in the following :
-      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
-      // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
-//      toCounterparty  <- transactionRequestType.value match {
-//        case "COUNTERPARTY" | "SEPA"  =>
-//          val counterpartyId = tr.counterparty_id
-//          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-//          toCounterparty
-//        case _ =>
-//          Full(new MappedCounterparty())
-//      }
       
       transId <- makePaymentv300(
         initiator,
