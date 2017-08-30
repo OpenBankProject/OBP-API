@@ -294,7 +294,7 @@ trait APIMethods300 {
       emptyObjectJson,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
-      Catalogs(Core, PSD2, notOBWG, Support),
+      Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -331,7 +331,7 @@ trait APIMethods300 {
       emptyObjectJson,
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
 
@@ -390,7 +390,7 @@ trait APIMethods300 {
         ViewNotFound, 
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG, Support),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
     )
   
@@ -750,8 +750,8 @@ trait APIMethods300 {
       apiVersion,
       "createTransactionRequestCouterparty",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
-      "Create Transaction Request (COUNTERPARTY)",
+      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${COUNTERPARTY.toString}/transaction-requests",
+      s"Create Transaction Request (${COUNTERPARTY.toString})",
       s"""$transactionRequestGeneralText
          |
          |Special instructions for COUNTERPARTY:
@@ -794,11 +794,11 @@ trait APIMethods300 {
       apiVersion,
       "createTransactionRequestSepa",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
-      "Create Transaction Request (SEPA)",
+      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${SEPA.toString}/transaction-requests",
+      s"Create Transaction Request (${SEPA.toString})",
       s"""$transactionRequestGeneralText
          |
-         |Special instructions for SEPA:
+         |Special instructions for ${SEPA.toString}:
          |
          |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
@@ -840,9 +840,11 @@ trait APIMethods300 {
          |
          |Special instructions for ${TRANSFER_TO_PHONE.toString}:
          |
-         |When using a ${TRANSFER_TO_PHONE.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
-         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
-         |
+         |When using a ${TRANSFER_TO_PHONE.toString}, the following fields need to be filling in Json Body
+         |from_account_owner_nickname : Nickname of the money sender (20 symbols)
+         |from_account_phone_number   : Mobile number of the money sender (10 digits)
+         |other_account_phone_number  : Mobile number of the money receiver (10 digits)
+         |other_account_message       : Message text to the money receiver (50 symbols)
        """.stripMargin,
       transactionRequestBodyTransferToPhoneJson,
       transactionRequestWithChargeJSON210,
@@ -881,8 +883,7 @@ trait APIMethods300 {
          |
          |Special instructions for ${TRANSFER_TO_ATM.toString}:
          |
-         |When using a ${TRANSFER_TO_ATM.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
-         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |When using a ${TRANSFER_TO_ATM.toString} //TODO add more info there.
          |
        """.stripMargin,
       transactionRequestBodyTransferToAtmJson,
@@ -906,7 +907,7 @@ trait APIMethods300 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
   
     // Transaction Request (TRANSFER_TO_ACCOUNT)
@@ -921,8 +922,7 @@ trait APIMethods300 {
          |
          |Special instructions for ${TRANSFER_TO_ACCOUNT.toString}:
          |
-         |When using a ${TRANSFER_TO_ACCOUNT.toString} Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
-         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |When using a ${TRANSFER_TO_ACCOUNT.toString} //TODO add more info.
          |
        """.stripMargin,
       transactionRequestBodyAccountToAccount,
@@ -946,7 +946,7 @@ trait APIMethods300 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
   
 
@@ -1115,10 +1115,8 @@ trait APIMethods300 {
               case TRANSFER_TO_PHONE => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_PHONE.toString()} input format"
-                  chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -1128,16 +1126,14 @@ trait APIMethods300 {
                     transactionRequestType,
                     transDetailsP2PJson,
                     transDetailsSerialized,
-                    chargePolicy)
+                    sharedChargePolicy.toString)
                 } yield createdTransactionRequest
               }
               case TRANSFER_TO_ATM => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ATM input format"
-                  chargePolicy = transDetailsP2PJson.charge_policy
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -1147,14 +1143,12 @@ trait APIMethods300 {
                     transactionRequestType,
                     transDetailsP2PJson,
                     transDetailsSerialized,
-                    chargePolicy)
+                    sharedChargePolicy.toString)
                 } yield createdTransactionRequest
               }
               case TRANSFER_TO_ACCOUNT => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
-                  chargePolicy = transDetailsP2PJson.charge_policy
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -1164,7 +1158,7 @@ trait APIMethods300 {
                     transactionRequestType,
                     transDetailsP2PJson,
                     transDetailsSerialized,
-                    chargePolicy)
+                    sharedChargePolicy.toString)
                 } yield createdTransactionRequest
               }
             }

@@ -1982,17 +1982,16 @@ object SwaggerDefinitionsJSON {
   
   
   val couterparty = CounterpartyTransferToPhoneJson(
-    other_account_owner= "TOM",
-    other_account_owner_birthday = "19900101",
+    other_account_message ="Good Luck",
     other_account_phone_number= "+9722398746"
   )
   
   // mapping NTBD_1_135 Sample.txt and NTBD_2_135 Sample.txt
   val transactionRequestBodyTransferToPhoneJson = TransactionRequestBodyTransferToPhoneJson(
     from_account_phone_number="+9722398712",
+    from_account_owner_nickname="Tom",
     value = amountOfMoneyJsonV121,                                
     description = s"This is a ${TRANSFER_TO_PHONE.toString} Transaction Request", 
-    charge_policy = "SHARED",
     couterparty = couterparty
   )
   
@@ -2001,10 +2000,12 @@ object SwaggerDefinitionsJSON {
     other_account_owner_passport_id_or_national_id= "NationalId",
     other_account_owner_id_type = "ID Type of the money receiver: 1 - National; 5- Passport",
     other_account_owner_birthday ="19900101",
+    other_account_message ="Good Luck",
     other_account_phone_number ="+9722398746"
   )
   val transactionRequestBodyTransferToAtmJson = TransactionRequestBodyTransferToAtmJson(
-    from_account_phone_number = "Tom",
+    from_account_phone_number = "+9722398746",
+    from_account_owner_nickname="Tom",
     value = amountOfMoneyJsonV121,
     description = s"This is a ${TRANSFER_TO_ATM.toString} Transaction Request",
     charge_policy = "SHARED",
@@ -2019,7 +2020,7 @@ object SwaggerDefinitionsJSON {
     branch_number= "Branch number of the target account",
     account_number ="Account number of the target account",
     iban = "IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored",
-    bank_type ="Target bank type: 0-Leumi; 1-other bank"
+    other_account_owner ="Target bank type: 0-Leumi; 1-other bank"
   )
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
