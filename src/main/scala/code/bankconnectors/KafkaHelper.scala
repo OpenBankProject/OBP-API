@@ -3,9 +3,8 @@ package code.bankconnectors
 import akka.pattern.ask
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Box
 import net.liftweb.json.JValue
-
-import scala.concurrent.Await
 
 object KafkaHelper extends KafkaHelper
 
@@ -38,8 +37,8 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     extractFuture(actor ? request)
   }
 
-  def process[T] (request: T): JValue ={
-    extractFuture(actor ? request)
+  def processToBox[T](request: T): Box[JValue] = {
+    extractFutureToBox(actor ? request)
   }
 
 }

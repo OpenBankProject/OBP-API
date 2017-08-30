@@ -362,3 +362,17 @@ autocomplete_at_login_form_enabled=false
 
 # Disable akka (Remote storage not possible)
 use_akka=false
+
+
+# -- Display internal errors --------------------------------------
+# Enable/Disable showing of nested/chained error messages to an end user
+# When is disabled we show only last message which should be a user friendly one. For instance:
+# {
+#   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
+# }
+# When is enable we show all messages in a chain.For instance:
+# {
+#   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID. <- Full(Kafka_TimeoutExceptionjava.util.concurrent.TimeoutException: The stream has not been completed in 1550 milliseconds.)"
+# }
+display_internal_errors=false
+# -------------------------------------- Display internal errors --
