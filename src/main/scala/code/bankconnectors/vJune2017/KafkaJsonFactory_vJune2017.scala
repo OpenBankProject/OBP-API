@@ -4,10 +4,8 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.bankconnectors.Topics._
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
+import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
 import code.bankconnectors._
 import code.branches.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
 import code.customer.Customer
@@ -32,6 +30,39 @@ case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, account
 case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends GetTransactionsTopic
 case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends GetTransactionTopic
 case class CreateCBSAuthToken(authInfo: AuthInfo) extends CreateCBSAuthTokenTopic
+case class CreateTransaction(
+  authInfo: AuthInfo,
+  
+  // fromAccount
+  fromAccountBankId : String,
+  fromAccountId : String,
+  
+  // transaction details
+  transactionRequestType: String,
+  transactionChargePolicy: String,
+  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+  
+  // toAccount or toCounterparty
+  toCounterpartyId: String,
+  toCounterpartyName: String,
+  toCounterpartyCurrency: String,
+  toCounterpartyRoutingAddress: String,
+  toCounterpartyRoutingScheme: String,
+  toCounterpartyBankRoutingAddress: String,
+  toCounterpartyBankRoutingScheme: String
+
+) extends CreateTransactionTopic
+
+case class OutboundCreateChallengeJune2017(
+  authInfo: AuthInfo,
+  bankId: String,
+  accountId: String,
+  userId: String,
+  username: String,
+  transactionRequestType: String,
+  transactionRequestId: String,
+  phoneNumber: String
+) extends OutboundCreateChallengeJune2017Topic
 
 /**
   * case classes used as payloads
@@ -44,6 +75,8 @@ case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune
 case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
+case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
+case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
 
 case class InboundAccountJune2017(
   errorCode: String,
@@ -66,7 +99,7 @@ case class InboundAccountJune2017(
 ) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
-
+  
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.accountType
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
@@ -80,18 +113,18 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def bankId: BankId = BankId(r.bankId)
   def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
-
+  
   // Fields modifiable from OBP are stored in mapper
   def label: String = (for {
     d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, r.accountId))
   } yield {
     d.getLabel
   }).getOrElse(r.accountNumber)
-
+  
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
-
+  
 }
 
 case class InternalBasicCustomer(
@@ -104,13 +137,17 @@ case class InternalBasicCustomer(
 
 case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
 
+case class InternalTransactionId(id : String)
+
+case class InternalCreateChallengeJune2017(answer : String)
+
 object JsonFactory_vJune2017 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
     InternalBasicCustomer(
-      bankId=customer.bankId, 
-      customerId = customer.customerId, 
-      customerNumber = customer.number, 
-      legalName = customer.legalName, 
+      bankId=customer.bankId,
+      customerId = customer.customerId,
+      customerNumber = customer.number,
+      legalName = customer.legalName,
       dateOfBirth = customer.dateOfBirth
     )
   }
