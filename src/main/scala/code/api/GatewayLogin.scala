@@ -39,6 +39,7 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
+import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
 
 /**
@@ -95,11 +96,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           case JsonWebToken(header, payload, signature) =>
             logger.debug("payload" + payload)
             Full(payload.asJsonString)
-          case _ => Failure("Cannot extract token!")
+          case _ => Failure(ErrorMessages.GatewayLoginCannotExtractJwtToken)
         }
       }
       case false  => {
-        Failure("JWT token is not valid!")
+        Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
       }
     }
   }
