@@ -73,11 +73,13 @@ write_metrics=true
 
 
 ## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+db.driver=org.h2.Driver
+db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
+
+
+#If you want to use the postgres , be sure to create your database and update the line below!
 #db.driver=org.postgresql.Driver
-#db.driver=org.h2.Driver
-#db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
-#be sure to create your database and update the line below!
-db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+#db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
 # If you want to use MySQL
 #db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
