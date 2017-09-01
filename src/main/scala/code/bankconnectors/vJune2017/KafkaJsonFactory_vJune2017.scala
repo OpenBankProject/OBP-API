@@ -8,6 +8,8 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, TransactionRequestCommonBodyJSON}
 import code.bankconnectors.Topics._
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
+import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
 import code.bankconnectors._
 import code.branches.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
 import code.customer.Customer
@@ -101,7 +103,7 @@ case class InboundAccountJune2017(
 ) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
-
+  
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.accountType
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
@@ -115,18 +117,18 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def bankId: BankId = BankId(r.bankId)
   def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
-
+  
   // Fields modifiable from OBP are stored in mapper
   def label: String = (for {
     d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, r.accountId))
   } yield {
     d.getLabel
   }).getOrElse(r.accountNumber)
-
+  
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
-
+  
 }
 
 case class InternalBasicCustomer(
@@ -146,10 +148,10 @@ case class InternalCreateChallengeJune2017(answer : String)
 object JsonFactory_vJune2017 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
     InternalBasicCustomer(
-      bankId=customer.bankId, 
-      customerId = customer.customerId, 
-      customerNumber = customer.number, 
-      legalName = customer.legalName, 
+      bankId=customer.bankId,
+      customerId = customer.customerId,
+      customerNumber = customer.number,
+      legalName = customer.legalName,
       dateOfBirth = customer.dateOfBirth
     )
   }

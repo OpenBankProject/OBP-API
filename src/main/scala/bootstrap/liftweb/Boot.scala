@@ -84,7 +84,7 @@ import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Schedule, _}
+import net.liftweb.util.{Helpers, Props, Schedule, _}
 
 
 /**
@@ -98,6 +98,7 @@ class Boot extends MdcLoggable {
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
+    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : " + Props.props.mkString)
     logger.info("external props folder: " + propsPath)
 
     /**
