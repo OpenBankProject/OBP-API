@@ -29,7 +29,7 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.v3_0_0
+package code.api.v3_0_0.custom
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.ResourceDoc
@@ -38,7 +38,7 @@ import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
-import code.api.v3_0_0.custom.CustomAPIMethods300
+import code.api.v3_0_0.APIMethods300
 import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
@@ -54,7 +54,7 @@ This file defines which endpoints from all the versions are available in v3.0.0
  */
 
 
-object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable {
+object OBPAPICustom3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable {
   
   
   val version = "3.0.0"
@@ -296,9 +296,10 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   }
   // ### VERSION 2.2.0 - END ###
   
-  // New in 3.0.0 Custom Foler
+  // New in 3.0.0 Custom Foler, this is for sepcific bank endpoints. 
   //First step - make a list of allowed endpoints
-  val endpointsOfCustom3_0_0 =  ImplementationsCustom3_0_0.createTransactionRequestTransferToReferenceAccountCustom:: Nil
+  val endpointsOfCustom3_0_0 =  ImplementationsCustom3_0_0.createTransactionRequestTransferToReferenceAccountCustom ::
+    Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
@@ -339,10 +340,10 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 3.0.0 - END ###
-
+  
   def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
-    val all = Implementations3_0_0.resourceDocs ++
-              ImplementationsCustom3_0_0.resourceDocs ++
+    val all = ImplementationsCustom3_0_0.resourceDocs ++
+              Implementations3_0_0.resourceDocs ++
               Implementations2_2_0.resourceDocs ++
               Implementations2_1_0.resourceDocs ++
               Implementations2_0_0.resourceDocs ++
