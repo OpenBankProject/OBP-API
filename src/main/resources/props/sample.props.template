@@ -73,11 +73,13 @@ write_metrics=true
 
 
 ## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+db.driver=org.h2.Driver
+db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
+
+
+#If you want to use the postgres , be sure to create your database and update the line below!
 #db.driver=org.postgresql.Driver
-#db.driver=org.h2.Driver
-#db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
-#be sure to create your database and update the line below!
-db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+#db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
 # If you want to use MySQL
 #db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
@@ -370,7 +372,12 @@ use_akka=false
 # {
 #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
 # }
-# When is enable we show all messages in a chain.For instance:
+# When is disabled we also do filtering. Every message which does not contain "OBP-" is considered as internal and as that is not shown.
+# In case the filtering implies an empty response we provide a generic one:
+# {
+#   "error": "OBP-50005: An unspecified or internal error occurred."
+# }
+# When is enabled we show all messages in a chain. For instance:
 # {
 #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID. <- Full(Kafka_TimeoutExceptionjava.util.concurrent.TimeoutException: The stream has not been completed in 1550 milliseconds.)"
 # }
