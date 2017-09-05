@@ -148,6 +148,8 @@ import code.api.util.APIUtil._
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
+  val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The JWT is corrupted/changed during a transport."
+  val GatewayLoginCannotExtractJwtToken = "OBP-20040: Header, Payload and Signature cannot be extracted from the JWT."
 
 
 
@@ -263,6 +265,7 @@ import code.api.util.APIUtil._
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
   // This error may not be shown to user, just for debugging.
   val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
+  val AnUnspecifiedOrInternalErrorOccurred = "OBP-50005: An unspecified or internal error occurred."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200

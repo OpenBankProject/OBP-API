@@ -11,6 +11,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.bankconnectors.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Failure
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import net.liftweb.util.Props
@@ -128,16 +129,16 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   def pipeToSender(sender: ActorRef, future: Future[Any]) = future recover {
     case e: InterruptedException => json.parse(s"""{"error":"sending message to kafka interrupted"}""")
       logger.error(s"""{"error":"sending message to kafka interrupted,"${e}"}""")
-      throw new RuntimeException("Kafka_InterruptedException"+e.toString)
+      Failure("Kafka_InterruptedException"+e.toString)
     case e: ExecutionException => json.parse(s"""{"error":"could not send message to kafka"}""")
       logger.error(s"""{"error":"could not send message to kafka, "${e}"}""")
-      throw new RuntimeException("Kafka_ExecutionException"+e.toString)
+      Failure("Kafka_ExecutionException"+e.toString)
     case e: TimeoutException => json.parse(s"""{"error":"receiving message from kafka timed out"}""")
       logger.error(s"""{"error":"receiving message from kafka timed out", "${e}" "}""")
-      throw new RuntimeException("Kafka_TimeoutException"+e.toString)
+      Failure("Kafka_TimeoutException"+e.toString)
     case e: Throwable => json.parse(s"""{"error":"unexpected error sending message to kafka"}""")
       logger.error(s"""{"error":"unexpected error sending message to kafka , "${e}"}""")
-      throw new RuntimeException("Kafka_Throwable"+e.toString)
+      Failure("Kafka_Throwable"+e.toString)
   } pipeTo sender
 
   def receive = {
@@ -248,6 +249,8 @@ object Topics {
   trait GetTransactionsTopic extends TopicTrait
   trait GetTransactionTopic extends TopicTrait
   trait CreateCBSAuthTokenTopic extends TopicTrait
+  trait CreateTransactionTopic extends TopicTrait
+  trait OutboundCreateChallengeJune2017Topic extends TopicTrait
   
   
   //There design for InBound Topics : South --> North

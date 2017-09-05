@@ -39,6 +39,7 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
+import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
 
 /**
@@ -87,19 +88,19 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     jwt
   }
 
-  def parseJwt(parameters: Map[String, String]): String = {
+  def parseJwt(parameters: Map[String, String]): Box[String] = {
     val jwt = getToken(parameters)
     validateJwtToken(jwt) match {
       case true => {
         jwt match {
           case JsonWebToken(header, payload, signature) =>
             logger.debug("payload" + payload)
-            payload.asJsonString
-          case _ => "Cannot extract token!"
+            Full(payload.asJsonString)
+          case _ => Failure(ErrorMessages.GatewayLoginCannotExtractJwtToken)
         }
       }
       case false  => {
-        "JWT token is not valid!"
+        Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
       }
     }
   }
