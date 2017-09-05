@@ -10,8 +10,10 @@ trait CustomAPIMethods300 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
   val ImplementationsCustom3_0_0 = new Object() {
-    val apiVersion: String = "Custom_3_0_0"
-  
+    
+    def endpointsOfCustom3_0_0 = createTransactionRequestTransferToReferenceAccountCustom :: Nil
+    
+    val apiVersion: String = "3_0_0"
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

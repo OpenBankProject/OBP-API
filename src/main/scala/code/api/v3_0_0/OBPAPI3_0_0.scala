@@ -296,9 +296,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   }
   // ### VERSION 2.2.0 - END ###
   
-  // New in 3.0.0 Custom Foler
+  // New in 3.0.0 Custom Folder
   //First step - make a list of allowed endpoints
-  val endpointsOfCustom3_0_0 =  ImplementationsCustom3_0_0.createTransactionRequestTransferToReferenceAccountCustom:: Nil
+  val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
