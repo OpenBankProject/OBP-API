@@ -205,12 +205,15 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         }
         val cbsAuthTokens = getCbsTokens(s)
         createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
-        // Update user account views
-        for {
-          user <- u
-          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
-        } {
-          AuthUser.updateUserAccountViews(ru)
+        val isFirstField = getFieldFromPayloadJson(jwtPayload, "is_first")
+        // Update user account views, only when is_first == ture in the GatewayLogin token's parload . 
+        if(isFirstField.equalsIgnoreCase("true")){
+          for {
+            user <- u
+            ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
+          } {
+            AuthUser.updateUserAccountViews(ru)
+          }
         }
         u // Return user
       case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
