@@ -32,13 +32,14 @@
 package code.api.v3_0_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
-import code.api.v2_2_0.OBPAPI2_2_0._
+import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
@@ -54,16 +55,21 @@ This file defines which endpoints from all the versions are available in v3.0.0
  */
 
 
-object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with MdcLoggable {
+object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable {
   
   
   val version = "3.0.0"
   val versionStatus = "BLEEDING-EDGE"
 
   // Get disabled API versions from props
-  val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
+  val disabledVersions = APIUtil.getDisabledVersions
   // Get disabled API endpoints from props
-  val disabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
+  val disabledEndpoints = APIUtil.getDisabledEndpoints
+
+
+
+  logger.info(s"disabledVersions in $version are ${disabledVersions.mkString(",")}")
+  logger.info(s"disabledEndpoints in $version are ${disabledEndpoints.mkString(",")}")
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
@@ -296,6 +302,19 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   }
   // ### VERSION 2.2.0 - END ###
   
+  // New in 3.0.0 Custom Folder
+  //First step - make a list of allowed endpoints
+  val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
+  //Second step - iterate through all endpoints defined in resource doc
+  //       then - omit endpoints of disabled version in props file
+  //       and  - omit partially disabled endpoint in props file
+  //       and  - add only ones which intersect with the list defined in the first step
+  for (item <- ImplementationsCustom3_0_0.resourceDocs if (!disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) && endpointsOfCustom3_0_0.exists(_ == item.partialFunction))) {
+    routes = routes:::List(item.partialFunction)
+  }
+  // ### VERSION 3.0.0Custom - END ###
+  
+  
   // New in 3.0.0
   //First step - make a list of allowed endpoints
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
@@ -330,6 +349,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
     val all = Implementations3_0_0.resourceDocs ++
+              ImplementationsCustom3_0_0.resourceDocs ++
               Implementations2_2_0.resourceDocs ++
               Implementations2_1_0.resourceDocs ++
               Implementations2_0_0.resourceDocs ++

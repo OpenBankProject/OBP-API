@@ -75,6 +75,8 @@ import code.api.util.APIUtil._
   // 3) Before adding a new message, check that you can't use one that already exists.
   // 4) Use Proper Names for OBP Resources.
   // 5) Don't use abbreviations.
+  // 6) Any messaage defined here should be considered "fair game" to return over the API. Thus:
+  // 7) Since the existance of "OBP-..." in a message is used to determine if we should display to a user if display_internal_errors=false, do *not* concatenate internal or core banking system error messages to these strings.
 
   // Infrastructure / config level messages (OBP-00XXX)
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
@@ -1322,6 +1324,11 @@ Returns a string showed to the developer
   def camelifyMethod(json: JValue): JValue = json mapField {
     case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
   }
+
+  def getDisabledVersions() : List[String] = {Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList}
+
+  def getDisabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
+
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
