@@ -47,7 +47,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataEntitlementsActor]         -> RemotedataEntitlements.actorName
     )
 
-    actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(RoundRobinPool(10).props(a._1), name = a._2)) }
+    actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
   }
 
   def startRemoteWorkerSystem(): Unit = {

@@ -50,6 +50,7 @@ import code.model._
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
+import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
@@ -1320,6 +1321,20 @@ Returns a string showed to the developer
     */
   def camelifyMethod(json: JValue): JValue = json mapField {
     case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
+  }
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
+    val laf = new LAFuture[T]
+    scf.onSuccess {
+      case v: T => laf.satisfy(v)
+      case _ => laf.abort
+    }
+    scf.onFailure {
+      case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty))
+    }
+    laf
   }
 
 

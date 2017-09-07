@@ -76,7 +76,6 @@ import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
-import code.util.Helper
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
@@ -393,7 +392,6 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    LiftRules.cometRequestTimeout = Props.getInt("remotedata.timeout")
   }
 
   def schemifyAll() = {

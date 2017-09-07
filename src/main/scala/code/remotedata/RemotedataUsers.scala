@@ -38,7 +38,7 @@ object RemotedataUsers extends ObpActorInit with Users {
 
   def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]] = {
     val res = (actor ? cc.getAllUsersF())
-      res.mapTo[Future[Box[List[ResourceUserCaseClass]]]].flatMap { x => x }
+    res.mapTo[Box[List[ResourceUserCaseClass]]]
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] =
