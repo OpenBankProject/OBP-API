@@ -46,6 +46,11 @@ object LiftUsers extends Users {
     Future{users}
   }
 
+  def getAllUsersFF(): Box[List[ResourceUserCaseClass]] = {
+    val users = Full(ResourceUser.findAll().map(_.toCaseClass))
+    users
+  }
+
   override def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)

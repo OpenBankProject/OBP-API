@@ -20,9 +20,10 @@ import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper.booleanToBox
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.actor.LAFuture
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.rest.{RestContinuation, RestHelper}
-import net.liftweb.http.{BadResponse, JsonResponse, NotAcceptableResponse, Req, S}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -1067,38 +1068,24 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
-    import scala.concurrent.ExecutionContext.Implicits.global
-    lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def futureToResponse2[T](in: LAFuture[T]): Box[JsonResponse] = {
+      RestContinuation.async(reply => {
+        in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
+        in.onFail {
+          case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
+          case _                  => reply.apply(errorJsonResponse("Error"))
+        }
+      })
+    }
+    lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
         user => {
-          RestContinuation.async {
-            reply => {
-              // Guards
-              user match {
-                case Full(u) if hasEntitlement("", u.userId, ApiRole.CanGetAnyUser) == false =>
-                  //reply(BadRequestResponse(UserHasMissingRoles + CanGetAnyUser))
-                case Empty =>
-                  //reply(BadRequestResponse(ErrorMessages.UserNotLoggedIn))
-              } // End of Guards
-
-              // Processing endpoint
-              val future1: Future[Box[List[ResourceUserCaseClass]]] = Users.users.vend.getAllUsersF()
-              future1 onSuccess {
-                case Full(l) =>  {
-                  case class Users(users: List[ResourceUserCaseClass])
-                  reply(successJsonResponseFromCaseClass(Users(l)))
-                }
-                case _ => reply(BadResponse())
-              }
-              future1 onFailure {
-                case failure => reply(NotAcceptableResponse(failure.getMessage))
-              }
-              // End of processing endpoint
-            }
+          val future: Future[Box[List[ResourceUserCaseClass]]] = Users.users.vend.getAllUsersF()
+          val laf = scalaFutureToLaFuture(future)
+          futureToResponse2(laf)
           }
         }
       }
-    }
 
     /* WIP
     resourceDocs += ResourceDoc(
