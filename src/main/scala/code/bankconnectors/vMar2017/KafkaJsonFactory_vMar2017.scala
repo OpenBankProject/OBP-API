@@ -297,8 +297,16 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def isBeneficiary: Boolean = counterparty.isBeneficiary
 }
 
+case class BackendMessage(
+  source: String,
+  status: String,
+  errorCode: String,
+  text: String
+)
+
 case class InboundBank(
   errorCode: String,
+  backendMessages: List[BackendMessage],
   bankId: String,
   name: String,
   logo: String,

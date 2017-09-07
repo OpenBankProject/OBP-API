@@ -21,7 +21,7 @@ case class AuthInfo(userId: String, username: String, cbsToken: String)
   */
 
 case class GetAdapterInfo(date: String) extends GetAdapterInfoTopic
-case class GetBanks(authInfo: AuthInfo, criteria: String) extends GetBanksTopic
+case class GetBanks(authInfo: AuthInfo) extends GetBanksTopic
 case class GetBank(authInfo: AuthInfo, bankId: String) extends GetBankTopic
 case class GetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends GetUserByUsernamePasswordTopic
 case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends GetAccountsTopic

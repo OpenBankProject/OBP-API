@@ -34,7 +34,7 @@ import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches._
+import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -256,19 +256,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
-      )
-        :: InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
-      )
-        :: Nil
+      ):: Nil
     )
   )
 
@@ -524,8 +517,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
-        
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",

@@ -172,11 +172,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         "userId", 
         "username", 
         "cbsToken"
-        ),"")
+        ))
     ),
     exampleInboundMessage = decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB", "Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -187,12 +188,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   //gets banks handled by this connector
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond){
-      val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
+      val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"))
       logger.debug(s"Kafka getBanks says: req is: $req")
       val box: Box[List[InboundBank]] = processToBox[GetBanks](req).map(_.extract[Banks].data)
       val res = box match {
-        case Full(list) =>
+        case Full(list) if (list.head.errorCode=="") =>
           Full(list map (new Bank2(_)))
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, _, _) =>
@@ -214,6 +217,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
