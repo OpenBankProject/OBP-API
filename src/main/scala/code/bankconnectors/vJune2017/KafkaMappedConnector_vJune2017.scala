@@ -34,7 +34,6 @@ import code.bankconnectors._
 import code.branches._
 import code.customer.Customer
 import code.fx.fx
-import code.fx.fx
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
@@ -116,8 +115,10 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     
     val box = processToBox[GetAdapterInfo](req).map(_.extract[AdapterInfo].data)
     val res = box match {
-      case Full(list) =>
+      case Full(list) if (list.errorCode=="")  =>
         Full(list)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:")//+ list.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, _, _) =>
@@ -171,22 +172,21 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     messageFormat = messageFormat,
     description = "getBanks",
     exampleOutboundMessage = decompose(
-      GetBanks(AuthInfo("userId", "username", "cbsToken"),"")
+      GetBanks(AuthInfo(
+        "userId", 
+        "username", 
+        "cbsToken"
+        ),"")
     ),
     exampleInboundMessage = decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
-      ) :: InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
-      ) :: Nil
+      )  :: Nil
     )
   )
   //gets banks handled by this connector
@@ -196,8 +196,10 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       logger.debug(s"Kafka getBanks says: req is: $req")
       val box: Box[List[InboundBank]] = processToBox[GetBanks](req).map(_.extract[Banks].data)
       val res = box match {
-        case Full(list) =>
+        case Full(list) if (list.head.errorCode=="") =>
           Full(list map (new Bank2(_)))
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, _, _) =>
@@ -220,6 +222,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     exampleInboundMessage = decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        backendMessages = List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",

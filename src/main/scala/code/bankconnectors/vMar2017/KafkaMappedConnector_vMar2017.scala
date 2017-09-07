@@ -255,19 +255,12 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
         url = "https://tesobe.com/"
-      )
-        :: InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
-      )
-        :: Nil
+      ):: Nil
     )
   )
 
@@ -524,8 +517,8 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
-        
         errorCode = "OBP-6001: ...",
+        List(BackendMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",

@@ -4,11 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.api.v2_1_0.{CustomerCreditRatingJSON, TransactionRequestCommonBodyJSON}
-import code.bankconnectors.Topics._
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
 import code.bankconnectors._
 import code.branches.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
