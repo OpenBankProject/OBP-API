@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.kafka
 
 import akka.pattern.ask
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}

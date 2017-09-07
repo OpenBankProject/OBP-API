@@ -11,9 +11,8 @@ import code.api.v2_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.InboundAdapterInfo
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}

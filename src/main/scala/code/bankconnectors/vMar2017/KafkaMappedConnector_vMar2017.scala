@@ -36,6 +36,7 @@ import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches._
 import code.fx.{FXRate, fx}
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -47,8 +48,10 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -60,8 +63,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.util.Helper.MdcLoggable
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
 object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {

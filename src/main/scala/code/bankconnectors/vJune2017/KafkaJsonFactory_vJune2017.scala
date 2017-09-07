@@ -4,11 +4,11 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
-import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors._
-import code.branches.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
+import code.bankconnectors.vMar2017.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
 import code.customer.Customer
+import code.kafka.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, BankAccount, BankId}
 import net.liftweb.mapper.By

@@ -30,9 +30,10 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
 import code.bankconnectors._
-import code.branches._
+import code.bankconnectors.vMar2017._
 import code.customer.Customer
 import code.fx.fx
+import code.kafka.KafkaHelper
 import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._

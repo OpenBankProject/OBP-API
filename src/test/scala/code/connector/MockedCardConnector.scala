@@ -1,25 +1,11 @@
 package code.connector
 
-import java.util.Date
-
-import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
-import code.fx.FXRate
-import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
-import code.model.dataAccess.ResourceUser
-import code.products.Products.{Product, ProductCode}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
-import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Full}
 
 /**
   * Created by zhanghongwei on 14/07/2017.

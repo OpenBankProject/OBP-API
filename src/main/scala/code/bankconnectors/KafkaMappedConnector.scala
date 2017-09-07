@@ -28,13 +28,14 @@ import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
+import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -46,17 +47,16 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
-import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import code.util.Helper.MdcLoggable
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
 

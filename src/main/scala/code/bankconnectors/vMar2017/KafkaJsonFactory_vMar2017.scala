@@ -29,7 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.branches
+package code.bankconnectors.vMar2017
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
@@ -610,7 +610,7 @@ case class MessageDocJson(
 // Creates the json resource_docs
 case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
-object KafkaJSONFactory_vMar2017 {
+object JsonFactory_vMar2017 {
 
   def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
