@@ -2,6 +2,7 @@ package code.connector
 
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
+import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.model._
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
@@ -27,6 +28,7 @@ object MockedCardConnector extends ServerSetup
     Full(
       InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
+        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
         cbsToken = "cbsToken",
         bankId = bankIdAccountId.bankId.value,
         branchId = "222", 
@@ -45,17 +47,18 @@ object MockedCardConnector extends ServerSetup
         accountRoutingAddress = "accountRoutingAddress"
       ) :: InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
+        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
         cbsToken = "cbsToken",
-        bankId = bankIdAccountId2.bankId.value, 
+        bankId = bankIdAccountId2.bankId.value,
         branchId = "222",
-        accountId = bankIdAccountId2.accountId.value, 
+        accountId = bankIdAccountId2.accountId.value,
         accountNumber = "123",
-        accountType = "AC", 
-        balanceAmount = "50", 
+        accountType = "AC",
+        balanceAmount = "50",
         balanceCurrency = "EUR",
         owners = Nil,
         viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", 
+        bankRoutingScheme = "iban",
         bankRoutingAddress = "bankRoutingAddress",
         branchRoutingScheme = "branchRoutingScheme",
         branchRoutingAddress = " branchRoutingAddress",
