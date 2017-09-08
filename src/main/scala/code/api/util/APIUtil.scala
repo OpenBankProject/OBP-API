@@ -55,6 +55,7 @@ import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
+import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.Helpers._
@@ -1342,6 +1343,16 @@ Returns a string showed to the developer
       case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty))
     }
     laf
+  }
+
+  def futureToResponse2[T](in: LAFuture[T]): JsonResponse = {
+    RestContinuation.async(reply => {
+      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
+      in.onFail {
+        case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
+        case _                  => reply.apply(errorJsonResponse("Error"))
+      }
+    })
   }
 
 

@@ -1068,24 +1068,18 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
-    def futureToResponse2[T](in: LAFuture[T]): Box[JsonResponse] = {
-      RestContinuation.async(reply => {
-        in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
-        in.onFail {
-          case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
-          case _                  => reply.apply(errorJsonResponse("Error"))
-        }
-      })
-    }
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
-        user => {
-          val future: Future[Box[List[ResourceUserCaseClass]]] = Users.users.vend.getAllUsersF()
-          val laf = scalaFutureToLaFuture(future)
-          futureToResponse2(laf)
+        user =>
+          for {
+            // l <- user ?~ UserNotLoggedIn
+            // _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            _ <- Full("Just for testing")
+          } yield {
+            futureToResponse2(scalaFutureToLaFuture(Users.users.vend.getAllUsersF()))
           }
-        }
       }
+    }
 
     /* WIP
     resourceDocs += ResourceDoc(
