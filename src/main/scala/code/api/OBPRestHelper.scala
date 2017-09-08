@@ -87,6 +87,20 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
   If we have something good, return it. Else log and return an error.
+  Please note that behaviour of this function depends om property display_internal_errors=true/false in case of Failure
+  # When is disabled we show only last message which should be a user friendly one. For instance:
+  # {
+  #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
+  # }
+  # When is disabled we also do filtering. Every message which does not contain "OBP-" is considered as internal and as that is not shown.
+  # In case the filtering implies an empty response we provide a generic one:
+  # {
+  #   "error": "OBP-50005: An unspecified or internal error occurred."
+  # }
+  # When is enabled we show all messages in a chain. For instance:
+  # {
+  #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID. <- Full(Kafka_TimeoutExceptionjava.util.concurrent.TimeoutException: The stream has not been completed in 1550 milliseconds.)"
+  # }
   */
   implicit def jsonResponseBoxToJsonResponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
@@ -96,10 +110,18 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case obj@Failure(msg, _, c) => {
-        val showChainMessages = Props.getBool("display_internal_errors").openOr(false)
-        val msgToShow = if(showChainMessages) obj.messageChain else msg
-        logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + msgToShow)
-        errorJsonResponse(msgToShow)
+        val failuresMsg = Props.getBool("display_internal_errors").openOr(false) match {
+          case true => // Show all error in a chain
+            obj.messageChain
+          case false => // Do not display internal errors
+            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
+            obpFailures match {
+              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
+              case _ => obpFailures.map(_.msg).mkString(" <- ")
+            }
+          }
+        logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + failuresMsg)
+        errorJsonResponse(failuresMsg)
       }
       case _ => errorJsonResponse()
     }

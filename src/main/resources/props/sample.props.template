@@ -372,7 +372,12 @@ use_akka=false
 # {
 #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
 # }
-# When is enable we show all messages in a chain.For instance:
+# When is disabled we also do filtering. Every message which does not contain "OBP-" is considered as internal and as that is not shown.
+# In case the filtering implies an empty response we provide a generic one:
+# {
+#   "error": "OBP-50005: An unspecified or internal error occurred."
+# }
+# When is enabled we show all messages in a chain. For instance:
 # {
 #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID. <- Full(Kafka_TimeoutExceptionjava.util.concurrent.TimeoutException: The stream has not been completed in 1550 milliseconds.)"
 # }

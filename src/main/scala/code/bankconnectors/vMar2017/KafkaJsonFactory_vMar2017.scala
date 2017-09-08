@@ -29,7 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.branches
+package code.bankconnectors.vMar2017
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
@@ -259,6 +259,7 @@ case class OutboundTransactionRequestTypeChargeBase(
 
 case class InboundValidatedUser(
   errorCode: String,
+  backendMessages: List[InboundStatusMessage],
   email: String,
   displayName: String
 ) extends InboundMessageBase
@@ -297,7 +298,7 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def isBeneficiary: Boolean = counterparty.isBeneficiary
 }
 
-case class BackendMessage(
+case class InboundStatusMessage(
   source: String,
   status: String,
   errorCode: String,
@@ -306,19 +307,21 @@ case class BackendMessage(
 
 case class InboundBank(
   errorCode: String,
-  backendMessages: List[BackendMessage],
+  backendMessages: List[InboundStatusMessage],
   bankId: String,
   name: String,
   logo: String,
   url: String
 )extends InboundMessageBase
 
-case class InboundAdapterInfo(errorCode: String,
-                              name: String,
-                              version: String,
-                              git_commit: String,
-                              date: String
-                             ) extends InboundMessageBase
+case class InboundAdapterInfo(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  name: String,
+  version: String,
+  git_commit: String,
+  date: String
+) extends InboundMessageBase
 
 
 case class Bank2(r: InboundBank) extends Bank { //CM maybe kafka message
@@ -513,6 +516,7 @@ case class InboundLocation(
 //InboundTransaction --> InternalTransaction -->OutboundTransaction
 case class InternalTransaction(
   errorCode: String,
+  backendMessages: List[InboundStatusMessage],
   transactionId: String,
   accountId: String,
   amount: String,
@@ -618,7 +622,7 @@ case class MessageDocJson(
 // Creates the json resource_docs
 case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
-object KafkaJSONFactory_vMar2017 {
+object JsonFactory_vMar2017 {
 
   def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))

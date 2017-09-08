@@ -34,8 +34,9 @@ import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches._
+import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -47,8 +48,10 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -60,11 +63,9 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import code.util.Helper.MdcLoggable
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 
-object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
+trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
 
   type AccountType = BankAccount2
 
@@ -123,6 +124,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundValidatedUser(
         errorCode = "OBP-6001: ...",
+        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
         email = "susan.uk.29@example.com",
         displayName = "susan"
       )
@@ -255,7 +257,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
-        List(BackendMessage("ESB","Success", "0", "OK")),
+        List(InboundStatusMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -434,8 +436,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     accountId: AccountId,
     userId: String,
     transactionRequestType: TransactionRequestType,
-    transactionRequestId: String,
-    phoneNumber: String
+    transactionRequestId: String
   ): Box[String] = {
     // Create argument list
     val req = OutboundChallengeBase(
@@ -518,7 +519,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
         errorCode = "OBP-6001: ...",
-        List(BackendMessage("ESB","Success", "0", "OK")),
+        List(InboundStatusMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -560,6 +561,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InternalTransaction(
         errorCode = "OBP-6001: ...",
+        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         amount = "100",
@@ -617,22 +619,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = Extraction.decompose(
       InternalTransaction(
         errorCode = "OBP-6001: ...",
-        transactionId = "1234",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        amount = "100",
-        bankId = "gh.29.uk",
-        completedDate = "",
-        counterpartyId = "1234",
-        counterpartyName = "obp",
-        currency = "EUR",
-        description = "Good Boy",
-        newBalanceAmount = "10000",
-        newBalanceCurrency = "1000",
-        postedDate = "",
-        `type` = "AC",
-        userId = "1234"
-      ) :: InternalTransaction(
-        errorCode = "OBP-6001: ...",
+        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
         transactionId = "1234",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         amount = "100",
@@ -1828,4 +1815,9 @@ object KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with Mdc
   }
 
 }
+
+object KafkaMappedConnector_vMar2017 extends KafkaMappedConnector_vMar2017{
+  
+}
+
 

@@ -32,6 +32,7 @@
 package code.api.v2_2_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -51,10 +52,11 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val version = "2.2.0"
   val versionStatus = "DRAFT"
 
-  // Get disbled API versions from props
-  val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
-  // Get disbled API endpoints from props
-  val disabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
+  // Get disabled API versions from props
+  val disabledVersions = APIUtil.getDisabledVersions
+  // Get disabled API endpoints from props
+  val disabledEndpoints = APIUtil.getDisabledEndpoints
+
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 

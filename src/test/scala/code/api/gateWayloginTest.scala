@@ -1,9 +1,10 @@
 package code.api
 
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import net.liftweb.json.{Extraction, compact, render}
+import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
+import net.liftweb.json.{Extraction, compact, render}
 import org.scalatest._
 
 class gateWayloginTest extends FeatureSpec 
@@ -18,6 +19,7 @@ class gateWayloginTest extends FeatureSpec
   //fake this: Connector.connector.vend.getBankAccounts(username)
   val fakeResultFromAdapter =  Full(InboundAccountJune2017(
     errorCode = "",
+    List(InboundStatusMessage("ESB", "Success", "0", "OK")),
     cbsToken ="cbsToken1",
     bankId = "gh.29.uk",
     branchId = "222",
@@ -35,7 +37,8 @@ class gateWayloginTest extends FeatureSpec
     accountRoutingScheme = "accountRoutingScheme",
     accountRoutingAddress = "accountRoutingAddress"
   ) :: InboundAccountJune2017(
-    errorCode = "",
+    errorCode = "123",
+    List(InboundStatusMessage("ESB", "Success", "0", "OK")),
     cbsToken ="cbsToken2",
     bankId = "gh.29.uk",
     branchId = "222",
