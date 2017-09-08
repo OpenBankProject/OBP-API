@@ -38,7 +38,7 @@ class gateWayloginTest extends FeatureSpec
     accountRoutingScheme = "accountRoutingScheme",
     accountRoutingAddress = "accountRoutingAddress"
   ) :: InboundAccountJune2017(
-    errorCode = "123",
+    errorCode = "",
     List(InboundStatusMessage("ESB", "Success", "0", "OK")),
     cbsToken ="cbsToken2",
     bankId = "gh.29.uk",
