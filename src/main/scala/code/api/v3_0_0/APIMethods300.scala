@@ -7,13 +7,13 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
+import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.branches.{Branches, InboundAdapterInfo}
+import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
