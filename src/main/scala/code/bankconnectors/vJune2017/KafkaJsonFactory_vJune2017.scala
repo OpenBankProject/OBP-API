@@ -5,8 +5,6 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer

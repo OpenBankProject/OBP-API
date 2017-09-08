@@ -19,7 +19,6 @@ import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.bankconnectors.{Connector, LocalMappedConnector, OBPLimit, OBPOffset}
 import code.branches.Branches.BranchId
-import code.branches.{Branches, InboundAdapterInfo}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
