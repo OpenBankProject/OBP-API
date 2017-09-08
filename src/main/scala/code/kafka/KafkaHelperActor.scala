@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.kafka
 
 import java.util
 import java.util.{Properties, UUID}
@@ -6,9 +6,8 @@ import java.util.{Properties, UUID}
 import akka.actor.Actor
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.util.Helper.MdcLoggable
-import net.liftweb.json.{DefaultFormats, Extraction, JValue}
-import akka.pattern.ask
 import net.liftweb.json
+import net.liftweb.json.{DefaultFormats, Extraction, JValue}
 import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}

@@ -3,11 +3,12 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
-import code.api.v2_1_0.{BranchJsonPostV210, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
+import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
+import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
@@ -15,6 +16,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequestTypeCharge
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -30,7 +32,6 @@ import org.bson.types.ObjectId
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 private object LocalRecordConnector extends Connector with MdcLoggable {
 

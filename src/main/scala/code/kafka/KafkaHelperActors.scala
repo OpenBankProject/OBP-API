@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.kafka
 
 import akka.actor.{ActorSystem, Props => ActorProps}
 import code.util.Helper

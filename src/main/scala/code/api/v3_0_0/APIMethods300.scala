@@ -11,18 +11,18 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
+import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
+import code.branches.Branches
 import code.branches.Branches.BranchId
-import code.branches.{Branches, InboundAdapterInfo}
 import code.entitlement.Entitlement
-import code.model.dataAccess.{AuthUser, ResourceUserCaseClass}
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper.booleanToBox
-import net.liftweb.actor.LAFuture
-import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.http.rest.{RestContinuation, RestHelper}
+import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
@@ -31,7 +31,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 
 
 
@@ -893,7 +892,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             // Get branches from the active provider
-
+          
           limit <- tryo(
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
@@ -904,8 +903,8 @@ trait APIMethods300 {
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
-
-
+          
+          
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -953,23 +952,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 50
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-
-            atms <- {Atms.atmsProvider.vend.getAtms(bankId,OBPLimit(limit), OBPOffset(offset)) match {
-              case Some(l) => Full(l)
-              case _ => Empty
-            }} ?~!  {AtmNotFoundByAtmId}
-            atm <- Box(atms.filter(_.atmId.value==atmId.value)) ?~!
-              {AtmNotFoundByAtmId}
+            atm <- Box(Atms.atmsProvider.vend.getAtm(bankId,atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
             val json = JSONFactory300.createAtmJsonV300(atm)
@@ -1085,7 +1068,7 @@ trait APIMethods300 {
       }
     }
 
-    /* WIP
+/* WIP
     resourceDocs += ResourceDoc(
       getOtherAccountsForBank,
       apiVersion,

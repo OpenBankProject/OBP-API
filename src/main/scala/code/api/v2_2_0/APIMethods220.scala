@@ -7,14 +7,12 @@ import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_1_0._
-import code.api.v2_2_0._
-import code.api.v2_1_0.JSONFactory210.createConsumerJSONs
+import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
-import code.branches.KafkaJSONFactory_vMar2017
+import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
 import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
@@ -25,13 +23,11 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.{randomString, tryo}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-
-import code.api.v2_2_0.CustomerViewJsonV220
 
 
 
@@ -331,7 +327,7 @@ trait APIMethods220 {
             connector <- tryo{Connector.getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_vMar2017""")}
             messageDocs <- tryo{connector.messageDocs.toList}
           } yield {
-            val json = KafkaJSONFactory_vMar2017.createMessageDocsJson(messageDocs)
+            val json = JsonFactory_vMar2017.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
           }
         }

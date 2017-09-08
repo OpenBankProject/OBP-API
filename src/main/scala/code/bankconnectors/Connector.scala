@@ -11,9 +11,8 @@ import code.api.v2_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.InboundAdapterInfo
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
@@ -112,7 +111,6 @@ case class InboundUser(
 // This is the common InboundAccount from all Kafka/remote, not finished yet.
 trait InboundAccountCommon{
   def errorCode: String
-  def cbsToken: String
   def bankId: String
   def branchId: String
   def accountId: String
@@ -155,7 +153,24 @@ trait Connector extends MdcLoggable{
   // before we attempt to create a transaction on the south side
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
-  def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = Failure(NotImplemented + currentMethodName)
+  def getChallengeThreshold(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    transactionRequestType: String,
+    currency: String,
+    userId: String,
+    userName: String
+  ): Box[AmountOfMoney] =
+  LocalMappedConnector.getChallengeThreshold(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    transactionRequestType: String,
+    currency: String,
+    userId: String,
+    userName: String
+  )
 
   //Gets current charge level for transaction request
   def getChargeLevel(bankId: BankId,
@@ -164,12 +179,21 @@ trait Connector extends MdcLoggable{
                      userId: String,
                      userName: String,
                      transactionRequestType: String,
-                     currency: String): Box[AmountOfMoney] = Failure(NotImplemented + currentMethodName)
+                     currency: String): Box[AmountOfMoney] = 
+    LocalMappedConnector.getChargeLevel(
+      bankId: BankId,
+      accountId: AccountId,
+      viewId: ViewId,
+      userId: String,
+      userName: String,
+      transactionRequestType: String,
+      currency: String
+    )
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
-  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
 
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank] = Failure(NotImplemented + currentMethodName)

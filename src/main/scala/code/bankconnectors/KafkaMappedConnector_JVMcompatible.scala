@@ -29,19 +29,20 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, UUID}
 
-import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.api.APIFailure
+import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{AtmJsonPost, BranchJsonPostV210, TransactionRequestCommonBodyJSON}
-import code.atms.Atms.{Atm, AtmId, AtmT}
+import code.api.util.ErrorMessages._
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
+import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.{InboundAdapterInfo, MappedBranch}
 import code.fx.{FXRate, fx}
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.CounterpartyTrait
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -50,38 +51,28 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock, TransactionRequests}
-import code.util.{Helper, TTLCache}
+import code.util.Helper
+import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.google.common.cache.CacheBuilder
+import com.tesobe.obp.transport.Pager
+import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.common._
-import net.liftweb.json
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.MappingException
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import scala.collection.JavaConversions._
-import scalacache.guava
-import scalacache._
-import guava._
-import concurrent.duration._
-import language.postfixOps
-import memoization._
-import com.google.common.cache.CacheBuilder
-import com.tesobe.obp.transport.Pager
-import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
-import net.liftweb.json.Extraction._
-import code.util.Helper.MdcLoggable
-import net.liftweb.json.JsonAST.{JObject, JValue}
-import net.liftweb.json.MappingException
-
 import scala.concurrent.TimeoutException
-import code.api.util.ErrorMessages._
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scalacache.{ScalaCache, _}
+import scalacache.guava.GuavaCache
+import scalacache.memoization._
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
