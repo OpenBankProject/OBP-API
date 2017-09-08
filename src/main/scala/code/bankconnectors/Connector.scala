@@ -12,6 +12,7 @@ import code.api.v3_0_0.{TransactionRequestBodyTransferToAccount, TransactionRequ
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
+import code.bankconnectors.vJuneYellow2017.KafkaMappedConnector_vJuneYellow2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.FXRate
@@ -73,6 +74,7 @@ object Connector extends SimpleInjector {
       case "kafka" => KafkaMappedConnector
       case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
+      case "kafka_vJuneYellow2017" => KafkaMappedConnector_vJuneYellow2017
       case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
