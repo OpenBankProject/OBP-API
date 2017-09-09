@@ -43,13 +43,13 @@ import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.{APIUtil, ErrorMessages}
 import code.atms.MappedAtm
-import code.bankconnectors.KafkaHelperActors
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
 import code.fx.{MappedCurrency, MappedFXRate}
+import code.kafka.KafkaHelperActors
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -76,7 +76,6 @@ import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
-import code.util.Helper
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
