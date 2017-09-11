@@ -1,10 +1,10 @@
-package code.bankconnectors
+package code.kafka
 
 import java.util.UUID
 
 import net.liftweb.util.Props
 
-import scala.concurrent.duration.{FiniteDuration, SECONDS, MILLISECONDS}
+import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
 /**
   * Basic kafka configuration utility

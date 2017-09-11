@@ -1,4 +1,4 @@
-package code.bankconnectors
+package code.kafka
 
 import java.util.UUID
 
@@ -9,7 +9,8 @@ import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
-import code.bankconnectors.Topics.TopicTrait
+import code.bankconnectors.AvroSerializer
+import code.kafka.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Failure
 import net.liftweb.json

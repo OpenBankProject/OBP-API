@@ -330,7 +330,7 @@ object JSONFactory1_4_0 {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     ResourceDocJson(
-      operation_id = s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
+      operation_id = s"${rd.implementedInApiVersion.toString}-${rd.apiFunction.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary,
@@ -339,7 +339,7 @@ object JSONFactory1_4_0 {
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
-      implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
+      implemented_by = ImplementedByJson(rd.implementedInApiVersion, rd.apiFunction),
       is_core = rd.catalogs.core,
       is_psd2 = rd.catalogs.psd2,
       is_obwg = rd.catalogs.obwg,// No longer tracking isCore

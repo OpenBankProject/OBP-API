@@ -1,6 +1,7 @@
 package code.api
 
 import code.bankconnectors.vJune2017.InboundAccountJune2017
+import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import net.liftweb.json
@@ -19,6 +20,7 @@ class gateWayloginTest extends FeatureSpec
   //fake this: Connector.connector.vend.getBankAccounts(username)
   val fakeResultFromAdapter =  Full(InboundAccountJune2017(
     errorCode = "",
+    List(InboundStatusMessage("ESB", "Success", "0", "OK")),
     cbsToken ="cbsToken1",
     bankId = "gh.29.uk",
     branchId = "222",
@@ -37,6 +39,7 @@ class gateWayloginTest extends FeatureSpec
     accountRoutingAddress = "accountRoutingAddress"
   ) :: InboundAccountJune2017(
     errorCode = "",
+    List(InboundStatusMessage("ESB", "Success", "0", "OK")),
     cbsToken ="cbsToken2",
     bankId = "gh.29.uk",
     branchId = "222",
@@ -66,7 +69,7 @@ class gateWayloginTest extends FeatureSpec
       val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
       reply(0) should equal("cbsToken1")
       reply(1) should equal("cbsToken2")
-  
+
       reply.exists(_.equalsIgnoreCase("")==false) should equal(true)
     }
   }

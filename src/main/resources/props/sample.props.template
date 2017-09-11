@@ -305,17 +305,36 @@ defaultBank.bank_id=THE_DEFAULT_BANK_ID
 ## Super Admin Users (not database so we don't have to edit database)
 super_admin_user_ids=USER_ID1,USER_ID2,
 
-api_disabled_versions=[\
-version1,\
-version2,\
-...,\
-versionN]
 
-api_disabled_endpoints=[\
-endpoint1,\
-endpoint2,\
-...,\
-endpointN]
+
+######## Enable / Disable Versions and individual endpoints. ########
+# In OBP, endpoints are defined in various files but made available under a *version*
+# e.g. in v3_0_0 (aka v3.0.0) we have endpoints from various versions.
+# Thus when we enable/disable a version we enable/disable a group of endpoints which are defined in several files.
+#
+#
+# For a VERSION to be allowed it must be:
+
+# 1) Absent from here:
+#api_disabled_versions=[v3_0_0]
+
+# 2) Present here OR this entry must be empty.
+#api_enabled_versions=[v2_2_0,v3_0_0]
+
+# Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+
+# For an ENDPOINT to be allowed it must be:
+
+# 1) Absent from here:
+#api_disabled_endpoints=[createAccount]
+
+# 2) Present here OR this list must be empty
+#api_enabled_endpoints=[createAccount,accountById]
+
+# Note that "root" cannot be disabled
+#
+#
+##########################
 
 
 ## OpenId Connect can be used to retrieve User informaiton from an
