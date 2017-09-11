@@ -31,6 +31,7 @@ Berlin 13359, Germany
   */
 package code.api.v1_2_1
 
+import code.api.util.APIUtil.{OBPEndpoint,getAllowedEndpoints}
 import code.util.Helper.MdcLoggable
 import code.api.OBPRestHelper
 
@@ -42,7 +43,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
   val version = "1.2.1"
   val versionStatus = "STABLE"
 
-  val routes = List(
+  val endpointsOf1_2_1 = List(
     Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
@@ -116,9 +117,21 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
     Implementations1_2_1.makePayment
   )
 
+
+  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
+  val routes : List[OBPEndpoint] =
+    List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
+      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs)
+
+
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
   })
+
+  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+
+
+
 
   //TODO: call for get more info of other bank account?
   //TODO: call for get url of other bank account?

@@ -72,7 +72,7 @@ trait APIMethods220 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: String = "2_2_0"
+    val implmentedInApiVersion: String = "2_2_0"
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -83,7 +83,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
-      apiVersion,
+      implmentedInApiVersion,
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -115,8 +115,8 @@ trait APIMethods220 {
       emptyObjectJson,
       viewsJSONV220,
       List(
-        UserNotLoggedIn, 
-        BankAccountNotFound, 
+        UserNotLoggedIn,
+        BankAccountNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -140,7 +140,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createViewForBankAccount,
-      apiVersion,
+      implmentedInApiVersion,
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -164,9 +164,9 @@ trait APIMethods220 {
       createViewJson,
       viewJSONV220,
       List(
-        UserNotLoggedIn, 
-        InvalidJsonFormat, 
-        BankAccountNotFound, 
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        BankAccountNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -191,7 +191,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
-      apiVersion,
+      implmentedInApiVersion,
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
@@ -205,8 +205,8 @@ trait APIMethods220 {
       updateViewJSON,
       viewJSONV220,
       List(
-        InvalidJsonFormat, 
-        UserNotLoggedIn, 
+        InvalidJsonFormat,
+        UserNotLoggedIn,
         BankAccountNotFound,
         UnknownError
       ),
@@ -232,7 +232,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getCurrentFxRate,
-      apiVersion,
+      implmentedInApiVersion,
       "getCurrentFxRate",
       "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
@@ -258,11 +258,11 @@ trait APIMethods220 {
             successJsonResponse(Extraction.decompose(viewJSON))
           }
       }
-    }    
+    }
 
     resourceDocs += ResourceDoc(
       getCounterpartiesForAccount,
-      apiVersion,
+      implmentedInApiVersion,
       "getCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
@@ -274,11 +274,11 @@ trait APIMethods220 {
       emptyObjectJson,
       counterpartiesJsonV220,
       List(
-        UserNotLoggedIn, 
-        BankAccountNotFound, 
-        ViewNotFound, 
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        ViewNotFound,
         ViewNoPermission,
-        UserNoPermissionAccessView, 
+        UserNoPermissionAccessView,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
@@ -294,7 +294,7 @@ trait APIMethods220 {
             view <- View.fromUrl(viewId, account)?~! ViewNotFound
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId) 
+            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
           } yield {
             val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
             successJsonResponse(Extraction.decompose(counterpartiesJson))
@@ -304,7 +304,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getMessageDocs,
-      apiVersion,
+      implmentedInApiVersion,
       "getMessageDocs",
       "GET",
       "/message-docs/mar2017",
@@ -333,11 +333,11 @@ trait APIMethods220 {
         }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       createBank,
-      apiVersion,
+      implmentedInApiVersion,
       "createBank",
       "POST",
       "/banks",
@@ -356,7 +356,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
-  
+
     lazy val createBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: Nil JsonPost json -> _ => {
         user =>
@@ -394,7 +394,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createBranch,
-      apiVersion,
+      implmentedInApiVersion,
       "createBranch",
       "POST",
       "/banks/BANK_ID/branches",
@@ -416,7 +416,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, OBWG),
       Nil
     )
-  
+
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
         user =>
@@ -445,7 +445,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createAtm,
-      apiVersion,
+      implmentedInApiVersion,
       "createAtm",
       "POST",
       "/banks/BANK_ID/atms",
@@ -499,7 +499,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createProduct,
-      apiVersion,
+      implmentedInApiVersion,
       "createProduct",
       "PUT",
       "/banks/BANK_ID/products",
@@ -564,7 +564,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createFx,
-      apiVersion,
+      implmentedInApiVersion,
       "createFx",
       "PUT",
       "/banks/BANK_ID/fx",
@@ -622,7 +622,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createAccount,
-      apiVersion,
+      implmentedInApiVersion,
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
@@ -656,8 +656,8 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
-  
-  
+
+
     lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
@@ -697,9 +697,9 @@ trait APIMethods220 {
             //2 Add permission to the user
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
-          
+
             val json = JSONFactory220.createAccountJSON(user_id, bankAccount)
-          
+
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -708,7 +708,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       config,
-      apiVersion,
+      implmentedInApiVersion,
       "config",
       "GET",
       "/config",
@@ -741,7 +741,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getConnectorMetrics,
-      apiVersion,
+      implmentedInApiVersion,
       "getConnectorMetrics",
       "GET",
       "/management/connector/metrics",
@@ -870,7 +870,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createConsumer,
-      apiVersion,
+      implmentedInApiVersion,
       "createConsumer",
       "POST",
       "/management/consumers",

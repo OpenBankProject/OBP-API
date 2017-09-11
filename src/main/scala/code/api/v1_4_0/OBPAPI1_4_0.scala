@@ -1,6 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil.{OBPEndpoint,getAllowedEndpoints}
 import code.util.Helper.MdcLoggable
 
 
@@ -9,7 +10,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
   val version = "1.4.0"
   val versionStatus = "STABLE"
 
-  val routes = List(
+  val endpointsOf1_2_1 = List(
     Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
@@ -80,13 +81,18 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getOtherAccountForTransaction,
-    Implementations1_2_1.makePayment, // Back for a while
+    Implementations1_2_1.makePayment // Back for a while
+  )
 
     // New in 1.3.0
+    val endpointsOf1_3_0 = List(
     Implementations1_3_0.getCards,
-    Implementations1_3_0.getCardsForBank,
+    Implementations1_3_0.getCardsForBank
+  )
+
 
     // New in 1.4.0
+    val endpointsOf1_4_0 = List(
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.addCustomer,
     Implementations1_4_0.getCustomerMessages,
@@ -101,7 +107,19 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
     Implementations1_4_0.answerTransactionRequestChallenge
   )
 
+
+
+  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
+  val routes : List[OBPEndpoint] =
+    List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
+      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
+      getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
+      getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
+
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
   })
+
+  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+
 }

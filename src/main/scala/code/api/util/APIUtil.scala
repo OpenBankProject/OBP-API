@@ -37,8 +37,10 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.api.Constant._
-import code.api.DirectLogin
+import code.api.util.APIUtil.ApiVersions.ApiVersions
+import code.api._
 import code.api.OAuthHandshake._
+import code.api.util.APIUtil.ApiVersions
 import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -922,25 +924,25 @@ object APIUtil extends MdcLoggable {
   
   // Used to document the API calls
   case class ResourceDoc(
-    partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-    apiVersion: String, // TODO: Constrain to certain strings?
-    apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
-    requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-    requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
-    summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
-    description: String, // Longer description (originally taken from github wiki)
-    exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
-    successResponseBody: scala.Product, // A successful response body
-    errorResponseBodies: List[String], // Possible error responses
-    catalogs: Catalogs,
-    tags: List[ResourceDocTag]
+                          partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
+                          implementedInApiVersion: String, // TODO: Constrain to certain strings?
+                          apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
+                          requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
+                          requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                          summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
+                          description: String, // Longer description (originally taken from github wiki)
+                          exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
+                          successResponseBody: scala.Product, // A successful response body
+                          errorResponseBodies: List[String], // Possible error responses
+                          catalogs: Catalogs,
+                          tags: List[ResourceDocTag]
   )
-  
-  
+
+
   /**
-    * 
+    *
     * This is the base class for all kafka outbound case class
-    * action and messageFormat are mandatory 
+    * action and messageFormat are mandatory
     * The optionalFields can be any other new fields .
     */
   abstract class OutboundMessageBase(
@@ -949,7 +951,7 @@ object APIUtil extends MdcLoggable {
     def action: String
     def messageFormat: String
   }
-  
+
   abstract class InboundMessageBase(
     optionalFields: String*
   ) {
@@ -962,9 +964,9 @@ object APIUtil extends MdcLoggable {
     messageFormat: String,
     description: String,
     exampleOutboundMessage: JValue,
-    exampleInboundMessage: JValue  
+    exampleInboundMessage: JValue
   )
-  
+
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(
     fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1119,7 +1121,7 @@ Returns a string showed to the developer
         toResourceDoc.partialFunction,
         relation.rel,
         // Add the vVersion to the documented url
-        s"/${apiVersionWithV(toResourceDoc.apiVersion)}${toResourceDoc.requestUrl}"
+        s"/${apiVersionWithV(toResourceDoc.implementedInApiVersion)}${toResourceDoc.requestUrl}"
       )
     internalApiLinks
   }
@@ -1324,10 +1326,91 @@ Returns a string showed to the developer
 
 
 
-  def getDisabledVersions() : List[String] = {Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList}
+  def getDisabledVersions() : List[String] = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
+  def getDisabledEndpoints() : List[String] = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
+
+  def getEnabledVersions() : List[String] = Props.get("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+
+  def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+
+
+
+  def enableVersionIfAllowed(version: ApiVersions) : Boolean = {
+
+    val disabledVersions: List[String] = getDisabledVersions()
+    val enabledVersions: List[String] = getEnabledVersions()
+
+    val allowed: Boolean = if (
+      !disabledVersions.contains(version.toString) &&
+        // Enabled versions or all
+        (enabledVersions.contains(version.toString) || enabledVersions.isEmpty)
+    ) {
+
+      version match {
+        case ApiVersions.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+        case ApiVersions.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+        case ApiVersions.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+        // Can we depreciate the above?
+        case ApiVersions.v1_2_1 => LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
+        case ApiVersions.v1_3_0 => LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
+        case ApiVersions.v1_4_0 => LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+        case ApiVersions.v2_0_0 => LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
+        case ApiVersions.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+        case ApiVersions.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
+        case ApiVersions.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
+      }
+
+      logger.info(s"${version.toString} was ENABLED")
+
+      true
+    } else {
+      logger.info(s"${version.toString} was NOT enabled")
+      false
+    }
+    allowed
+  }
+
+
+  type OBPEndpoint = PartialFunction[Req, Box[User] => Box[JsonResponse]]
+
+/*
+Versions are groups of endpoints in a file
+ */
+  object ApiVersions extends Enumeration {
+    type ApiVersions = Value
+    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, importerApi, accountsApi, bankMockApi = Value
+  }
+
+  def dottedApiVersion (apiVersion: ApiVersions) : String = apiVersion.toString.replace("_", ".").replace("v","")
+  def vDottedApiVersion (apiVersion: ApiVersions) : String = apiVersion.toString.replace("_", ".")
+
+
+  def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
+
+    // Endpoints
+    val disabledEndpoints = getDisabledEndpoints
+
+    // Endpoints
+    val enabledEndpoints = getEnabledEndpoints
+
+
+
+    val routes = for (
+      item <- resourceDocs
+         if
+           // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
+           !disabledEndpoints.contains(item.apiFunction) &&
+           // Only allow Resrouce Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
+           (enabledEndpoints.contains(item.apiFunction) || enabledEndpoints.isEmpty)  &&
+           // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
+             // i.e. this function may recieve more Resource Docs than version endpoints
+            endpoints.exists(_ == item.partialFunction)
+    )
+      yield item.partialFunction
+    routes.toList
+    }
 
 }
