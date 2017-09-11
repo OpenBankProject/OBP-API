@@ -84,6 +84,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+import code.api.util.APIUtil.{enableVersionIfAllowed, ApiVersions}
 
 
 /**
@@ -214,8 +215,10 @@ class Boot extends MdcLoggable {
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
-    // Get disbled API versions from props
-    val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
+
+
+
+
 
     //  OpenIdConnect endpoint and validator
     if(Props.getBool("allow_openidconnect", false)) {
@@ -223,18 +226,20 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
-    if (!disabledVersions.contains("v1_0")) LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-    if (!disabledVersions.contains("v1_1")) LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-    if (!disabledVersions.contains("v1_2")) LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    enableVersionIfAllowed(ApiVersions.v1_0)
+    enableVersionIfAllowed(ApiVersions.v1_1)
+    enableVersionIfAllowed(ApiVersions.v1_2)
     // Can we depreciate the above?
-    if (!disabledVersions.contains("v1_2_1")) LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
-    if (!disabledVersions.contains("v1_3_0")) LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
-    if (!disabledVersions.contains("v1_4_0")) LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
-    if (!disabledVersions.contains("v2_0_0")) LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
-    if (!disabledVersions.contains("v2_1_0")) LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
-    if (!disabledVersions.contains("v2_2_0")) LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
-    if (!disabledVersions.contains("v3_0_0")) LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
+    enableVersionIfAllowed(ApiVersions.v1_2_1)
+    enableVersionIfAllowed(ApiVersions.v1_3_0)
+    enableVersionIfAllowed(ApiVersions.v1_4_0)
+    enableVersionIfAllowed(ApiVersions.v2_0_0)
+    enableVersionIfAllowed(ApiVersions.v2_1_0)
+    enableVersionIfAllowed(ApiVersions.v2_2_0)
+    enableVersionIfAllowed(ApiVersions.v3_0_0)
 
+
+    // TODO Wrap these with enableVersionIfAllowed as well
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
     LiftRules.statelessDispatch.append(AccountsAPI)

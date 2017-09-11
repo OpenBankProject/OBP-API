@@ -288,7 +288,7 @@ object SwaggerJSONFactory {
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
           OperationObjectJson(
-            tags = List(s"${rd.apiVersion.toString}"), 
+            tags = List(s"${rd.implementedInApiVersion.toString}"),
             summary = rd.summary,
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
@@ -296,7 +296,7 @@ object SwaggerJSONFactory {
                 //No longer need this special case since all transaction reqquest Resource Docs have explicit URL
                 //case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
                 // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
-                case _ => s"v${rd.apiVersion.toString }-${rd.apiFunction.toString }"
+                case _ => s"v${rd.implementedInApiVersion.toString }-${rd.apiFunction.toString }"
               },
             //TODO, this is for Post Body 
             parameters =
