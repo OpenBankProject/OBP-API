@@ -308,7 +308,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   def getErrors(message: String) : List[String] = {
-    val json = parse(message) remove {
+    val json = parse(message) removeField {
       case JField("backendMessages", _) => true
       case _          => false
     }
