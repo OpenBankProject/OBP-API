@@ -252,7 +252,7 @@ trait APIMethods300 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG ,Support),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -449,7 +449,7 @@ trait APIMethods300 {
         ViewNotFound, 
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG, Support),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction)
     )
   
@@ -871,7 +871,7 @@ trait APIMethods300 {
         InvalidChargePolicy,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
   
     // Transaction Request (TRANSFER_TO_ATM)
@@ -1197,7 +1197,7 @@ trait APIMethods300 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
   
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

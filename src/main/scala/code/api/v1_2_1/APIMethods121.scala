@@ -137,7 +137,7 @@ trait APIMethods121 {
       emptyObjectJson,
       banksJSON,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG, Support),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
     lazy val getBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -173,7 +173,7 @@ trait APIMethods121 {
       emptyObjectJson,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(Core, notPSD2, OBWG, Support),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
 
@@ -2096,7 +2096,7 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG, Support),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

@@ -900,16 +900,14 @@ object APIUtil extends MdcLoggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
-  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false, support: Boolean = false)
+  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 
   val Core = true
   val PSD2 = true
   val OBWG = true
-  val Support = true
   val notCore = false
   val notPSD2 = false
   val notOBWG = false
-  val notSupport = false
   
   case class BaseErrorResponseBody(
     //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class

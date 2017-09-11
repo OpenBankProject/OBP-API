@@ -367,7 +367,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG, Support),
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
