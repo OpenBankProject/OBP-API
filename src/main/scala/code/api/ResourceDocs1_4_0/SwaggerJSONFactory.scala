@@ -3,6 +3,7 @@ package code.api.ResourceDocs1_4_0
 import java.util.{Date, UUID}
 
 import code.api.Constant._
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
 import net.liftweb
@@ -152,7 +153,7 @@ object SwaggerJSONFactory {
     * @param requestedApiVersion eg: 2_2_0
     * @return
     */
-  def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: String): SwaggerResourceDoc = {
+  def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: ApiVersion): SwaggerResourceDoc = {
     
     //reference to referenceObject: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#referenceObject  
     //according to the apiFunction name, prepare the reference 
@@ -180,7 +181,7 @@ object SwaggerJSONFactory {
     val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2016. Licensed under the AGPL and commercial licences."
     val infoContact = InfoContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
-    val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion)
+    val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = s"/$ApiPathZero/" + infoApiVersion
     val schemas = List("http", "https")
