@@ -1350,9 +1350,9 @@ Returns a string showed to the developer
     ) {
 
       version match {
-        case ApiVersions.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-        case ApiVersions.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-        case ApiVersions.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+//        case ApiVersions.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+//        case ApiVersions.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+//        case ApiVersions.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
         // Can we depreciate the above?
         case ApiVersions.v1_2_1 => LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
         case ApiVersions.v1_3_0 => LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
