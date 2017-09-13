@@ -142,7 +142,7 @@ object PostCustomer extends SendServerRequests {
     def allBanks : Box[BanksJson]= {
       allBanksVar.get match {
         case Full(a) => Full(a)
-        case _ => ObpGet("/v1.2/banks").flatMap(_.extractOpt[BanksJson]) // TODO use more recent API version
+        case _ => ObpGet("/v1.2.1/banks").flatMap(_.extractOpt[BanksJson]) // TODO use more recent API version
       }
     }
 
