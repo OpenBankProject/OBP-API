@@ -84,7 +84,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
-import code.api.util.APIUtil.{enableVersionIfAllowed, ApiVersions}
+import code.api.util.APIUtil.{enableVersionIfAllowed, ApiVersion}
 
 
 /**
@@ -226,17 +226,17 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
-//    enableVersionIfAllowed(ApiVersions.v1_0)
-//    enableVersionIfAllowed(ApiVersions.v1_1)
-//    enableVersionIfAllowed(ApiVersions.v1_2)
+//    enableVersionIfAllowed(ApiVersion.v1_0)
+//    enableVersionIfAllowed(ApiVersion.v1_1)
+//    enableVersionIfAllowed(ApiVersion.v1_2)
     // Can we depreciate the above?
-    enableVersionIfAllowed(ApiVersions.v1_2_1)
-    enableVersionIfAllowed(ApiVersions.v1_3_0)
-    enableVersionIfAllowed(ApiVersions.v1_4_0)
-    enableVersionIfAllowed(ApiVersions.v2_0_0)
-    enableVersionIfAllowed(ApiVersions.v2_1_0)
-    enableVersionIfAllowed(ApiVersions.v2_2_0)
-    enableVersionIfAllowed(ApiVersions.v3_0_0)
+    enableVersionIfAllowed(ApiVersion.v1_2_1)
+    enableVersionIfAllowed(ApiVersion.v1_3_0)
+    enableVersionIfAllowed(ApiVersion.v1_4_0)
+    enableVersionIfAllowed(ApiVersion.v2_0_0)
+    enableVersionIfAllowed(ApiVersion.v2_1_0)
+    enableVersionIfAllowed(ApiVersion.v2_2_0)
+    enableVersionIfAllowed(ApiVersion.v3_0_0)
 
 
     // TODO Wrap these with enableVersionIfAllowed as well

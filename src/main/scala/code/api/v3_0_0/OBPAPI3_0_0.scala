@@ -33,7 +33,7 @@ package code.api.v3_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{ApiVersions, getAllowedEndpoints, OBPEndpoint, ResourceDoc, dottedApiVersion}
+import code.api.util.APIUtil.{ApiVersion, getAllowedEndpoints, OBPEndpoint, ResourceDoc, dottedApiVersion}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -60,7 +60,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
 
   // Note discrepancy between Resource Docs and this _ vs .
-  val version = dottedApiVersion(ApiVersions.v3_0_0)    // Previously "3.0.0"
+  val version = dottedApiVersion(ApiVersion.v3_0_0)    // Previously "3.0.0"
   val versionStatus = "BLEEDING-EDGE"
 
 
