@@ -33,14 +33,14 @@
 package code.api.util
 
 import java.io.InputStream
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.Date
 
 import code.api.Constant._
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api._
 import code.api.OAuthHandshake._
-import code.api.util.APIUtil.ApiVersion
+import code.api._
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -66,12 +66,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.xml.{Elem, XML}
-import java.nio.charset.Charset
-import code.api.util.APIUtil.ApiVersions.ApiVersions
-import code.api._
-import code.api.util.APIUtil.ApiVersions
-import net.liftweb.actor.LAFuture
-import net.liftweb.http.rest.RestContinuation
 
 object ErrorMessages {
 import code.api.util.APIUtil._
