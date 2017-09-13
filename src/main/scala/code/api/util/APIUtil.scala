@@ -37,8 +37,10 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.api.Constant._
-import code.api.DirectLogin
+import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api._
 import code.api.OAuthHandshake._
+import code.api.util.APIUtil.ApiVersion
 import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -98,6 +100,7 @@ import code.api.util.APIUtil._
   val RemoteDataSecretMatchError = "OBP-00006: Remote data secret cannot be matched! Check OBP-API and OBP-Storage Props values for remotedata.hostname, remotedata.port and remotedata.secret." // (was OBP-20021)
   val RemoteDataSecretObtainError = "OBP-00007: Remote data secret cannot be obtained! Check OBP-API and OBP-Storage Props values for remotedata.hostname, remotedata.port and remotedata.secret." // (was OBP-20022)
 
+  val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
 
   // General messages (OBP-10XXX)
@@ -118,6 +121,9 @@ import code.api.util.APIUtil._
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
 
+  val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
+
+
 
 
   // Authentication / Authorisation / User messages (OBP-20XXX)
@@ -131,7 +137,7 @@ import code.api.util.APIUtil._
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
- 
+
   val InvalidValueLength = "OBP-20010: Value too long"
   val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"
 
@@ -140,7 +146,7 @@ import code.api.util.APIUtil._
   val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
 
   val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
-  
+
   val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
 
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
@@ -187,7 +193,7 @@ import code.api.util.APIUtil._
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
   val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
-  
+
   val CreateBankError = "OBP-30020: Could not create the Bank"
   val UpdateBankError = "OBP-30021: Could not update the Bank"
   val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
@@ -203,16 +209,16 @@ import code.api.util.APIUtil._
 
   val CreateProductError = "OBP-30030: Could not insert the Product"
   val UpdateProductError = "OBP-30031: Could not update the Product"
-  
+
   val CreateCardError = "OBP-30032: Could not insert the Card"
   val UpdateCardError = "OBP-30033: Could not update the Card"
-  
+
   val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
-  
+
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -306,8 +312,8 @@ import code.api.util.APIUtil._
       v.setAccessible(true)
       v.getName() -> v.get(this)
     }
-  
-  //For Swagger, get varible name by value: 
+
+  //For Swagger, get varible name by value:
   // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
   def getFildNameByValue(value: String) = {
@@ -333,7 +339,7 @@ object APIUtil extends MdcLoggable {
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   import code.api.util.ErrorMessages._
-  
+
   def httpMethod : String =
     S.request match {
       case Full(r) => r.request.method
@@ -509,10 +515,10 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  /** enforce the password. 
-    * The rules : 
+  /** enforce the password.
+    * The rules :
     * 1) length is >16 characters without validations
-    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character. 
+    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character.
     * */
   def isValidStrongPassword(password: String): Boolean = {
     /**
@@ -530,7 +536,7 @@ object APIUtil extends MdcLoggable {
       case _ => false
     }
   }
-  
+
 
 
   /** These three functions check rather than assert. I.e. they are silent if OK and return an error message if not.
@@ -580,28 +586,28 @@ object APIUtil extends MdcLoggable {
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
-  
-  
+
+
   def ValueOrOBP(text : String) =
     text match {
       case t if t == null => "OBP"
       case t if t.length > 0 => t
       case _ => "OBP"
     }
-  
+
   def ValueOrOBPId(text : String, OBPId: String) =
     text match {
       case t if t == null => OBPId
       case t if t.length > 0 => t
       case _ => OBPId
     }
-  
+
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
       null
     else
       text
-  
+
   def stringOptionOrNull(text : Option[String]) =
     text match {
       case Some(t) => stringOrNull(t)
@@ -618,11 +624,11 @@ object APIUtil extends MdcLoggable {
       val parsedDate = tryo{
         defaultFilterFormat.parse(date)
       }
-      
+
       lazy val fallBackParsedDate = tryo{
         fallBackFilterFormat.parse(date)
       }
-      
+
       if(parsedDate.isDefined){
         Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
       }
@@ -634,7 +640,7 @@ object APIUtil extends MdcLoggable {
       }
     }
   }
-  
+
    def getSortDirection(req: Req): Box[OBPOrder] = {
     req.header("obp_sort_direction") match {
       case Full(v) => {
@@ -648,7 +654,7 @@ object APIUtil extends MdcLoggable {
       case _ => Full(OBPOrder(None))
     }
   }
-  
+
    def getFromDate(req: Req): Box[OBPFromDate] = {
     val date: Box[Date] = req.header("obp_from_date") match {
       case Full(d) => {
@@ -658,10 +664,10 @@ object APIUtil extends MdcLoggable {
         Full(new Date(0))
       }
     }
-    
+
     date.map(OBPFromDate(_))
   }
-  
+
    def getToDate(req: Req): Box[OBPToDate] = {
     val date: Box[Date] = req.header("obp_to_date") match {
       case Full(d) => {
@@ -669,18 +675,18 @@ object APIUtil extends MdcLoggable {
       }
       case _ => Full(new Date())
     }
-    
+
     date.map(OBPToDate(_))
   }
-  
+
    def getOffset(req: Req): Box[OBPOffset] = {
     getPaginationParam(req, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
   }
-  
+
    def getLimit(req: Req): Box[OBPLimit] = {
     getPaginationParam(req, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
   }
-  
+
    def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
     req.header(paramName) match {
       case Full(v) => {
@@ -701,7 +707,7 @@ object APIUtil extends MdcLoggable {
       case _ => Full(defaultValue)
     }
   }
-  
+
   def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
     for{
       sortDirection <- getSortDirection(req)
@@ -729,7 +735,7 @@ object APIUtil extends MdcLoggable {
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
-  
+
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
     import javax.crypto
@@ -916,19 +922,19 @@ object APIUtil extends MdcLoggable {
   val notCore = false
   val notPSD2 = false
   val notOBWG = false
-  
+
   case class BaseErrorResponseBody(
     //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
     //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
     name: String,
     detail: String
-  ) 
-  
+  )
+
   //check #511, https://github.com/OpenBankProject/OBP-API/issues/511
-  // get rid of JValue, but in API-EXPLORER or other places, it need the Empty JValue "{}" 
+  // get rid of JValue, but in API-EXPLORER or other places, it need the Empty JValue "{}"
   // So create the EmptyClassJson to set the empty JValue "{}"
   case class EmptyClassJson()
-  
+
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1223,7 +1229,7 @@ Returns a string showed to the developer
       case _       => "off"
     }
   }
-  
+
   // check is there a "$" in the input value.
   // eg: MODULE$ is not the useful input.
   // eg2: allFieldsAndValues is just for SwaggerJSONsV220.allFieldsAndValues,it is not useful.
@@ -1343,31 +1349,49 @@ Returns a string showed to the developer
 
   def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
+  /*
+  Determine if a version should be allowed.
 
+    For a VERSION to be allowed it must be:
 
-  def enableVersionIfAllowed(version: ApiVersions) : Boolean = {
+    1) Absent from Props api_disabled_versions
+    2) Present here (api_enabled_versions=[v2_2_0,v3_0_0]) -OR- api_enabled_versions must be empty.
 
+    Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+   */
+  def versionIsAllowed(version: ApiVersion) : Boolean = {
     val disabledVersions: List[String] = getDisabledVersions()
     val enabledVersions: List[String] = getEnabledVersions()
-
-    val allowed: Boolean = if (
+    if (
       !disabledVersions.contains(version.toString) &&
         // Enabled versions or all
         (enabledVersions.contains(version.toString) || enabledVersions.isEmpty)
-    ) {
+    ) true
+    else
+      false
+  }
 
+
+  /*
+  If a version is allowed, enable its endpoints.
+  Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
+   */
+
+  def enableVersionIfAllowed(version: ApiVersion) : Boolean = {
+    val allowed: Boolean = if (versionIsAllowed(version)
+    ) {
       version match {
-        case ApiVersions.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-        case ApiVersions.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-        case ApiVersions.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+        case ApiVersion.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+        case ApiVersion.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+        case ApiVersion.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
         // Can we depreciate the above?
-        case ApiVersions.v1_2_1 => LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
-        case ApiVersions.v1_3_0 => LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
-        case ApiVersions.v1_4_0 => LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
-        case ApiVersions.v2_0_0 => LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
-        case ApiVersions.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
-        case ApiVersions.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
-        case ApiVersions.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
+        case ApiVersion.v1_2_1 => LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
+        case ApiVersion.v1_3_0 => LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
+        case ApiVersion.v1_4_0 => LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+        case ApiVersion.v2_0_0 => LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
+        case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+        case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
+        case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
       }
 
       logger.info(s"${version.toString} was ENABLED")
@@ -1386,13 +1410,34 @@ Returns a string showed to the developer
 /*
 Versions are groups of endpoints in a file
  */
-  object ApiVersions extends Enumeration {
-    type ApiVersions = Value
+  object ApiVersion extends Enumeration {
+    type ApiVersion = Value
     val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, importerApi, accountsApi, bankMockApi = Value
   }
 
-  def dottedApiVersion (apiVersion: ApiVersions) : String = apiVersion.toString.replace("_", ".").replace("v","")
-  def vDottedApiVersion (apiVersion: ApiVersions) : String = apiVersion.toString.replace("_", ".")
+
+
+  def convertToApiVersion (apiVersionString: String) : Box[ApiVersion] = {
+
+    // Make sure the string has the "v" prefix
+    try {
+      val apiVersionStringWithV: String = if (apiVersionString.take(1).toLowerCase != "v") {
+        s"v$apiVersionString"
+      } else
+        apiVersionString
+
+      // replace dots with _
+      Full(ApiVersion.withName(apiVersionStringWithV.replace(".", "_")))
+    } catch {
+      case e: Exception => Failure(InvalidApiVersionString)
+    }
+
+
+
+  }
+
+  def dottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".").replace("v","")
+  def vDottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".")
 
 
   def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
