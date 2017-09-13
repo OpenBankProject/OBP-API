@@ -62,15 +62,15 @@ class UserTest extends V300ServerSetup with DefaultUsers {
         "first_name" -> firstName,
         "last_name" -> lastName)
 
-      val request = (v2_0Request / "users").POST
+      val request = (v3_0Request / "users").POST
       val response = makePostRequest(request, write(params))
       Then("we should get a 201 created code")
       response.code should equal(201)
 
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanGetAnyUser.toString)
 
       Then("We have to find it by endpoint getUsersByEmail")
-      val requestGet = (v3_0Request / "users" / "email" / email / "terminator").GET <@ (user1)
+      val requestGet = (v3_0Request / "users" / "email" / email / "terminator").GET <@ (user2)
       val responseGet = makeGetRequest(requestGet)
 
       And("We should get a 200")
@@ -78,7 +78,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val user_id = compactRender(response.body \ "user_id").replaceAll("\"", "")
 
       Then("We try to find the user by USER_ID")
-      val requestGet1 = (v3_0Request / "users" / "user_id" / user_id).GET <@ (user1)
+      val requestGet1 = (v3_0Request / "users" / "user_id" / user_id).GET <@ (user2)
       val responseGet1 = makeGetRequest(requestGet1)
 
       And("We should get a 200")
@@ -89,7 +89,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       Then("We try to find the user by USERNAME")
       val username = compactRender(responseGet1.body \ "username").replaceAll("\"", "")
-      val requestGet2 = (v3_0Request / "users" / "username" / username).GET <@ (user1)
+      val requestGet2 = (v3_0Request / "users" / "username" / username).GET <@ (user2)
       val responseGet2 = makeGetRequest(requestGet2)
 
       And("We should get a 200")
