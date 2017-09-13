@@ -93,7 +93,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
     val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     
     val req = CreateTransaction(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, ""),
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
       
       // fromAccount
       fromAccountId = fromAccount.accountId.value,
