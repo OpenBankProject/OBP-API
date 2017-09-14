@@ -4,6 +4,8 @@
 ```
 Date          Commit        Action 
 
+13/09/2017    1503229       DISABLED API versions v1.0, v1.1, v1.2
+09/09/2017    fa3b054       Added Props api_enabled_versions and api_enabled_endpoints
 19/04/2017    4033a01       Added remotedata.secret=secret - This should be set to the same value, local and remote (or just local)
 28/03/2017                  Added webui_footer2_logo_left_url and webui_footer2_middle_text - for bottom footer, default=""
 28/03/2017                  Added Props webui_top_text which is used by default.html (default="")
