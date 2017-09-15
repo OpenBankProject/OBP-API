@@ -56,7 +56,8 @@ import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.{JField, JValue}
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, StringHelpers}
 
@@ -1466,5 +1467,24 @@ Versions are groups of endpoints in a file
       yield item.partialFunction
     routes.toList
     }
+  
+  def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
+    implicit val formats = net.liftweb.json.DefaultFormats
+    try {
+      val parseJValue: JValue = parse(in)
+      val t: T = parseJValue.extract[T]
+      Full(t)
+    } catch {
+      case m: ParseException =>
+        logger.error("String-->Jvalue parse error"+in,m)
+        Failure("String-->Jvalue parse error"+in+m.getMessage)
+      case m: MappingException =>
+        logger.error("JValue-->CaseClass extract error"+in,m)
+        Failure("JValue-->CaseClass extract error"+in+m.getMessage)
+      case m: Throwable =>
+        logger.error("extractToCaseClass unknow error"+in,m)
+        Failure("extractToCaseClass unknow error"+in+m.getMessage)
+    }
+  }
 
 }
