@@ -904,6 +904,8 @@ object APIUtil extends MdcLoggable {
   val apiTagMeeting = ResourceDocTag("Meeting")
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
+  val apiTagCard = ResourceDocTag("Card")
+  val apiTagSandbox = ResourceDocTag("Sandbox")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 

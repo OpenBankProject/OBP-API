@@ -954,7 +954,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagCard, apiTagPrivateData, apiTagPublicData))
 
 
     lazy val addCardForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
