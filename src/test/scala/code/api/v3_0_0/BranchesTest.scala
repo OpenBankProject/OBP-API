@@ -1,10 +1,9 @@
-package code.api.v1_4_0
+package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
-import code.api.v3_0_0.V300ServerSetup
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson, BranchesJsonV300}
 import code.bankconnectors.OBPQueryParam
-import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
+import code.branches.Branches._
 import code.branches.{Branches, BranchesProvider}
 import code.common._
 import code.model.BankId
@@ -14,7 +13,7 @@ import code.setup.DefaultUsers
 Note This does not test retrieval from a backend.
 We mock the backend so get test the API
  */
-class BranchesTest extends V140ServerSetup with DefaultUsers {
+class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("testBank1")
   val BankWithoutLicense = BankId("testBank2")
@@ -232,22 +231,6 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
   }
 
-  def verifySameData(branch: BranchT, branchJson : BranchJson) = {
-    branch.name should equal (branchJson.name)
-    branch.branchId should equal(BranchId(branchJson.id))
-    branch.address.line1 should equal(branchJson.address.line_1)
-    branch.address.line2 should equal(branchJson.address.line_2)
-    branch.address.line3 should equal(branchJson.address.line_3)
-    branch.address.city should equal(branchJson.address.city)
-    branch.address.state should equal(branchJson.address.state)
-    branch.address.countryCode should equal(branchJson.address.country)
-    branch.address.postCode should equal(branchJson.address.postcode)
-    branch.location.latitude should equal(branchJson.location.latitude)
-    branch.location.longitude should equal(branchJson.location.longitude)
-    branch.lobbyString.get.hours should equal(branchJson.lobby.hours)
-    branch.driveUpString.get.hours should equal(branchJson.drive_up.hours)
-  }
-
   /*
   So we can test the API layer, rather than the connector, use a mock connector.
    */
@@ -263,51 +246,19 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
-  feature("Getting bank branches") {
+  feature("getBranches -- /banks/BANK_ID/branches -- V300") {
 
     scenario("We try to get bank branches for a bank without a data license for branch information") {
 
-      When("We make a request v1.4.0")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
-      val response = makeGetRequest(request)
+      When("We make a request v3.0.0")
+      val request300 = (v3_0Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
+      val response300 = makeGetRequest(request300)
 
-      Then("We should get a 200")
-      response.code should equal(200)
-
+      Then("We should get a 200 and correct response jons format")
+      response300.code should equal(200)
+      response300.body.extract[BranchesJsonV300]
     }
-
-    scenario("We try to get bank branches for a bank with a data license for branch information") {
-      When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
-      val response = makeGetRequest(request)
-
-      Then("We should get a 200")
-      response.code should equal(200)
-
-      And("We should get the right json format containing a list of Branches")
-      val wholeResponseBody = response.body
-      val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
-      responseBodyOpt.isDefined should equal(true)
-
-      val responseBody = responseBodyOpt.get
-
-      And("We should get the right branches")
-      val branches = responseBody.branches
-
-      // Order of branches in the list is arbitrary
-      branches.size should equal(2)
-      val first = branches(0)
-      if(first.id == fakeBranch1.branchId.value) {
-        verifySameData(fakeBranch1, first)
-        verifySameData(fakeBranch2, branches(1))
-      } else if (first.id == fakeBranch2.branchId.value) {
-        verifySameData(fakeBranch2, first)
-        verifySameData(fakeBranch1, branches(1))
-      } else {
-        fail("incorrect branches")
-      }
-
-    }
+   
   }
 
 }

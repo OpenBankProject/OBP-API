@@ -226,9 +226,9 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
-    enableVersionIfAllowed(ApiVersion.v1_0)
-    enableVersionIfAllowed(ApiVersion.v1_1)
-    enableVersionIfAllowed(ApiVersion.v1_2)
+//    enableVersionIfAllowed(ApiVersion.v1_0)
+//    enableVersionIfAllowed(ApiVersion.v1_1)
+//    enableVersionIfAllowed(ApiVersion.v1_2)
     // Can we depreciate the above?
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
