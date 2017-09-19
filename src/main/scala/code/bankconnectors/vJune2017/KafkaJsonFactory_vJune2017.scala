@@ -75,7 +75,6 @@ case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune
 case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
-case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
 
 
@@ -148,8 +147,6 @@ case class InternalBasicCustomer(
 )
 
 case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
-
-case class InternalTransactionId(id : String)
 
 case class InternalCreateChallengeJune2017(
   errorCode: String,

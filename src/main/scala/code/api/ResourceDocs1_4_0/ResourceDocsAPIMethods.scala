@@ -1,6 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
+import code.api.util.APIUtil.ApiVersion
+import code.api.util.APIUtil.ApiVersion._
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
@@ -40,6 +42,7 @@ import code.api.util.ErrorMessages._
 
 import scalacache.memoization.memoizeSync
 import concurrent.duration._
+import code.util.Helper.booleanToBox
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -51,14 +54,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = "1_4_0"
+    val statedApiVersion : String = "1_4_0"
 
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
     val exampleDate = simpleDateFormat.parse(exampleDateString)
 
 
-    def getResourceDocsList(requestedApiVersion : String) : Option[List[ResourceDoc]] =
+    def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {
       // Return a different list of resource docs depending on the version being called.
       // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
@@ -66,25 +69,25 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
-        case "3.0.0" => Implementations3_0_0.resourceDocs ++ Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "2.2.0" => Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "2.1.0" => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case "1.2.1" => Implementations1_2_1.resourceDocs
+        case ApiVersion.v3_0_0 => Implementations3_0_0.resourceDocs ++ Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v2_2_0 => Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v2_1_0 => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v2_0_0 => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
       }
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
-        case "3.0.0" => OBPAPI3_0_0.routes
-        case "2.2.0" => OBPAPI2_2_0.routes
-        case "2.1.0" => OBPAPI2_1_0.routes
-        case "2.0.0" => OBPAPI2_0_0.routes
-        case "1.4.0" => OBPAPI1_4_0.routes
-        case "1.3.0" => OBPAPI1_3_0.routes
-        case "1.2.1" => OBPAPI1_2_1.routes
+        case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
+        case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
+        case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
+        case ApiVersion.v2_0_0 => OBPAPI2_0_0.routes
+        case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
+        case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
+        case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
       }
 
       logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
@@ -107,7 +110,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     resourceDocs += ResourceDoc(
       getResourceDocsObp,
-      apiVersion,
+      statedApiVersion,
       "getResourceDocsObp",
       "GET",
       "/resource-docs/API_VERSION/obp",
@@ -137,7 +140,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     // TODO constrain version?
     // strip the leading v
-    def cleanApiVersionString (version: String) : String = {version.stripPrefix("v").stripPrefix("V")}
+    def cleanApiVersionString (version: String) : String = {
+      version.stripPrefix("v").stripPrefix("V")
+    }
 
 
     def stringToOptBoolean (x: String) : Option[Boolean] = x.toLowerCase match {
@@ -150,12 +155,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : String) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
         val json = for {
-          rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
+          rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
           val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
@@ -195,9 +200,19 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
  }
 
   def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-    case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
+    case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
      val (showCore, showPSD2, showOBWG) =  getParams()
-      user => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion)
+      user => {
+
+       for {
+         requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
+         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion)
+        }
+        yield {
+          json
+        }
+      }
       }
     }
 
@@ -232,7 +247,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
 
     resourceDocs += ResourceDoc(
       getResourceDocsSwagger,
-      apiVersion,
+      statedApiVersion,
       "getResourceDocsSwagger",
       "GET",
       "/resource-docs/v.2.2.0/swagger",
@@ -248,12 +263,14 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
     )
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : String) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
-        logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
+        logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
         val jsonOut = for {
-          rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
+            requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
+            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+          rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
           val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
@@ -280,8 +297,8 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion, "DUMMY"),
-        apiVersion,
+        dummy(statedApiVersion, "DUMMY"),
+        statedApiVersion,
         "testResourceDoc",
         "GET",
         "/dummy",

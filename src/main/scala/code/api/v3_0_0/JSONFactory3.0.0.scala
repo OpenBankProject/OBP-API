@@ -217,14 +217,6 @@ case class CoreAccountJsonV300(
 )
 case class CoreAccountsJsonV300( accounts: List[CoreAccountJsonV300])
 
-case class CreateAccountJsonV300(
-  user_id : String,
-  label   : String,
-  `type` : String,
-   balance : AmountOfMoneyJsonV121
-)
-
-
 case class ModeratedCoreAccountJSON(
   id: String,
   bank_id: String,
