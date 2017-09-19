@@ -1058,7 +1058,7 @@ trait APIMethods300 {
             l <- user ?~ UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
           } yield {
-            futureToResponse2(scalaFutureToLaFuture(Users.users.vend.getAllUsersF()))
+            Users.users.vend.getAllUsersF()
           }
       }
     }

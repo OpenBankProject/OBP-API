@@ -1516,4 +1516,8 @@ Versions are groups of endpoints in a file
     })
   }
 
+  implicit def scalaFutureToJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): JsonResponse = {
+    futureToResponse2(scalaFutureToLaFuture(scf))
+  }
+
 }
