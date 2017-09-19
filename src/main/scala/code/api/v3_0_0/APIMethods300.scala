@@ -1055,13 +1055,8 @@ trait APIMethods300 {
       case "users" :: Nil JsonGet _ => {
         user =>
           for {
-            production <- Props.mode match {
-                            case Props.RunModes.Production => Full(true)
-                            case _ => Full(false)
-                           }
-            _ <- booleanToBox(production == false, "Cannot be used in production")
-            // l <- user ?~ UserNotLoggedIn
-            // _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            l <- user ?~ UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
           } yield {
             futureToResponse2(scalaFutureToLaFuture(Users.users.vend.getAllUsersF()))
           }
