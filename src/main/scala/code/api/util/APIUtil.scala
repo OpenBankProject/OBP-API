@@ -56,7 +56,8 @@ import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.{JField, JValue}
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, StringHelpers}
 
@@ -262,6 +263,7 @@ import code.api.util.APIUtil._
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body."
+  val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
 
 
 
@@ -1341,8 +1343,18 @@ Returns a string showed to the developer
   def getEnabledVersions() : List[String] = Props.get("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  
+  
+  def validatePhoneNumber(number: String): Boolean = {
+    number.toList match {
+      case x :: _ if x != '+' => false // First char has to be +
+      case _ :: xs if xs.size > 15 => false // Number of digits has to be up to 15
+      case _ :: xs if xs.size < 5  => false // Minimal number of digits is 5
+      case _ :: xs if xs.exists(c => Character.isDigit(c) == false) => false // Ony digits are allowed
+      case _ => true
 
-  /*
+    }
+  }/*
   Determine if a version should be allowed.
 
     For a VERSION to be allowed it must be:
@@ -1457,5 +1469,24 @@ Versions are groups of endpoints in a file
       yield item.partialFunction
     routes.toList
     }
+  
+  def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
+    implicit val formats = net.liftweb.json.DefaultFormats
+    try {
+      val parseJValue: JValue = parse(in)
+      val t: T = parseJValue.extract[T]
+      Full(t)
+    } catch {
+      case m: ParseException =>
+        logger.error("String-->Jvalue parse error"+in,m)
+        Failure("String-->Jvalue parse error"+in+m.getMessage)
+      case m: MappingException =>
+        logger.error("JValue-->CaseClass extract error"+in,m)
+        Failure("JValue-->CaseClass extract error"+in+m.getMessage)
+      case m: Throwable =>
+        logger.error("extractToCaseClass unknow error"+in,m)
+        Failure("extractToCaseClass unknow error"+in+m.getMessage)
+    }
+  }
 
 }
