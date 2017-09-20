@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+20/09/2017                  Upgraded Lift version to 3.1.0. Script scripts/sql/consumer_table_changed.sql has to be executed at existing instances
 13/09/2017    1503229       DISABLED API versions v1.0, v1.1, v1.2
 09/09/2017    fa3b054       Added Props api_enabled_versions and api_enabled_endpoints
 19/04/2017    4033a01       Added remotedata.secret=secret - This should be set to the same value, local and remote (or just local)
