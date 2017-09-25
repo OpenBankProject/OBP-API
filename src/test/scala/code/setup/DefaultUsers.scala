@@ -1,5 +1,6 @@
 package code.setup
 
+import code.api.GatewayLogin
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
 import code.model.TokenType._
@@ -41,7 +42,8 @@ trait DefaultUsers {
   lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
   lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
   lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
-  
+  lazy val resourceUser4 = User.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException("Attempted to open an empty Box.")
+
   // create the tokens in database, we only need token-key and token-secret
   lazy val testToken1 = Tokens.tokens.vend.createToken(
     Access,
@@ -77,15 +79,28 @@ trait DefaultUsers {
     Some(now),
     None
   ).openOrThrowException("Attempted to open an empty Box.")
+
+  lazy val testToken4 = Tokens.tokens.vend.createToken(Access,
+    Some(testConsumer.id.get),
+    Some(resourceUser4.id.get),
+    Some(randomString(40).toLowerCase),
+    Some(randomString(40).toLowerCase),
+    Some(tokenDuration),
+    Some({ (now: TimeSpan) + tokenDuration }),
+    Some(now),
+    None
+  ).openOrThrowException("Attempted to open an empty Box.")
   
   // prepare the tokens
   lazy val token1 = Token(testToken1.key.get, testToken1.secret.get)
   lazy val token2 = Token(testToken2.key.get, testToken2.secret.get)
   lazy val token3 = Token(testToken3.key.get, testToken3.secret.get)
-  
+  lazy val token4 = Token(testToken4.key.get, testToken4.secret.get)
+
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)
   lazy val user2 = Some(consumer, token2)
   lazy val user3 = Some(consumer, token3)
-  
+  lazy val userGatewayLogin = Some(consumer, token4)
+
 }
