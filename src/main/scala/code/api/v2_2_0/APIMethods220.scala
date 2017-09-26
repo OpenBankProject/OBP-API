@@ -282,7 +282,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+      List(apiTagCounterparty, apiTagAccount))
 
     lazy val getCounterpartiesForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account

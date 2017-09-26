@@ -385,7 +385,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -441,7 +441,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
 
     lazy val getTransactionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -551,7 +551,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -587,7 +587,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -623,7 +623,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -659,14 +659,13 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagApi))
 
 
     lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
         user =>
           for {
-            // _ <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Bank(bankId) ?~! BankNotFound
             ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
@@ -814,7 +813,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -879,7 +878,7 @@ trait APIMethods300 {
         "No branches available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1049,7 +1048,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {

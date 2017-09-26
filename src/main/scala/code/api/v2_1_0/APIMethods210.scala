@@ -733,17 +733,15 @@ trait APIMethods210 {
       "GET",
       "/roles",
       "Get Roles",
-      """Returns all available roles
+      s"""Returns all available roles
         |
-        |Login is required.
-        |
-        |
+        |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole))
 
     lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "roles" :: Nil JsonGet _ => {
@@ -766,10 +764,12 @@ trait APIMethods210 {
       "getEntitlementsByBankAndUser",
       "GET",
       "/banks/BANK_ID/users/USER_ID/entitlements",
-      "Get Entitlements specified by BANK_ID and USER_ID",
-      """
+      "Get Entitlements for User at Bank.",
+      s"""
         |
-        |Login is required.
+        |Get Entitlements specified by BANK_ID and USER_ID
+        |
+        |${authenticationRequiredMessage(true)}
         |
         |
       """.stripMargin,
@@ -781,7 +781,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
 
     lazy val getEntitlementsByBankAndUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1017,7 +1017,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1419,7 +1419,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagPerson))
 
     // TODO in next version?
     // Separate customer creation (keep here) from customer linking (remove from here)
@@ -1487,14 +1487,13 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagUser))
 
     lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
-            //bank <- Bank(bankId) ?~! {BankNotFound}
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
