@@ -891,7 +891,7 @@ object APIUtil extends MdcLoggable {
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
   val apiTagTransactionRequest = ResourceDocTag("TransactionRequest")
-  val apiTagApiInfo = ResourceDocTag("APIInfo")
+  val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")
   val apiTagPublicData = ResourceDocTag("PublicData")
@@ -911,6 +911,13 @@ object APIUtil extends MdcLoggable {
   val apiTagPerson = ResourceDocTag("Person")
   val apiTagCard = ResourceDocTag("Card")
   val apiTagSandbox = ResourceDocTag("Sandbox")
+  val apiTagBranch = ResourceDocTag("Branch")
+  val apiTagATM = ResourceDocTag("ATM")
+  val apiTagProduct = ResourceDocTag("Product")
+  val apiTagOpenData = ResourceDocTag("Open Data")
+  val apiTagConsumer = ResourceDocTag("Consumer")
+  val apiTagDataWarehouse = ResourceDocTag("Data Warehouse")
+  val apiTagFx = ResourceDocTag("FX")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 

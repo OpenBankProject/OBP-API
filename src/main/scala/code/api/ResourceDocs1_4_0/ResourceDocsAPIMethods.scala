@@ -131,7 +131,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApiInfo)
+      List(apiTagApi)
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
@@ -259,7 +259,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
       emptyObjectJson,
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApiInfo)
+      List(apiTagApi)
     )
 
 
@@ -333,7 +333,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
         emptyObjectJson,
         UnknownError :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
-        List(apiTagApiInfo))
+        List(apiTagApi))
     }
 
 

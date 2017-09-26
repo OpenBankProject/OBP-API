@@ -242,7 +242,7 @@ trait APIMethods220 {
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagFx))
 
     lazy val getCurrentFxRate: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankid) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
@@ -317,7 +317,7 @@ trait APIMethods220 {
       messageDocsJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApiInfo)
+      List(apiTagApi)
     )
 
     lazy val getMessageDocs: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -465,7 +465,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagATM)
     )
 
 
@@ -519,7 +519,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagProduct)
     )
 
 
@@ -726,7 +726,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApiInfo :: Nil)
+      apiTagApi :: Nil)
 
     lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "config" :: Nil JsonGet _ => user => for {
@@ -782,7 +782,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi))
 
     lazy val getConnectorMetrics : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {

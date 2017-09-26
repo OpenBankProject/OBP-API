@@ -515,7 +515,7 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List())
+      List(apiTagDataWarehouse))
 
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -707,7 +707,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagBranch)
     )
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -761,7 +761,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagATM)
     )
 
 
@@ -939,7 +939,7 @@ trait APIMethods300 {
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -993,7 +993,7 @@ trait APIMethods300 {
         "No ATMs available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
