@@ -283,7 +283,7 @@ trait APIMethods121 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at one bank (Autheneticated + Anonymous access).",
+      "Get accounts at bank (Autheneticated + Anonymous access).",
       """Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |

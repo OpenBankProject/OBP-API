@@ -147,7 +147,7 @@ trait APIMethods210 {
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagBank, apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagBank))
 
 
     lazy val getTransactionRequestTypesSupportedByBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
