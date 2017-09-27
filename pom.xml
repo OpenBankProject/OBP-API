@@ -316,9 +316,9 @@
       <version>${avro.version}</version>
     </dependency>
     <dependency>
-     <groupId>com.github.romix.akka</groupId>
-      <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
-      <version>0.4.1</version>
+      <groupId>com.twitter</groupId>
+      <artifactId>chill-akka_${scala.version}</artifactId>
+      <version>0.9.1</version>
     </dependency>
     <dependency>
       <groupId>com.github.cb372</groupId>

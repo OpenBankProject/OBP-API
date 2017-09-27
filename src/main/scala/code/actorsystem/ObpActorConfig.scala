@@ -19,7 +19,6 @@ object ObpActorConfig {
   akka {
     loggers = ["akka.event.slf4j.Slf4jLogger"]
     loglevel =  """ + akka_loglevel + """
-    extensions = ["com.romix.akka.serialization.kryo.KryoSerializationExtension$"]
     actor {
       provider = "akka.remote.RemoteActorRefProvider"
       allow-java-serialization = off
@@ -44,7 +43,7 @@ object ObpActorConfig {
       resolve-subclasses = true
       }
       serializers {
-        kryo = "com.romix.akka.serialization.kryo.KryoSerializer"
+        kryo = "com.twitter.chill.akka.AkkaSerializer"
       }
       serialization-bindings {
         "net.liftweb.common.Full" = kryo,
