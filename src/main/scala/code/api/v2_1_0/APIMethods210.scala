@@ -109,7 +109,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagApi, apiTagSandbox))
 
 
     lazy val sandboxDataImport: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -138,7 +138,7 @@ trait APIMethods210 {
       "getTransactionRequestTypesSupportedByBank",
       "GET",
       "/banks/BANK_ID/transaction-request-types",
-      "Get the Transaction Request Types supported by the bank",
+      "Get supported Transaction Request Types",
       s"""Get the list of the Transaction Request Types supported by the bank.
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
@@ -147,7 +147,7 @@ trait APIMethods210 {
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagBank, apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagBank))
 
 
     lazy val getTransactionRequestTypesSupportedByBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -733,17 +733,15 @@ trait APIMethods210 {
       "GET",
       "/roles",
       "Get Roles",
-      """Returns all available roles
+      s"""Returns all available roles
         |
-        |Login is required.
-        |
-        |
+        |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole))
 
     lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "roles" :: Nil JsonGet _ => {
@@ -766,10 +764,12 @@ trait APIMethods210 {
       "getEntitlementsByBankAndUser",
       "GET",
       "/banks/BANK_ID/users/USER_ID/entitlements",
-      "Get Entitlements specified by BANK_ID and USER_ID",
-      """
+      "Get Entitlements for User at Bank.",
+      s"""
         |
-        |Login is required.
+        |Get Entitlements specified by BANK_ID and USER_ID
+        |
+        |${authenticationRequiredMessage(true)}
         |
         |
       """.stripMargin,
@@ -781,7 +781,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
 
     lazy val getEntitlementsByBankAndUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -834,7 +834,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val getConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -871,7 +871,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val getConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -908,7 +908,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val enableDisableConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -953,7 +953,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard, apiTagPrivateData, apiTagPublicData))
+      List(apiTagCard))
 
 
     lazy val addCardForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1017,7 +1017,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1043,7 +1043,7 @@ trait APIMethods210 {
       "createTransactionType",
       "PUT",
       "/banks/BANK_ID/transaction-types",
-      "Create Transaction Type offered by the bank",
+      "Create Transaction Type at bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
       s"""Create Transaction Types for the bank specified by BANK_ID:
           |
@@ -1107,7 +1107,7 @@ trait APIMethods210 {
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1157,7 +1157,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch)
     )
 
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1209,7 +1209,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagProduct)
     )
 
     lazy val getProduct: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1261,7 +1261,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagProduct)
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1334,7 +1334,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List())
+      List(apiTagCounterparty, apiTagAccount))
 
 
     lazy val createCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1419,7 +1419,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagPerson))
 
     // TODO in next version?
     // Separate customer creation (keep here) from customer linking (remove from here)
@@ -1487,14 +1487,13 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagUser))
 
     lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
-            //bank <- Bank(bankId) ?~! {BankNotFound}
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
@@ -1565,7 +1564,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagBranch))
 
 
     lazy val updateBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1608,7 +1607,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagBranch, apiTagOpenData))
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
@@ -1649,7 +1648,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil
+      List(apiTagApi, apiTagConsumer)
     )
     
     lazy val updateConsumerRedirectUrl: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1726,7 +1725,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi))
 
     lazy val getMetrics : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "management" :: "metrics" :: Nil JsonGet _ => {
