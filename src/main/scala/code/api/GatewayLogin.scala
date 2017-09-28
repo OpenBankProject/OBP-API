@@ -146,8 +146,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("isFirst : " + isFirst)
     logger.debug("cbsAuthToken : " + cbsAuthToken)
-    if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
-      // Call CBS
+    if(isFirst.equalsIgnoreCase("true") || // Case is_first="true" OR
+       cbsAuthToken.equalsIgnoreCase(""))  // Case There is no CBS_auth_token at all in JWT
+    { // Call CBS
       val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
@@ -157,8 +158,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         case Failure(msg, _, _) =>
           Failure(msg)
       }
-    } else {
-      // Do not call CBS
+    } else { // Do not call CBS
       Full("There is no need to call CBS")
     }
   }
