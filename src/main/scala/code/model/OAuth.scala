@@ -278,6 +278,25 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  /**
+    * This function is added in order to support iOS/macOS requirements for callbacks.
+    * For instance next callback has to be valid: x-com.tesobe.helloobp.ios://callback
+    * @param field object which has to be validated
+    * @param s is a URI string
+    * @return Empty list if URI is valid or FieldError otherwise
+    */
+  private def validUri(field: MappedString[Consumer])(s: String) = {
+    import java.net.URI
+
+    import Helpers.tryo
+    if(s.isEmpty)
+      Nil
+    else if(tryo{new URI(s)}.isEmpty)
+      List(FieldError(field, {field.displayName + " must be a valid URI"}))
+    else
+      Nil
+  }
+
   object consumerId extends MappedString(this, 250) // Introduced to cover gateway login functionality
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
@@ -300,7 +319,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
   object redirectURL extends MappedString(this, 250){
     override def displayName = "Redirect URL:"
-    override def validations = validUrl(this) _ :: super.validations
+    override def validations = validUri(this) _ :: super.validations
   }
   //if the application needs to delegate the user authentication
   //to a third party application (probably it self) rather than using
