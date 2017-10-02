@@ -1663,7 +1663,7 @@ trait APIMethods210 {
             //only the developer that created the Consumer should be able to edit it
             isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, None, None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))
