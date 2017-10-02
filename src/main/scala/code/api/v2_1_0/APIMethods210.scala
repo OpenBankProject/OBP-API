@@ -1656,12 +1656,15 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~ UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), UserHasMissingRoles + CanUpdateConsumerRedirectUrl )
+            _ <- booleanToBox(
+              hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
+              UserHasMissingRoles + CanUpdateConsumerRedirectUrl
+            )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
+            _ <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
