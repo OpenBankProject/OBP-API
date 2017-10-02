@@ -278,6 +278,13 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  /**
+    * This function is added in order to support iOS/macOS requirements for callbacks.
+    * For instance next callback has to be valid: x-com.tesobe.helloobp.ios://callback
+    * @param field object which has to be validated
+    * @param s is a URI string
+    * @return Empty list if URI is valid or FieldError otherwise
+    */
   private def validUri(field: MappedString[Consumer])(s: String) = {
     import java.net.URI
 
