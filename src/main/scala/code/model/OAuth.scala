@@ -326,7 +326,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   //the default authentication page of the API, then this URL will be used.
   object userAuthenticationURL extends MappedString(this, 250){
     override def displayName = "User authentication URL:"
-    override def validations = validUrl(this) _ :: super.validations
+    override def validations = validUri(this) _ :: super.validations
   }
   object createdByUserId extends MappedString(this, 36)
 
