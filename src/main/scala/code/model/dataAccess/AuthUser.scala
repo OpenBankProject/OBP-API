@@ -825,7 +825,7 @@ import net.liftweb.util.Helpers._
     * update the views, accountHolders for OBP side when sign up new remote user
     * 
     */
-  def updateUserAccountViews(user: ResourceUser): Unit = {
+  def updateUserAccountViews(user: User): Unit = {
     //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccounts(user.name).openOrThrowException("Attempted to open an empty Box.")
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")

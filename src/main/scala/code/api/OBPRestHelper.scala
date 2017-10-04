@@ -180,7 +180,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
               payload match {
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUser(payload: String) match {
-                    case Full(u) => // Authentication is successful
+                    case Full((u, cbsAuthToken)) => // Authentication is successful
+                      GatewayLogin.getOrCreateConsumer(payload, u)
+                      setGatewayResponseHeader {
+                        GatewayLogin.createJwt(payload, cbsAuthToken)
+                      }
                       fn(Full(u))
                     case Failure(msg, _, _) => errorJsonResponse(msg)
                     case _ => errorJsonResponse(payload, httpCode)
