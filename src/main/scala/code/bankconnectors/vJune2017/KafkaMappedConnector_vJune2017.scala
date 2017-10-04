@@ -26,25 +26,20 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors._
-import code.branches._
+import code.bankconnectors.vMar2017._
 import code.customer.Customer
-import code.fx.fx
-import code.fx.fx
-import code.metadata.counterparties.CounterpartyTrait
+import code.kafka.KafkaHelper
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
@@ -55,7 +50,7 @@ import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
 
-object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
+trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
   type AccountType = BankAccountJune2017
   
@@ -90,6 +85,9 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
   def currentResourceUsername = AuthUser.getCurrentUserUsername
+  
+  //TODO, this a temporary way, we do not know when should we update the MfToken, for now, we update it once it call the override def getBankAccounts(username: String).
+  var cbsToken = ""
 
   
   //////////////////////////////////////////////////////////////////////////////
@@ -102,12 +100,15 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       GetAdapterInfo(date = (new Date()).toString)
     ),
     exampleInboundMessage = decompose(
-      InboundAdapterInfo(
-        errorCode = "OBP-6001: ...",
-        name = "Obp-Kafka-South",
-        version = "June2017",
-        git_commit = "...",
-        date = (new Date()).toString
+      AdapterInfo(
+        InboundAdapterInfo(
+          errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
+          name = "Obp-Kafka-South",
+          version = "June2017",
+          git_commit = "...",
+          date = (new Date()).toString
+        )
       )
     )
   )
@@ -116,8 +117,10 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     
     val box = processToBox[GetAdapterInfo](req).map(_.extract[AdapterInfo].data)
     val res = box match {
-      case Full(list) =>
+      case Full(list) if (list.errorCode=="") =>
         Full(list)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, _, _) =>
@@ -142,27 +145,37 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     ),
     exampleInboundMessage = decompose(
       UserWrapper(
-        Some(InboundValidatedUser(
+        AuthInfo("userId", "username", "cbsToken"),
+        InboundValidatedUser(
           errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
           email = "susan.uk.29@example.com",
           displayName = "susan"
-        )))
+        )
+      )
     )
   )
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(getUserTTL millisecond) {
-      for {
-        req <- Full(
-          GetUserByUsernamePassword(AuthInfo(currentResourceUserId, username,"cbsToken"), password = password)
-        )
-        user: Option[InboundValidatedUser] <- processToBox[GetUserByUsernamePassword](req).map(_.extract[UserWrapper].data)
-        u <- user
-        recUsername <- Some(u.displayName)
-      } yield
-        if (username == u.displayName)
-          new InboundUser(recUsername, password, recUsername
-          ) else
-          null
+      
+      val req = GetUserByUsernamePassword(AuthInfo(currentResourceUserId, username, cbsToken), password = password)
+      val box = processToBox[GetUserByUsernamePassword](req).map(_.extract[UserWrapper].data)
+  
+      val res = box match {
+        case Full(list) if (list.errorCode=="" && username == list.displayName) =>
+          Full(new InboundUser(username, password, username))
+        case Full(list) if (list.errorCode!="") =>
+          Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse)
+        case Failure(msg, _, _) =>
+          Failure(msg)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+  
+      res
+
     }}("getUser")
 
   
@@ -171,33 +184,38 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     messageFormat = messageFormat,
     description = "getBanks",
     exampleOutboundMessage = decompose(
-      GetBanks(AuthInfo("userId", "username", "cbsToken"),"")
+      GetBanks(AuthInfo(
+        "userId", 
+        "username", 
+        "cbsToken"
+        ))
     ),
     exampleInboundMessage = decompose(
-      InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
-      ) :: InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
-      ) :: Nil
+      Banks(
+        AuthInfo("userId", "username", "cbsToken"),
+        InboundBank(
+          errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
+          bankId = "gh.29.uk",
+          name = "sushan",
+          logo = "TESOBE",
+          url = "https://tesobe.com/"
+        )  :: Nil
+      )
+      
     )
   )
   //gets banks handled by this connector
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond){
-      val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),criteria="")
-      logger.debug(s"Kafka getBanks says: req is: $req")
+      val req = GetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken))
+      logger.info(s"Kafka getBanks says: req is: $req")
       val box: Box[List[InboundBank]] = processToBox[GetBanks](req).map(_.extract[Banks].data)
       val res = box match {
-        case Full(list) =>
+        case Full(list) if (list.head.errorCode=="") =>
           Full(list map (new Bank2(_)))
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, _, _) =>
@@ -205,10 +223,9 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
-      logger.debug(s"Kafka getBanks says res is $res")
+      logger.info(s"Kafka getBanks says res is $res")
       res
       }}("getBanks")
-
   
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
@@ -218,27 +235,34 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       GetBank(AuthInfo("userId", "username", "cbsToken"),"bankId")
     ),
     exampleInboundMessage = decompose(
-      InboundBank(
-        errorCode = "OBP-6001: ...",
-        bankId = "gh.29.uk",
-        name = "sushan",
-        logo = "TESOBE",
-        url = "https://tesobe.com/"
+      BankWrapper(
+        AuthInfo("userId", "username", "cbsToken"),
+        InboundBank(
+          errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB","Success", "0", "OK")),
+          bankId = "gh.29.uk",
+          name = "sushan",
+          logo = "TESOBE",
+          url = "https://tesobe.com/"
+        )
       )
+      
     )
   )
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(getBankTTL millisecond){
       val req = GetBank(
-        authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, "cbsToken"),
+        authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, cbsToken),
         bankId = bankId.toString
       )
       
-      val r =  processToBox[GetBank](req).map(_.extract[BankWrapper].data)
+      val box =  processToBox[GetBank](req).map(_.extract[BankWrapper].data)
       
-      r match {
-        case Full(v) =>
-          Full(new Bank2(v))
+      box match {
+        case Full(list) if (list.errorCode=="") =>
+          Full(new Bank2(list))
+        case Full(list) if (list.errorCode!="") =>
+          Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, _, _) =>
@@ -271,6 +295,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         AuthInfo("userId", "username", "cbsToken"),
         InboundAccountJune2017(
           errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
           cbsToken ="cbsToken",
           bankId = "gh.29.uk",
           branchId = "222",
@@ -295,15 +320,16 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
       
-      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username,"cbsToken"),internalCustomers)
-      logger.debug(s"Kafka getBankAccounts says: req is: $req")
-      val rList: Box[List[InboundAccountJune2017]] = processToBox[OutboundGetAccounts](req).map(_.extract[InboundBankAccounts].data)
-      val res = rList //map (new BankAccountJune2017(_))
-      logger.debug(s"Kafka getBankAccounts says res is $res")
-      res match {
-        // Check does the response data match the requested data
-        case Full(list) =>
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, cbsToken),internalCustomers)
+      logger.info(s"Kafka getBankAccounts says: req is: $req")
+      val box: Box[List[InboundAccountJune2017]] = processToBox[OutboundGetAccounts](req).map(_.extract[InboundBankAccounts].data)
+      logger.info(s"Kafka getBankAccounts says res is $box")
+      box match {
+        case Full(list) if (list.head.errorCode=="") =>
+          cbsToken = list.head.cbsToken
           Full(list)
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, _, _) =>
@@ -330,6 +356,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         AuthInfo("userId", "username", "cbsToken"),
         InboundAccountJune2017(
           errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
           cbsToken = "cbsToken",
           bankId = "gh.29.uk",
           branchId = "222",
@@ -353,22 +380,23 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     memoizeSync(getAccountTTL millisecond){
       // Generate random uuid to be used as request-response match id
       val req = GetAccountbyAccountID(
-        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
+        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
         bankId = bankId.toString,
         accountId = accountId.value
       )
-      logger.debug(s"Kafka getBankAccount says: req is: $req")
+      logger.info(s"Kafka getBankAccount says: req is: $req")
       // 1 there is error in Adapter code,
       // 2 there is no account in Adapter code,
       // 3 there is error in Kafka
       // 4 there is error in Akka
       // 5 there is error in Future
-      val res: Box[InboundAccountJune2017] = processToBox[GetAccountbyAccountID](req).map(_.extract[InboundBankAccount].data)
-      logger.debug(s"Kafka getBankAccount says res is $res")
-      res match {
-        // Check does the response data match the requested data
-        case Full(r) =>
-          Full(new BankAccountJune2017(r))
+      val box: Box[InboundAccountJune2017] = processToBox[GetAccountbyAccountID](req).map(_.extract[InboundBankAccount].data)
+      logger.info(s"Kafka getBankAccount says res is $box")
+      box match {
+        case Full(f) if (f.errorCode=="") =>
+          Full(new BankAccountJune2017(f))
+        case Full(f) if (f.errorCode!="") =>
+          Failure("OBP-Error:"+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, _, _) =>
@@ -398,6 +426,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         AuthInfo("userId", "username", "cbsToken" ),
         InternalTransaction(
           errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
           transactionId = "1234",
           accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
           amount = "100",
@@ -412,23 +441,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
           postedDate = "",
           `type` = "AC",
           userId = "1234"
-        ) :: InternalTransaction(
-          errorCode = "OBP-6001: ...",
-          transactionId = "1234",
-          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-          amount = "100",
-          bankId = "gh.29.uk",
-          completedDate = "",
-          counterpartyId = "1234",
-          counterpartyName = "obp",
-          currency = "EUR",
-          description = "Good Boy",
-          newBalanceAmount = "10000",
-          newBalanceCurrency = "1000",
-          postedDate = "",
-          `type` = "AC",
-          userId = "1234"
-        ) :: Nil
+        ):: Nil
       ))
   )
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -442,7 +455,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
     
     val req = GetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = "cbsToken" ),
+      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = cbsToken),
       bankId = bankId.toString,
       accountId = accountId.value,
       limit = limit.value,
@@ -451,10 +464,12 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     )
     
     implicit val formats = net.liftweb.json.DefaultFormats
-    logger.debug(s"Kafka getTransactions says: req is: $req")
-    processToBox[GetTransactions](req).map(_.extract[InboundTransactions].data) match {
-      case Full(list) =>
-        logger.debug(s"Kafka getTransactions says: req is: $list")
+    logger.info(s"Kafka getTransactions says: req is: $req")
+    val box= processToBox[GetTransactions](req).map(_.extract[InboundTransactions].data)
+    
+    box match {
+      case Full(list) if (list.head.errorCode=="")  =>
+        logger.info(s"Kafka getTransactions says: req is: $list")
         // Check does the response data match the requested data
         val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
         if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
@@ -467,6 +482,8 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         }
         Full(res)
       //TODO is this needed updateAccountTransactions(bankId, accountId)
+      case Full(list) if (list.head.errorCode!="") =>
+        Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, _, _) =>
@@ -494,6 +511,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
         AuthInfo("userId","usename","cbsToken"),
         InternalTransaction(
           errorCode = "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
           transactionId = "1234",
           accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
           amount = "100",
@@ -513,21 +531,23 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = GetTransaction(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
       bankId = bankId.toString,
       accountId = accountId.value,
       transactionId = transactionId.toString)
     
     // Since result is single account, we need only first list entry
-    logger.debug(s"Kafka getTransaction request says:  is: $req")
+    logger.info(s"Kafka getTransaction request says:  is: $req")
     val r: Box[InternalTransaction] = processToBox[GetTransaction](req).map(_.extract[InboundTransaction].data)
-    logger.debug(s"Kafka getTransaction response says: is: $r")
+    logger.info(s"Kafka getTransaction response says: is: $r")
     r match {
       // Check does the response data match the requested data
-      case Full(x) if transactionId.value != x.transactionId =>
+      case Full(x) if (transactionId.value != x.transactionId && x.errorCode=="") =>
         Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Full(x) if transactionId.value == x.transactionId =>
+      case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
         createNewTransaction(x)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
       case Failure(msg, _, _) =>
@@ -537,92 +557,6 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     }
     
   }
-  
-  messageDocs += MessageDoc(
-    process = "obp.makePaymentImpl",
-    messageFormat = messageFormat,
-    description = "saveTransaction from kafka",
-    exampleOutboundMessage = decompose(
-      CreateTransaction(
-        AuthInfo("userId","usename","cbsToken"),
-        // fromAccount
-        fromAccountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        fromAccountBankId = "gh.29.uk",
-        
-        // transaction details
-        transactionRequestType = "SANDBOX_TAN",
-        transactionChargePolicy = "RECEIVER",
-        transactionRequestCommonBody=SwaggerDefinitionsJSON.transactionRequestBodyCounterpartyJSON,
-        // toAccount or toCounterparty
-        toCounterpartyId = "1234",
-        toCounterpartyName = "obp",
-        toCounterpartyCurrency = "EUR",
-        toCounterpartyRoutingAddress = "1234",
-        toCounterpartyRoutingScheme = "OBP",
-        toCounterpartyBankRoutingAddress = "12345",
-        toCounterpartyBankRoutingScheme = "OBP"
-      )
-    ),
-    exampleInboundMessage = decompose(
-      InboundCreateTransactionId(
-        AuthInfo("userId","usename","cbsToken"),
-        InternalTransactionId("123")
-      )
-    )
-  )
-  
-   override def makePaymentv300(
-     initiator: User,
-     fromAccount: BankAccount,
-     toAccount: BankAccount,
-     toCounterparty: CounterpartyTrait,
-     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-     transactionRequestType: TransactionRequestType,
-     chargePolicy: String
-   ): Box[TransactionId] = {
-    
-    val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
-    
-    val req = CreateTransaction(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, "cbsToken"),
-  
-      // fromAccount
-      fromAccountId = fromAccount.accountId.value,
-      fromAccountBankId = fromAccount.bankId.value,
-  
-      // transaction details
-      transactionRequestType = transactionRequestType.value,
-      transactionChargePolicy = chargePolicy,
-      transactionRequestCommonBody = transactionRequestCommonBody,
-  
-      // toAccount or toCounterparty
-      toCounterpartyId = toAccount.accountId.value,
-      toCounterpartyName = toAccount.name,
-      toCounterpartyCurrency = toAccount.currency,
-      toCounterpartyRoutingAddress = toAccount.accountId.value,
-      toCounterpartyRoutingScheme = "OBP",
-      toCounterpartyBankRoutingAddress = toAccount.bankId.value,
-      toCounterpartyBankRoutingScheme = "OBP"
-    )
-    
-    // Since result is single account, we need only first list entry
-     val box= processToBox[CreateTransaction](req).map(_.extract[InboundCreateTransactionId].data)
-     
-     val res = box match {
-       case Full(r) =>
-         Full(TransactionId(r.id))
-       case Empty =>
-         Failure(ErrorMessages.ConnectorEmptyResponse)
-       case Failure(msg, _, _) =>
-         Failure(msg)
-       case _ =>
-         Failure(ErrorMessages.UnknownError)
-     }
-  
-     res
-  }
-  
-  
   
   messageDocs += MessageDoc(
     process = "obp.create.Challenge",
@@ -641,9 +575,13 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       )
     ),
     exampleInboundMessage = decompose(
-      InboundCreateChallange(
-        errorCode = "OBP-6001: ...",
-        challengeId = "1234567"
+      InboundCreateChallengeJune2017(
+        AuthInfo("userId","usename","cbsToken"),
+        InternalCreateChallengeJune2017(
+          "OBP-6001: ...",
+          List(InboundStatusMessage("ESB", "Success", "0", "OK")),
+          "1234"
+        )
       )
     )
   )
@@ -657,22 +595,23 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
     phoneNumber: String
   ): Box[String] = {
     val req = OutboundCreateChallengeJune2017(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername,"cbsToken"),
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
       bankId = bankId.value,
       accountId = accountId.value,
       userId = userId,
       username = AuthUser.getCurrentUserUsername,
       transactionRequestType = transactionRequestType.value,
       transactionRequestId = transactionRequestId,
-      phoneNumber=phoneNumber
+      ""
     )
     
-  
     val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateChallengeJune2017](req).map(_.extract[InboundCreateChallengeJune2017].data)
   
     val res = box match {
-      case Full(r) =>
-        Full(r.answer)
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x.answer)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, _, _) =>
@@ -680,185 +619,9 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
-  
     res
     
-    
   }
-  
-  //////////////////////////////////////////////////////////////////////////////// 
-  // the following methods do not implement in new Adapter code
-  messageDocs += MessageDoc(
-    process = "obp.get.ChallengeThreshold",
-    messageFormat = messageFormat,
-    description = "getChallengeThreshold from kafka ",
-    exampleOutboundMessage = decompose(
-      OutboundChallengeThresholdBase(
-        messageFormat = messageFormat,
-        action = "obp.get.ChallengeThreshold",
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        viewId = "owner",
-        transactionRequestType = SANDBOX_TAN.toString,
-        currency = "GBP",
-        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-        username = "susan.uk.29@example.com"
-      )
-    ),
-    exampleInboundMessage = decompose(
-      InboundChallengeLevel(
-        errorCode = "OBP-6001: ...",
-        limit = "1000",
-        currency = "EUR"
-      )
-    )
-  )
-  // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String) = {
-    // Create argument list
-    val req = OutboundChallengeThresholdBase(
-      action = "obp.get.ChallengeThreshold",
-      messageFormat = messageFormat,
-      bankId = bankId,
-      accountId = accountId,
-      viewId = viewId,
-      transactionRequestType = transactionRequestType,
-      currency = currency,
-      userId = userId,
-      username = username)
-
-//    val r: Option[InboundChallengeLevel] = process(req).extractOpt[InboundChallengeLevel]
-//     Return result
-//    r match {
-//       Check does the response data match the requested data
-//      case Some(x) => AmountOfMoney(x.currency, x.limit)
-//      case _ => {
-        val limit = BigDecimal("1000")
-        val rate = fx.exchangeRate("ILS", currency)
-        val convertedLimit = fx.convert(limit, rate)
-        Full(AmountOfMoney(currency, convertedLimit.toString()))
-//      }
-//    }
-  }
-
-  messageDocs += MessageDoc(
-    process = "obp.get.ChargeLevel",
-    messageFormat = messageFormat,
-    description = "ChargeLevel from kafka ",
-    exampleOutboundMessage = decompose(OutboundChargeLevelBase(
-      action = "obp.get.ChargeLevel",
-      messageFormat = messageFormat,
-      bankId = "gh.29.uk",
-      accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-      viewId = "owner",
-      userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-      username = "susan.uk.29@example.com",
-      transactionRequestType = SANDBOX_TAN.toString,
-      currency = "EUR"
-    )
-    ),
-    exampleInboundMessage = decompose(
-      InboundChargeLevel(
-        errorCode = "OBP-6001: ...",
-        currency = "EUR",
-        amount = ""
-      )
-    )
-  )
-  override def getChargeLevel(
-                               bankId: BankId,
-                               accountId: AccountId,
-                               viewId: ViewId,
-                               userId: String,
-                               username: String,
-                               transactionRequestType: String,
-                               currency: String
-                             ): Box[AmountOfMoney] = {
-    // Create argument list
-    val req = OutboundChargeLevelBase(
-      action = "obp.get.ChargeLevel",
-      messageFormat = messageFormat,
-      bankId = bankId.value,
-      accountId = accountId.value,
-      viewId = viewId.value,
-      transactionRequestType = transactionRequestType,
-      currency = currency,
-      userId = userId,
-      username = username
-    )
-
-//    val r: Option[InboundChargeLevel] = process(req).extractOpt[InboundChargeLevel]
-//    // Return result
-//    val chargeValue = r match {
-//      // Check does the response data match the requested data
-//      case Some(x) => AmountOfMoney(x.currency, x.amount)
-//      case _ => {
-//        AmountOfMoney("EUR", "0.0001")
-//      }
-//    }
-//    Full(chargeValue)
-    LocalMappedConnector.getChargeLevel(
-      bankId: BankId,
-      accountId: AccountId,
-      viewId: ViewId,
-      userId: String,
-      username: String,
-      transactionRequestType: String,
-      currency: String
-    )
-  }
-
-
-
-//  messageDocs += MessageDoc(
-//    process = "obp.validate.ChallengeAnswer",
-//    messageFormat = messageFormat,
-//    description = "validateChallengeAnswer from kafka ",
-//    exampleOutboundMessage = decompose(
-//      OutboundChallengeAnswerBase(
-//        messageFormat = messageFormat,
-//        action = "obp.validate.ChallengeAnswer",
-//        userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
-//        username = "susan.uk.29@example.com",
-//        challengeId = "1234",
-//        hashOfSuppliedAnswer = ""
-//      )
-//    ),
-//    exampleInboundMessage = decompose(
-//      InboundValidateChallangeAnswer(
-//        errorCode = "OBP-6001: ...",
-//        answer = ""
-//      )
-//    )
-//  )
-
-  override def validateChallengeAnswer(
-                                        challengeId: String,
-                                        hashOfSuppliedAnswer: String
-                                      ): Box[Boolean] = {
-//    // Create argument list
-//    val req = OutboundChallengeAnswerBase(
-//      messageFormat = messageFormat,
-//      action = "obp.validate.ChallengeAnswer",
-//      userId = currentResourceUserId,
-//      username = currentResourceUsername,
-//      challengeId = challengeId,
-//      hashOfSuppliedAnswer = hashOfSuppliedAnswer)
-
-//    val r: Option[InboundValidateChallangeAnswer] = process(req).extractOpt[InboundValidateChallangeAnswer]
-    // Return result
-//    r match {
-//       //Check does the response data match the requested data
-//      case Some(x) => Full(x.answer.toBoolean)
-//      case _ => Empty
-//    }
-    Full(true)
-  }
-
-
- 
-  
-  
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
@@ -931,3 +694,7 @@ object KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Md
 
 }
 
+
+object KafkaMappedConnector_vJune2017 extends KafkaMappedConnector_vJune2017{
+  
+}

@@ -4,28 +4,22 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.api.v2_1_0.{CustomerCreditRatingJSON, TransactionRequestCommonBodyJSON}
-import code.bankconnectors.Topics._
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
-import code.bankconnectors.Topics.{CreateTransactionTopic, OutboundCreateChallengeJune2017Topic, _}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors._
-import code.branches.{InboundAdapterInfo, InboundBank, InboundValidatedUser, InternalTransaction}
+import code.bankconnectors.vMar2017._
 import code.customer.Customer
+import code.kafka.Topics._
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, BankAccount, BankId}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
-case class AuthInfo(userId: String, username: String, cbsToken: String)
-
 /**
-  * case classes used to define topics
+  * case classes used to define topics, these are outbound kafka messages
   */
 
 case class GetAdapterInfo(date: String) extends GetAdapterInfoTopic
-case class GetBanks(authInfo: AuthInfo, criteria: String) extends GetBanksTopic
+case class GetBanks(authInfo: AuthInfo) extends GetBanksTopic
 case class GetBank(authInfo: AuthInfo, bankId: String) extends GetBankTopic
 case class GetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends GetUserByUsernamePasswordTopic
 case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends GetAccountsTopic
@@ -69,22 +63,35 @@ case class OutboundCreateChallengeJune2017(
 ) extends OutboundCreateChallengeJune2017Topic
 
 /**
-  * case classes used as payloads
+  * case classes used in Kafka message, these are InBound Kafka messages
   */
+
+//AdapterInfo has no AuthInfo, because it just get data from Adapter, no need for AuthInfo
 case class AdapterInfo(data: InboundAdapterInfo)
-case class UserWrapper(data: Option[InboundValidatedUser])
+case class UserWrapper(authInfo: AuthInfo, data: InboundValidatedUser)
 case class Banks(authInfo: AuthInfo, data: List[InboundBank])
 case class BankWrapper(authInfo: AuthInfo, data: InboundBank)
 case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
 case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
-case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
 
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// These are case classes, used in internal message mapping
+case class AuthInfo(userId: String, username: String, cbsToken: String)
 case class InboundAccountJune2017(
   errorCode: String,
-  cbsToken: String,
+  backendMessages: List[InboundStatusMessage],
+  cbsToken: String, //TODO, this maybe move to AuthInfo, but it is used in GatewayLogin
   bankId: String,
   branchId: String,
   accountId: String,
@@ -141,9 +148,13 @@ case class InternalBasicCustomer(
 
 case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
 
-case class InternalTransactionId(id : String)
+case class InternalCreateChallengeJune2017(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  answer : String
+)
 
-case class InternalCreateChallengeJune2017(answer : String)
+
 
 object JsonFactory_vJune2017 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
@@ -159,6 +170,4 @@ object JsonFactory_vJune2017 {
   def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
     InternalBasicCustomers(customers.map(createCustomerJson))
   }
-  
-  
 }

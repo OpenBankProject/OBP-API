@@ -73,6 +73,8 @@ import code.api.util.APIUtil._
   // 3) Before adding a new message, check that you can't use one that already exists.
   // 4) Use Proper Names for OBP Resources.
   // 5) Don't use abbreviations.
+  // 6) Any messaage defined here should be considered "fair game" to return over the API. Thus:
+  // 7) Since the existance of "OBP-..." in a message is used to determine if we should display to a user if display_internal_errors=false, do *not* concatenate internal or core banking system error messages to these strings.
 
   // Infrastructure / config level messages (OBP-00XXX)
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
@@ -265,6 +267,7 @@ import code.api.util.APIUtil._
   val AdapterOrCoreBankingSystemException = "OBP-50003: Adapter Or Core Banking System Exception. Failed to get a valid response from the south side Adapter or Core Banking System."
   // This error may not be shown to user, just for debugging.
   val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
+  val AnUnspecifiedOrInternalErrorOccurred = "OBP-50005: An unspecified or internal error occurred."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
@@ -897,16 +900,14 @@ object APIUtil extends MdcLoggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
-  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false, support: Boolean = false)
+  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 
   val Core = true
   val PSD2 = true
   val OBWG = true
-  val Support = true
   val notCore = false
   val notPSD2 = false
   val notOBWG = false
-  val notSupport = false
   
   case class BaseErrorResponseBody(
     //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
@@ -1321,6 +1322,14 @@ Returns a string showed to the developer
   def camelifyMethod(json: JValue): JValue = json transform {
     case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
   }
+
+
+
+  def getDisabledVersions() : List[String] = {Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList}
+
+  def getDisabledEndpoints = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",")
+
+
 
 
   def validatePhoneNumber(number: String): Boolean = {

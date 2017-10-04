@@ -150,15 +150,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], showSupport: Option[Boolean], requestedApiVersion : String) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : String) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
-        logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG showOBWG is $showSupport requestedApiVersion is $requestedApiVersion")
+        logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
         val json = for {
           rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, showSupport ,rd)
+          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
           // Format the data as json
           val json = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
@@ -172,7 +172,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
- def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean] ) = {
+ def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean] ) = {
 
    val showCore: Option[Boolean] = for {
      x <- S.param("core")
@@ -188,21 +188,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      x <- S.param("obwg")
      y <- stringToOptBoolean(x)
    } yield y
-  
-   val showSupport: Option[Boolean] = for {
-     x <- S.param("support")
-     y <- stringToOptBoolean(x)
-   } yield y
 
 
-   (showCore, showPSD2, showOBWG,showSupport)
+   (showCore, showPSD2, showOBWG)
 
  }
 
   def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
     case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
-     val (showCore, showPSD2, showOBWG , showSupport) =  getParams()
-      user => getResourceDocsObpCached(showCore, showPSD2, showOBWG, showSupport, requestedApiVersion)
+     val (showCore, showPSD2, showOBWG) =  getParams()
+      user => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion)
       }
     }
 
@@ -211,7 +206,7 @@ Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
 so the caller must specify any required filtering by catalog explicitly.
  */
-def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], showSupport: Option[Boolean], allResources: List[ResourceDoc]) : List[ResourceDoc] = {
+def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] = showCore match {
@@ -231,14 +226,8 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
       case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
       case _ => filteredResources2
     }
-  
-    val filteredResources4 : List[ResourceDoc] = showSupport match {
-      case Some(true) => filteredResources3.filter(x => x.catalogs.support == true)
-      case Some(false) => filteredResources3.filter(x => x.catalogs.support == false)
-      case _ => filteredResources3
-    }
-  
-   filteredResources4
+
+    filteredResources3
 }
 
     resourceDocs += ResourceDoc(
@@ -259,7 +248,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
     )
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean],  showSupport: Option[Boolean],requestedApiVersion : String) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : String) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
@@ -267,7 +256,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
           rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, showSupport, rd)
+          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
           // Format the data as json
           val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
           //Get definitions of objects of success responses
@@ -282,8 +271,8 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
 
     def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
-        val (showCore, showPSD2, showOBWG, showSupport) =  getParams()
-        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG,showSupport, requestedApiVersion)
+        val (showCore, showPSD2, showOBWG) =  getParams()
+        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion)
       }
     }
 

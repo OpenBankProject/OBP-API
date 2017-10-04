@@ -4,11 +4,12 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
+import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.branches.Branches._
-import code.branches.{InboundAdapterInfo, MappedBranch}
+import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -33,14 +34,14 @@ import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
-import net.liftweb.util.{BCrypt, Props, StringHelpers}
+import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.math.BigInt
-import scalacache.{ScalaCache, _}
+import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization._
 

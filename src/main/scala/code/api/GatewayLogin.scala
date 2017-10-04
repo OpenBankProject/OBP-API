@@ -205,12 +205,15 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         }
         val cbsAuthTokens = getCbsTokens(s)
         createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
-        // Update user account views
-        for {
-          user <- u
-          ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
-        } {
-          AuthUser.updateUserAccountViews(ru)
+        val isFirstField = getFieldFromPayloadJson(jwtPayload, "is_first")
+        // Update user account views, only when is_first == ture in the GatewayLogin token's parload . 
+        if(isFirstField.equalsIgnoreCase("true")){
+          for {
+            user <- u
+            ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
+          } {
+            AuthUser.updateUserAccountViews(ru)
+          }
         }
         u // Return user
       case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
@@ -305,7 +308,10 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   def getErrors(message: String) : List[String] = {
-    val json = parse(message)
+    val json = parse(message) remove {
+      case JField("backendMessages", _) => true
+      case _          => false
+    }
     val listOfValues = for {
       JArray(objects) <- json
       JObject(obj) <- objects

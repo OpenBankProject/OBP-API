@@ -234,8 +234,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
         "Server Error"
       }
       currency = createdAcc.currency
-      newBalanceValueAsBigDecimal <- tryo{BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
-      tValueAsBigDecimal <- tryo{BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
+      newBalanceValueAsBigDecimal <- tryo(List(classOf[NumberFormatException])){BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
+      tValueAsBigDecimal <- tryo(List(classOf[NumberFormatException])){BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
       postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
       completedDate <-tryo{dateFormat.parse(t.details.completed)} ?~ s"Invalid date format: ${t.details.completed}. Expected pattern $datePattern"
     } yield {
