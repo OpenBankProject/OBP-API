@@ -40,6 +40,8 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
 * This object provides the API calls necessary to
@@ -192,11 +194,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           case Full(u) =>
             val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
             // Update user account views, only when is_first == ture in the GatewayLogin token's parload .
-            if(isFirst.equalsIgnoreCase("true")){
-              for {
-                ru <- Users.users.vend.getResourceUserByResourceUserId(u.resourceUserId.value)
-              } {
-                AuthUser.updateUserAccountViews(ru)
+            if(isFirst.equalsIgnoreCase("true")) {
+              Future {
+                AuthUser.updateUserAccountViews(u)
               }
             }
             Full((u, Some(getCbsTokens(s).head))) // Return user
