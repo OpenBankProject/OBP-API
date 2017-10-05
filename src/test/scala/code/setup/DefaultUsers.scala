@@ -1,5 +1,7 @@
 package code.setup
 
+import java.util.UUID
+
 import code.api.GatewayLogin
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
@@ -17,6 +19,8 @@ import net.liftweb.util.TimeHelpers.TimeSpan
   */
 trait DefaultUsers {
   
+  lazy val userId = Some(UUID.randomUUID.toString)
+
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)
   lazy val testConsumer = Consumers.consumers.vend.createConsumer(
     key = Some(randomString(40).toLowerCase),
@@ -27,7 +31,7 @@ trait DefaultUsers {
     description = None,
     developerEmail = None,
     redirectURL = None,
-    createdByUserId = None //Internally, the consumer is not relevant to UserId.
+    createdByUserId = userId
   ).openOrThrowException("Attempted to open an empty Box.")
   lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
   
@@ -39,7 +43,7 @@ trait DefaultUsers {
   val defaultProvider = Props.get("hostname", "")
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
+  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException("Attempted to open an empty Box.")
   lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
   lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
   lazy val resourceUser4 = User.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException("Attempted to open an empty Box.")
