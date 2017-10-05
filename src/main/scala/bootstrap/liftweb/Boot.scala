@@ -98,7 +98,7 @@ class Boot extends MdcLoggable {
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
-    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : " + Props.props.mkString)
+    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
     logger.info("external props folder: " + propsPath)
 
     /**
