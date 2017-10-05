@@ -80,7 +80,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
         case JString(i) => i
         case _ => ""
       }
-      And("We should get a pdated url " + consumerRedirectUrlJSON.redirect_url)
+      And("We should get an updated url " + consumerRedirectUrlJSON.redirect_url)
       field should equal(consumerRedirectUrlJSON.redirect_url)
     }
 
