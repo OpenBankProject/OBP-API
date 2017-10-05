@@ -220,6 +220,68 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         Failure(ErrorMessages.GatewayLoginUnknownError)
     }
   }
+  def getOrCreateResourceUserFuture(jwtPayload: String) : Future[Box[(User, Option[String])]] = {
+    val username = getFieldFromPayloadJson(jwtPayload, "username")
+    logger.debug("username: " + username)
+    val cbsF = Future { communicateWithCbs(jwtPayload) }
+    for {
+      cbs <- cbsF
+      tuple <- cbs match {
+        case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
+          logger.debug("There is no need to call CBS")
+          Users.users.vend.getUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
+            case Full(u) => // Only valid case because we expect to find a user
+              Full(u, None)
+            case Empty =>
+              Failure("User cannot be found. Please initiate CBS communication in order to create it.")
+            case Failure(msg, _, _) =>
+              Failure(msg)
+            case _ =>
+              Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+        case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
+          logger.debug("CBS returned proper response")
+          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
+            case Full(u) =>
+              val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
+              // Update user account views, only when is_first == ture in the GatewayLogin token's parload .
+              if(isFirst.equalsIgnoreCase("true")) {
+                Future {
+                  AuthUser.updateUserAccountViews(u)
+                }
+              }
+              Full((u, Some(getCbsTokens(s).head))) // Return user
+            case Empty =>
+              Failure("Cannot get or create user during GatewayLogin process.")
+            case Failure(msg, _, _) =>
+              Failure(msg)
+            case _ =>
+              Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+
+        case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
+          logger.debug("CBS returned some errors")
+          Future {
+            Failure(getErrors(s).mkString(", "))
+          }
+        case Empty =>
+          logger.debug("Cannot get the CBSToken response from South side")
+          Future {
+            Failure("Cannot get the CBSToken response from South side")
+          }
+        case Failure(msg, _, _) =>
+          Future {
+            Failure(msg)
+          }
+        case _ =>
+          Future {
+            Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+      }
+    } yield {
+      tuple
+    }
+  }
 
   def getOrCreateConsumer(jwtPayload: String, u: User) : Box[Consumer] = {
     val consumerId = getFieldFromPayloadJson(jwtPayload, "consumer_id")

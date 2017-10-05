@@ -8,6 +8,7 @@ import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
 import net.liftweb.util.Props
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scalacache.{Flags, ScalaCache}
 import scalacache.guava.GuavaCache
@@ -25,6 +26,9 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
 
   def getConsumerByPrimaryId(id: Long): Box[Consumer] =
     extractFutureToBox(actor ? cc.getConsumerByPrimaryId(id))
+
+  def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]] =
+    (actor ? cc.getConsumerByConsumerKeyFuture(consumerKey)).mapTo[Box[Consumer]]
 
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
 

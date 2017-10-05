@@ -3,11 +3,15 @@ package code.customer
 import java.util.Date
 
 import code.model.{BankId, User}
-import code.usercustomerlinks.{MappedUserCustomerLink, UserCustomerLink}
+import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
-import code.util.{UUIDString, MappedUUID}
+import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 object MappedCustomerProvider extends CustomerProvider {
 
@@ -43,8 +47,12 @@ object MappedCustomerProvider extends CustomerProvider {
   }
 
   override def getCustomersByUserId(userId: String): List[Customer] = {
-    val customerIds = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId).map(_.customerId)
+    val customerIds = MappedUserCustomerLinkProvider.getUserCustomerLinksByUserId(userId).map(_.customerId)
     MappedCustomer.findAll(ByList(MappedCustomer.mCustomerId, customerIds))
+  }
+
+  override def getCustomersByUserIdFuture(userId: String): Future[List[Customer]]= {
+    Future{getCustomersByUserId(userId)}
   }
 
   override def getBankIdByCustomerId(customerId: String): Box[String] = {

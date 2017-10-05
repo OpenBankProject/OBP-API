@@ -210,7 +210,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
                           Implementations2_1_0.getCustomersForCurrentUserAtBank ::
-                          Implementations2_1_0.getCustomersForUser ::
+                          // Implementations2_1_0.getCustomersForUser ::
                           Implementations2_1_0.updateConsumerRedirectUrl ::
                           Implementations2_1_0.getMetrics ::
                           Nil
@@ -250,6 +250,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getAtm ::
                           Implementations3_0_0.getAtms ::
                           // Implementations3_0_0.getUsers ::
+                          Implementations3_0_0.getCustomersForUser ::
                           Nil
 
 
