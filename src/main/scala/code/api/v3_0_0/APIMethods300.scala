@@ -26,6 +26,7 @@ import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -1107,6 +1108,38 @@ trait APIMethods300 {
             customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.map(_.userId).openOr(""))
           } yield {
             JSONFactory210.createCustomersJson(customers)
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCurrentUser,
+      implementedInApiVersion,
+      nameOf(getCurrentUser), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user
+        |
+        |Login is required.
+      """.stripMargin,
+      emptyObjectJson,
+      userJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
+
+    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
           }
         }
       }

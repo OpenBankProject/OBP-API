@@ -43,7 +43,8 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
-import scala.concurrent.ExecutionContext.Implicits.global
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import com.github.dwickern.macros.NameOf.nameOf
 import code.util.Helper.MdcLoggable
 
 trait APIFailure{
@@ -162,7 +163,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     */
   def nonBlockingEndpoint(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
-      case Some(e) if e.apiFunction == "getCustomersForUser" && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+      case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCurrentUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+        true
+       case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCustomersForUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
         true
       case _ =>
         false
