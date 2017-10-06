@@ -160,7 +160,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           Failure(msg)
       }
     } else { // Do not call CBS
-      Full("There is no need to call CBS")
+      Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
     }
   }
 
@@ -168,13 +168,13 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("username: " + username)
     refreshBankAccounts(jwtPayload) match {
-      case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
-        logger.debug("There is no need to call CBS")
+      case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+        logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
         Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
           case Full(u) => // Only valid case because we expect to find a user
             Full(u, None)
           case Empty =>
-            Failure("User cannot be found. Please initiate CBS communication in order to create it.")
+            Failure(ErrorMessages.GatewayLoginCannotFindUser)
           case Failure(msg, _, _) =>
             Failure(msg)
           case _ =>
@@ -201,7 +201,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             }
             Full((u, Some(getCbsTokens(s).head))) // Return user
           case Empty =>
-            Failure("Cannot get or create user during GatewayLogin process.")
+            Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
           case Failure(msg, _, _) =>
             Failure(msg)
           case _ =>
@@ -212,8 +212,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         logger.debug("CBS returned some errors")
         Failure(getErrors(s).mkString(", "))
       case Empty =>
-        logger.debug("Cannot get the CBSToken response from South side")
-        Failure("Cannot get the CBSToken response from South side")
+        logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
+        Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
       case Failure(msg, _, _) =>
         Failure(msg)
       case _ =>
@@ -227,13 +227,13 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     for {
       cbs <- cbsF
       tuple <- cbs match {
-        case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
-          logger.debug("There is no need to call CBS")
+        case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+          logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
           Users.users.vend.getUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
             case Full(u) => // Only valid case because we expect to find a user
               Full(u, None)
             case Empty =>
-              Failure("User cannot be found. Please initiate CBS communication in order to create it.")
+              Failure(ErrorMessages.GatewayLoginCannotFindUser)
             case Failure(msg, _, _) =>
               Failure(msg)
             case _ =>
@@ -252,7 +252,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               }
               Full((u, Some(getCbsTokens(s).head))) // Return user
             case Empty =>
-              Failure("Cannot get or create user during GatewayLogin process.")
+              Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
             case Failure(msg, _, _) =>
               Failure(msg)
             case _ =>
@@ -265,9 +265,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Failure(getErrors(s).mkString(", "))
           }
         case Empty =>
-          logger.debug("Cannot get the CBSToken response from South side")
+          logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
           Future {
-            Failure("Cannot get the CBSToken response from South side")
+            Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
           }
         case Failure(msg, _, _) =>
           Future {

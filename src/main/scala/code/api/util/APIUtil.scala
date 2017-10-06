@@ -164,6 +164,10 @@ import code.api.util.APIUtil._
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
   val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The JWT is corrupted/changed during a transport."
   val GatewayLoginCannotExtractJwtToken = "OBP-20040: Header, Payload and Signature cannot be extracted from the JWT."
+  val GatewayLoginNoNeedToCallCbs = "OBP-20041: There is no need to call CBS"
+  val GatewayLoginCannotFindUser = "OBP-20042: User cannot be found. Please initiate CBS communication in order to create it."
+  val GatewayLoginCannotGetCbsToken = "OBP-20043: Cannot get the CBSToken response from South side"
+  val GatewayLoginCannotGetOrCreateUser = "OBP-20044: Cannot get or create user during GatewayLogin process."
 
 
 
