@@ -185,7 +185,7 @@ trait APIMethods121 {
             val bankJSON = JSONFactory.createBankJSON(bank)
             Extraction.decompose(bankJSON)
           }
-          for(bank <- Bank(bankId) ?~ BankNotFound)
+          for(bank <- Bank(bankId) ?~! BankNotFound)
           yield successJsonResponse(bankToJson(bank))
       }
     }
