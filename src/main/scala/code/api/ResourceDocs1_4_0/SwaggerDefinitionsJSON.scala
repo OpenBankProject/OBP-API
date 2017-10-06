@@ -1981,35 +1981,37 @@ object SwaggerDefinitionsJSON {
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
   
   
-  val couterparty = CounterpartyTransferToPhoneJson(
-    other_account_message ="Good Luck",
-    other_account_phone_number= "+9722398746"
+  val toAccountTransferToPhoneJson = ToAccountTransferToPhoneJson("+9722398746")
+  val fromAccountTransferToPhoneJson = FromAccountTransfer(
+    mobile_phone_number="Mobile number of the money sender (10 digits),eg: +9722398712",
+    nickname="Tom"
   )
-  
-  // mapping NTBD_1_135 Sample.txt and NTBD_2_135 Sample.txt
   val transactionRequestBodyTransferToPhoneJson = TransactionRequestBodyTransferToPhoneJson(
-    from_account_phone_number="+9722398712",
-    from_account_owner_nickname="Tom",
-    value = amountOfMoneyJsonV121,                                
-    description = s"This is a ${TRANSFER_TO_PHONE.toString} Transaction Request", 
-    couterparty = couterparty
+    value = amountOfMoneyJsonV121,
+    description = "Transaction description/purpose (20 symbols)", 
+    message ="Message text to the money receiver (50 symbols)",
+    from = fromAccountTransferToPhoneJson,
+    to = toAccountTransferToPhoneJson
   )
   
-  val counterpartyTransferToAtmJson  = CounterpartyTransferToAtmJson(
-    other_account_owner = "Tom",
-    other_account_owner_passport_id_or_national_id= "NationalId",
-    other_account_owner_id_type = "ID Type of the money receiver: 1 - National; 5- Passport",
-    other_account_owner_birthday ="19900101",
-    other_account_message ="Good Luck",
-    other_account_phone_number ="+9722398746"
+  val toAccountTransferToAtmKycDocumentJson = ToAccountTransferToAtmKycDocumentJson(
+    `type` = "ID Type of the money receiver: 1 - National; 5- Passport",
+    number = " Passport or National ID number of the money receiver"
   )
+  
+  val toAccountTransferToAtmJson = ToAccountTransferToAtmJson(
+    legal_name = "Thomas Andrew Smith",
+    date_of_birth = "19900101",
+    mobile_phone_number = "Mobile number of the money sender (10 digits),eg: +9722398746",
+    kyc_document = toAccountTransferToAtmKycDocumentJson
+  )
+  
   val transactionRequestBodyTransferToAtmJson = TransactionRequestBodyTransferToAtmJson(
-    from_account_phone_number = "+9722398746",
-    from_account_owner_nickname="Tom",
     value = amountOfMoneyJsonV121,
-    description = s"This is a ${TRANSFER_TO_ATM.toString} Transaction Request",
-    charge_policy = "SHARED",
-    couterparty = counterpartyTransferToAtmJson
+    description = "Transaction description/purpose (20 symbols)",
+    message = "Message text to the money receiver (50 symbols)",
+    from = fromAccountTransferToPhoneJson,
+    to = toAccountTransferToAtmJson
   )
   
   val counterpartyTransferToAccount= CounterpartyTransferToAccount(
@@ -2025,7 +2027,7 @@ object SwaggerDefinitionsJSON {
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
-    description = s"This is a ${TRANSFER_TO_ACCOUNT.toString} Transaction Request",
+    description = "Transaction description/purpose (20 symbols)",
     charge_policy = "SHARED",
     couterparty = counterpartyTransferToAccount
   )

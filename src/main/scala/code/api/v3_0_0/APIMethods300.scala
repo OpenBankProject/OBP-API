@@ -1118,8 +1118,8 @@ trait APIMethods300 {
               case TRANSFER_TO_PHONE => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_PHONE.toString()} input format"
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from.mobile_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.to.mobile_phone_number)) ?~! InvalidPhoneNumber
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -1134,9 +1134,9 @@ trait APIMethods300 {
               }
               case TRANSFER_TO_ATM => {
                 for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ATM input format"
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
+                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be be ${TRANSFER_TO_ATM.toString()} input format"
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from.mobile_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.to.mobile_phone_number)) ?~! InvalidPhoneNumber
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,

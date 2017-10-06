@@ -670,6 +670,7 @@ trait Connector extends MdcLoggable{
           transactionRequestType,
           chargePolicy
         )
+        if(logger.isDebugEnabled) logger.debug(s"createTransactionRequestv300.createdTransactionId return: $createdTransactionId")
         //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
         transactionRequest = transactionRequest.copy(challenge = null)
         //save transaction_id into database
@@ -696,7 +697,7 @@ trait Connector extends MdcLoggable{
         saveTransactionRequestChallenge(transactionRequest.id, challenge)
         transactionRequest = transactionRequest.copy(challenge = challenge)
     }
-
+    if(logger.isDebugEnabled) logger.debug(s"createTransactionRequestv300 return:$transactionRequest")
     Full(transactionRequest)
   }
   
