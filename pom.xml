@@ -314,6 +314,12 @@
       <artifactId>akka-slf4j_${scala.version}</artifactId>
       <version>${akka.version}</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.dwickern/scala-nameof_2.11 -->
+    <dependency>
+      <groupId>com.github.dwickern</groupId>
+      <artifactId>scala-nameof_${scala.version}</artifactId>
+      <version>1.0.3</version>
+    </dependency>
 
 
 
