@@ -112,7 +112,7 @@ trait APIMethods121 {
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApiInfo :: Nil)
+      apiTagApi :: Nil)
 
     def root(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
@@ -283,7 +283,7 @@ trait APIMethods121 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at one bank (Autheneticated + Anonymous access).",
+      "Get accounts at bank (Autheneticated + Anonymous access).",
       """Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
@@ -318,16 +318,16 @@ trait APIMethods121 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank (Authenticated access).",
-      """Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      "Get private accounts at one bank.",
+      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is required.""",
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      List(apiTagAccount))
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
@@ -428,7 +428,7 @@ trait APIMethods121 {
       successMessage,
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagMetaData)
+      List(apiTagAccount, apiTagCounterpartyMetaData)
     )
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -702,11 +702,13 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Grant User access to a list of views.",
-      """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
+      s"""Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
         |
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |The User needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
       List(
@@ -718,7 +720,7 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
@@ -758,7 +760,7 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
         ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
@@ -798,7 +800,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to one view
@@ -832,7 +834,7 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
         ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to all the views
@@ -864,7 +866,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+      List(apiTagCounterparty, apiTagAccount))
 
     lazy val getOtherAccountsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
@@ -895,7 +897,7 @@ trait APIMethods121 {
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(notCore, PSD2, OBWG),
-      List(apiTagAccount, apiTagCounterparty))
+      List(apiTagCounterparty, apiTagAccount))
 
     lazy val getOtherAccountByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
@@ -927,7 +929,7 @@ trait APIMethods121 {
       otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getOtherAccountMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
@@ -964,7 +966,7 @@ trait APIMethods121 {
         "the view does not allow public alias access"
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public alias of other bank account
@@ -1011,7 +1013,7 @@ trait APIMethods121 {
         "public alias added"
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add public alias to other bank account
@@ -1055,7 +1057,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update public alias of other bank account
@@ -1097,7 +1099,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete public alias of other bank account
@@ -1136,7 +1138,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
@@ -1177,7 +1179,7 @@ trait APIMethods121 {
         "Alias cannot be added",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
@@ -1221,7 +1223,7 @@ trait APIMethods121 {
         "Alias cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update private alias of other bank account
@@ -1264,7 +1266,7 @@ trait APIMethods121 {
         "Alias cannot be deleted",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete private alias of other bank account
@@ -1304,7 +1306,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
@@ -1345,7 +1347,7 @@ trait APIMethods121 {
         "More Info cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
@@ -1385,7 +1387,7 @@ trait APIMethods121 {
         "More Info cannot be deleted",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
@@ -1424,7 +1426,7 @@ trait APIMethods121 {
         "URL cannot be added",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1466,7 +1468,7 @@ trait APIMethods121 {
         "URL cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
@@ -1506,7 +1508,7 @@ trait APIMethods121 {
         "URL cannot be deleted",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
@@ -1545,7 +1547,7 @@ trait APIMethods121 {
         "URL cannot be added",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
@@ -1585,7 +1587,7 @@ trait APIMethods121 {
         "URL cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
@@ -1619,7 +1621,7 @@ trait APIMethods121 {
       emptyObjectJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
+      List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete image url of other bank account
@@ -1657,7 +1659,7 @@ trait APIMethods121 {
         "URL cannot be added",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add open corporate url to other bank account
@@ -1698,7 +1700,7 @@ trait APIMethods121 {
         "URL cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update open corporate url of other bank account
@@ -1738,7 +1740,7 @@ trait APIMethods121 {
         "URL cannot be deleted",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete open corporate url of other bank account
@@ -1777,7 +1779,7 @@ trait APIMethods121 {
         "Corporate Location cannot be deleted",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add corporate location to other bank account
@@ -1821,7 +1823,7 @@ trait APIMethods121 {
         "Corporate Location cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update corporate location of other bank account
@@ -1863,7 +1865,7 @@ trait APIMethods121 {
         "Delete not completed",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete corporate location of other bank account
@@ -1907,7 +1909,7 @@ trait APIMethods121 {
         "Physical Location cannot be added",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add physical location to other bank account
@@ -1952,7 +1954,7 @@ trait APIMethods121 {
         "Physical Location cannot be updated",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update physical location to other bank account
@@ -1995,7 +1997,7 @@ trait APIMethods121 {
         "Delete not completed",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete physical location of other bank account
@@ -2042,7 +2044,7 @@ trait APIMethods121 {
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction))
+      List(apiTagTransaction, apiTagAccount))
   
   
   
@@ -2097,7 +2099,7 @@ trait APIMethods121 {
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction))
+      List(apiTagTransaction, apiTagAccount))
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transaction by id
@@ -2132,7 +2134,7 @@ trait APIMethods121 {
         "view does not authorize narrative access",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get narrative
@@ -2173,7 +2175,7 @@ trait APIMethods121 {
         "view does not allow adding a narrative",
          UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add narrative
@@ -2210,7 +2212,7 @@ trait APIMethods121 {
         "view does not allow updating a narrative",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update narrative
@@ -2248,7 +2250,7 @@ trait APIMethods121 {
         "view does not allow deleting the narrative",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete narrative
@@ -2283,7 +2285,7 @@ trait APIMethods121 {
         "view does not authorize comments access",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get comments
@@ -2321,7 +2323,7 @@ trait APIMethods121 {
         "view " + viewId + " does not authorize adding comments",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add comment
@@ -2363,7 +2365,7 @@ trait APIMethods121 {
         "Deleting comments not permitted for the current user",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete comment
@@ -2397,7 +2399,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get tags
@@ -2434,7 +2436,7 @@ trait APIMethods121 {
         "view " + viewId + " does not authorize adding tags",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add a tag
@@ -2469,7 +2471,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       emptyObjectJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete a tag
@@ -2504,7 +2506,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "view does not authorize images access",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get images
@@ -2542,7 +2544,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "Could not parse url string as a valid URL",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction)
+      List(apiTagTransactionMetaData, apiTagTransaction)
     )
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2584,7 +2586,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "Deleting images not permitted for the current user",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete an image
@@ -2618,7 +2620,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "view does not authorize where tag access",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get where tag
@@ -2658,7 +2660,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "Coordinates not possible",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add where tag
@@ -2702,7 +2704,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "Coordinates not possible",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update where tag
@@ -2749,7 +2751,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         "Delete not completed",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction))
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete where tag

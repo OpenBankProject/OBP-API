@@ -15,8 +15,8 @@
     <scala.compiler>2.11.8</scala.compiler>
     <akka.version>2.5.1</akka.version>
     <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
-    <avro.version>1.6.4</avro.version>
-    <lift.version>2.6.3</lift.version>
+    <avro.version>1.7.0</avro.version>
+    <lift.version>3.1.0</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -77,12 +77,12 @@
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-lift-json_${scala.version}</artifactId>
-      <version>0.11.3</version>
+      <version>0.13.1</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.11.3</version>
+      <version>0.13.1</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -141,7 +141,7 @@
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version}</artifactId>
-      <version>2.2.6</version>
+      <version>3.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -154,22 +154,6 @@
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-webapp</artifactId>
         <version>9.2.15.v20160210</version>
-        <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>net.manub</groupId>
-        <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
-        <version>0.9.0</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.zookeeper</groupId>
-            <artifactId>zookeeper</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-          </exclusion>
-        </exclusions>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -209,8 +193,8 @@
     </dependency>
     <dependency>
       <groupId>net.liftmodules</groupId>
-      <artifactId>amqp_2.6_${scala.version}</artifactId>
-      <version>1.4-SNAPSHOT</version>
+      <artifactId>amqp_3.1_${scala.version}</artifactId>
+      <version>1.5.0</version>
     </dependency>
     <dependency>
       <groupId>org.pegdown</groupId>
@@ -316,9 +300,9 @@
       <version>${avro.version}</version>
     </dependency>
     <dependency>
-     <groupId>com.github.romix.akka</groupId>
-      <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
-      <version>0.4.1</version>
+      <groupId>com.twitter</groupId>
+      <artifactId>chill-akka_${scala.version}</artifactId>
+      <version>0.9.1</version>
     </dependency>
     <dependency>
       <groupId>com.github.cb372</groupId>
@@ -328,7 +312,7 @@
     <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-slf4j_${scala.version}</artifactId>
-      <version>2.4.1</version>
+      <version>${akka.version}</version>
     </dependency>
 
 

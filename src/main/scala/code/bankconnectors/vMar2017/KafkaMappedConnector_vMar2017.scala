@@ -199,7 +199,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks.get.flatMap { bank => {
+    val accounts: List[InboundAccount] = getBanks.openOrThrowException("Attempted to open an empty Box.").flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -1593,7 +1593,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
     }
   
     Full(result.getOrElse(false))

@@ -109,7 +109,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagApi, apiTagSandbox))
 
 
     lazy val sandboxDataImport: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -138,7 +138,7 @@ trait APIMethods210 {
       "getTransactionRequestTypesSupportedByBank",
       "GET",
       "/banks/BANK_ID/transaction-request-types",
-      "Get the Transaction Request Types supported by the bank",
+      "Get supported Transaction Request Types",
       s"""Get the list of the Transaction Request Types supported by the bank.
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
@@ -147,7 +147,7 @@ trait APIMethods210 {
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagBank, apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagBank))
 
 
     lazy val getTransactionRequestTypesSupportedByBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -174,8 +174,7 @@ trait APIMethods210 {
 
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
+    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
 
 
     // This text is used in the various Create Transaction Request resource docs
@@ -430,7 +429,7 @@ trait APIMethods210 {
               s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
             amountOfMoneyJSON <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
-            isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+            isMapped: Boolean <- Full((Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped"))
 
             createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case SANDBOX_TAN => {
@@ -644,7 +643,7 @@ trait APIMethods210 {
             
               challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
               challengeAnswerOBPOK <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)
-            
+
               challengeAnswerKafka <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
               challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
 
@@ -734,17 +733,15 @@ trait APIMethods210 {
       "GET",
       "/roles",
       "Get Roles",
-      """Returns all available roles
+      s"""Returns all available roles
         |
-        |Login is required.
-        |
-        |
+        |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole))
 
     lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "roles" :: Nil JsonGet _ => {
@@ -767,10 +764,12 @@ trait APIMethods210 {
       "getEntitlementsByBankAndUser",
       "GET",
       "/banks/BANK_ID/users/USER_ID/entitlements",
-      "Get Entitlements specified by BANK_ID and USER_ID",
-      """
+      "Get Entitlements for User at Bank.",
+      s"""
         |
-        |Login is required.
+        |Get Entitlements specified by BANK_ID and USER_ID
+        |
+        |${authenticationRequiredMessage(true)}
         |
         |
       """.stripMargin,
@@ -782,7 +781,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
 
     lazy val getEntitlementsByBankAndUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -835,7 +834,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val getConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -872,7 +871,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val getConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -884,7 +883,7 @@ trait APIMethods210 {
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
-            val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
+            val json = createConsumerJSONs(consumers.sortWith(_.id.get < _.id.get))
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -909,7 +908,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi, apiTagConsumer))
 
 
     lazy val enableDisableConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -923,10 +922,10 @@ trait APIMethods210 {
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
             }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.toLong)
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
           } yield {
             // Format the data as json
-            val json = PutEnabledJSON(updatedConsumer.isActive)
+            val json = PutEnabledJSON(updatedConsumer.isActive.get)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -954,7 +953,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagCard))
 
 
     lazy val addCardForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1018,7 +1017,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1044,7 +1043,7 @@ trait APIMethods210 {
       "createTransactionType",
       "PUT",
       "/banks/BANK_ID/transaction-types",
-      "Create Transaction Type offered by the bank",
+      "Create Transaction Type at bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
       s"""Create Transaction Types for the bank specified by BANK_ID:
           |
@@ -1108,7 +1107,7 @@ trait APIMethods210 {
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1158,7 +1157,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch)
     )
 
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1210,7 +1209,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagProduct)
     )
 
     lazy val getProduct: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1262,7 +1261,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagProduct)
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1335,7 +1334,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List())
+      List(apiTagCounterparty, apiTagAccount))
 
 
     lazy val createCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1420,7 +1419,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagPerson))
 
     // TODO in next version?
     // Separate customer creation (keep here) from customer linking (remove from here)
@@ -1488,14 +1487,13 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagUser))
 
     lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! UserNotLoggedIn
-            //bank <- Bank(bankId) ?~! {BankNotFound}
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
@@ -1566,7 +1564,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagBranch))
 
 
     lazy val updateBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1609,7 +1607,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagBranch, apiTagOpenData))
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
@@ -1650,7 +1648,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil
+      List(apiTagApi, apiTagConsumer)
     )
     
     lazy val updateConsumerRedirectUrl: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1658,14 +1656,17 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~ UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), UserHasMissingRoles + CanUpdateConsumerRedirectUrl )
+            _ <- booleanToBox(
+              hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
+              UserHasMissingRoles + CanUpdateConsumerRedirectUrl
+            )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! UserNoPermissionUpdateConsumer
+            _ <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id, None, None, Some(false), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))
@@ -1727,7 +1728,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      List(apiTagApi))
 
     lazy val getMetrics : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "management" :: "metrics" :: Nil JsonGet _ => {
@@ -1786,19 +1787,19 @@ trait APIMethods210 {
             // TODO check / comment this logic
 
             setFilterPart2 <- if (!consumerId.isEmpty)
-              Full(parameters += OBPConsumerId(consumerId.get))
+              Full(parameters += OBPConsumerId(consumerId.openOrThrowException("Attempted to open an empty Box.")))
             else if (!userId.isEmpty)
-              Full(parameters += OBPUserId(userId.get))
+              Full(parameters += OBPUserId(userId.openOrThrowException("Attempted to open an empty Box.")))
             else if (!url.isEmpty)
-              Full(parameters += OBPUrl(url.get))
+              Full(parameters += OBPUrl(url.openOrThrowException("Attempted to open an empty Box.")))
             else if (!appName.isEmpty)
-              Full(parameters += OBPAppName(appName.get))
+              Full(parameters += OBPAppName(appName.openOrThrowException("Attempted to open an empty Box.")))
             else if (!implementedInVersion.isEmpty)
-              Full(parameters += OBPImplementedInVersion(implementedInVersion.get))
+              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException("Attempted to open an empty Box.")))
             else if (!implementedByPartialFunction.isEmpty)
-              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.get))
+              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException("Attempted to open an empty Box.")))
             else if (!verb.isEmpty)
-              Full(parameters += OBPVerb(verb.get))
+              Full(parameters += OBPVerb(verb.openOrThrowException("Attempted to open an empty Box.")))
             else
               Full(parameters)
             

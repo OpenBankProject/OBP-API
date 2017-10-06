@@ -33,6 +33,7 @@ package code.model.dataAccess
 
 import code.metadata.narrative.OBPNarrativeInit
 import code.metadata.wheretags.OBPWhereTagInit
+import com.mongodb.MongoClient
 import net.liftweb.util.ConnectionIdentifier
 
 object AdminDb extends ConnectionIdentifier {
@@ -55,8 +56,8 @@ object MongoConfig {
         case _ => "OBP006"
       }
 
-    MongoDB.defineDb(DefaultConnectionIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
-    MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
+    MongoDB.defineDb(DefaultConnectionIdentifier, new MongoClient(srvr), Props.get("mongo.dbName", defaultDatabase))
+    MongoDB.defineDb(AdminDb, new MongoClient(srvr), "admin")
 
 
     HostedBank.init

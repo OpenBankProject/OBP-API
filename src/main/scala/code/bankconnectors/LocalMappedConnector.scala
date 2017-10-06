@@ -308,11 +308,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     val cardList = for (l <- list) yield
       new PhysicalCard(
-        bankId=l.mBankId,
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankId=l.bankId,
+        bankCardNumber = l.bankCardNumber,
+        nameOnCard = l.nameOnCard,
+        issueNumber = l.issueNumber,
+        serialNumber = l.serialNumber,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -334,11 +334,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
     val cardList = for (l <- list) yield
       new PhysicalCard(
-        bankId= l.mBankId,
-        bankCardNumber = l.mBankCardNumber,
-        nameOnCard = l.mNameOnCard,
-        issueNumber = l.mIssueNumber,
-        serialNumber = l.mSerialNumber,
+        bankId= l.bankId,
+        bankCardNumber = l.bankCardNumber,
+        nameOnCard = l.nameOnCard,
+        issueNumber = l.issueNumber,
+        serialNumber = l.serialNumber,
         validFrom = l.validFrom,
         expires = l.expires,
         enabled = l.enabled,
@@ -397,11 +397,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                                             )
     for (l <- physicalCardBox) yield
     new PhysicalCard(
-      bankId = l.mBankId,
-      bankCardNumber = l.mBankCardNumber,
-      nameOnCard = l.mNameOnCard,
-      issueNumber = l.mIssueNumber,
-      serialNumber = l.mSerialNumber,
+      bankId = l.bankId,
+      bankCardNumber = l.bankCardNumber,
+      nameOnCard = l.nameOnCard,
+      issueNumber = l.issueNumber,
+      serialNumber = l.serialNumber,
       validFrom = l.validFrom,
       expires = l.expires,
       enabled = l.enabled,
@@ -438,7 +438,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     // Is it better to pass these into this function ?
     val fromTransAmt = -amount//from fromAccount balance should decrease
-    val toTransAmt = fx.convert(amount, rate.get)
+    val toTransAmt = fx.convert(amount, rate.openOrThrowException("Attempted to open an empty Box."))
 
     // From
     val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -506,13 +506,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
     //update the balance of the fromAccount for which a transaction is being created
-    val newAccountBalance: Long = fromAccountUpdate.get.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.get.currency)
-    fromAccountUpdate.get.accountBalance(newAccountBalance).save()
+    val newAccountBalance: Long = fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").currency)
+    fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
       //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-      .bank(fromAccountUpdate.get.bankId.value)
-      .account(fromAccountUpdate.get.accountId.value)
+      .bank(fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").bankId.value)
+      .account(fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountId.value)
       .transactionType(transactionRequestType.value)
       .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
@@ -805,7 +805,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).get
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
     }
 
     Full(result.getOrElse(false))
@@ -1449,7 +1449,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").currency
         TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
 

@@ -117,7 +117,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -149,8 +149,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       successMessage,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer)
+      List(apiTagCustomer, apiTagPerson)
     )
+
+    // TODO Add Role
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
@@ -205,7 +207,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "No branches available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -370,7 +372,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "getCrmEvents",
       "GET",
       "/banks/BANK_ID/crm-events",
-      "Get CRM Events for the logged in user",
+      "Get CRM Events",
       "",
       emptyObjectJson,
       crmEventsJson,
@@ -382,6 +384,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
+
+    // TODO Require Role
 
     lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
@@ -400,6 +404,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         }
       }
     }
+
     /*
      transaction requests (new payments since 1.4.0)
     */

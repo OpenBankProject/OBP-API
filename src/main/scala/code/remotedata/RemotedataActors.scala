@@ -3,8 +3,9 @@ package code.remotedata
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
+import akka.routing.RoundRobinPool
 import bootstrap.liftweb.ToSchemify
-import code.actorsystem.{ObpActorConfig}
+import code.actorsystem.ObpActorConfig
 import code.util.Helper
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._

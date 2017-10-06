@@ -60,7 +60,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
         .originalPartyAccountId(originalPartyAccountId.value)
         .accountNumber(otherAccountNumber)
         .holder("")
-        .save
+        .save(true)
 
     } else {
       Metadata.createRecord.
@@ -68,7 +68,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
         originalPartyAccountId(originalPartyAccountId.value).
         holder(otherAccountHolder).
         accountNumber(otherAccountNumber).
-        publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
+        publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save(true)
     }
   }
 

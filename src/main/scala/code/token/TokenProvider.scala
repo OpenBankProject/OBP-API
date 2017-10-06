@@ -2,8 +2,7 @@ package code.token
 
 import java.util.Date
 
-import code.model.TokenType.TokenType
-import code.model.{MappedTokenProvider, Token}
+import code.model.{MappedTokenProvider, Token, TokenType}
 import code.remotedata.RemotedataTokens
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}

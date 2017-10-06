@@ -46,7 +46,7 @@ class ConsumerRegistration extends MdcLoggable {
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
   private object authenticationURLVar extends RequestVar("")
-  private object appTypeVar extends RequestVar[Consumer.appType.enum.AppType](Consumer.appType.enum.values.head)
+  private object appTypeVar extends RequestVar[AppType](AppType.Web)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
@@ -66,10 +66,7 @@ class ConsumerRegistration extends MdcLoggable {
   
   def registerForm = {
 
-    val appTypes = Consumer.appType.enum.values.toList.map { appType =>
-      val id = appType.toString
-      (id, id)
-    }
+    val appTypes = List((AppType.Web.toString, AppType.Web.toString), (AppType.Mobile.toString, AppType.Mobile.toString))
 
     def submitButtonDefense: Unit = {
       submitButtonDefenseFlag("true")
@@ -156,9 +153,10 @@ class ConsumerRegistration extends MdcLoggable {
 
     def analyseResult = {
 
-      def withNameOpt(s: String): Option[Consumer.appType.enum.AppType] = Consumer.appType.enum.values.find(_.toString == s)
+      def withNameOpt(s: String): Option[AppType] = Some(AppType.valueOf(s))
 
       val appTypeSelected = withNameOpt(appType.is)
+      println("appTypeSelected: " + appTypeSelected)
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
@@ -175,11 +173,12 @@ class ConsumerRegistration extends MdcLoggable {
           Some(Helpers.randomString(40).toLowerCase),
           Some(true),
           Some(nameVar.is),
-          Some(appTypeSelected.get),
+          appTypeSelected,
           Some(descriptionVar.is),
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
           Some(AuthUser.getCurrentResourceUserUserId))
+        println("consumer: " + consumer)
         consumer match {
           case Full(x) if x.validate.isEmpty => showRegistrationResults(x)
           case Full(x) if !x.validate.isEmpty => showErrors(x.validate)

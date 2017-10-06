@@ -394,7 +394,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
   
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -450,7 +450,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
   
     lazy val getTransactionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -524,7 +524,7 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List())
+      List(apiTagDataWarehouse))
 
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -535,8 +535,8 @@ trait APIMethods300 {
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compact(render(json \ "es_uri_part"))
-            val bodyPart = compact(render(json \ "es_body_part"))
+            val uriPart = compactRender(json \ "es_uri_part")
+            val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
       }
@@ -560,7 +560,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -596,7 +596,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -632,7 +632,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1285,14 +1285,13 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagApi))
 
 
     lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
         user =>
           for {
-            // _ <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Bank(bankId) ?~! BankNotFound
             ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
@@ -1333,7 +1332,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagBranch)
     )
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1387,7 +1386,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagATM)
     )
 
 
@@ -1440,7 +1439,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1505,7 +1504,7 @@ trait APIMethods300 {
         "No branches available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1565,7 +1564,7 @@ trait APIMethods300 {
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1619,7 +1618,7 @@ trait APIMethods300 {
         "No ATMs available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1654,7 +1653,40 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getUsers,
+      implementedInApiVersion,
+      "getUsers",
+      "GET",
+      "/users",
+      "Get all Users",
+      """Get all users
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
 
+    lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
+      case "users" :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~ UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+          } yield {
+            Users.users.vend.getAllUsersF()
+          }
+      }
+    }
 
 /* WIP
     resourceDocs += ResourceDoc(

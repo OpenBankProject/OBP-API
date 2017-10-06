@@ -49,7 +49,7 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   def viewId = ViewId(forView.get)
   def text = textField.get
   def datePosted = date.get
-  def id_ = id.is.toString
+  def id_ = id.get.toString
   def replyToID = replyTo.get
   object userId extends LongField(this)
 

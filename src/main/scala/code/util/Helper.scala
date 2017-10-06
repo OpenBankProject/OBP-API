@@ -4,12 +4,11 @@ import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
 import net.liftweb.common._
-import net.liftweb.util.{Mailer, Props}
-import net.liftweb.util.Helpers._
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.Extraction._
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
-import net.liftweb.json.Printer._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
 import scala.util.Random
 
@@ -126,7 +125,7 @@ object Helper{
    */
   def prettyJson(input: JValue) : String = {
     implicit val formats = net.liftweb.json.DefaultFormats
-    pretty(render(decompose(input)))
+    prettyRender(decompose(input))
   }
 
   /**
