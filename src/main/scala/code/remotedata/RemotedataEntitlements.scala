@@ -5,6 +5,7 @@ import code.actorsystem.ObpActorInit
 import code.entitlement.{Entitlement, EntitlementProvider, RemotedataEntitlementsCaseClasses}
 import net.liftweb.common.Box
 import scala.collection.immutable.List
+import scala.concurrent.Future
 
 
 object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
@@ -19,6 +20,9 @@ object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
 
   def getEntitlementsByUserId(userId: String) : Box[List[Entitlement]] =
     extractFutureToBox(actor ? cc.getEntitlementsByUserId(userId))
+
+  def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]] =
+    (actor ? cc.getEntitlementsByUserIdFuture(userId)).mapTo[Box[List[Entitlement]]]
 
   def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean] =
     extractFutureToBox(actor ? cc.deleteEntitlement(entitlement))

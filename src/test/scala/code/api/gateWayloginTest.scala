@@ -68,11 +68,12 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
   val missingParameterToken = ("Authorization", ("GatewayLogin wrong_parameter_name=%s").format(jwt))
 
   def gatewayLoginRequest = baseRequest / "obp" / "v3.0.0" / "users"
+  def gatewayLoginNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current" / "customers"
 
-  feature("GatewayLogin") {
+  feature("GatewayLogin in a BLOCKING way") {
     Props.getBool("allow_gateway_login", false) match  {
       case true =>
-        scenario("Missing parameter token") {
+        scenario("Missing parameter token in a blocking way") {
           When("We try to login without parameter token in a Header")
           val request = gatewayLoginRequest
           val response = makeGetRequest(request, List(missingParameterToken))
@@ -99,9 +100,44 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
           assertResponse(response, UserHasMissingRoles + CanGetAnyUser)
         }
       case false =>
-        logger.info("-----------------------------------------------------------------")
-        logger.info("------------- GatewayLogin Test is DISABLED ---------------------")
-        logger.info("-----------------------------------------------------------------")
+        logger.info("-----------------------------------------------------------------------------------")
+        logger.info("------------- GatewayLogin in a BLOCKING way Test is DISABLED ---------------------")
+        logger.info("-----------------------------------------------------------------------------------")
+    }
+  }
+
+  feature("GatewayLogin in a NON BLOCKING way") {
+    Props.getBool("allow_gateway_login", false) match  {
+      case true =>
+        scenario("Missing parameter token in a blocking way") {
+          When("We try to login without parameter token in a Header")
+          val request = gatewayLoginNonBlockingRequest
+          val response = makeGetRequest(request, List(missingParameterToken))
+          Then("We should get a 400 - Bad Request")
+          response.code should equal(400)
+          assertResponse(response, ErrorMessages.GatewayLoginMissingParameters + "token")
+        }
+
+        scenario("Invalid JWT value") {
+          When("We try to login with an invalid JWT")
+          val request = gatewayLoginNonBlockingRequest
+          val response = makeGetRequest(request, List(invalidJwt))
+          Then("We should get a 400 - Bad Request")
+          response.code should equal(400)
+          assertResponse(response, ErrorMessages.GatewayLoginJwtTokenIsNotValid)
+        }
+
+        scenario("Valid JWT value") {
+          When("We try to login with an valid JWT")
+          val request = gatewayLoginNonBlockingRequest.GET <@ (userGatewayLogin)
+          val response = makeGetRequest(request, List(validJwt))
+          Then("We should get a 200 ")
+          response.code should equal(200)
+        }
+      case false =>
+        logger.info("---------------------------------------------------------------------------------------")
+        logger.info("------------- GatewayLogin in a NON BLOCKING way Test is DISABLED ---------------------")
+        logger.info("---------------------------------------------------------------------------------------")
     }
   }
 
@@ -127,7 +163,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     response.body match {
       case JObject(List(JField(name, JString(value)))) =>
         name should equal("error")
-        value should startWith(expectedErrorMessage)
+        value should include(expectedErrorMessage)
       case _ => fail("Expected an error message")
     }
   }

@@ -30,8 +30,10 @@ import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
+import code.entitlement.Entitlement
 import net.liftweb.common.{Box, Full}
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
@@ -870,8 +872,23 @@ object JSONFactory300{
     Full(branch)
   }
 
+  def createUserJSON(user : User, entitlements: List[Entitlement]) : UserJsonV200 = {
+    new UserJsonV200(
+      user_id = user.userId,
+      email = user.emailAddress,
+      username = stringOrNull(user.name),
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements)
+    )
+  }
 
-
+  def createUserJSON(user : Box[User], entitlements: Box[List[Entitlement]]) : UserJsonV200 = {
+    (user, entitlements) match {
+      case (Full(u), Full(е)) => createUserJSON(u, е)
+      case _ => null
+    }
+  }
 
 
 

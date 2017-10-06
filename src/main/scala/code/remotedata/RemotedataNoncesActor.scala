@@ -42,6 +42,17 @@ class RemotedataNoncesActor extends Actor with ObpActorHelper with MdcLoggable {
                                     ")")
       sender ! extractResult(mapper.countNonces(consumerKey, tokenKey, timestamp, value))
 
+    case cc.countNoncesFuture(consumerKey: String,
+                              tokenKey: String,
+                              timestamp: Date,
+                              value: String) =>
+      logger.debug("countNoncesFuture(" + consumerKey + ", " +
+                                          tokenKey+ ", " +
+                                          timestamp + ", " +
+                                          value + ", " +
+                                          ")")
+      sender ! (mapper.countNonces(consumerKey, tokenKey, timestamp, value))
+
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

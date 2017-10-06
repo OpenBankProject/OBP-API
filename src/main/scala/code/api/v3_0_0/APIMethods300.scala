@@ -1,5 +1,7 @@
 package code.api.v3_0_0
 
+import java.io
+
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -8,6 +10,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200
+import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
@@ -15,12 +18,15 @@ import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
+import code.util.Helper
 import code.util.Helper.booleanToBox
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -31,6 +37,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 
@@ -1052,13 +1059,89 @@ trait APIMethods300 {
 
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~ UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getAllUsersF()
           } yield {
-            Users.users.vend.getAllUsersF()
+            users
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomersForUser,
+      implementedInApiVersion,
+      "getCustomersForUser",
+      "GET",
+      "/users/current/customers",
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      metricsJson,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagUser))
+
+
+
+
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.map(_.userId).openOr(""))
+          } yield {
+            JSONFactory210.createCustomersJson(customers)
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCurrentUser,
+      implementedInApiVersion,
+      nameOf(getCurrentUser), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user
+        |
+        |Login is required.
+      """.stripMargin,
+      emptyObjectJson,
+      userJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
+
+    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
+        }
       }
     }
 

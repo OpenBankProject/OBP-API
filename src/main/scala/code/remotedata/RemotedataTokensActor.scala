@@ -21,9 +21,17 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getTokenByKey(" + key +")")
       sender ! extractResult(mapper.getTokenByKey(key))
 
+    case cc.getTokenByKeyFuture(key: String) =>
+      logger.debug("getTokenByKeyFuture(" + key +")")
+      sender ! (mapper.getTokenByKey(key))
+
     case cc.getTokenByKeyAndType(key: String, tokenType: TokenType) =>
       logger.debug("getTokenByKeyAndType(" + key + ", " + tokenType + ")")
       sender ! extractResult(mapper.getTokenByKeyAndType(key, tokenType))
+
+    case cc.getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType) =>
+      logger.debug("getTokenByKeyAndTypeFuture(" + key + ", " + tokenType + ")")
+      sender ! (mapper.getTokenByKeyAndType(key, tokenType))
 
     case cc.createToken(tokenType: TokenType,
                         consumerId: Option[Long],

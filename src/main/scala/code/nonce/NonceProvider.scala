@@ -7,6 +7,8 @@ import code.remotedata.RemotedataNonces
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.concurrent.Future
+
 
 object Nonces extends SimpleInjector {
 
@@ -31,6 +33,10 @@ trait NoncesProvider {
                   tokenKey: String,
                   timestamp: Date,
                   value: String): Long
+  def countNoncesFuture(consumerKey: String,
+                        tokenKey: String,
+                        timestamp: Date,
+                        value: String): Future[Long]
 }
 
 class RemotedataNoncesCaseClasses {
@@ -44,6 +50,10 @@ class RemotedataNoncesCaseClasses {
                          tokenKey: String,
                          timestamp: Date,
                          value: String)
+  case class countNoncesFuture(consumerKey: String,
+                               tokenKey: String,
+                               timestamp: Date,
+                               value: String)
 }
 
 object RemotedataNoncesCaseClasses extends RemotedataNoncesCaseClasses
