@@ -5,6 +5,7 @@ import code.remotedata.RemotedataEntitlements
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.concurrent.Future
 
 object Entitlement extends SimpleInjector {
 
@@ -21,6 +22,7 @@ trait EntitlementProvider {
   def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
   def getEntitlementById(entitlementId: String) : Box[Entitlement]
   def getEntitlementsByUserId(userId: String) : Box[List[Entitlement]]
+  def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]]
   def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean]
   def getEntitlements() : Box[List[Entitlement]]
   def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
@@ -37,6 +39,7 @@ class RemotedataEntitlementsCaseClasses {
   case class getEntitlement(bankId: String, userId: String, roleName: String)
   case class getEntitlementById(entitlementId: String)
   case class getEntitlementsByUserId(userId: String)
+  case class getEntitlementsByUserIdFuture(userId: String)
   case class deleteEntitlement(entitlement: Box[Entitlement])
   case class getEntitlements()
   case class addEntitlement(bankId: String, userId: String, roleName: String)

@@ -33,7 +33,7 @@ import code.token.Tokens
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers._
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUserCaseClass}
 import code.model.{Consumer, Token, TokenType, User}
 import code.util.Helper.SILENCE_IS_GOLDEN
 import net.liftweb.common._
@@ -45,6 +45,8 @@ import net.liftweb.util.{Helpers, Props}
 import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
 * This object provides the API calls necessary to
@@ -263,6 +265,150 @@ object DirectLogin extends RestHelper with MdcLoggable {
     (httpCode, message, parameters)
   }
 
+
+  //Check if the request (access token or request token) is valid and return a tuple
+  def validatorFuture(requestType : String, httpMethod : String) : Future[(Int, String, Map[String,String])] = {
+    //return a Map containing the directLogin parameters : prameter -> value
+    def getAllParameters: Map[String, String] = {
+      def toMap(parametersList: String) = {
+        //transform the string "directLogin_prameter="value""
+        //to a tuple (directLogin_parameter,Decoded(value))
+        def dynamicListExtract(input: String) = {
+          val directLoginPossibleParameters =
+            List(
+              "consumer_key",
+              "token",
+              "username",
+              "password"
+            )
+          if (input contains "=") {
+            val split = input.split("=", 2)
+            val parameterValue = split(1).replace("\"", "")
+            //add only OAuth parameters and not empty
+            if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
+              Some(split(0), parameterValue) // return key , value
+            else
+              None
+          }
+          else
+            None
+        }
+        //we delete the "DirectLogin" prefix and all the white spaces that may exist in the string
+        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s", "")
+        val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
+        params
+      }
+
+      S.request match {
+        case Full(a) => a.header("Authorization") match {
+          case Full(header) => {
+            if (header.contains("DirectLogin"))
+              toMap(header)
+            else
+              Map("error" -> "header incorrect")
+          }
+          case _ => Map("error" -> "missing header")
+        }
+        case _ => Map("error" -> "request incorrect")
+      }
+    }
+
+    def validAccessTokenFuture(tokenKey: String) = {
+      Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
+        case Full(token) => token.isValid
+        case _ => false
+      }
+    }
+
+    /**Validate user supplied Direct Login parameters before they are used further,
+      * guard maximum length and content of strings (a-z, 0-9 etc.) */
+    def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
+      for (key <- parameters.keys) yield {
+        val parameterValue = parameters.get(key).get
+        key match {
+          case "username" =>
+            checkMediumString(parameterValue)
+          case "password" =>
+            checkMediumPassword(parameterValue)
+          case "consumer_key" =>
+            checkMediumAlphaNumeric(parameterValue)
+          case "token" =>
+            checkMediumString(parameterValue)
+          case _ => ErrorMessages.InvalidDirectLoginParameters
+        }
+      }
+    }
+
+    //@return the missing parameters depending of the request type
+    def missingDirectLoginParameters(parameters: Map[String, String], requestType: String): Set[String] = {
+      requestType match {
+        case "authorizationToken" =>
+          ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
+        case "protectedResource" =>
+          ("token" :: List()).toSet diff parameters.keySet
+        case _ =>
+          parameters.keySet
+      }
+    }
+
+    var message = ""
+    var httpCode: Int = 500
+
+    val parameters = getAllParameters
+
+    //are all the necessary directLogin parameters present?
+    val missingParams = missingDirectLoginParameters(parameters, requestType)
+    //guard maximum length and content of strings (a-z, 0-9 etc.) for parameters
+    val validParams = validDirectLoginParameters(parameters)
+
+    val validF =
+      if (requestType == "protectedResource") {
+        validAccessTokenFuture(parameters.getOrElse("token", ""))
+      } else if (requestType == "authorizationToken" &&
+                Props.getBool("direct_login_consumer_key_mandatory", true))
+      {
+        APIUtil.registeredApplicationFuture(parameters.getOrElse("consumer_key", ""))
+      } else {
+        Future{true}
+      }
+
+    // Please note that after this point S.request for instance cannot be used directly
+    // If you need it later assign it to some variable and pass it
+    for {
+      valid <- validF
+    } yield {
+      if (missingParams.nonEmpty) {
+        message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
+        httpCode = 400
+      }
+      else if(SILENCE_IS_GOLDEN != validParams.mkString("")){
+        message = validParams.mkString("")
+        httpCode = 400
+      }
+      else if ( requestType == "protectedResource" &&
+                !valid
+      ) {
+        message = ErrorMessages.DirectLoginInvalidToken + parameters.getOrElse("token", "")
+        httpCode = 401
+      }
+      //check if the application is registered and active
+      else if ( requestType == "authorizationToken" &&
+                Props.getBool("direct_login_consumer_key_mandatory", true) &&
+                !valid)
+      {
+        logger.error("application: " + parameters.getOrElse("consumer_key", "") + " not found")
+        message = ErrorMessages.InvalidConsumerKey
+        httpCode = 401
+      }
+      else
+        httpCode = 200
+      if(message.nonEmpty)
+        logger.error("error message : " + message)
+      (httpCode, message, parameters)
+    }
+
+  }
+
   private def generateTokenAndSecret(claims: Map[String,String]) =
   {
     // generate random string
@@ -317,6 +463,20 @@ object DirectLogin extends RestHelper with MdcLoggable {
         ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
       else
         user
+    }
+  }
+
+  def getUserFromDirectLoginHeaderFuture() : Future[Box[User]] = {
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
+    for {
+      (httpCode, message, directLoginParameters) <- validatorFuture("protectedResource", httpMethod)
+      _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
+      user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
+    } yield {
+      user
     }
   }
 

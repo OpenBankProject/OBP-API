@@ -49,6 +49,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
+import code.model.dataAccess.ResourceUserCaseClass
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
@@ -65,9 +66,12 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.xml.{Elem, XML}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 object ErrorMessages {
 import code.api.util.APIUtil._
@@ -161,6 +165,10 @@ import code.api.util.APIUtil._
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
   val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The JWT is corrupted/changed during a transport."
   val GatewayLoginCannotExtractJwtToken = "OBP-20040: Header, Payload and Signature cannot be extracted from the JWT."
+  val GatewayLoginNoNeedToCallCbs = "OBP-20041: There is no need to call CBS"
+  val GatewayLoginCannotFindUser = "OBP-20042: User cannot be found. Please initiate CBS communication in order to create it."
+  val GatewayLoginCannotGetCbsToken = "OBP-20043: Cannot get the CBSToken response from South side"
+  val GatewayLoginCannotGetOrCreateUser = "OBP-20044: Cannot get or create user during GatewayLogin process."
 
 
 
@@ -366,6 +374,13 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+  def registeredApplicationFuture(consumerKey: String): Future[Boolean] = {
+    Consumers.consumers.vend.getConsumerByConsumerKeyFuture(consumerKey) map {
+      case Full(c) => c.isActive.get
+      case _ => false
+    }
+  }
+
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     if(Props.getBool("write_metrics", false)) {
       val user =
@@ -420,7 +435,6 @@ object APIUtil extends MdcLoggable {
       val correlationId = getCorrelationId()
 
       //execute saveMetric in future, as we do not need to know result of operation
-      import scala.concurrent.ExecutionContext.Implicits.global
       Future {
         APIMetrics.apiMetrics.vend.saveMetric(
           userId,
@@ -1253,7 +1267,6 @@ Returns a string showed to the developer
     val t1 = System.currentTimeMillis()
     if (Props.getBool("write_metrics", false)){
       val correlationId = getCorrelationId()
-      import scala.concurrent.ExecutionContext.Implicits.global
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
       }
@@ -1502,8 +1515,6 @@ Versions are groups of endpoints in a file
     }
   }
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
     val laf = new LAFuture[T]
     scf.onSuccess {
@@ -1516,7 +1527,7 @@ Versions are groups of endpoints in a file
     laf
   }
 
-  def futureToResponse2[T](in: LAFuture[T]): JsonResponse = {
+  def futureToResponse[T](in: LAFuture[T]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
       in.onFail {
@@ -1526,8 +1537,131 @@ Versions are groups of endpoints in a file
     })
   }
 
-  implicit def scalaFutureToJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): JsonResponse = {
-    futureToResponse2(scalaFutureToLaFuture(scf))
+  def futureToBoxedResponse[T](in: LAFuture[T]): Box[JsonResponse] = {
+    RestContinuation.async(reply => {
+      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t))))
+      in.onFail {
+        case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
+        case _                  => Full(reply.apply(errorJsonResponse("Error")))
+      }
+    })
   }
+
+  implicit def scalaFutureToJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): JsonResponse = {
+    futureToResponse(scalaFutureToLaFuture(scf))
+  }
+
+  /**
+    * This function is implicitly used at Endpoints to transform a Scala Future to Box[JsonResponse] for instance next part of code
+    * for {
+        users <- Future { someComputation }
+      } yield {
+        users
+      }
+      will be translated by Scala compiler to
+      APIUtil.scalaFutureToBoxedJsonResponse(
+        for {
+          users <- Future { someComputation }
+        } yield {
+          users
+        }
+      )
+    * @param scf
+    * @param m
+    * @tparam T
+    * @return
+    */
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
+    futureToBoxedResponse(scalaFutureToLaFuture(scf))
+  }
+
+
+  /**
+    * This function is planed t be used at an endpoint in order to get a User based on Authorization Header data
+    * It should do the same thing as function OBPRestHelper.failIfBadAuthorizationHeader does
+    * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
+    * @return An User wrapped into a Future
+    */
+  def getUserFromAuthorizationHeaderFuture(): Future[Box[User]] = {
+    if (hasAnOAuthHeader) {
+      getUserFromOAuthHeaderFuture()
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+      DirectLogin.getUserFromDirectLoginHeaderFuture()
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+      Props.get("gateway.host") match {
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
+          val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+          httpCode match {
+            case 200 =>
+              val payload = GatewayLogin.parseJwt(parameters)
+              payload match {
+                case Full(payload) =>
+                  GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
+                    case Full((u, cbsAuthToken)) => // Authentication is successful
+                      Future {
+                        GatewayLogin.getOrCreateConsumer(payload, u)
+                      }
+                      setGatewayResponseHeader {
+                        GatewayLogin.createJwt(payload, cbsAuthToken)
+                      }
+                      Full(u)
+                    case Failure(msg, _, _) =>
+                      Failure(msg)
+                    case _ =>
+                      Failure(payload)
+                  }
+                case Failure(msg, _, _) =>
+                  Future { Failure(msg) }
+                case _ =>
+                  Future { Failure(ErrorMessages.GatewayLoginUnknownError) }
+              }
+            case _ =>
+              Future { Failure(message) }
+          }
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
+          Future { Failure(ErrorMessages.GatewayLoginWhiteListAddresses) }
+        case Empty =>
+          Future { Failure(ErrorMessages.GatewayLoginHostPropertyMissing) } // There is no gateway.host in props file
+        case Failure(msg, _, _) =>
+          Future { Failure(msg) }
+        case _ =>
+          Future { Failure(ErrorMessages.GatewayLoginUnknownError) }
+      }
+    } else {
+      Future { Empty }
+    }
+  }
+
+  /**
+    * This Function is used to terminate a Future used in for-comprehension with specific message
+    * Please note that boxToFailed(Empty ?~ ("Some failure message")) will be transformed to Failure("Some failure message", Empty, Empty)
+    * @param box Some boxed type
+    * @return Boxed value or throw some exception
+    */
+  def fullBoxOrException[T](box: Box[T])(implicit m: Manifest[T]) : Box[T]= {
+    box match {
+      case Full(v) => // Just forwarding
+        Full(v)
+      case Empty => // Just forwarding
+        throw new Exception("Empty Box not allowed")
+      case ParamFailure(msg,_,_,_) =>
+        throw new Exception(msg)
+      case obj@Failure(msg, _, c) =>
+        val failuresMsg = Props.getBool("display_internal_errors").openOr(false) match {
+          case true => // Show all error in a chain
+            obj.messageChain
+          case false => // Do not display internal errors
+            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
+            obpFailures match {
+              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
+              case _ => obpFailures.map(_.msg).mkString(" <- ")
+            }
+        }
+        throw new Exception(failuresMsg)
+      case _ =>
+        throw new Exception(UnknownError)
+    }
+  }
+
 
 }

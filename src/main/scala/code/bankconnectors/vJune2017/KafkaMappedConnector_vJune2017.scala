@@ -123,8 +123,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, e, c)  =>
+        Failure(msg, e, c)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
@@ -168,8 +168,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -218,8 +218,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -265,8 +265,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, e, c) =>
+          logger.error(msg,e)
+          logger.error(msg)
+          Failure(msg, e, c)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -332,8 +334,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -399,8 +401,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure("OBP-Error:"+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -486,8 +488,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
@@ -550,8 +552,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
@@ -614,8 +616,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }

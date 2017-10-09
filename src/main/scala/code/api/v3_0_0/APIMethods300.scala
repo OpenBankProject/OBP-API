@@ -1,5 +1,8 @@
 package code.api.v3_0_0
 
+import java.io
+
+import code.api.APIFailure
 import code.api.{APIFailure, ChargePolicy}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -10,6 +13,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.JSONFactory200
+import code.api.v2_1_0.JSONFactory210
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -19,6 +23,7 @@ import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.bankconnectors.{Connector, LocalMappedConnector, OBPLimit, OBPOffset}
 import code.branches.Branches.BranchId
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterparty
@@ -30,7 +35,9 @@ import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.users.Users
+import code.util.Helper
 import code.util.Helper.booleanToBox
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -43,6 +50,10 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+
 
 
 trait APIMethods300 {
@@ -71,15 +82,15 @@ trait APIMethods300 {
   }
   val Implementations3_0_0 = new Object() {
 
-    val apiVersion: String = "3_0_0"
-    
+    val implementedInApiVersion: String = "3_0_0" // TODO Use ApiVersions enumeration
+
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-  
+
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -117,7 +128,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
-  
+
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
@@ -132,11 +143,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       createViewForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -167,7 +178,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
-  
+
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
@@ -183,11 +194,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
@@ -209,7 +220,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
-  
+
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
@@ -225,10 +236,10 @@ trait APIMethods300 {
           }
       }
     }
-  
+
     resourceDocs += ResourceDoc(
       accountById,
-      apiVersion,
+      implementedInApiVersion,
       "accountById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
@@ -277,7 +288,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getCoreAccountById,
-      apiVersion,
+      implementedInApiVersion,
       "getCoreAccountById",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
@@ -320,7 +331,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       corePrivateAccountsAllBanks,
-      apiVersion,
+      implementedInApiVersion,
       "corePrivateAccountsAllBanks",
       "GET",
       "/my/accounts",
@@ -362,7 +373,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getCoreTransactionsForBankAccount",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
@@ -388,15 +399,15 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn, 
+        UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNotFound, 
+        ViewNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagAccount)
     )
-  
+
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -414,11 +425,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       getTransactionsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getTransactionsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
@@ -444,15 +455,15 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn, 
-        BankAccountNotFound, 
-        ViewNotFound, 
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        ViewNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagAccount)
     )
-  
+
     lazy val getTransactionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -474,7 +485,7 @@ trait APIMethods300 {
     // TODO Put message into doc below if not enabled (but continue to show API Doc)
     resourceDocs += ResourceDoc(
       elasticSearchWarehouseV300,
-      apiVersion,
+      implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
       "/search/warehouse",
@@ -545,7 +556,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUser,
-      apiVersion,
+      implementedInApiVersion,
       "getUser",
       "GET",
       "/users/email/EMAIL/terminator",
@@ -581,7 +592,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUserByUserId,
-      apiVersion,
+      implementedInApiVersion,
       "getUserByUserId",
       "GET",
       "/users/user_id/USER_ID",
@@ -617,7 +628,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUserByUsername,
-      apiVersion,
+      implementedInApiVersion,
       "getUserByUsername",
       "GET",
       "/users/username/USERNAME",
@@ -1270,7 +1281,7 @@ trait APIMethods300 {
     
     resourceDocs += ResourceDoc(
       getAdapter,
-      apiVersion,
+      implementedInApiVersion,
       "getAdapter",
       "GET",
       "/banks/BANK_ID/adapter",
@@ -1311,7 +1322,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       createBranch,
-      apiVersion,
+      implementedInApiVersion,
       "createBranch",
       "POST",
       "/banks/BANK_ID/branches",
@@ -1365,7 +1376,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       createAtm,
-      apiVersion,
+      implementedInApiVersion,
       "createAtm",
       "POST",
       "/banks/BANK_ID/atms",
@@ -1417,7 +1428,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getBranch,
-      apiVersion,
+      implementedInApiVersion,
       "getBranch",
       "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
@@ -1471,7 +1482,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getBranches,
-      apiVersion,
+      implementedInApiVersion,
       "getBranches",
       "GET",
       "/banks/BANK_ID/branches",
@@ -1516,7 +1527,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             // Get branches from the active provider
-          
+
           limit <- tryo(
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
@@ -1527,8 +1538,8 @@ trait APIMethods300 {
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-          
+
+
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -1545,7 +1556,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getAtm,
-      apiVersion,
+      implementedInApiVersion,
       "getAtm",
       "GET",
       "/banks/BANK_ID/atms/ATM_ID",
@@ -1589,7 +1600,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getAtms,
-      apiVersion,
+      implementedInApiVersion,
       "getAtms",
       "GET",
       "/banks/BANK_ID/atms",
@@ -1654,7 +1665,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUsers,
-      apiVersion,
+      implementedInApiVersion,
       "getUsers",
       "GET",
       "/users",
@@ -1677,13 +1688,89 @@ trait APIMethods300 {
 
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~ UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getAllUsersF()
           } yield {
-            Users.users.vend.getAllUsersF()
+            users
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomersForUser,
+      implementedInApiVersion,
+      "getCustomersForUser",
+      "GET",
+      "/users/current/customers",
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      metricsJson,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagUser))
+
+
+
+
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.map(_.userId).openOr(""))
+          } yield {
+            JSONFactory210.createCustomersJson(customers)
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCurrentUser,
+      implementedInApiVersion,
+      nameOf(getCurrentUser), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user
+        |
+        |Login is required.
+      """.stripMargin,
+      emptyObjectJson,
+      userJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
+
+    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
+        }
       }
     }
 
@@ -1724,8 +1811,8 @@ trait APIMethods300 {
       }
     }
 */
-  
-  
+
+
 
 
 

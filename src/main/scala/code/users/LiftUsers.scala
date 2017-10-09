@@ -1,5 +1,6 @@
 package code.users
 
+import code.api.GatewayLogin.gateway
 import net.liftweb.common.{Box, Full}
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
@@ -21,8 +22,38 @@ object LiftUsers extends Users {
     ResourceUser.find(id) ?~ { s"user $id not found"}
   }
 
+  def getResourceUserByResourceUserIdF(id : Long) : Box[User] = {
+    ResourceUser.find(id) ?~ { s"user $id not found"}
+  }
+
+  def getResourceUserByResourceUserIdFuture(id : Long) : Future[Box[User]] = {
+    Future{getResourceUserByResourceUserIdF(id)}
+  }
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     ResourceUser.find(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, idGivenByProvider))
+  }
+  def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
+    Future {
+      getUserByProviderId(provider, idGivenByProvider)
+    }
+  }
+
+  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+    Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider).or { // Find a user
+      Users.users.vend.createResourceUser( // Otherwise create a new one
+        provider = gateway,
+        providerId = Some(idGivenByProvider),
+        name = Some(idGivenByProvider),
+        email = None,
+        userId = None
+      )
+    }
+  }
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
+    Future {
+      getOrCreateUserByProviderId(provider, idGivenByProvider)
+    }
   }
 
   def getUserByUserId(userId : String) : Box[User] = {

@@ -6,7 +6,7 @@ import code.model.{MappedTokenProvider, Token, TokenType}
 import code.remotedata.RemotedataTokens
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
-
+import scala.concurrent.Future
 
 object Tokens extends SimpleInjector {
 
@@ -22,7 +22,9 @@ object Tokens extends SimpleInjector {
 
 trait TokensProvider {
   def getTokenByKey(key: String): Box[Token]
+  def getTokenByKeyFuture(key: String): Future[Box[Token]]
   def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token]
+  def getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType): Future[Box[Token]]
   def createToken(tokenType: TokenType,
                   consumerId: Option[Long],
                   userId: Option[Long], //Why do we use the UserId Long type??
@@ -40,7 +42,9 @@ trait TokensProvider {
 
 class RemotedataTokensCaseClasses {
   case class getTokenByKey(key: String)
+  case class getTokenByKeyFuture(key: String)
   case class getTokenByKeyAndType(key: String, tokenType: TokenType)
+  case class getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType)
   case class createToken(tokenType: TokenType,
                          consumerId: Option[Long],
                          userId: Option[Long],

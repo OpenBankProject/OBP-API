@@ -47,6 +47,8 @@ import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
 import code.util.Helper.MdcLoggable
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 sealed trait AppType
 object AppType {
@@ -76,6 +78,12 @@ object MappedConsumersProvider extends ConsumersProvider {
 
   override def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
     Consumer.find(By(Consumer.key, consumerKey))
+  }
+
+  override def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]] = {
+    Future{
+      getConsumerByConsumerKey(consumerKey)
+    }
   }
 
   override def createConsumer(key: Option[String],
@@ -465,6 +473,13 @@ object MappedNonceProvider extends NoncesProvider {
     )
   }
 
+  override def countNoncesFuture(consumerKey: String,
+                                 tokenKey: String,
+                                 timestamp: Date,
+                                 value: String): Future[Long] = {
+    Future{countNonces(consumerKey, tokenKey, timestamp, value)}
+  }
+
 }
 class Nonce extends LongKeyedMapper[Nonce] {
 
@@ -490,9 +505,20 @@ object MappedTokenProvider extends TokensProvider {
   override def getTokenByKey(key: String): Box[Token] = {
     Token.find(By(Token.key, key))
   }
+  override def getTokenByKeyFuture(key: String): Future[Box[Token]] = {
+    Future{
+      getTokenByKey(key)
+    }
+  }
   override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
     val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType.toString))
     token
+  }
+
+  override def getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType): Future[Box[Token]] = {
+    Future{
+      getTokenByKeyAndType(key, tokenType)
+    }
   }
 
   override def createToken(tokenType: TokenType,
