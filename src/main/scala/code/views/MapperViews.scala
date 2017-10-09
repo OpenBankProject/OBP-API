@@ -14,6 +14,8 @@ import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import code.api.util.ErrorMessages._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
@@ -414,6 +416,15 @@ object MapperViews extends Views with MdcLoggable {
       .map(_.view.obj).flatten.filter(!_.isPublic) //select all the non-public views
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
+  }
+
+  /**
+    * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+    */
+  def getNonPublicBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] = {
+    Future {
+      getNonPublicBankAccounts(user)
+    }
   }
 
   /**

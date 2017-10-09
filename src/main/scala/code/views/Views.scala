@@ -5,6 +5,8 @@ import code.remotedata.RemotedataViews
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.concurrent.Future
+
 object Views  extends SimpleInjector {
 
   val views = new Inject(buildOne _) {}
@@ -43,6 +45,7 @@ trait Views {
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getNonPublicBankAccounts(user : User) : List[BankIdAccountId]
+  def getNonPublicBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
   def getNonPublicBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
@@ -91,6 +94,7 @@ class RemotedataViewsCaseClasses {
     def apply(user: User): List[(BankId, AccountId)] = this (user)
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
   }
+  case class getNonPublicBankAccountsFuture(user : User)
   case class view(pars: Any*) {
     def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
