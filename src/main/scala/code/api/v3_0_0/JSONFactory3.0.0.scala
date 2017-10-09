@@ -39,8 +39,6 @@ import net.liftweb.common.{Box, Full}
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.common._
 import code.branches.Branches.Branch
 import code.common._
 
@@ -198,62 +196,6 @@ case class CoreCounterpartiesJsonV300(
 case class CoreTransactionsJsonV300(
   transactions: List[CoreTransactionJsonV300]
 )
-
-//for create transaction request
-case class ToAccountTransferToPhoneJson(
-  mobile_phone_number: String
-)
-
-case class FromAccountTransfer (
-  mobile_phone_number: String,
-  nickname: String
-)
-
-case class TransactionRequestBodyTransferToPhoneJson(
-  value: AmountOfMoneyJsonV121, 
-  description: String,
-  message: String,
-  from: FromAccountTransfer,
-  to: ToAccountTransferToPhoneJson
-) extends TransactionRequestCommonBodyJSON
-
-case class ToAccountTransferToAtmKycDocumentJson(
-  `type`: String,
-  number: String
-)
-
-case class ToAccountTransferToAtmJson(
-  legal_name: String,
-  date_of_birth: String,
-  mobile_phone_number: String,
-  kyc_document: ToAccountTransferToAtmKycDocumentJson
-)
-
-case class TransactionRequestBodyTransferToAtmJson(
-  value: AmountOfMoneyJsonV121,  
-  description: String,
-  message: String,
-  from: FromAccountTransfer,
-  to: ToAccountTransferToAtmJson
-) extends TransactionRequestCommonBodyJSON
-
-case class CounterpartyTransferToAccount(
-  other_account_owner: String,
-  transfer_type: String,
-  transfer_is_scheduled : String,
-  future_date : String,
-  bank_code:String,
-  branch_number: String,
-  account_number: String,
-  iban: String
-)
-
-case class TransactionRequestBodyTransferToAccount(
-  value: AmountOfMoneyJsonV121,  
-  description: String, 
-  charge_policy: String,
-  couterparty: CounterpartyTransferToAccount
-) extends TransactionRequestCommonBodyJSON
 
 //ended -- Transaction relevant case classes /////
 

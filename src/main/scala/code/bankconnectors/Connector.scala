@@ -8,7 +8,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
-import code.api.v3_0_0.{TransactionRequestBodyTransferToAccount, TransactionRequestBodyTransferToAtmJson, TransactionRequestBodyTransferToPhoneJson}
+import code.api.v3_0_0.custom.{TransactionRequestBodyTransferToAccount, TransactionRequestBodyTransferToAtmJson, TransactionRequestBodyTransferToPhoneJson}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
@@ -590,15 +590,15 @@ trait Connector extends MdcLoggable{
     def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Box[String] = 
       Full(
         if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
-        // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
-        // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
-        // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
-        // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
-        // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-        if (Props.getLong("transaction_status_scheduler_delay").isEmpty )
-          TransactionRequests.STATUS_COMPLETED
-        else
-          TransactionRequests.STATUS_PENDING
+          // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
+          // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
+          // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
+          // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
+          // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
+          if (Props.getLong("transaction_status_scheduler_delay").isEmpty )
+            TransactionRequests.STATUS_COMPLETED
+          else
+            TransactionRequests.STATUS_PENDING
         } else {
           TransactionRequests.STATUS_INITIATED
         }
@@ -665,7 +665,7 @@ trait Connector extends MdcLoggable{
       ) ?~! "createTransactionRequestv300.createTransactionRequestImpl210, Exception: Couldn't create transactionRequest"
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
-      transaction: TransactionRequest <-  
+      newTransactionRequest: TransactionRequest <-  
         if(status == TransactionRequests.STATUS_COMPLETED) {
           for {
             createdTransactionId <- Connector.connector.vend.makePaymentv300(
@@ -677,25 +677,24 @@ trait Connector extends MdcLoggable{
               transactionRequestType,
               chargePolicy
             ) ?~! "createTransactionRequestv300.makePaymentv300 exception"
-    
-          } yield {
-            logger.debug(s"createTransactionRequestv300.createdTransactionId return: $createdTransactionId")
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
-            transactionRequest.copy(challenge = null)
-            //save transaction_id into database
-            saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
-            //update transaction_id filed for varibale 'transactionRequest' 
-            transactionRequest.copy(transaction_ids = createdTransactionId.value)
+            transactionRequest <- Full(transactionRequest.copy(challenge = null))
+           //save transaction_id into database
+            _ <- Full(saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId))
+              //update transaction_id filed for varibale 'transactionRequest' 
+            transactionRequest <- Full(transactionRequest.copy(transaction_ids = createdTransactionId.value))
+          } yield {
+            logger.debug(s"createTransactionRequestv300.createdTransactionId return: $transactionRequest")
             transactionRequest
           }
         }else if (status == TransactionRequests.STATUS_INITIATED ) {
           for {
             //if challenge necessary, create a new one
-                challengeAnswer <- createChallenge(fromAccount.bankId,
-                  fromAccount.accountId, initiator.userId,
-                  transactionRequestType: TransactionRequestType,
-                  transactionRequest.id.value, ""
-                ) ?~! "createTransactionRequestv300.createChallenge exception !"
+            challengeAnswer <- createChallenge(fromAccount.bankId,
+              fromAccount.accountId, initiator.userId,
+              transactionRequestType: TransactionRequestType,
+              transactionRequest.id.value, ""
+            ) ?~! "createTransactionRequestv300.createChallenge exception !"
 
             challengeId = UUID.randomUUID().toString
             salt = BCrypt.gensalt()
@@ -705,17 +704,18 @@ trait Connector extends MdcLoggable{
             _<- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
 
             // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
-            challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+            _<- Full(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
+            transactionRequest<- Full(transactionRequest.copy(challenge = newChallenge))
           } yield {
-            saveTransactionRequestChallenge(transactionRequest.id, challenge)
-            transactionRequest.copy(challenge = challenge)
             transactionRequest
           }
         }else{
           Full(transactionRequest)
         } 
     } yield {
-      transaction
+      logger.debug(newTransactionRequest)
+      newTransactionRequest
     }
   }
   
@@ -850,7 +850,6 @@ trait Connector extends MdcLoggable{
     * @param chargePolicy  SHARED, SENDER, RECEIVER
     * @return  Always create a new Transaction Request in mapper, and return all the fields
     */
-  //TODO not sure, why it is in Connector.scala, maybe move out of here.
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                 transactionRequestType: TransactionRequestType,
                                                 fromAccount: BankAccount,
@@ -888,10 +887,6 @@ trait Connector extends MdcLoggable{
   protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
 
   protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
-  
-  
-  
-  
   
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
@@ -955,7 +950,7 @@ trait Connector extends MdcLoggable{
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
 
   protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
-  
+
   def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
@@ -1238,7 +1233,7 @@ trait Connector extends MdcLoggable{
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
         }
-        case Empty => {
+        case _ => {
 //          This shouldn't happen as AuthUser should generate the ResourceUsers when saved
           logger.error(s"resource user(s) $owner not found.")
         }

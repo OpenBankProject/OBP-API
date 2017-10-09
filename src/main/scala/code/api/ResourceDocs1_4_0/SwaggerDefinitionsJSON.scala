@@ -1981,6 +1981,10 @@ object SwaggerDefinitionsJSON {
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
   
   
+  //V300Custom
+  ///////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
+  import code.api.v3_0_0.custom._
   val toAccountTransferToPhoneJson = ToAccountTransferToPhoneJson("+9722398746")
   val fromAccountTransferToPhoneJson = FromAccountTransfer(
     mobile_phone_number="Mobile number of the money sender (10 digits),eg: +9722398712",

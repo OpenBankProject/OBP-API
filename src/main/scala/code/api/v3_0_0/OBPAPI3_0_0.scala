@@ -32,20 +32,17 @@
 package code.api.v3_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil
-import code.api.util.APIUtil.{ApiVersion, getAllowedEndpoints, OBPEndpoint, ResourceDoc, dottedApiVersion}
+import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, dottedApiVersion, getAllowedEndpoints}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
-import code.api.v2_2_0.OBPAPI2_2_0._
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
@@ -191,8 +188,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 2.1.0
   val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
-                          // Implementations2_1_0.createTransactionRequest ::
-                          // Implementations2_1_0.answerTransactionRequestChallenge ::
+                          Implementations2_1_0.createTransactionRequest ::
+                          Implementations2_1_0.answerTransactionRequestChallenge ::
                           Implementations2_1_0.getTransactionRequests ::
                           Implementations2_1_0.getRoles ::
                           Implementations2_1_0.getEntitlementsByBankAndUser ::
@@ -242,8 +239,6 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUser ::
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
-                          Implementations3_0_0.createTransactionRequest ::
-                          Implementations3_0_0.answerTransactionRequestChallenge ::
                           Implementations3_0_0.getAdapter ::
                           Implementations3_0_0.createBranch ::
                           Implementations3_0_0.getBranches ::
