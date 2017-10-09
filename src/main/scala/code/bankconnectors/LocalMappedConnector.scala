@@ -474,7 +474,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val description = transactionRequestCommonBody.description
     // Is it better to pass these into this function ?
     val fromTransAmt = -amount//from fromAccount balance should decrease
-    val toTransAmt = fx.convert(amount, rate.get)
+    val toTransAmt = fx.convert(amount, rate.openOrThrowException("Attempted to open an empty Box."))
     
     // From
     val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)

@@ -653,8 +653,7 @@ trait APIMethods300 {
 
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
+    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
 
 
     // This text is used in the various Create Transaction Request resource docs
@@ -986,7 +985,7 @@ trait APIMethods300 {
               s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
             amountOfMoneyJSON <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
-            isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+            isMapped: Boolean <- Full((Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped"))
 
             createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case SANDBOX_TAN => {
@@ -1655,7 +1654,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUsers,
-      implementedInApiVersion,
+      apiVersion,
       "getUsers",
       "GET",
       "/users",

@@ -25,7 +25,7 @@ class TransactionRequestsTest extends V300ServerSetup with DefaultUsers {
 
   def transactionCount(accounts: BankAccount*): Int = {
     accounts.foldLeft(0)((accumulator, account) => {
-      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
+      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
     })
   }
 

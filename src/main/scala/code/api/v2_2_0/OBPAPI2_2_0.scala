@@ -133,7 +133,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations1_2_1.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_2_1.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations1_2_1.resourceDocs if !disabledVersions.contains("v" + item.implementedInApiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_2_1.exists(_ == item.partialFunction)) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 1.2.1 - END ###
@@ -149,7 +149,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations1_3_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_3_0.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations1_3_0.resourceDocs if !disabledVersions.contains("v" + item.implementedInApiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_3_0.exists(_ == item.partialFunction)) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 1.3.0 - END ###
@@ -170,7 +170,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations1_4_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_4_0.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations1_4_0.resourceDocs if !disabledVersions.contains("v" + item.implementedInApiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_4_0.exists(_ == item.partialFunction)) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 1.4.0 - END ###
@@ -222,7 +222,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations2_0_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_0_0.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations2_0_0.resourceDocs if !disabledVersions.contains("v" + item.implementedInApiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_0_0.exists(_ == item.partialFunction)) {
       routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 2.0.0 - END ###
@@ -263,7 +263,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       then - omit endpoints of disabled version in props file
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
-  for ( item <- Implementations2_1_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_1_0.exists(_ == item.partialFunction)) {
+  for ( item <- Implementations2_1_0.resourceDocs if !disabledVersions.contains("v" + item.implementedInApiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_1_0.exists(_ == item.partialFunction)) {
     routes = routes:::List(item.partialFunction)
   }
   // ### VERSION 2.1.0 - END ###
@@ -292,7 +292,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   //       and  - omit partially disabled endpoint in props file
   //       and  - add only ones which intersect with the list defined in the first step
   for ( item <- Implementations2_2_0.resourceDocs
-        if (!disabledVersions.contains("v" + item.apiVersion)
+        if (!disabledVersions.contains("v" + item.implementedInApiVersion)
           && !disabledEndpoints.contains(item.apiFunction)
           && endpointsOf2_2_0.exists(_ == item.partialFunction)
           )

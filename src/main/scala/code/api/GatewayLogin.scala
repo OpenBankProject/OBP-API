@@ -294,7 +294,13 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   private def getFieldFromPayloadJson(payloadAsJsonString: String, fieldName: String) = {
     val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
-    compactRender(jwtJson.\(fieldName)).replace("\"", "")
+    val v = jwtJson.\(fieldName)
+    v match {
+      case JNothing =>
+        ""
+      case _ =>
+        compactRender(v).replace("\"", "")
+    }
   }
 
   // Try to find errorCode in Json string received from South side and extract to list
