@@ -121,7 +121,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
       case Full(r) if (r.errorCode=="") =>
         Full(TransactionId(r.id))
       case Full(r) if (r.errorCode!="") =>
-        Failure("OBP-Error:"+ r.errorCode+". + CoreBank-Error:"+ r.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx:"+ r.errorCode+". + CoreBank-Error:"+ r.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, _, _) =>

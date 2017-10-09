@@ -120,7 +120,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(list) if (list.errorCode=="") =>
         Full(list)
       case Full(list) if (list.errorCode!="") =>
-        Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c)  =>
@@ -165,7 +165,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.errorCode=="" && username == list.displayName) =>
           Full(new InboundUser(username, password, username))
         case Full(list) if (list.errorCode!="") =>
-          Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+          Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -215,7 +215,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.head.errorCode=="") =>
           Full(list map (new Bank2(_)))
         case Full(list) if (list.head.errorCode!="") =>
-          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+          Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -262,7 +262,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.errorCode=="") =>
           Full(new Bank2(list))
         case Full(list) if (list.errorCode!="") =>
-          Failure("OBP-Error:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+          Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -331,7 +331,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           cbsToken = list.head.cbsToken
           Full(list)
         case Full(list) if (list.head.errorCode!="") =>
-          Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+          Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -398,7 +398,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(f) if (f.errorCode=="") =>
           Full(new BankAccountJune2017(f))
         case Full(f) if (f.errorCode!="") =>
-          Failure("OBP-Error:"+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
+          Failure("INTERNAL-OBP-ADAPTER-xxx:"+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -485,7 +485,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Full(res)
       //TODO is this needed updateAccountTransactions(bankId, accountId)
       case Full(list) if (list.head.errorCode!="") =>
-        Failure("OBP-Error:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx:"+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -549,7 +549,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
         createNewTransaction(x)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
       case Failure(msg, e, c) =>
@@ -613,7 +613,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x.answer)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>

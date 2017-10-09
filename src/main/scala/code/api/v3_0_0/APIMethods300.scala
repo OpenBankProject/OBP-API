@@ -725,7 +725,7 @@ trait APIMethods300 {
     // Transaction Request General case (no TRANSACTION_REQUEST_TYPE specified)
     resourceDocs += ResourceDoc(
       createTransactionRequest,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequest",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
@@ -760,7 +760,7 @@ trait APIMethods300 {
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
       createTransactionRequestCouterparty,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequestCouterparty",
       "POST",
       s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${COUNTERPARTY.toString}/transaction-requests",
@@ -804,7 +804,7 @@ trait APIMethods300 {
     // Transaction Request (SEPA)
     resourceDocs += ResourceDoc(
       createTransactionRequestSepa,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequestSepa",
       "POST",
       s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${SEPA.toString}/transaction-requests",
@@ -844,7 +844,7 @@ trait APIMethods300 {
     // Transaction Request (TRANSFER_TO_PHONE)
     resourceDocs += ResourceDoc(
       createTransactionRequestTransferToPhone,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequestTransferToPhone",
       "POST",
       s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_PHONE.toString}/transaction-requests",
@@ -887,7 +887,7 @@ trait APIMethods300 {
     // Transaction Request (TRANSFER_TO_ATM)
     resourceDocs += ResourceDoc(
       createTransactionRequestTransferToATM,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequestTransferToATM",
       "POST",
       s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ATM.toString}/transaction-requests",
@@ -926,7 +926,7 @@ trait APIMethods300 {
     // Transaction Request (TRANSFER_TO_ACCOUNT)
     resourceDocs += ResourceDoc(
       createTransactionRequestTransferToAccount,
-      apiVersion,
+      implementedInApiVersion,
       "createTransactionRequestTransferToAccount",
       "POST",
       s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ACCOUNT.toString}/transaction-requests",
@@ -1185,7 +1185,7 @@ trait APIMethods300 {
   
     resourceDocs += ResourceDoc(
       answerTransactionRequestChallenge,
-      apiVersion,
+      implementedInApiVersion,
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
