@@ -167,6 +167,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         true
        case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCustomersForUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
         true
+       case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.corePrivateAccountsAllBanks) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+        true
       case _ =>
         false
     }

@@ -26,6 +26,7 @@ import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -344,15 +345,19 @@ trait APIMethods300 {
     lazy val corePrivateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for all banks
       case "my" :: "accounts" :: Nil JsonGet json => {
-        user =>
-
+        _ =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(user.openOrThrowException(UserNotLoggedIn))
           } yield {
-            val availableAccounts = BankAccount.nonPublicAccounts(u)
-            val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, availableAccounts, Full(u))
-            val response = successJsonResponse(coreBankAccountListJson)
-            response
+            for {
+              availableAccount <- availableAccounts
+              acc <- Connector.connector.vend.getBankAccount(availableAccount.bankId, availableAccount.accountId)
+            } yield {
+              JSONFactory300.createCoreAccountJSON(acc)
+            }
           }
       }
     }
