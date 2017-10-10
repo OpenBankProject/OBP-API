@@ -257,20 +257,19 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 3.0.0 Custom Folder
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
-
-
+  
+  val allResourceDocs = Implementations3_0_0.resourceDocs ++
+                        ImplementationsCustom3_0_0.resourceDocs ++
+                        Implementations2_2_0.resourceDocs ++
+                        Implementations2_1_0.resourceDocs ++
+                        Implementations2_0_0.resourceDocs ++
+                        Implementations1_4_0.resourceDocs ++
+                        Implementations1_3_0.resourceDocs ++
+                        Implementations1_2_1.resourceDocs
+  
   def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
-    val all = Implementations3_0_0.resourceDocs ++
-              ImplementationsCustom3_0_0.resourceDocs ++
-              Implementations2_2_0.resourceDocs ++
-              Implementations2_1_0.resourceDocs ++
-              Implementations2_0_0.resourceDocs ++
-              Implementations1_4_0.resourceDocs ++
-              Implementations1_3_0.resourceDocs ++
-              Implementations1_2_1.resourceDocs
-    all.find(_.partialFunction==pf)
+    allResourceDocs.find(_.partialFunction==pf)
   }
-
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
