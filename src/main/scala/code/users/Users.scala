@@ -1,11 +1,13 @@
 package code.users
 
+import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import code.remotedata.RemotedataUsers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object Users  extends SimpleInjector {
@@ -42,7 +44,7 @@ trait Users {
 
   def getAllUsers() : Box[List[ResourceUser]]
 
-  def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]]
+  def getAllUsersF() : Future[List[(ResourceUser, Box[List[Entitlement]])]]
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 

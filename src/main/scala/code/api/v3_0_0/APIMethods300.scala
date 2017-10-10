@@ -1074,7 +1074,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            users
+            JSONFactory300.createUserJSONs (users)
           }
       }
     }

@@ -1,6 +1,7 @@
 package code.users
 
 import code.api.GatewayLogin.gateway
+import code.entitlement.Entitlement
 import net.liftweb.common.{Box, Full}
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
@@ -72,14 +73,24 @@ object LiftUsers extends Users {
     Full(ResourceUser.findAll())
   }
 
-  override def getAllUsersF(): Future[Box[List[ResourceUserCaseClass]]] = {
-    val users = Full(ResourceUser.findAll().map(_.toCaseClass))
-    Future{users}
+  override def getAllUsersF(): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
+    val users = ResourceUser.findAll()
+    Future {
+      for {
+        user <- users
+      } yield {
+        (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
+      }
+    }
   }
 
-  def getAllUsersFF(): Box[List[ResourceUserCaseClass]] = {
-    val users = Full(ResourceUser.findAll().map(_.toCaseClass))
-    users
+  def getAllUsersFF(): List[(ResourceUser, Box[List[Entitlement]])] = {
+    val users = ResourceUser.findAll()
+    for {
+      user <- users
+    } yield {
+      (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
+    }
   }
 
   override def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {

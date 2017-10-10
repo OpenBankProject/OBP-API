@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import code.users.{RemotedataUsersCaseClasses, Users}
@@ -46,9 +47,9 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getAllUsers() : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getAllUsers())
 
-  def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]] = {
+  def getAllUsersF() : Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     val res = (actor ? cc.getAllUsersF())
-    res.mapTo[Box[List[ResourceUserCaseClass]]]
+    res.mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] =

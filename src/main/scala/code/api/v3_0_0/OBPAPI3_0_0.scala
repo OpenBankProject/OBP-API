@@ -200,7 +200,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getConsumers ::
                           Implementations2_1_0.enableDisableConsumers ::
                           Implementations2_1_0.addCardForBank ::
-                          Implementations2_1_0.getUsers ::
+                          // Implementations2_1_0.getUsers ::
                           Implementations2_1_0.createTransactionType ::
                           Implementations2_1_0.createCounterparty ::
                           // Implementations2_1_0.getAtm :: //now in V300
@@ -249,7 +249,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.createAtm ::
                           Implementations3_0_0.getAtm ::
                           Implementations3_0_0.getAtms ::
-                          // Implementations3_0_0.getUsers ::
+                          Implementations3_0_0.getUsers ::
                           Implementations3_0_0.getCustomersForUser ::
                           Implementations3_0_0.getCurrentUser ::
                           Nil
