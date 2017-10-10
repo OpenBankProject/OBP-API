@@ -1,48 +1,46 @@
 package code.api.v3_0_0
 
-import code.api.{APIFailure, ChargePolicy}
+import java.io
+
+import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.JSONFactory200
-import code.api.v2_1_0._
+import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.vMar2017.InboundAdapterInfo
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
-import code.bankconnectors.{Connector, LocalMappedConnector, OBPLimit, OBPOffset}
 import code.branches.Branches.BranchId
+import code.customer.Customer
 import code.entitlement.Entitlement
-import code.fx.fx
-import code.metadata.counterparties.MappedCounterparty
-import code.model.dataAccess.{AuthUser, MappedBankAccount}
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
-import code.transactionChallenge.ExpectedChallengeAnswer
-import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.users.Users
+import code.util.Helper
 import code.util.Helper.booleanToBox
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Serialization.write
-import net.liftweb.json.{Extraction, NoTypeHints, Serialization}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+
 
 
 trait APIMethods300 {
@@ -71,15 +69,15 @@ trait APIMethods300 {
   }
   val Implementations3_0_0 = new Object() {
 
-    val apiVersion: String = "3_0_0"
-    
+    val implementedInApiVersion: String = "3_0_0" // TODO Use ApiVersions enumeration
+
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-  
+
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -117,7 +115,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
-  
+
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
@@ -132,11 +130,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       createViewForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -167,7 +165,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
-  
+
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
@@ -183,11 +181,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
@@ -209,7 +207,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
-  
+
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
@@ -225,10 +223,10 @@ trait APIMethods300 {
           }
       }
     }
-  
+
     resourceDocs += ResourceDoc(
       accountById,
-      apiVersion,
+      implementedInApiVersion,
       "accountById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
@@ -277,7 +275,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getCoreAccountById,
-      apiVersion,
+      implementedInApiVersion,
       "getCoreAccountById",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
@@ -320,7 +318,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       corePrivateAccountsAllBanks,
-      apiVersion,
+      implementedInApiVersion,
       "corePrivateAccountsAllBanks",
       "GET",
       "/my/accounts",
@@ -362,7 +360,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getCoreTransactionsForBankAccount",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
@@ -388,15 +386,15 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn, 
+        UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNotFound, 
+        ViewNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
-  
+
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -414,11 +412,11 @@ trait APIMethods300 {
           }
       }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       getTransactionsForBankAccount,
-      apiVersion,
+      implementedInApiVersion,
       "getTransactionsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
@@ -444,15 +442,15 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn, 
-        BankAccountNotFound, 
-        ViewNotFound, 
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        ViewNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagTransaction)
+      List(apiTagTransaction, apiTagAccount)
     )
-  
+
     lazy val getTransactionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -474,7 +472,7 @@ trait APIMethods300 {
     // TODO Put message into doc below if not enabled (but continue to show API Doc)
     resourceDocs += ResourceDoc(
       elasticSearchWarehouseV300,
-      apiVersion,
+      implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
       "/search/warehouse",
@@ -524,7 +522,7 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List())
+      List(apiTagDataWarehouse))
 
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -535,8 +533,8 @@ trait APIMethods300 {
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compact(render(json \ "es_uri_part"))
-            val bodyPart = compact(render(json \ "es_body_part"))
+            val uriPart = compactRender(json \ "es_uri_part")
+            val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
       }
@@ -545,7 +543,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUser,
-      apiVersion,
+      implementedInApiVersion,
       "getUser",
       "GET",
       "/users/email/EMAIL/terminator",
@@ -560,7 +558,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -581,7 +579,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUserByUserId,
-      apiVersion,
+      implementedInApiVersion,
       "getUserByUserId",
       "GET",
       "/users/user_id/USER_ID",
@@ -596,7 +594,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -617,7 +615,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getUserByUsername,
-      apiVersion,
+      implementedInApiVersion,
       "getUserByUsername",
       "GET",
       "/users/username/USERNAME",
@@ -632,7 +630,7 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -651,627 +649,10 @@ trait APIMethods300 {
       }
     }
 
-    import net.liftweb.json.Extraction._
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
 
-
-    // This text is used in the various Create Transaction Request resource docs
-    val transactionRequestGeneralText =
-      s"""Initiate a Payment via creating a Transaction Request.
-         |
-          |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
-         |
-          |A `Transaction Request` can have one of several states.
-         |
-          |`Transactions` are modeled on items in a bank statement that represent the movement of money.
-         |
-          |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
-         |
-          |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
-         |
-          |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
-         |
-          |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
-         |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
-         |
-          |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
-         |
-          |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
-         |
-          |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
-         |
-          |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
-         |
-          |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
-         |
-          |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
-         |
-          |The following static FX rates are available in sandbox mode:
-         |
-          |${exchangeRates}
-         |
-          |
-          |Transaction Requests satisfy PSD2 requirements thus:
-         |
-          |1) A transaction can be initiated by a third party application.
-         |
-          |2) The customer is informed of the charge that will incurred.
-         |
-          |3) The call supports delegated authentication (OAuth)
-         |
-          |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
-         |
-          |There is further documentation [here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
-         |
-          |${authenticationRequiredMessage(true)}
-         |
-          |"""
-
-
-
-
-    // Transaction Request General case (no TRANSACTION_REQUEST_TYPE specified)
-    resourceDocs += ResourceDoc(
-      createTransactionRequest,
-      apiVersion,
-      "createTransactionRequest",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request.",
-      s"""$transactionRequestGeneralText
-         |
-       """.stripMargin,
-      transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-
-    // COUNTERPARTY
-    resourceDocs += ResourceDoc(
-      createTransactionRequestCouterparty,
-      apiVersion,
-      "createTransactionRequestCouterparty",
-      "POST",
-      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${COUNTERPARTY.toString}/transaction-requests",
-      s"Create Transaction Request (${COUNTERPARTY.toString})",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for COUNTERPARTY:
-         |
-         |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.
-         |The routing details of the counterparty will be forwarded for the transfer.
-         |
-       """.stripMargin,
-      transactionRequestBodyCounterpartyJSON,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-
-
-    val lowAmount  = AmountOfMoneyJsonV121("EUR", "12.50")
-    val sharedChargePolicy = ChargePolicy.withName("SHARED")
-
-    // Transaction Request (SEPA)
-    resourceDocs += ResourceDoc(
-      createTransactionRequestSepa,
-      apiVersion,
-      "createTransactionRequestSepa",
-      "POST",
-      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${SEPA.toString}/transaction-requests",
-      s"Create Transaction Request (${SEPA.toString})",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for ${SEPA.toString}:
-         |
-         |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
-         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
-         |
-       """.stripMargin,
-      transactionRequestBodySEPAJSON,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-
-    // Transaction Request (TRANSFER_TO_PHONE)
-    resourceDocs += ResourceDoc(
-      createTransactionRequestTransferToPhone,
-      apiVersion,
-      "createTransactionRequestTransferToPhone",
-      "POST",
-      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_PHONE.toString}/transaction-requests",
-      s"Create Transaction Request ${TRANSFER_TO_PHONE.toString}",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for ${TRANSFER_TO_PHONE.toString}:
-         |
-         |When using a ${TRANSFER_TO_PHONE.toString}, the following fields need to be filling in Json Body
-         |from_account_owner_nickname : Nickname of the money sender (20 symbols)
-         |from_account_phone_number   : Mobile number of the money sender (10 digits)
-         |other_account_phone_number  : Mobile number of the money receiver (10 digits)
-         |other_account_message       : Message text to the money receiver (50 symbols)
-       """.stripMargin,
-      transactionRequestBodyTransferToPhoneJson,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        InvalidPhoneNumber,
-        InvalidChargePolicy,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-  
-    // Transaction Request (TRANSFER_TO_ATM)
-    resourceDocs += ResourceDoc(
-      createTransactionRequestTransferToATM,
-      apiVersion,
-      "createTransactionRequestTransferToATM",
-      "POST",
-      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ATM.toString}/transaction-requests",
-      s"Create Transaction Request (${TRANSFER_TO_ATM.toString})",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for ${TRANSFER_TO_ATM.toString}:
-         |
-         |When using a ${TRANSFER_TO_ATM.toString} //TODO add more info there.
-         |
-       """.stripMargin,
-      transactionRequestBodyTransferToAtmJson,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-  
-    // Transaction Request (TRANSFER_TO_ACCOUNT)
-    resourceDocs += ResourceDoc(
-      createTransactionRequestTransferToAccount,
-      apiVersion,
-      "createTransactionRequestTransferToAccount",
-      "POST",
-      s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/${TRANSFER_TO_ACCOUNT.toString}/transaction-requests",
-      s"Create Transaction Request (${TRANSFER_TO_ACCOUNT.toString})",
-      s"""$transactionRequestGeneralText
-         |
-         |Special instructions for ${TRANSFER_TO_ACCOUNT.toString}:
-         |
-         |When using a ${TRANSFER_TO_ACCOUNT.toString} //TODO add more info.
-         |
-       """.stripMargin,
-      transactionRequestBodyAccountToAccount,
-      transactionRequestWithChargeJSON210,
-      List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        AccountNotFound,
-        ViewNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
-        InvalidTransactionRequestType,
-        InvalidJsonFormat,
-        InvalidNumber,
-        NotPositiveAmount,
-        InvalidTransactionRequestCurrency,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-  
-
-    lazy val createTransactionRequestSepa = createTransactionRequest
-    lazy val createTransactionRequestCouterparty = createTransactionRequest
-    lazy val createTransactionRequestTransferToPhone = createTransactionRequest
-    lazy val createTransactionRequestTransferToATM = createTransactionRequest
-    lazy val createTransactionRequestTransferToAccount = createTransactionRequest
-    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
-        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
-        user =>
-          for {
-            _ <- booleanToBox(Props.getBool("transactionRequests_enabled", false)) ?~ TransactionDisabled
-            u <- user ?~ UserNotLoggedIn
-            _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
-            _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
-            _ <- Bank(bankId) ?~! {BankNotFound}
-            fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-            _ <- View.fromUrl(viewId, fromAccount) ?~! {ViewNotFound}
-            isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true ||
-              hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
-            _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
-              s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
-
-            // Check the input JSON format, here is just check the common parts of all four tpyes
-            transDetailsJson <- tryo {json.extract[TransactionRequestBodyCommonJSON]} ?~! InvalidJsonFormat
-            isValidAmountNumber <- tryo(BigDecimal(transDetailsJson.value.amount)) ?~! InvalidNumber
-            _ <- booleanToBox(isValidAmountNumber > BigDecimal("0"), NotPositiveAmount)
-            _ <- tryo(assert(isValidCurrencyISOCode(transDetailsJson.value.currency))) ?~! InvalidISOCurrencyCode
-
-            // Prevent default value for transaction request type (at least).
-            _ <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${InvalidTransactionRequestCurrency} " +
-              s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
-            amountOfMoneyJSON <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
-
-            isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
-
-            createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case SANDBOX_TAN => {
-                for {
-                  transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${InvalidJsonFormat}, it should be SANDBOX_TAN input format"
-                  toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
-                  toAccountId <- Full(AccountId(transactionRequestBodySandboxTan.to.account_id))
-                  toAccount <- BankAccount(toBankId, toAccountId) ?~! {CounterpartyNotFound}
-                  transDetailsSerialized <- tryo {write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    toAccount,
-                    new MappedCounterparty(), //in SANDBOX_TAN, toCounterparty is empty
-                    transactionRequestType,
-                    transactionRequestBodySandboxTan,
-                    transDetailsSerialized,
-                    sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
-                } yield createdTransactionRequest
-              }
-              case COUNTERPARTY => {
-                for {
-                //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
-                  transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}. It should be COUNTERPARTY input format"
-                  toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
-                  // Get the Counterparty by id
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
-
-                  // Check we can send money to it.
-                  _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-
-                  // Get the Routing information from the Counterparty for the payment backend
-                  toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                  toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
-
-                  // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
-                  // i.e. Only validate toBankId and toAccountId if they are both OBP
-                  // i.e. if it is OBP we can expect the account to exist locally.
-                  // This is so developers can follow the COUNTERPARTY flow in the sandbox
-
-                  //if it is OBP, we call the local database, just for sandbox test case
-                  toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
-                    LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                  //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
-                  else
-                    Full(new MappedBankAccount())
-
-                  // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
-                  chargePolicy = transactionRequestBodyCounterparty.charge_policy
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy)))) ?~! InvalidChargePolicy
-                  transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString,
-                    transactionRequestAccountJSON,
-                    amountOfMoneyJSON,
-                    transactionRequestBodyCounterparty.description,
-                    transactionRequestBodyCounterparty.charge_policy)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    toAccount,
-                    toCounterparty,
-                    transactionRequestType,
-                    transactionRequestBodyCounterparty,
-                    transDetailsSerialized,
-                    chargePolicy)
-                } yield createdTransactionRequest
-
-              }
-              case SEPA => {
-                for {
-                //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
-                  transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}. It should be SEPA input format"
-                  toIban <- Full(transDetailsSEPAJson.to.iban)
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
-                  _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-                  toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                  toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
-
-                  //if the connector is mapped, we get the data from local mapper
-                  toAccount <- if(isMapped)
-                    LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                  else
-                  //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
-                    Full(new MappedBankAccount())
-
-                  // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
-                  chargePolicy = transDetailsSEPAJson.charge_policy
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
-                  transactionRequestDetailsSEPARMapperJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString,
-                    transactionRequestAccountJSON,
-                    amountOfMoneyJSON,
-                    transDetailsSEPAJson.description,
-                    chargePolicy)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsSEPARMapperJSON)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    toAccount,
-                    toCounterparty,
-                    transactionRequestType,
-                    transDetailsSEPAJson,
-                    transDetailsSerialized,
-                    chargePolicy)
-                } yield createdTransactionRequest
-              }
-              case FREE_FORM => {
-                for {
-                  transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}. It should be FREE_FORM input format"
-                  // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value))
-                  transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
-                    amountOfMoneyJSON,
-                    transactionRequestBodyFreeForm.description)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperFreeForm)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    fromAccount,//in FREE_FORM, we only use toAccount == fromAccount
-                    new MappedCounterparty(), //in FREE_FORM, we only use toAccount, toCounterparty is empty
-                    transactionRequestType,
-                    transactionRequestBodyFreeForm,
-                    transDetailsSerialized,
-                    sharedChargePolicy.toString)
-                } yield
-                  createdTransactionRequest
-              }
-              case TRANSFER_TO_PHONE => {
-                for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_PHONE.toString()} input format"
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
-                  transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    new MappedBankAccount(),
-                    new MappedCounterparty(),
-                    transactionRequestType,
-                    transDetailsP2PJson,
-                    transDetailsSerialized,
-                    sharedChargePolicy.toString)
-                } yield createdTransactionRequest
-              }
-              case TRANSFER_TO_ATM => {
-                for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be TRANSFER_TO_ATM input format"
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from_account_phone_number)) ?~! InvalidPhoneNumber
-                  _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.couterparty.other_account_phone_number)) ?~! InvalidPhoneNumber
-                  transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    new MappedBankAccount(),
-                    new MappedCounterparty(),
-                    transactionRequestType,
-                    transDetailsP2PJson,
-                    transDetailsSerialized,
-                    sharedChargePolicy.toString)
-                } yield createdTransactionRequest
-              }
-              case TRANSFER_TO_ACCOUNT => {
-                for {
-                  transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
-                  transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
-                    viewId,
-                    fromAccount,
-                    new MappedBankAccount(),
-                    new MappedCounterparty(),
-                    transactionRequestType,
-                    transDetailsP2PJson,
-                    transDetailsSerialized,
-                    sharedChargePolicy.toString)
-                } yield createdTransactionRequest
-              }
-            }
-          } yield {
-            val json = JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
-            createdJsonResponse(Extraction.decompose(json))
-          }
-      }
-    }
-  
-  
-    resourceDocs += ResourceDoc(
-      answerTransactionRequestChallenge,
-      apiVersion,
-      "answerTransactionRequestChallenge",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
-      challengeAnswerJSON,
-      transactionRequestWithChargeJson,
-      List(
-        UserNotLoggedIn,
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
-        InvalidJsonFormat,
-        BankNotFound,
-        UserNoPermissionAccessView,
-        TransactionRequestStatusNotInitiated,
-        TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
-        AllowedAttemptsUsedUp,
-        TransactionDisabled,
-        UnknownError
-      ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
-  
-    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
-        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
-        user =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
-            for {
-            // Check we have a User
-              u: User <- user ?~ UserNotLoggedIn
-            
-              // Check format of bankId supplied in URL
-              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            
-              // Check format of accountId supplied in URL
-              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-            
-              // Check the Posted JSON is valid
-              challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {InvalidJsonFormat}
-            
-              // Check Bank exists on this server
-              fromBank <- Bank(bankId) ?~! {BankNotFound}
-            
-              // Check Account exists on this server
-              fromAccount <- BankAccount(bankId, accountId) ?~! {BankAccountNotFound}
-            
-              // Check User has access to the View
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
-            
-              // Check transReqId is valid
-              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {InvalidTransactionRequestId}
-            
-              // Check the Transaction Request is still INITIATED
-              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),TransactionRequestStatusNotInitiated)
-            
-              // Check the input transactionRequestType is the same as when the user created the TransactionRequest
-              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
-              isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
-            
-              // Check the challengeId is valid for this existingTransactionRequest
-              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{InvalidTransactionRequesChallengeId})
-            
-              //Check the allowed attemps, Note: not support yet, the default value is 3
-              allowedAttempsOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
-            
-              //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
-
-              challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
-              challengeAnswerOBPOK <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)
-
-              challengeAnswerKafka <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
-              challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
-            
-              // All Good, proceed with the Transaction creation...
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount,transReqId, transactionRequestType)
-            } yield {
-              // Format explicitly as v2.0.0 json
-              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
-              //successJsonResponse(Extraction.decompose(json))
-              val successJson = Extraction.decompose(json)
-              successJsonResponse(successJson, 202)
-            }
-          } else {
-            Full(errorJsonResponse(TransactionDisabled))
-          }
-      }
-    }
-  
-  
-    
     resourceDocs += ResourceDoc(
       getAdapter,
-      apiVersion,
+      implementedInApiVersion,
       "getAdapter",
       "GET",
       "/banks/BANK_ID/adapter",
@@ -1285,14 +666,13 @@ trait APIMethods300 {
       usersJSONV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagApi))
 
 
     lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
         user =>
           for {
-            // _ <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Bank(bankId) ?~! BankNotFound
             ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
@@ -1313,7 +693,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       createBranch,
-      apiVersion,
+      implementedInApiVersion,
       "createBranch",
       "POST",
       "/banks/BANK_ID/branches",
@@ -1333,7 +713,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagBranch)
     )
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1367,7 +747,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       createAtm,
-      apiVersion,
+      implementedInApiVersion,
       "createAtm",
       "POST",
       "/banks/BANK_ID/atms",
@@ -1387,7 +767,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      List(apiTagATM)
     )
 
 
@@ -1419,7 +799,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getBranch,
-      apiVersion,
+      implementedInApiVersion,
       "getBranch",
       "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
@@ -1440,7 +820,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1473,7 +853,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getBranches,
-      apiVersion,
+      implementedInApiVersion,
       "getBranches",
       "GET",
       "/banks/BANK_ID/branches",
@@ -1505,7 +885,7 @@ trait APIMethods300 {
         "No branches available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBranch, apiTagBank)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1518,7 +898,7 @@ trait APIMethods300 {
             else
               user ?~! UserNotLoggedIn
             // Get branches from the active provider
-          
+
           limit <- tryo(
               S.param("limit") match {
                 case Full(l) if (l.toInt > 1000) => 1000
@@ -1529,8 +909,8 @@ trait APIMethods300 {
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-          
+
+
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -1547,7 +927,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getAtm,
-      apiVersion,
+      implementedInApiVersion,
       "getAtm",
       "GET",
       "/banks/BANK_ID/atms/ATM_ID",
@@ -1565,7 +945,7 @@ trait APIMethods300 {
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1591,7 +971,7 @@ trait APIMethods300 {
 
     resourceDocs += ResourceDoc(
       getAtms,
-      apiVersion,
+      implementedInApiVersion,
       "getAtms",
       "GET",
       "/banks/BANK_ID/atms",
@@ -1619,7 +999,7 @@ trait APIMethods300 {
         "No ATMs available. License may not be set.",
         UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagATM)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1654,7 +1034,116 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getUsers,
+      implementedInApiVersion,
+      "getUsers",
+      "GET",
+      "/users",
+      "Get all Users",
+      """Get all users
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJSONV200,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
 
+    lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
+      case "users" :: Nil JsonGet _ => {
+        _ =>
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getAllUsersF()
+          } yield {
+            users
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomersForUser,
+      implementedInApiVersion,
+      "getCustomersForUser",
+      "GET",
+      "/users/current/customers",
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      metricsJson,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagUser))
+
+
+
+
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.map(_.userId).openOr(""))
+          } yield {
+            JSONFactory210.createCustomersJson(customers)
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCurrentUser,
+      implementedInApiVersion,
+      nameOf(getCurrentUser), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user
+        |
+        |Login is required.
+      """.stripMargin,
+      emptyObjectJson,
+      userJSONV200,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser))
+
+    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: Nil JsonGet _ => {
+        _ => {
+          for {
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
+        }
+      }
+    }
 
 /* WIP
     resourceDocs += ResourceDoc(
@@ -1693,8 +1182,8 @@ trait APIMethods300 {
       }
     }
 */
-  
-  
+
+
 
 
 

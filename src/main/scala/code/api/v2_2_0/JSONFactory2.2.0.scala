@@ -590,18 +590,18 @@ object JSONFactory220{
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.id,
-      key=c.key,
-      secret=c.secret,
-      app_name=c.name,
+    ConsumerJson(consumer_id=c.id.get,
+      key=c.key.get,
+      secret=c.secret.get,
+      app_name=c.name.get,
       app_type=c.appType.toString(),
-      description=c.description,
-      developer_email=c.developerEmail,
-      redirect_url=c.redirectURL,
-      created_by_user_id =c.createdByUserId,
+      description=c.description.get,
+      developer_email=c.developerEmail.get,
+      redirect_url=c.redirectURL.get,
+      created_by_user_id =c.createdByUserId.get,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive,
-      created=c.createdAt
+      enabled=c.isActive.get,
+      created=c.createdAt.get
     )
   }
 
@@ -611,10 +611,10 @@ object JSONFactory220{
 
     var basicUser = BasicUserJsonV220(
       user_id = user.resourceUserId.toString,
-      email = user.email,
+      email = user.email.get,
       provider_id = user.idGivenByProvider,
       provider = user.provider,
-      username = user.name_ // TODO Double check this is the same as AuthUser.username ??
+      username = user.name_.get // TODO Double check this is the same as AuthUser.username ??
     )
 
     val basicCustomer = BasicCustomerJsonV220(

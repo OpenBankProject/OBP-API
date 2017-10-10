@@ -37,13 +37,13 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
-    corporateLocation(newTag).save
+    corporateLocation(newTag).saveTheRecord()
     true
   }
 
   def deleteCorporateLocationFn : Boolean = {
     corporateLocation.clear
-    this.save
+    this.saveTheRecord()
     true
   }
 
@@ -53,13 +53,13 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
-    physicalLocation(newTag).save
+    physicalLocation(newTag).saveTheRecord()
     true
   }
 
   def deletePhysicalLocationFn : Boolean = {
     physicalLocation.clear
-    this.save
+    this.saveTheRecord()
     true
   }
 
@@ -83,13 +83,13 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
   override def getMoreInfo = moreInfo.get
   override def getImageURL: String = imageUrl.get
   override val addPrivateAlias: (String) => Boolean = (alias => {
-    privateAlias(alias).save
+    privateAlias(alias).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true
   })
   override val addURL: (String) => Boolean = (text => {
-    url(text).save
+    url(text).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true
@@ -97,26 +97,26 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
   override val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean = addPhysicalLocationFn _
   override val addCorporateLocation: (UserId, Date, Double, Double) => Boolean = addCorporateLocationFn _
   override val addMoreInfo: (String) => Boolean = (text => {
-    moreInfo(text).save
+    moreInfo(text).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true
   })
   override def getOpenCorporatesURL: String = openCorporatesUrl.get
   override val addPublicAlias: (String) => Boolean = (alias => {
-    publicAlias(alias).save
+    publicAlias(alias).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true
   })
   override val addOpenCorporatesURL: (String) => Boolean = (text => {
-    openCorporatesUrl(text).save
+    openCorporatesUrl(text).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true
   })
   override val addImageURL: (String) => Boolean = (text => {
-    imageUrl(text).save
+    imageUrl(text).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
     //so we a true
     true

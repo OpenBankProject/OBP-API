@@ -206,7 +206,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     val view = ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
 
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.isDefined && view.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
 
     view
   }
@@ -214,7 +214,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewUID : ViewIdBankIdAccountId) : Box[View] = {
     val view=ViewImpl.find(viewUID)
 
-    if(view.isDefined && view.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.isDefined && view.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
 
     view
   }
@@ -672,7 +672,7 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
-    if(res.isDefined && res.get.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(res.isDefined && res.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 
@@ -683,7 +683,7 @@ object MapperViews extends Views with MdcLoggable {
     )
     var privilegesDeleted = true
     views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
+      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_.get))
     } )
       privilegesDeleted
   }

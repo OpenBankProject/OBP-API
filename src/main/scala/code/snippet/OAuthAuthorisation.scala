@@ -90,34 +90,34 @@ object OAuthAuthorisation {
       if (AuthUser.loggedIn_? && shouldNotLogUserOut()) {
         var verifier = ""
         // if the user is logged in and no verifier have been generated
-        if (appToken.verifier.isEmpty) {
-          val randomVerifier = Tokens.tokens.vend.gernerateVerifier(appToken.id)
+        if (appToken.verifier.get.isEmpty) {
+          val randomVerifier = Tokens.tokens.vend.gernerateVerifier(appToken.id.get)
           //the user is logged in so we have the current user
-          val authUser = AuthUser.currentUser.get
+          val authUser = AuthUser.currentUser.openOrThrowException("Attempted to open an empty Box.")
 
           //link the token with the concrete API User
           val saved = Users.users.vend.getResourceUserByResourceUserId(authUser.user.get).map {
             u => {
               //We want ResourceUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"
-              Tokens.tokens.vend.updateToken(appToken.id, u.id.get)
+              Tokens.tokens.vend.updateToken(appToken.id.get, u.id.get)
             }
           }
           if (saved.getOrElse(false))
             verifier = randomVerifier
         } else
-          verifier = appToken.verifier
+          verifier = appToken.verifier.get
 
         // show the verifier if the application does not support
         // redirection
-        if (appToken.callbackURL.is == "oob")
+        if (appToken.callbackURL.get == "oob")
           "#verifier *" #> verifier &
             ErrorMessageSel #> "" &
             "#account" #> ""
         else {
           //send the user to another obp page that handles the redirect
           val oauthQueryParams: List[(String, String)] = ("oauth_token", unencodedTokenParam) ::("oauth_verifier", verifier) :: Nil
-          val applicationRedirectionUrl = appendParams(appToken.callbackURL, oauthQueryParams)
+          val applicationRedirectionUrl = appendParams(appToken.callbackURL.get, oauthQueryParams)
           val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
           val redirectionUrl = Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
           val redirectionParam = List(("redirectUrl", encodedApplicationRedirectionUrl))
@@ -139,7 +139,7 @@ object OAuthAuthorisation {
         //if login fails, just reload the page with the login form visible
         AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
         //the user is not logged in so we show a login form
-        Consumers.consumers.vend.getConsumerByPrimaryId(appToken.consumerId) match {
+        Consumers.consumers.vend.getConsumerByPrimaryId(appToken.consumerId.get) match {
           case Full(consumer) => {
             hideFailedLoginMessageIfNeeded &
               "#applicationName" #> consumer.name &

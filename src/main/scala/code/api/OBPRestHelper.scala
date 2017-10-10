@@ -43,6 +43,8 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import com.github.dwickern.macros.NameOf.nameOf
 import code.util.Helper.MdcLoggable
 
 trait APIFailure{
@@ -154,9 +156,28 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
-  def failIfBadAuthorizationHeader(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
-    if (hasAnOAuthHeader) {
-      getUser match {
+  /**
+    * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
+    * @param rd Resource Document which contains all description of an Endpoint
+    * @return true if some endpoint can get User from Authorization Header
+    */
+  def nonBlockingEndpoint(rd: Option[ResourceDoc]) : Boolean = {
+    rd match {
+      case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCurrentUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+        true
+       case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCustomersForUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
+    if(nonBlockingEndpoint(rd)) {
+      fn(Empty)
+    } else if (hasAnOAuthHeader) {
+      val usr = getUser
+      usr match {
         case Full(u) => fn(Full(u)) // Authentication is successful
         case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
         case Failure(msg, _, _) => errorJsonResponse(msg)
@@ -181,7 +202,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
               payload match {
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUser(payload: String) match {
-                    case Full(u) => // Authentication is successful
+                    case Full((u, cbsAuthToken)) => // Authentication is successful
+                      GatewayLogin.getOrCreateConsumer(payload, u)
+                      setGatewayResponseHeader {
+                        GatewayLogin.createJwt(payload, cbsAuthToken)
+                      }
                       fn(Full(u))
                     case Failure(msg, _, _) => errorJsonResponse(msg)
                     case _ => errorJsonResponse(payload, httpCode)
@@ -246,7 +271,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
           val startTime = Helpers.now
-          val response = failIfBadAuthorizationHeader {
+          val response = failIfBadAuthorizationHeader(rd) {
                           failIfBadJSON(r, handler)
                         }
           val endTime = Helpers.now

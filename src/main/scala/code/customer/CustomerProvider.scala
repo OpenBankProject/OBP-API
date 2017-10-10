@@ -6,6 +6,7 @@ import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+import scala.concurrent.Future
 
 object Customer extends SimpleInjector {
 
@@ -23,6 +24,8 @@ trait CustomerProvider {
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer]
 
   def getCustomersByUserId(userId: String): List[Customer]
+
+  def getCustomersByUserIdFuture(userId: String): Future[List[Customer]]
 
   def getCustomerByCustomerId(customerId: String): Box[Customer]
 
@@ -61,6 +64,7 @@ trait CustomerProvider {
 class RemotedataCustomerProviderCaseClasses {
   case class getCustomerByUserId(bankId: BankId, userId: String)
   case class getCustomersByUserId(userId: String)
+  case class getCustomersByUserIdFuture(userId: String)
   case class getCustomerByCustomerId(customerId: String)
   case class getBankIdByCustomerId(customerId: String)
   case class getCustomerByCustomerNumber(customerNumber: String, bankId : BankId)

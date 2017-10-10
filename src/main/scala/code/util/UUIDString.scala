@@ -11,7 +11,8 @@ import net.liftweb.util.Props
 class UUIDString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, UUIDString.MaxLength)
 
 object UUIDString {
-  val MaxLength = Props.getInt("uuid_string.length", 36)
+  // We use 44 as a default because base64 encoding of sha256 is 44 characters long
+  val MaxLength = Props.getInt("uuid_string.length", 44)
 }
 
 

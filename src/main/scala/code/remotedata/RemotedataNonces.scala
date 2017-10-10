@@ -7,6 +7,7 @@ import code.nonce.{NoncesProvider, RemotedataNoncesCaseClasses}
 import net.liftweb.common.Box
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import scala.concurrent.Future
 
 
 object RemotedataNonces extends ObpActorInit with NoncesProvider {
@@ -28,6 +29,12 @@ object RemotedataNonces extends ObpActorInit with NoncesProvider {
                   timestamp: Date,
                   value: String): Long =
     extractFuture(actor ? cc.countNonces(consumerKey, tokenKey, timestamp, value))
+
+  def countNoncesFuture(consumerKey: String,
+                        tokenKey: String,
+                        timestamp: Date,
+                        value: String): Future[Long] =
+    (actor ? cc.countNonces(consumerKey, tokenKey, timestamp, value)).mapTo[Long]
 
 
 }

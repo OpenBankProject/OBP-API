@@ -89,7 +89,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       implementedInVersion(implementedInVersion).
       verb(verb).
       correlationId(correlationId)
-      save
+    saveTheRecord()
   }
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {

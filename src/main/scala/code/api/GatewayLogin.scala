@@ -27,7 +27,6 @@ Berlin 13359, Germany
 package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.api.util.APIUtil.setGatewayResponseHeader
 import code.api.util.ErrorMessages
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -41,6 +40,8 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
 * This object provides the API calls necessary to
@@ -82,7 +83,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       consumer_name = consumerName
     )
     val header = JwtHeader("HS256")
-    val claimsSet = JwtClaimsSet(compact(render(Extraction.decompose(json))))
+    val claimsSet = JwtClaimsSet(compactRender(Extraction.decompose(json)))
     val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
     val jwt: String = JsonWebToken(header, claimsSet, secretKey)
     jwt
@@ -140,53 +141,40 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def communicateWithCbs(jwtPayload: String) : Box[String] = {
+  def refreshBankAccounts(jwtPayload: String) : Box[String] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsAuthToken = getFieldFromPayloadJson(jwtPayload, "CBS_auth_token")
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("isFirst : " + isFirst)
     logger.debug("cbsAuthToken : " + cbsAuthToken)
-    if(isFirst.equalsIgnoreCase("true") || cbsAuthToken.equalsIgnoreCase("")){
-      // Call CBS
+    if(isFirst.equalsIgnoreCase("true") || // Case is_first="true" OR
+       cbsAuthToken.equalsIgnoreCase(""))  // Case There is no CBS_auth_token at all in JWT
+    { // Call CBS
       val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
-          Full(compact(render(Extraction.decompose(l)))) // case class --> JValue --> Json string
+          Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
         case Empty =>
           Empty
         case Failure(msg, _, _) =>
           Failure(msg)
       }
-    } else {
-      // Do not call CBS
-      Full("There is no need to call CBS")
+    } else { // Do not call CBS
+      Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
     }
   }
 
-  private def createConsumerAndSetResponseHeader(payload: String, u: Box[User], cbsAuthToken: Option[String]) = {
-    u match {
-      case Full(user) =>
-        GatewayLogin.getOrCreateConsumer(payload, user)
-        val jwtResponse = GatewayLogin.createJwt(payload, cbsAuthToken)
-        setGatewayResponseHeader(jwtResponse)
-
-      case _ =>
-        // Do nothing
-    }
-  }
-
-  def getOrCreateResourceUser(jwtPayload: String) : Box[User] = {
+  def getOrCreateResourceUser(jwtPayload: String) : Box[(User, Option[String])] = {
     val username = getFieldFromPayloadJson(jwtPayload, "username")
     logger.debug("username: " + username)
-    communicateWithCbs(jwtPayload) match {
-      case Full(s) if s.equalsIgnoreCase("There is no need to call CBS") => // Payload data do not require call to CBS
-        logger.debug("There is no need to call CBS")
+    refreshBankAccounts(jwtPayload) match {
+      case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+        logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
         Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
           case Full(u) => // Only valid case because we expect to find a user
-            createConsumerAndSetResponseHeader(jwtPayload, Full(u), None)
-            Full(u)
+            Full(u, None)
           case Empty =>
-            Failure("User cannot be found. Please initiate CBS communication in order to create it.")
+            Failure(ErrorMessages.GatewayLoginCannotFindUser)
           case Failure(msg, _, _) =>
             Failure(msg)
           case _ =>
@@ -194,7 +182,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         }
       case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
         logger.debug("CBS returned proper response")
-        val u = Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
           Users.users.vend.createResourceUser( // Otherwise create a new one
             provider = gateway,
             providerId = Some(username),
@@ -202,30 +190,96 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             email = None,
             userId = None
           )
+        } match {
+          case Full(u) =>
+            val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
+            // Update user account views, only when is_first == ture in the GatewayLogin token's parload .
+            if(isFirst.equalsIgnoreCase("true")) {
+              Future {
+                AuthUser.updateUserAccountViews(u)
+              }
+            }
+            Full((u, Some(getCbsTokens(s).head))) // Return user
+          case Empty =>
+            Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
+          case Failure(msg, _, _) =>
+            Failure(msg)
+          case _ =>
+            Failure(ErrorMessages.GatewayLoginUnknownError)
         }
-        val cbsAuthTokens = getCbsTokens(s)
-        createConsumerAndSetResponseHeader(jwtPayload, u, Some(cbsAuthTokens.head))
-        val isFirstField = getFieldFromPayloadJson(jwtPayload, "is_first")
-        // Update user account views, only when is_first == ture in the GatewayLogin token's parload . 
-        if(isFirstField.equalsIgnoreCase("true")){
-          for {
-            user <- u
-            ru <- Users.users.vend.getResourceUserByResourceUserId(user.resourceUserId.value)
-          } {
-            AuthUser.updateUserAccountViews(ru)
-          }
-        }
-        u // Return user
+
       case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
         logger.debug("CBS returned some errors")
         Failure(getErrors(s).mkString(", "))
       case Empty =>
-        logger.debug("Cannot get the CBSToken response from South side")
-        Failure("Cannot get the CBSToken response from South side")
+        logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
+        Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
       case Failure(msg, _, _) =>
         Failure(msg)
       case _ =>
         Failure(ErrorMessages.GatewayLoginUnknownError)
+    }
+  }
+  def getOrCreateResourceUserFuture(jwtPayload: String) : Future[Box[(User, Option[String])]] = {
+    val username = getFieldFromPayloadJson(jwtPayload, "username")
+    logger.debug("username: " + username)
+    val cbsF = Future { refreshBankAccounts(jwtPayload) }
+    for {
+      cbs <- cbsF
+      tuple <- cbs match {
+        case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+          logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
+          Users.users.vend.getUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
+            case Full(u) => // Only valid case because we expect to find a user
+              Full(u, None)
+            case Empty =>
+              Failure(ErrorMessages.GatewayLoginCannotFindUser)
+            case Failure(msg, _, _) =>
+              Failure(msg)
+            case _ =>
+              Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+        case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
+          logger.debug("CBS returned proper response")
+          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
+            case Full(u) =>
+              val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
+              // Update user account views, only when is_first == ture in the GatewayLogin token's parload .
+              if(isFirst.equalsIgnoreCase("true")) {
+                Future {
+                  AuthUser.updateUserAccountViews(u)
+                }
+              }
+              Full((u, Some(getCbsTokens(s).head))) // Return user
+            case Empty =>
+              Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
+            case Failure(msg, _, _) =>
+              Failure(msg)
+            case _ =>
+              Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+
+        case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
+          logger.debug("CBS returned some errors")
+          Future {
+            Failure(getErrors(s).mkString(", "))
+          }
+        case Empty =>
+          logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
+          Future {
+            Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
+          }
+        case Failure(msg, _, _) =>
+          Future {
+            Failure(msg)
+          }
+        case _ =>
+          Future {
+            Failure(ErrorMessages.GatewayLoginUnknownError)
+          }
+      }
+    } yield {
+      tuple
     }
   }
 
@@ -302,13 +356,19 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   private def getFieldFromPayloadJson(payloadAsJsonString: String, fieldName: String) = {
     val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
-    compact(render(jwtJson.\\(fieldName))).replace("\"", "")
+    val v = jwtJson.\(fieldName)
+    v match {
+      case JNothing =>
+        ""
+      case _ =>
+        compactRender(v).replace("\"", "")
+    }
   }
 
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   def getErrors(message: String) : List[String] = {
-    val json = parse(message) remove {
+    val json = parse(message) removeField {
       case JField("backendMessages", _) => true
       case _          => false
     }

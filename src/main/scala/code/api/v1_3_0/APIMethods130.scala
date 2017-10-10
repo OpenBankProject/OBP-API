@@ -36,7 +36,7 @@ trait APIMethods130 {
       physicalCardsJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagCard, apiTagUser))
 
     lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "cards" :: Nil JsonGet _ => {
@@ -65,7 +65,7 @@ trait APIMethods130 {
       physicalCardsJSON,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagCard))
 
 
     lazy val getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

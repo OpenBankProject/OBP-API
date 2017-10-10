@@ -1,9 +1,12 @@
 package code.entitlement
 
 
-import code.util.{UUIDString, MappedUUID}
+import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object MappedEntitlementsProvider extends EntitlementProvider {
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {
@@ -27,6 +30,12 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     Some(MappedEntitlement.findAll(
       By(MappedEntitlement.mUserId, userId),
       OrderBy(MappedEntitlement.updatedAt, Descending)))
+  }
+  override def getEntitlementsByUserIdFuture(userId: String): Future[Box[List[Entitlement]]] = {
+    // Return a Box so we can handle errors later.
+    Future {
+      getEntitlementsByUserId(userId)
+    }
   }
 
   override def getEntitlements: Box[List[MappedEntitlement]] = {

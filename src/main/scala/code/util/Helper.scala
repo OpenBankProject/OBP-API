@@ -3,14 +3,16 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
+import code.api.util.APIUtil.fullBoxOrException
 import net.liftweb.common._
-import net.liftweb.util.{Mailer, Props}
-import net.liftweb.util.Helpers._
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.Extraction._
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
-import net.liftweb.json.Printer._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.Random
 
 
@@ -81,6 +83,14 @@ object Helper{
       Empty
   }
 
+  def booleanToFuture(failMsg: String)(statement: => Boolean): Future[Box[Unit]] = {
+    Future{
+      booleanToBox(statement)
+    } map {
+      x => fullBoxOrException(x ?~! failMsg)
+    }
+  }
+
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 
   /**
@@ -126,7 +136,7 @@ object Helper{
    */
   def prettyJson(input: JValue) : String = {
     implicit val formats = net.liftweb.json.DefaultFormats
-    pretty(render(decompose(input)))
+    prettyRender(decompose(input))
   }
 
   /**

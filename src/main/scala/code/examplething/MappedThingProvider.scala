@@ -37,11 +37,11 @@ class MappedThing extends Thing with LongKeyedMapper[MappedThing] with IdPK {
 
 
   override def foo: Foo = new Foo {
-    override def fooSomething: String = fooSomething_
+    override def fooSomething: String = fooSomething_.get
   }
 
   override def bar: Bar = new Bar {
-    override def barSomething: String = barSomething_
+    override def barSomething: String = barSomething_.get
   }
 
 

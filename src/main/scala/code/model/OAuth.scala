@@ -34,7 +34,9 @@ import java.util.Date
 
 import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
-import code.model.TokenType.TokenType
+import code.model.AppType.{Mobile, Web}
+import code.model.TokenType
+import code.model.TokenType.{Access, Request}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.users.Users
@@ -45,14 +47,27 @@ import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
 import code.util.Helper.MdcLoggable
 
-object AppType extends Enumeration {
-  type AppType = Value
-  val Web, Mobile = Value
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
+sealed trait AppType
+object AppType {
+  case object Web extends AppType
+  case object Mobile extends AppType
+  def valueOf(value: String): AppType = value match {
+    case "Web" => Web
+    case "Mobile" => Mobile
+  }
 }
 
-object TokenType extends Enumeration {
-  type TokenType=Value
-  val Request, Access = Value
+sealed trait TokenType
+object TokenType {
+  case object Request extends TokenType
+  case object Access extends TokenType
+  def valueOf(value: String): TokenType = value match {
+    case "Request" => Request
+    case "Access" => Access
+  }
 }
 
 
@@ -65,11 +80,17 @@ object MappedConsumersProvider extends ConsumersProvider {
     Consumer.find(By(Consumer.key, consumerKey))
   }
 
+  override def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]] = {
+    Future{
+      getConsumerByConsumerKey(consumerKey)
+    }
+  }
+
   override def createConsumer(key: Option[String],
                               secret: Option[String],
                               isActive: Option[Boolean],
                               name: Option[String],
-                              appType: Option[AppType.AppType],
+                              appType: Option[AppType],
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
@@ -93,7 +114,10 @@ object MappedConsumersProvider extends ConsumersProvider {
         case None =>
       }
       appType match {
-        case Some(v) => c.appType(v)
+        case Some(v) => v match {
+          case Web => c.appType(Web.toString)
+          case Mobile => c.appType(Mobile.toString)
+        }
         case None =>
       }
       description match {
@@ -121,7 +145,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                               secret: Option[String],
                               isActive: Option[Boolean],
                               name: Option[String],
-                              appType: Option[AppType.AppType],
+                              appType: Option[AppType],
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
@@ -146,7 +170,10 @@ object MappedConsumersProvider extends ConsumersProvider {
           case None =>
         }
         appType match {
-          case Some(v) => c.appType(v)
+          case Some(v) => v match {
+            case Web => c.appType(Web.toString)
+            case Mobile => c.appType(Mobile.toString)
+          }
           case None =>
         }
         description match {
@@ -176,7 +203,7 @@ object MappedConsumersProvider extends ConsumersProvider {
                                    secret: Option[String],
                                    isActive: Option[Boolean],
                                    name: Option[String],
-                                   appType: Option[AppType.AppType],
+                                   appType: Option[AppType],
                                    description: Option[String],
                                    developerEmail: Option[String],
                                    redirectURL: Option[String],
@@ -204,7 +231,10 @@ object MappedConsumersProvider extends ConsumersProvider {
             case None =>
           }
           appType match {
-            case Some(v) => c.appType(v)
+            case Some(v) => v match {
+              case Web => c.appType(Web.toString)
+              case Mobile => c.appType(Mobile.toString)
+            }
             case None =>
           }
           description match {
@@ -256,6 +286,25 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  /**
+    * This function is added in order to support iOS/macOS requirements for callbacks.
+    * For instance next callback has to be valid: x-com.tesobe.helloobp.ios://callback
+    * @param field object which has to be validated
+    * @param s is a URI string
+    * @return Empty list if URI is valid or FieldError otherwise
+    */
+  private def validUri(field: MappedString[Consumer])(s: String) = {
+    import java.net.URI
+
+    import Helpers.tryo
+    if(s.isEmpty)
+      Nil
+    else if(tryo{new URI(s)}.isEmpty)
+      List(FieldError(field, {field.displayName + " must be a valid URI"}))
+    else
+      Nil
+  }
+
   object consumerId extends MappedString(this, 250) // Introduced to cover gateway login functionality
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
@@ -267,7 +316,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def dbIndexed_? = true
     override def displayName = "Application name:"
   }
-  object appType extends MappedEnum(this,AppType) {
+  object appType extends MappedString(this, 20) {
     override def displayName = "Application type:"
   }
   object description extends MappedText(this) {
@@ -278,14 +327,14 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
   object redirectURL extends MappedString(this, 250){
     override def displayName = "Redirect URL:"
-    override def validations = validUrl(this) _ :: super.validations
+    override def validations = validUri(this) _ :: super.validations
   }
   //if the application needs to delegate the user authentication
   //to a third party application (probably it self) rather than using
   //the default authentication page of the API, then this URL will be used.
   object userAuthenticationURL extends MappedString(this, 250){
     override def displayName = "User authentication URL:"
-    override def validations = validUrl(this) _ :: super.validations
+    override def validations = validUri(this) _ :: super.validations
   }
   object createdByUserId extends MappedString(this, 36)
 
@@ -306,7 +355,7 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
   //obscure primary key to avoid revealing information about, e.g. how many consumers are registered
   // (by incrementing ids until receiving a "log in first" page instead of 404)
   val obfuscator = new KeyObfuscator()
-  override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id)
+  override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id.get)
   //I've disabled this method as it only looked to be called by the original implementation of obscurePrimaryKey(in: TheCrudType)
   //and I don't want it affecting anything else
   override def obscurePrimaryKey(in: String): String = ""
@@ -424,6 +473,13 @@ object MappedNonceProvider extends NoncesProvider {
     )
   }
 
+  override def countNoncesFuture(consumerKey: String,
+                                 tokenKey: String,
+                                 timestamp: Date,
+                                 value: String): Future[Long] = {
+    Future{countNonces(consumerKey, tokenKey, timestamp, value)}
+  }
+
 }
 class Nonce extends LongKeyedMapper[Nonce] {
 
@@ -449,9 +505,20 @@ object MappedTokenProvider extends TokensProvider {
   override def getTokenByKey(key: String): Box[Token] = {
     Token.find(By(Token.key, key))
   }
+  override def getTokenByKeyFuture(key: String): Future[Box[Token]] = {
+    Future{
+      getTokenByKey(key)
+    }
+  }
   override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
-    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType))
+    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType.toString))
     token
+  }
+
+  override def getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType): Future[Box[Token]] = {
+    Future{
+      getTokenByKeyAndType(key, tokenType)
+    }
   }
 
   override def createToken(tokenType: TokenType,
@@ -465,7 +532,7 @@ object MappedTokenProvider extends TokensProvider {
                            callbackURL: Option[String]): Box[Token] = {
     tryo {
       val t = Token.create
-      t.tokenType(tokenType)
+      t.tokenType(tokenType.toString)
       consumerId match {
         case Some(v) => t.consumerId(v)
         case None =>
@@ -531,7 +598,7 @@ class Token extends LongKeyedMapper[Token]{
   def getSingleton = Token
   def primaryKeyField = id
   object id extends MappedLongIndex(this)
-  object tokenType extends MappedEnum(this, TokenType)
+  object tokenType extends MappedString(this,10)
   object consumerId extends MappedLongForeignKey(this, Consumer)
   object userForeignKey extends MappedLongForeignKey(this, ResourceUser)
   object key extends MappedString(this,250)
@@ -544,9 +611,9 @@ class Token extends LongKeyedMapper[Token]{
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
   def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
-  def isValid : Boolean = expirationDate.is after now
+  def isValid : Boolean = expirationDate.get after now
   def gernerateVerifier : String =
-    if (verifier.isEmpty){
+    if (verifier.get.isEmpty){
         def fiveRandomNumbers() : String = {
           def r() = randomInt(9).toString //from zero to 9
           (1 to 5).map(x => r()).foldLeft("")(_ + _)
@@ -556,7 +623,7 @@ class Token extends LongKeyedMapper[Token]{
       generatedVerifier
     }
     else
-      verifier.is
+      verifier.get
 
   // in the case of user authentication in a third party application
   // (see authenticationURL in class Consumer).
@@ -568,14 +635,14 @@ class Token extends LongKeyedMapper[Token]{
   }
 
   def generateThirdPartyApplicationSecret: String = {
-    if(thirdPartyApplicationSecret isEmpty){
+    if(thirdPartyApplicationSecret.get isEmpty){
       def r() = randomInt(9).toString //from zero to 9
       val generatedSecret = (1 to 10).map(x => r()).foldLeft("")(_ + _)
       thirdPartyApplicationSecret(generatedSecret).save
       generatedSecret
     }
     else
-      thirdPartyApplicationSecret
+      thirdPartyApplicationSecret.get
   }
 }
 object Token extends Token with LongKeyedMetaMapper[Token]{
@@ -587,5 +654,5 @@ object Token extends Token with LongKeyedMetaMapper[Token]{
   }
 
   def getRequestToken(token: String): Box[Token] =
-    Token.find(By(Token.key, token), By(Token.tokenType, TokenType.Request))
+    Token.find(By(Token.key, token), By(Token.tokenType, TokenType.Request.toString))
 }

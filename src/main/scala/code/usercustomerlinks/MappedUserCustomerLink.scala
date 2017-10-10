@@ -29,7 +29,7 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
   override def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = {
     val userCustomerLinks : List[UserCustomerLink] = MappedUserCustomerLink.findAll(
-      By(MappedUserCustomerLink.mUserId, userId)).sortWith(_.id < _.id)
+      By(MappedUserCustomerLink.mUserId, userId)).sortWith(_.id.get < _.id.get)
     userCustomerLinks
   }
 
@@ -64,7 +64,7 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
   override def customerId: String = mCustomerId.get // id.toString
   override def userId: String = mUserId.get
   override def dateInserted: Date = mDateInserted.get
-  override def isActive: Boolean = mIsActive
+  override def isActive: Boolean = mIsActive.get
 }
 
 object MappedUserCustomerLink extends MappedUserCustomerLink with LongKeyedMetaMapper[MappedUserCustomerLink] {

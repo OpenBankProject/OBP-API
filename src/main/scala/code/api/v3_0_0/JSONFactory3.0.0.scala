@@ -30,16 +30,15 @@ import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
-import net.liftweb.common.{Full, Box}
+import code.entitlement.Entitlement
 import net.liftweb.common.{Box, Full}
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.common._
 import code.branches.Branches.Branch
 import code.common._
 
@@ -198,56 +197,6 @@ case class CoreTransactionsJsonV300(
   transactions: List[CoreTransactionJsonV300]
 )
 
-//for create transaction request
-case class CounterpartyTransferToPhoneJson(
-  other_account_message: String,
-  other_account_phone_number: String
-)
-
-case class TransactionRequestBodyTransferToPhoneJson(
-  value: AmountOfMoneyJsonV121, 
-  description: String, 
-  from_account_phone_number: String,
-  from_account_owner_nickname: String,
-  couterparty: CounterpartyTransferToPhoneJson
-) extends TransactionRequestCommonBodyJSON
-
-case class CounterpartyTransferToAtmJson(
-  other_account_owner: String,
-  other_account_owner_passport_id_or_national_id: String,
-  other_account_owner_id_type: String,
-  other_account_owner_birthday: String,
-  other_account_message: String,
-  other_account_phone_number: String
-)
-
-case class TransactionRequestBodyTransferToAtmJson(
-  value: AmountOfMoneyJsonV121,  
-  description: String, 
-  from_account_phone_number: String,
-  from_account_owner_nickname: String,
-  charge_policy: String,
-  couterparty: CounterpartyTransferToAtmJson
-) extends TransactionRequestCommonBodyJSON
-
-case class CounterpartyTransferToAccount(
-  other_account_owner: String,
-  transfer_type: String,
-  transfer_is_scheduled : String,
-  future_date : String,
-  bank_code:String,
-  branch_number: String,
-  account_number: String,
-  iban: String
-)
-
-case class TransactionRequestBodyTransferToAccount(
-  value: AmountOfMoneyJsonV121,  
-  description: String, 
-  charge_policy: String,
-  couterparty: CounterpartyTransferToAccount
-) extends TransactionRequestCommonBodyJSON
-
 //ended -- Transaction relevant case classes /////
 
 //stated -- account relevant case classes /////
@@ -269,14 +218,6 @@ case class CoreAccountJsonV300(
   account_routing: AccountRoutingJsonV121
 )
 case class CoreAccountsJsonV300( accounts: List[CoreAccountJsonV300])
-
-case class CreateAccountJsonV300(
-  user_id : String,
-  label   : String,
-  `type` : String,
-   balance : AmountOfMoneyJsonV121
-)
-
 
 case class ModeratedCoreAccountJSON(
   id: String,
@@ -931,8 +872,23 @@ object JSONFactory300{
     Full(branch)
   }
 
+  def createUserJSON(user : User, entitlements: List[Entitlement]) : UserJsonV200 = {
+    new UserJsonV200(
+      user_id = user.userId,
+      email = user.emailAddress,
+      username = stringOrNull(user.name),
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements)
+    )
+  }
 
-
+  def createUserJSON(user : Box[User], entitlements: Box[List[Entitlement]]) : UserJsonV200 = {
+    (user, entitlements) match {
+      case (Full(u), Full(е)) => createUserJSON(u, е)
+      case _ => null
+    }
+  }
 
 
 

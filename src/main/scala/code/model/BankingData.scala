@@ -205,9 +205,18 @@ trait Bank {
   }
 
   def nonPublicAccounts(user : User) : List[BankAccount] = {
+
     Views.views.vend.getNonPublicBankAccounts(user, bankId).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
+
+    // Note: An alternative to the above implmentation (which will call BankAccount (e.g. Kafka) once for each
+    // account) - could be:
+    // 1) Get the accounts / view the user should have access to:
+    // Views.views.vend.getNonPublicBankAccounts(user, bankId)
+    // 2) Get all accounts for User
+    // 3) Return just the accounts found in step 1.
+    // 4) If any accounts are missing (because they belong to another user), call BankAccount for the missing accounts.
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -310,7 +319,7 @@ trait BankAccount extends MdcLoggable {
   * */
   final def remove(user : User): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).get)
+      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException("Attempted to open an empty Box."))
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
@@ -569,7 +578,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).get.map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**

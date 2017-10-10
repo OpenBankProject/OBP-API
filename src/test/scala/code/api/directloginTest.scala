@@ -39,7 +39,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
-      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).get
+      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
 
 
     if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
@@ -53,7 +53,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
-      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).get
+      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
   }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")

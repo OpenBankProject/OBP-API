@@ -1,8 +1,7 @@
 package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
+import java.util.{Calendar, Date}
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
@@ -11,46 +10,38 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
-import code.api.v1_2_1.{APIMethods121, SuccessMessage, AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
-import code.api.v2_0_0.JSONFactory200.bankAccountsListToJson
-import code.entitlement.Entitlement
-import code.model.BankId
-import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
-import net.liftweb.http.CurrentReq
-import code.model.dataAccess.AuthUser
-import net.liftweb.mapper.By
-import code.api.v2_0_0.JSONFactory200._
+import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
+import code.api.v2_0_0.JSONFactory200.{bankAccountsListToJson, _}
 import code.bankconnectors.Connector
+import code.entitlement.Entitlement
 import code.fx.fx
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
-import code.model._
-import code.model.dataAccess.BankAccountCreation
-import code.socialmedia.SocialMediaHandle
-import code.transactionrequests.TransactionRequests
 import code.meetings.Meeting
+import code.model.{BankId, _}
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
+import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{CurrentReq, JsonResponse, Req}
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
-import code.customer.{MockCustomerFaceImage, Customer}
-import code.util.Helper._
-import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonDSL._
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 import code.api.util.ErrorMessages._
+import code.customer.{Customer, MockCustomerFaceImage}
+import code.util.Helper._
+import net.liftweb.json.Extraction
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -244,7 +235,7 @@ trait APIMethods200 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at one Bank (Public and Private).",
+      "Get Accounts at Bank (inc. Public).",
       s"""Get accounts at one bank that the user has access to (Authenticated + Anonymous access).
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
@@ -355,7 +346,7 @@ trait APIMethods200 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank (Authenticated access).",
+      "Get private accounts at one bank.",
       s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
@@ -368,7 +359,8 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      List(apiTagAccount)
+    )
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
@@ -424,8 +416,8 @@ trait APIMethods200 {
       "getKycDocuments",
       "GET",
       "/customers/CUSTOMER_ID/kyc_documents",
-      "Get KYC Documents for Customer",
-      s"""Get KYC (know your customer) documents for a customer
+      "Get Customer KYC Documents",
+      s"""Get KYC (know your customer) documents for a customer specified by CUSTOMER_ID
         |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
         |${authenticationRequiredMessage(false)}""",
@@ -433,7 +425,9 @@ trait APIMethods200 {
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc))
+      List(apiTagKyc, apiTagCustomer))
+
+    // TODO Add Role
 
     lazy val getKycDocuments  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
@@ -465,7 +459,7 @@ trait APIMethods200 {
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
-    List(apiTagCustomer, apiTagKyc))
+    List(apiTagKyc, apiTagCustomer))
 
     lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
@@ -488,16 +482,17 @@ trait APIMethods200 {
       "getKycChecks",
       "GET",
       "/customers/CUSTOMER_ID/kyc_checks",
-      "Get KYC Checks for current Customer",
-      s"""Get KYC checks for the logged in customer
-        |Messages sent to the currently authenticated user.
+      "Get Customer KYC Checks",
+      s"""Get KYC checks for the Customer specified by CUSTOMER_ID.
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc))
+      List(apiTagKyc, apiTagCustomer))
+
+    // TODO Add Role
 
     lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
@@ -519,15 +514,15 @@ trait APIMethods200 {
       "getKycStatuses",
       "GET",
       "/customers/CUSTOMER_ID/kyc_statuses",
-      "Get the KYC statuses for a customer",
-      s"""Get the KYC statuses for a customer over time
+      "Get Customer KYC statuses",
+      s"""Get the KYC statuses for a customer specified by CUSTOMER_ID over time.
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc))
+      List(apiTagKyc, apiTagCustomer))
 
     lazy val getKycStatuses  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
@@ -550,15 +545,15 @@ trait APIMethods200 {
       "getSocialMediaHandles",
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
-      "Get social media handles for a customer",
-      s"""Get social media handles for a customer.
+      "Get Customer Social Media Handles",
+      s"""Get social media handles for a customer specified by CUSTOMER_ID.
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc))
+      List(apiTagCustomer))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonGet _ => {
@@ -592,7 +587,7 @@ trait APIMethods200 {
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc)
+      List(apiTagKyc, apiTagCustomer)
     )
 
     // TODO customerNumber should be in the url but not also in the postedData
@@ -646,7 +641,7 @@ trait APIMethods200 {
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc)
+      List(apiTagKyc, apiTagCustomer)
     )
 
     lazy val addKycMedia : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -689,7 +684,7 @@ trait APIMethods200 {
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat,InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc)
+      List(apiTagKyc, apiTagCustomer)
     )
 
     lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -733,7 +728,7 @@ trait APIMethods200 {
       kycStatusJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc)
+      List(apiTagKyc, apiTagCustomer)
     )
 
     lazy val addKycStatus : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -881,7 +876,7 @@ trait APIMethods200 {
       moderatedCoreAccountJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagTransaction))
+      List(apiTagTransaction, apiTagAccount))
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
@@ -968,7 +963,7 @@ trait APIMethods200 {
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
+      List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement)
     )
 
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -993,16 +988,18 @@ trait APIMethods200 {
       "getPermissionForUserForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
-      "Get access for specific user.",
-      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
+      "Get Account access for User.",
+      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |The user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
+      List(apiTagAccount, apiTagView))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
@@ -1120,7 +1117,7 @@ trait APIMethods200 {
       "getTransactionTypes",
       "GET",
       "/banks/BANK_ID/transaction-types",
-      "Get Transaction Types offered by the bank",
+      "Get Transaction Types at Bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
       s"""Get Transaction Types for the bank specified by BANK_ID:
           |
@@ -1163,10 +1160,9 @@ trait APIMethods200 {
     }
 
 
-    import net.liftweb.json.JsonAST._
     import net.liftweb.json.Extraction._
-    import net.liftweb.json.Printer._
-    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
+    import net.liftweb.json.JsonAST._
+    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
 
     resourceDocs += ResourceDoc(
       createTransactionRequest,
@@ -1435,7 +1431,7 @@ trait APIMethods200 {
       userJSONV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagOnboarding, apiTagUser))
+      List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: Nil JsonPost json -> _ => {
@@ -1682,7 +1678,7 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagCustomer, apiTagPerson))
 
 
 
@@ -1751,7 +1747,7 @@ trait APIMethods200 {
       userJSONV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1786,7 +1782,7 @@ trait APIMethods200 {
       usersJSONV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser))
+      List(apiTagUser))
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1840,7 +1836,7 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagPerson, apiTagUser, apiTagCustomer))
+      List(apiTagCustomer, apiTagUser))
 
     // TODO
     // Allow multiple UserCustomerLinks per user (and bank)
@@ -1899,7 +1895,7 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val addEntitlement : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
@@ -1932,10 +1928,10 @@ trait APIMethods200 {
       "getEntitlements",
       "GET",
       "/users/USER_ID/entitlements",
-      "Get Entitlements specified by USER_ID",
-      """
+      "Get Entitlements for User",
+      s"""
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
         |
       """.stripMargin,
@@ -1943,7 +1939,7 @@ trait APIMethods200 {
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
 
     lazy val getEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2025,7 +2021,7 @@ trait APIMethods200 {
       entitlementJSONs,
       List(UserNotLoggedIn, "Logged user is not super admin!", UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement))
 
 
     lazy val getAllEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2206,7 +2202,7 @@ trait APIMethods200 {
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List())
+        List(apiTagApi))
 
     val esm = new elasticsearchMetrics
     lazy val elasticSearchMetrics: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

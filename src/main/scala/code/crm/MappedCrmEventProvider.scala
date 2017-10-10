@@ -68,7 +68,7 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def scheduledDate: Date = mScheduledDate.get
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
-  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).get
+  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).openOrThrowException("Attempted to open an empty Box.")
   override def customerName : String = mCustomerName.get
   override def customerNumber : String = mCustomerNumber.get
 }
