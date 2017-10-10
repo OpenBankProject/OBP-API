@@ -158,6 +158,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   lazy val nonBlockingEndpoints: List[(String, String)] = List(
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getUserByUsername), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUsers), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCustomersForUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.corePrivateAccountsAllBanks), ApiVersion.v3_0_0.toString)

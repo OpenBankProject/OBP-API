@@ -61,12 +61,30 @@ object LiftUsers extends Users {
     ResourceUser.find(By(ResourceUser.userId_, userId))
   }
 
+   def getUserByUserIdFuture(userId : String) : Future[Box[User]] = {
+    Future {
+      getUserByUserId(userId)
+    }
+  }
+
   override def getUserByUserName(userName: String): Box[ResourceUser] = {
     ResourceUser.find(By(ResourceUser.name_, userName))
   }
 
+  override def getUserByUserNameFuture(userName: String): Future[Box[User]] = {
+    Future {
+      getUserByUserName(userName)
+    }
+  }
+
   override def getUserByEmail(email: String): Box[List[ResourceUser]] = {
     Full(ResourceUser.findAll(By(ResourceUser.email, email)))
+  }
+
+  override def getUserByEmailFuture(email: String): Future[Box[List[ResourceUser]]] = {
+    Future {
+      getUserByEmail(email)
+    }
   }
 
   override def getAllUsers(): Box[List[ResourceUser]] = {

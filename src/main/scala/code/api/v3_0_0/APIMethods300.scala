@@ -5,7 +5,7 @@ import java.io
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getUserFromAuthorizationHeaderFuture, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -604,17 +604,21 @@ trait APIMethods300 {
 
     lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
-          }
-            yield {
-              // Format the data as V2.0.0 json
-              val json = JSONFactory200.createUserJSON(user)
-              successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
             }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(userId) map {
+              x => fullBoxOrException(x ?~! UserNotFoundByUsername)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
       }
     }
 
@@ -640,17 +644,21 @@ trait APIMethods300 {
 
     lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
-          }
-            yield {
-              // Format the data as V2.0.0 json
-              val json = JSONFactory200.createUserJSON(user)
-              successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
             }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+              x => fullBoxOrException(x ?~! UserNotFoundByUsername)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
       }
     }
 
