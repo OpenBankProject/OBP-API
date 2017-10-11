@@ -1461,6 +1461,8 @@ trait APIMethods210 {
               Option(MockCreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! CreateConsumerError
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! CreateUserCustomerLinksError
+            _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(customer_user.name)
+            
           } yield {
             val json = JSONFactory210.createCustomerJson(customer)
             val successJson = Extraction.decompose(json)
