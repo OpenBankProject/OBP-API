@@ -47,6 +47,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("view(" + viewId +", "+ bankAccountId + ")")
       sender ! extractResult(mapper.view(viewId, bankAccountId))
 
+    case cc.viewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
+      logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
+      sender ! (mapper.view(viewId, bankAccountId))
+
     case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")
       sender ! extractResult(mapper.createView(bankAccountId, view))

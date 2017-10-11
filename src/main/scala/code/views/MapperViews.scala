@@ -213,6 +213,12 @@ object MapperViews extends Views with MdcLoggable {
     view
   }
 
+  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = {
+    Future {
+      view(viewId, account)
+    }
+  }
+
   def view(viewUID : ViewIdBankIdAccountId) : Box[View] = {
     val view=ViewImpl.find(viewUID)
 

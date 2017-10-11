@@ -5,7 +5,7 @@ import java.io
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getUserFromAuthorizationHeaderFuture, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -39,6 +39,7 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 
@@ -402,19 +403,33 @@ trait APIMethods300 {
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
-        user =>
-          for {
-            //Note: error handling and messages for getTransactionParams are in the sub method
-            params <- getTransactionParams(json)
-            u <- user ?~! UserNotLoggedIn
-            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            // Assume owner view was requested
-            view <- View.fromUrl(ViewId("owner"), bankAccount) ?~! ViewNotFound
-            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
-          } yield {
-            val json = createCoreTransactionsJSON(transactions)
-            successJsonResponse(Extraction.decompose(json))
+        _ =>
+          // Futures - parallel execution *************************************
+          val userFuture = getUserFromAuthorizationHeaderFuture() map {
+            x => fullBoxOrException(x ?~! UserNotLoggedIn)
           }
+          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
+            x => fullBoxOrException(x ?~! BankAccountNotFound)
+          }
+          // ************************************* Futures - parallel execution
+          val res =
+            for {
+              user <- userFuture
+              bankAccount <- bankAccountFuture map { unboxFull(_) }
+              // Assume owner view was requested
+              view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+                //Note: error handling and messages for getTransactionParams are in the sub method
+                params <- getTransactionParams(json)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
+              } yield {
+                createCoreTransactionsJSON(transactions)
+              }
+            }
+          res map { unboxFull(_) }
       }
     }
 
@@ -568,16 +583,17 @@ trait APIMethods300 {
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
-          }
-          yield {
-            // Format the data as V2.0.0 json
-            val json = JSONFactory200.createUserJSONs(users)
-            successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getUserByEmailFuture(email)
+          } yield {
+            JSONFactory300.createUserJSONs (users)
           }
       }
     }
@@ -604,17 +620,21 @@ trait APIMethods300 {
 
     lazy val getUserByUserId: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            user <- tryo{Users.users.vend.getUserByUserId(userId)} ?~! {ErrorMessages.UserNotFoundById}
-          }
-            yield {
-              // Format the data as V2.0.0 json
-              val json = JSONFactory200.createUserJSON(user)
-              successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
             }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(userId) map {
+              x => fullBoxOrException(x ?~! UserNotFoundByUsername)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
       }
     }
 
@@ -640,17 +660,21 @@ trait APIMethods300 {
 
     lazy val getUserByUsername: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            user <- tryo{Users.users.vend.getUserByUserName(username)} ?~! {ErrorMessages.UserNotFoundByUsername}
-          }
-            yield {
-              // Format the data as V2.0.0 json
-              val json = JSONFactory200.createUserJSON(user)
-              successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
             }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+              x => fullBoxOrException(x ?~! UserNotFoundByUsername)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.map(_.userId).getOrElse(""))
+          } yield {
+            JSONFactory300.createUserJSON (user, entitlements)
+          }
       }
     }
 
@@ -1074,7 +1098,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            users
+            JSONFactory300.createUserJSONs (users)
           }
       }
     }

@@ -31,6 +31,7 @@ trait Views {
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def view(viewUID : ViewIdBankIdAccountId) : Box[View]
 
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
@@ -99,6 +100,7 @@ class RemotedataViewsCaseClasses {
     def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
+  case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
