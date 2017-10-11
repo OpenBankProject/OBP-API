@@ -43,7 +43,7 @@ trait Users {
   def getUserByUserNameFuture(userName: String) : Future[Box[User]]
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]
-  def getUserByEmailFuture(email: String) : Future[Box[List[ResourceUser]]]
+  def getUserByEmailFuture(email: String) : Future[List[(ResourceUser, Box[List[Entitlement]])]]
 
   def getAllUsers() : Box[List[ResourceUser]]
 

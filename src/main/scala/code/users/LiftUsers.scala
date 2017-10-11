@@ -81,9 +81,18 @@ object LiftUsers extends Users {
     Full(ResourceUser.findAll(By(ResourceUser.email, email)))
   }
 
-  override def getUserByEmailFuture(email: String): Future[Box[List[ResourceUser]]] = {
+  def getUserByEmailF(email: String): List[(ResourceUser, Box[List[Entitlement]])] = {
+    val users = ResourceUser.findAll(By(ResourceUser.email, email))
+    for {
+      user <- users
+    } yield {
+      (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
+    }
+  }
+
+  override def getUserByEmailFuture(email: String): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     Future {
-      getUserByEmail(email)
+      getUserByEmailF(email)
     }
   }
 

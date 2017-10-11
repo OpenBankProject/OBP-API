@@ -568,16 +568,17 @@ trait APIMethods300 {
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-            users <- tryo{AuthUser.getResourceUsersByEmail(email)} ?~! {ErrorMessages.UserNotFoundByEmail}
-          }
-          yield {
-            // Format the data as V2.0.0 json
-            val json = JSONFactory200.createUserJSONs(users)
-            successJsonResponse(Extraction.decompose(json))
+            user <- getUserFromAuthorizationHeaderFuture() map {
+              x => fullBoxOrException(x ?~! UserNotLoggedIn)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getUserByEmailFuture(email)
+          } yield {
+            JSONFactory300.createUserJSONs (users)
           }
       }
     }

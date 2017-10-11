@@ -50,8 +50,8 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getUserByEmail(email : String) : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getUserByEmail(email))
 
-  def getUserByEmailFuture(email : String) : Future[Box[List[ResourceUser]]] =
-    (actor ? cc.getUserByEmail(email)).mapTo[Box[List[ResourceUser]]]
+  def getUserByEmailFuture(email : String) : Future[List[(ResourceUser, Box[List[Entitlement]])]] =
+    (actor ? cc.getUserByEmailFuture(email)).mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
 
   def getAllUsers() : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getAllUsers())
