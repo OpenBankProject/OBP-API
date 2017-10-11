@@ -37,6 +37,9 @@ object RemotedataViews extends ObpActorInit with Views {
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] =
     extractFutureToBox(actor ? cc.view(viewId, account))
 
+  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] =
+    (actor ? cc.viewFuture(viewId, account)).mapTo[Box[View]]
+
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] =
     extractFutureToBox(actor ? cc.createView(bankAccountId, view))
 

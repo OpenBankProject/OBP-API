@@ -39,6 +39,7 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 
@@ -402,19 +403,33 @@ trait APIMethods300 {
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
-        user =>
-          for {
-            //Note: error handling and messages for getTransactionParams are in the sub method
-            params <- getTransactionParams(json)
-            u <- user ?~! UserNotLoggedIn
-            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            // Assume owner view was requested
-            view <- View.fromUrl(ViewId("owner"), bankAccount) ?~! ViewNotFound
-            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
-          } yield {
-            val json = createCoreTransactionsJSON(transactions)
-            successJsonResponse(Extraction.decompose(json))
+        _ =>
+          // Futures - parallel execution *************************************
+          val userFuture = getUserFromAuthorizationHeaderFuture() map {
+            x => fullBoxOrException(x ?~! UserNotLoggedIn)
           }
+          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
+            x => fullBoxOrException(x ?~! BankAccountNotFound)
+          }
+          // ************************************* Futures - parallel execution
+          val res =
+            for {
+              user <- userFuture
+              bankAccount <- bankAccountFuture map { unboxFull(_) }
+              // Assume owner view was requested
+              view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+                //Note: error handling and messages for getTransactionParams are in the sub method
+                params <- getTransactionParams(json)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
+              } yield {
+                createCoreTransactionsJSON(transactions)
+              }
+            }
+          res map { unboxFull(_) }
       }
     }
 
