@@ -1354,7 +1354,8 @@ trait APIMethods210 {
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
-            counterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
+            counterparty <- Connector.connector.vend.createCounterparty(
+              createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
               thisViewId = viewId.value,

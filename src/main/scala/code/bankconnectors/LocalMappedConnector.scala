@@ -1465,4 +1465,33 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .saveMe()
              } ?~! ErrorMessages.UpdateBankError
     }
+  
+  override def createCounterparty(
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    name: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary: Boolean
+  ): Box[CounterpartyTrait] =
+    Counterparties.counterparties.vend.createCounterparty(
+      createdByUserId = createdByUserId,
+      thisBankId = thisBankId,
+      thisAccountId = thisAccountId,
+      thisViewId = thisViewId,
+      name = name,
+      otherAccountRoutingScheme = otherAccountRoutingScheme,
+      otherAccountRoutingAddress = otherAccountRoutingAddress,
+      otherBankRoutingScheme = otherBankRoutingScheme,
+      otherBankRoutingAddress = otherBankRoutingAddress,
+      otherBranchRoutingScheme = otherBranchRoutingScheme,
+      otherBranchRoutingAddress = otherBranchRoutingAddress,
+      isBeneficiary = isBeneficiary
+    )
 }

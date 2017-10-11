@@ -1174,4 +1174,19 @@ trait Connector extends MdcLoggable{
     Full("Only some connectors need this method !")
   }
   
+  def createCounterparty(
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    name: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary:Boolean
+  ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+  
 }
