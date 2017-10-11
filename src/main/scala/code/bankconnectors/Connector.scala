@@ -1171,7 +1171,7 @@ trait Connector extends MdcLoggable{
     * @return 
     */
   def UpdateUserAccoutViewsByUsername(username: String): Box[Any] = {
-    Full("Only some specific connectors need this method, in process")
+    Full("Only some connectors need this method !")
   }
   
 }
