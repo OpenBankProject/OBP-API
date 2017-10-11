@@ -473,18 +473,33 @@ trait APIMethods300 {
 
     lazy val getTransactionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
-        user =>
-          for {
-            //Note: error handling and messages for getTransactionParams are in the sub method
-            params <- getTransactionParams(json)
-            u <- user ?~! UserNotLoggedIn
-            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, bankAccount) ?~! ViewNotFound
-            transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
-          } yield {
-            val json = createTransactionsJson(transactions)
-            successJsonResponse(Extraction.decompose(json))
+        _ =>
+          // Futures - parallel execution *************************************
+          val userFuture = getUserFromAuthorizationHeaderFuture() map {
+            x => fullBoxOrException(x ?~! UserNotLoggedIn)
           }
+          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
+            x => fullBoxOrException(x ?~! BankAccountNotFound)
+          }
+          // ************************************* Futures - parallel execution
+          val res =
+            for {
+              user <- userFuture
+              bankAccount <- bankAccountFuture map { unboxFull(_) }
+              // Assume owner view was requested
+              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+              //Note: error handling and messages for getTransactionParams are in the sub method
+                params <- getTransactionParams(json)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
+              } yield {
+                createTransactionsJson(transactions)
+              }
+            }
+          res map { unboxFull(_) }
       }
     }
 

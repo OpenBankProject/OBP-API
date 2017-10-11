@@ -164,6 +164,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     (nameOf(Implementations3_0_0.getUsers), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCustomersForUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCoreTransactionsForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getTransactionsForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.corePrivateAccountsAllBanks), ApiVersion.v3_0_0.toString)
   )
   /**
