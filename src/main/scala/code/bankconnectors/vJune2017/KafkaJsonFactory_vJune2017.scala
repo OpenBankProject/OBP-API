@@ -62,6 +62,23 @@ case class OutboundCreateChallengeJune2017(
   phoneNumber: String
 ) extends OutboundCreateChallengeJune2017Topic
 
+
+case class OutboundCounterparty(
+  bankCode: String,
+  branchNumber: String,
+  accountNumber: String,
+  Name: String,
+  description: String,
+  iban: String,
+  englishName: String,
+  englishDescription: String
+)
+case class OutboundCreateCounterparty(
+  authInfo: AuthInfo,
+  accountId: String,
+  counterparty: OutboundCounterparty
+) extends OutboundCreateCounterpartyTopic
+
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -76,6 +93,7 @@ case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
+case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCreateCounterparty)
 
 
 
@@ -154,6 +172,11 @@ case class InternalCreateChallengeJune2017(
   answer : String
 )
 
+case class InternalCreateCounterparty(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  status: String
+)
 
 
 object JsonFactory_vJune2017 {

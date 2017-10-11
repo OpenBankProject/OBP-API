@@ -28,15 +28,17 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages.NotImplemented
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
 import code.kafka.KafkaHelper
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
-import net.liftweb.common._
+import net.liftweb.common.{Box, _}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -622,6 +624,67 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
     res
     
+  }
+  
+  override def createCounterparty(
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    name: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary:Boolean
+  ): Box[CounterpartyTrait] = {
+    val req = OutboundCreateCounterparty(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      accountId = thisAccountId,
+      counterparty = OutboundCounterparty(
+        bankCode ="String",
+        branchNumber="String",
+        accountNumber="String",
+        Name="String",
+        description="String",
+        iban="String",
+        englishName="String",
+        englishDescription="String"
+      )
+    )
+    
+    val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateChallengeJune2017].data)
+    
+    val res = box match {
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x.answer)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    Full(CounterpartyTrait2(InboundCounterparty(
+      errorCode="String",
+      name="String",
+      createdByUserId="String",
+      thisBankId="String",
+      thisAccountId="String",
+      thisViewId="String",
+      counterpartyId="String",
+      otherBankRoutingScheme="String",
+      otherBankRoutingAddress="String",
+      otherAccountRoutingScheme="String",
+      otherAccountRoutingAddress="String",
+      otherBranchRoutingScheme="String",
+      otherBranchRoutingAddress="String",
+      isBeneficiary= true
+    )))
   }
   
   /////////////////////////////////////////////////////////////////////////////
