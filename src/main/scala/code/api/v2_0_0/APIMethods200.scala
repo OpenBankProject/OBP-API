@@ -1859,6 +1859,8 @@ trait APIMethods200 {
             _ <- booleanToBox(customer.bankId == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
+            _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)
+            
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)
