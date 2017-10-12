@@ -2018,22 +2018,24 @@ object SwaggerDefinitionsJSON {
     to = toAccountTransferToAtmJson
   )
   
-  val counterpartyTransferToAccount= CounterpartyTransferToAccount(
-    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
-    transfer_is_scheduled ="if the transfer is scheduled to a future date then 1 otherwise 0",
-    future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
-    bank_code= "Bank code of the target account",
-    branch_number= "Branch number of the target account",
-    account_number ="Account number of the target account",
-    iban = "IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored",
-    other_account_owner ="Target bank type: 0-Leumi; 1-other bank"
+  val toAccountTransferToAccountAccountJson = ToAccountTransferToAccountAccountJson(
+    number = "Account number of the target account",
+    iban ="IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored"
+  )
+  
+  val toAccountTransferToAccountJson= ToAccountTransferToAccountJson(
+    name = "Tom Muller - has to be english if transfer_type = 2",
+    bank_code = "Bank code of the target account",
+    branch_number = "Branch number of the target account",
+    account = toAccountTransferToAccountAccountJson
   )
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
-    description = "Transaction description/purpose (20 symbols)",
-    charge_policy = "SHARED",
-    couterparty = counterpartyTransferToAccount
+    description = "This is a TRANSFER_TO_ACCOUNT Transaction Request",
+    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
+    future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
+    to = toAccountTransferToAccountJson
   )
   
   //The commont error or success format.
