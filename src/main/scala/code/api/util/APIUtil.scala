@@ -1674,9 +1674,10 @@ Versions are groups of endpoints in a file
 
   def unboxFull[T](box: Box[T])(implicit m: Manifest[T]) : T = {
     box match {
-      case Full(value) => value
-      case Empty => // Just forwarding
-        throw new Exception("Empty Box not allowed at function unboxFull")
+      case Full(value) =>
+        value
+      case _ =>
+        throw new Exception("Only Full Box is allowed at function unboxFull")
     }
   }
 
