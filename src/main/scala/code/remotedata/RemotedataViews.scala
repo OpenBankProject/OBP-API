@@ -6,6 +6,7 @@ import code.model.{CreateViewJson, Permission, UpdateViewJSON, _}
 import code.views.{RemotedataViewsCaseClasses, Views}
 import net.liftweb.common.{Box, Full}
 import scala.collection.immutable.List
+import scala.concurrent.Future
 
 
 object RemotedataViews extends ObpActorInit with Views {
@@ -35,6 +36,9 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] =
     extractFutureToBox(actor ? cc.view(viewId, account))
+
+  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] =
+    (actor ? cc.viewFuture(viewId, account)).mapTo[Box[View]]
 
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] =
     extractFutureToBox(actor ? cc.createView(bankAccountId, view))
@@ -81,6 +85,9 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def getNonPublicBankAccounts(user : User) :  List[BankIdAccountId] =
     extractFuture(actor ? cc.getNonPublicBankAccounts(user))
+
+  def getNonPublicBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] =
+    (actor ? cc.getNonPublicBankAccounts(user)).mapTo[List[BankIdAccountId]]
 
   def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] =
     extractFuture(actor ? cc.getNonPublicBankAccounts(user, bankId))

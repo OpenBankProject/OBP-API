@@ -156,16 +156,24 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
+  lazy val newStyleEndpoints: List[(String, String)] = List(
+    (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getUserByUsername), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getUsers), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getCustomersForUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getCoreTransactionsForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.corePrivateAccountsAllBanks), ApiVersion.v3_0_0.toString)
+  )
   /**
     * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
     * @param rd Resource Document which contains all description of an Endpoint
     * @return true if some endpoint can get User from Authorization Header
     */
-  def nonBlockingEndpoint(rd: Option[ResourceDoc]) : Boolean = {
+  def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
-      case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCurrentUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
-        true
-       case Some(e) if e.apiFunction == nameOf(Implementations3_0_0.getCustomersForUser) && e.implementedInApiVersion == (ApiVersion.v3_0_0).toString.replace("v","") =>
+      case Some(e) if newStyleEndpoints.exists(_ == (e.apiFunction, "v" + e.implementedInApiVersion)) =>
         true
       case _ =>
         false
@@ -173,7 +181,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
-    if(nonBlockingEndpoint(rd)) {
+    if(newStyleEndpoints(rd)) {
       fn(Empty)
     } else if (hasAnOAuthHeader) {
       val usr = getUser

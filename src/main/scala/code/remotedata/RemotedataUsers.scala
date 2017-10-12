@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
 import code.users.{RemotedataUsersCaseClasses, Users}
@@ -37,18 +38,27 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getUserByUserId(userId : String) : Box[User] =
     extractFutureToBox(actor ? cc.getUserByUserId(userId))
 
+  def getUserByUserIdFuture(userId : String) : Future[Box[User]] =
+    (actor ? cc.getUserByUserIdFuture(userId)).mapTo[Box[User]]
+
   def getUserByUserName(userName : String) : Box[ResourceUser] =
     extractFutureToBox(actor ? cc.getUserByUserName(userName))
+
+  def getUserByUserNameFuture(userName : String) : Future[Box[User]] =
+    (actor ? cc.getUserByUserNameFuture(userName)).mapTo[Box[User]]
 
   def getUserByEmail(email : String) : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getUserByEmail(email))
 
+  def getUserByEmailFuture(email : String) : Future[List[(ResourceUser, Box[List[Entitlement]])]] =
+    (actor ? cc.getUserByEmailFuture(email)).mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
+
   def getAllUsers() : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getAllUsers())
 
-  def getAllUsersF() : Future[Box[List[ResourceUserCaseClass]]] = {
+  def getAllUsersF() : Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     val res = (actor ? cc.getAllUsersF())
-    res.mapTo[Box[List[ResourceUserCaseClass]]]
+    res.mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] =

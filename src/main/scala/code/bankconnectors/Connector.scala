@@ -18,6 +18,8 @@ import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
+import code.model.dataAccess.ResourceUser
 import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
@@ -1374,4 +1376,17 @@ trait Connector extends MdcLoggable{
     } yield { trt }.toList
     res.headOption
   }
+  
+  /**
+    * This a Helper method, it is only used in some connectors. Not all the connectors need it yet. 
+    * This is in progress.
+    * Here just return some String to make sure the method return sth, and the API level is working well !
+    * 
+    * @param username
+    * @return 
+    */
+  def UpdateUserAccoutViewsByUsername(username: String): Box[Any] = {
+    Full("Only some specific connectors need this method, in process")
+  }
+  
 }
