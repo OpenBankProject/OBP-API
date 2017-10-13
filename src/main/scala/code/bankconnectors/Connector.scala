@@ -10,14 +10,13 @@ import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
-import code.bankconnectors.vJuneYellow2017.KafkaMappedConnector_vJuneYellow2017
+import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
+import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -28,9 +27,8 @@ import code.users.Users
 import code.util.Helper._
 import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.mutable.ArrayBuffer
@@ -73,8 +71,8 @@ object Connector extends SimpleInjector {
       case "kafka" => KafkaMappedConnector
       case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
-      case "kafka_vJuneYellow2017" => KafkaMappedConnector_vJuneYellow2017
       case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
+      case "kafka_vJuneYellow2017" => code.bankconnectors.vJuneYellow2017.KafkaMappedConnector_vJuneYellow2017
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }
