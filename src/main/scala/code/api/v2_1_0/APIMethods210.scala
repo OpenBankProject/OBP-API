@@ -6,7 +6,7 @@ import java.util.{Date, Locale}
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.TransactionDisabled
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -648,7 +648,12 @@ trait APIMethods210 {
               challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
 
               // All Good, proceed with the Transaction creation...
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
+              transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+                case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
+                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType)
+                case _ =>
+                  Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
+              } 
             } yield {
               // Format explicitly as v2.0.0 json
               val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
