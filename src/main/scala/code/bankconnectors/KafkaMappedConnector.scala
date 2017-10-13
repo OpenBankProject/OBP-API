@@ -256,7 +256,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(chargeValue)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String] = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String) : Box[String] = {
     // Create argument list
     val req = Map(
       "north" -> "createChallenge",
