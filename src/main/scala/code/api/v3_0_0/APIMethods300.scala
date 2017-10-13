@@ -121,15 +121,25 @@ trait APIMethods300 {
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
-        user =>
-          for {
-            u <- user ?~ UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
-          } yield {
-            val viewsJSON = createViewsJSON(views)
-            successJsonResponse(Extraction.decompose(viewsJSON))
+        _ =>
+          // Futures - parallel execution *************************************
+          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
+          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
+            x => fullBoxOrException(x ?~! BankAccountNotFound)
           }
+          // ************************************* Futures - parallel execution
+          val res =
+            for {
+              u <- userFuture map { unboxFull(_) }
+              account <- bankAccountFuture map { unboxFull(_) }
+            } yield {
+              for {
+                views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+              } yield {
+                createViewsJSON(views)
+              }
+            }
+          res map { unboxFull(_) }
       }
     }
 
