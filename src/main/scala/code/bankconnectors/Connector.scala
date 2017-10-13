@@ -10,13 +10,12 @@ import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors.vJune2017.{InboundAccountJune2017, KafkaMappedConnector_vJune2017}
+import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
 import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
@@ -29,7 +28,7 @@ import code.util.Helper._
 import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.mutable.ArrayBuffer
@@ -192,7 +191,7 @@ trait Connector extends MdcLoggable{
     )
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = Failure(NotImplemented + currentMethodName)
+  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
 
@@ -211,7 +210,7 @@ trait Connector extends MdcLoggable{
 
   //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
   //when it is stable, will call this method.
-  def getBankAccounts(username: String) : Box[List[InboundAccountJune2017]] = Failure(NotImplemented + currentMethodName)
+  def getBankAccounts(username: String) : Box[List[InboundAccountCommon]] = Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is for get User from external, eg kafka/obpjvm...
@@ -408,6 +407,7 @@ trait Connector extends MdcLoggable{
 
 
   protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
+
 
 
   /*
@@ -656,7 +656,7 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
   
         val challengeId = UUID.randomUUID().toString
         val salt = BCrypt.gensalt()
@@ -702,26 +702,35 @@ trait Connector extends MdcLoggable{
                                                 details: String,
                                                 status: String,
                                                 charge: TransactionRequestCharge,
-                                                chargePolicy: String): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName)
+                                                chargePolicy: String): Box[TransactionRequest] =
+    LocalMappedConnector.createTransactionRequestImpl210(
+      transactionRequestId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      fromAccount: BankAccount, toAccount: BankAccount,
+      toCounterparty: CounterpartyTrait,
+      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+      details: String,
+      status: String,
+      charge: TransactionRequestCharge,
+      chargePolicy: String
+    )
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
-  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
 
   def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
-  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
 
-  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = Failure(NotImplemented + currentMethodName)
+  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
   
-  final def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String):Box[Boolean]  = Failure(NotImplemented + currentMethodName)
-
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
     for {
@@ -781,11 +790,11 @@ trait Connector extends MdcLoggable{
 
   protected def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Failure(NotImplemented + currentMethodName)
 
-  protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = Failure(NotImplemented + currentMethodName)
+  protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
 
-  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = Failure(NotImplemented + currentMethodName)
+  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
 
-  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = Failure(NotImplemented + currentMethodName)
+  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
@@ -920,6 +929,7 @@ trait Connector extends MdcLoggable{
     }
   }
 
+ 
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
@@ -1020,7 +1030,7 @@ trait Connector extends MdcLoggable{
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
         }
-        case Empty => {
+        case _ => {
 //          This shouldn't happen as AuthUser should generate the ResourceUsers when saved
           logger.error(s"resource user(s) $owner not found.")
         }
@@ -1162,6 +1172,16 @@ trait Connector extends MdcLoggable{
     res.headOption
   }
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  //////// Following Methods are only exsiting in some connectors, they are in process
   /**
     * This a Helper method, it is only used in some connectors. Not all the connectors need it yet. 
     * This is in progress.
@@ -1171,7 +1191,36 @@ trait Connector extends MdcLoggable{
     * @return 
     */
   def UpdateUserAccoutViewsByUsername(username: String): Box[Any] = {
-    Full("Only some specific connectors need this method, in process")
+    Full(NotImplemented + currentMethodName+".Only some connectors need this method !")
   }
+  
+  def createTransactionAfterChallengev300(
+    initiator: User,
+    fromAccount: BankAccount,
+    transReqId: TransactionRequestId,
+    transactionRequestType: TransactionRequestType
+  ): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+  
+  def makePaymentv300(
+    initiator: User,
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    toCounterparty: CounterpartyTrait,
+    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+    transactionRequestType: TransactionRequestType,
+    chargePolicy: String
+  ): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+  
+  def createTransactionRequestv300(
+    initiator: User,
+    viewId: ViewId,
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    toCounterparty: CounterpartyTrait,
+    transactionRequestType: TransactionRequestType,
+    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+    detailsPlain: String,
+    chargePolicy: String
+  ): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
   
 }

@@ -593,7 +593,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     accountId: AccountId,
     userId: String,
     transactionRequestType: TransactionRequestType,
-    transactionRequestId: String
+    transactionRequestId: String,
+    phoneNumber: String
   ): Box[String] = {
     val req = OutboundCreateChallengeJune2017(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
