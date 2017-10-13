@@ -1162,34 +1162,18 @@ trait Connector extends MdcLoggable{
     * get transaction request type charge specified by: bankId, accountId, viewId, transactionRequestType. 
     */
   def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Failure(NotImplemented + currentMethodName)
-
-  /**
-    * get transaction request type charges
-    */
-  def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    val res = for {
-      trt <- transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _))
-    } yield { trt }.toList
-    res.headOption
-  }
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  //////// Following Methods are only exsiting in some connectors, they are in process
+  //////// Following Methods are only existing in some connectors, they are in process,
+  /// Please do not move the following methods, for Merge issues.
+  //  If you modify these methods, if will make some forks automatically merging broken .
   /**
     * This a Helper method, it is only used in some connectors. Not all the connectors need it yet. 
     * This is in progress.
     * Here just return some String to make sure the method return sth, and the API level is working well !
-    * 
+    *
     * @param username
-    * @return 
+    * @return
     */
   def UpdateUserAccoutViewsByUsername(username: String): Box[Any] = {
     Full(NotImplemented + currentMethodName+".Only some connectors need this method !")
@@ -1223,5 +1207,20 @@ trait Connector extends MdcLoggable{
     detailsPlain: String,
     chargePolicy: String
   ): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
+  
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+
+  /**
+    * get transaction request type charges
+    */
+  def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
+    val res = for {
+      trt <- transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _))
+    } yield { trt }.toList
+    res.headOption
+  }
   
 }
