@@ -4,11 +4,12 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
 import code.kafka.Topics._
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, BankAccount, BankId}
 import net.liftweb.mapper.By
@@ -62,6 +63,30 @@ case class OutboundCreateChallengeJune2017(
   phoneNumber: String
 ) extends OutboundCreateChallengeJune2017Topic
 
+
+case class OutboundCounterparty(
+  name: String,
+  description: String,
+  createdByUserId: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary:Boolean,
+  bespoke: List[PostCounterpartyBespoke]
+)
+case class OutboundCreateCounterparty(
+  authInfo: AuthInfo,
+  counterparty: OutboundCounterparty
+) extends OutboundCreateCounterpartyTopic
+
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -76,6 +101,7 @@ case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
+case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCreateCounterparty)
 
 
 
@@ -154,6 +180,27 @@ case class InternalCreateChallengeJune2017(
   answer : String
 )
 
+case class InternalCreateCounterparty(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  createdByUserId: String,
+  name: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  counterpartyId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary: Boolean,
+  description: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  bespoke: List[PostCounterpartyBespoke]
+) extends CounterpartyTrait
 
 
 object JsonFactory_vJune2017 {
