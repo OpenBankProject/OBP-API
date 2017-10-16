@@ -628,6 +628,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
   }
   
+   private def currentMethodName() : String = Thread.currentThread.getStackTrace()(2).getMethodName
+  
   override def createCounterparty(
     name: String,
     description: String,
@@ -648,24 +650,33 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   ): Box[CounterpartyTrait] = {
     val req = OutboundCreateCounterparty(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
-      accountId = thisAccountId,
       counterparty = OutboundCounterparty(
-        bankCode ="String",
-        branchNumber="String",
-        accountNumber="String",
-        Name="String",
-        description="String",
-        iban="String",
-        englishName="String",
-        englishDescription="String"
+        name: String,
+        description: String,
+        createdByUserId: String,
+        thisBankId: String,
+        thisAccountId: String,
+        thisViewId: String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        isBeneficiary:Boolean,
+        bespoke: List[PostCounterpartyBespoke]
       )
     )
+  
+    logger.info(s"Kafka ${currentMethodName} request says:  is: $req")
+    val box: Box[InternalCreateCounterparty] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateCounterparty].data)
+    logger.info(s"Kafka ${currentMethodName} response says: is: $box")
     
-    val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateChallengeJune2017].data)
-    
-    val res = box match {
+    val res: Box[CounterpartyTrait] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x.answer)
+        Full(x)
       case Full(x) if (x.errorCode!="") =>
         Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -675,22 +686,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
-    Full(CounterpartyTrait2(InboundCounterparty(
-      errorCode="String",
-      name="String",
-      createdByUserId="String",
-      thisBankId="String",
-      thisAccountId="String",
-      thisViewId="String",
-      counterpartyId="String",
-      otherBankRoutingScheme="String",
-      otherBankRoutingAddress="String",
-      otherAccountRoutingScheme="String",
-      otherAccountRoutingAddress="String",
-      otherBranchRoutingScheme="String",
-      otherBranchRoutingAddress="String",
-      isBeneficiary= true
-    )))
+    res
   }
   
   /////////////////////////////////////////////////////////////////////////////
