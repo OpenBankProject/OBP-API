@@ -1175,18 +1175,22 @@ trait Connector extends MdcLoggable{
   }
   
   def createCounterparty(
+    name: String,
+    description: String,
     createdByUserId: String,
     thisBankId: String,
     thisAccountId: String,
     thisViewId: String,
-    name: String,
     otherAccountRoutingScheme: String,
     otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
     otherBankRoutingScheme: String,
     otherBankRoutingAddress: String,
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
-    isBeneficiary:Boolean
+    isBeneficiary:Boolean,
+    bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
 }

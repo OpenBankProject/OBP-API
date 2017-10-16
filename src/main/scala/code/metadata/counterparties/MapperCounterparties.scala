@@ -2,6 +2,7 @@ package code.metadata.counterparties
 
 import java.util.{Date, UUID}
 
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users

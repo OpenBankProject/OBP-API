@@ -211,15 +211,25 @@ case class ConsumerPostJSON(app_name: String,
 
 case class ConsumersJson(list: List[ConsumerJSON])
 
-case class PostCounterpartyJSON(name: String,
-                                other_account_routing_scheme: String,
-                                other_account_routing_address: String,
-                                other_bank_routing_scheme: String,
-                                other_bank_routing_address: String,
-                                other_branch_routing_scheme: String,
-                                other_branch_routing_address: String,
-                                is_beneficiary: Boolean
-                               )
+case class PostCounterpartyBespoke(
+  key: String,
+  value: String
+)
+
+case class PostCounterpartyJSON(
+  name: String,
+  description: String,
+  other_account_routing_scheme: String,
+  other_account_routing_address: String,
+  other_account_secondary_routing_scheme: String,
+  other_account_secondary_routing_address: String,
+  other_bank_routing_scheme: String,
+  other_bank_routing_address: String,
+  other_branch_routing_scheme: String,
+  other_branch_routing_address: String,
+  is_beneficiary: Boolean,
+  bespoke: List[PostCounterpartyBespoke]
+)
 
 
 case class CounterpartiesJSON(

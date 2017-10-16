@@ -1618,16 +1618,31 @@ object SwaggerDefinitionsJSON {
   )
 
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
-
+  
+  
+  val postCounterpartyBespoke1 = PostCounterpartyBespoke(
+    key = "englishName",
+    value = "english Name"
+  )
+  val postCounterpartyBespoke2 = PostCounterpartyBespoke(
+    key = "englishDescription",
+    value = "englishDescription"
+  )
+  
+  
   val postCounterpartyJSON = PostCounterpartyJSON(
-    name = "GOOD",
+    name = "CounterpartyName",
+    description ="My landlord",
     other_account_routing_scheme = "IBAN",
     other_account_routing_address = "7987987-2348987-234234",
-    other_bank_routing_scheme = "BIC",
-    other_bank_routing_address = "123456",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address = "Berlin",
-    is_beneficiary = true
+    other_account_secondary_routing_scheme = "accountNumber",
+    other_account_secondary_routing_address = "BIC201483",
+    other_bank_routing_scheme = "bankCode",
+    other_bank_routing_address = "10",
+    other_branch_routing_scheme = "branchNumber",
+    other_branch_routing_address = "10010", 
+    is_beneficiary = true,
+    bespoke =  List(postCounterpartyBespoke1,postCounterpartyBespoke2)
   )
 
   val metricsJson = MetricsJson(

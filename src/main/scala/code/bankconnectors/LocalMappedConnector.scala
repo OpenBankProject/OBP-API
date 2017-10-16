@@ -4,7 +4,7 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.InboundAdapterInfo
@@ -1467,18 +1467,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   
   override def createCounterparty(
+    name: String,
+    description: String,
     createdByUserId: String,
     thisBankId: String,
     thisAccountId: String,
     thisViewId: String,
-    name: String,
     otherAccountRoutingScheme: String,
     otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
     otherBankRoutingScheme: String,
     otherBankRoutingAddress: String,
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
-    isBeneficiary: Boolean
+    isBeneficiary:Boolean,
+    bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] =
     Counterparties.counterparties.vend.createCounterparty(
       createdByUserId = createdByUserId,

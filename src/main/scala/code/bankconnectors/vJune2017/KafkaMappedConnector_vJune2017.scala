@@ -29,6 +29,7 @@ import java.util.{Date, Locale}
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.NotImplemented
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
@@ -627,18 +628,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   override def createCounterparty(
+    name: String,
+    description: String,
     createdByUserId: String,
     thisBankId: String,
     thisAccountId: String,
     thisViewId: String,
-    name: String,
     otherAccountRoutingScheme: String,
     otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
     otherBankRoutingScheme: String,
     otherBankRoutingAddress: String,
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
-    isBeneficiary:Boolean
+    isBeneficiary:Boolean,
+    bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] = {
     val req = OutboundCreateCounterparty(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),

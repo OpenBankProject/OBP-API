@@ -1346,7 +1346,7 @@ trait APIMethods210 {
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             bank <- Bank(bankId) ?~! BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {AccountNotFound}
-            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat}
+            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! {"Current user does not have access to the view " + viewId}
@@ -1355,18 +1355,22 @@ trait APIMethods210 {
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
             counterparty <- Connector.connector.vend.createCounterparty(
+              name=postJson.name,
+              description=postJson.description,
               createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
               thisViewId = viewId.value,
-              name=postJson.name,
               otherAccountRoutingScheme=postJson.other_account_routing_scheme,
               otherAccountRoutingAddress=postJson.other_account_routing_address,
+              otherAccountSecondaryRoutingScheme=postJson.other_account_secondary_routing_scheme,
+              otherAccountSecondaryRoutingAddress=postJson.other_account_secondary_routing_address,
               otherBankRoutingScheme=postJson.other_bank_routing_scheme,
               otherBankRoutingAddress=postJson.other_bank_routing_address,
               otherBranchRoutingScheme=postJson.other_branch_routing_scheme,
               otherBranchRoutingAddress=postJson.other_branch_routing_address,
-              isBeneficiary=postJson.is_beneficiary
+              isBeneficiary=postJson.is_beneficiary,
+              bespoke=postJson.bespoke
             )
 //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
 //            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~! "Cannot find the metadata"
