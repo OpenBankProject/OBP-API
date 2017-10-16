@@ -181,6 +181,7 @@ case class InternalCreateChallengeJune2017(
 )
 
 case class InternalCreateCounterparty(
+  status: String,
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
   createdByUserId: String,
