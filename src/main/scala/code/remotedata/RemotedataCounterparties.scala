@@ -1,11 +1,14 @@
 package code.remotedata
 
 import java.util.Date
+
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import net.liftweb.common.Box
+
 import scala.collection.immutable.List
 
 
@@ -42,7 +45,11 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherBankRoutingAddress: String,
                                   otherBranchRoutingScheme: String,
                                   otherBranchRoutingAddress: String,
-                                  isBeneficiary: Boolean): Box[CounterpartyTrait] =
+                                  isBeneficiary: Boolean,
+                                  otherAccountSecondaryRoutingScheme: String,
+                                  otherAccountSecondaryRoutingAddress: String,
+                                  description: String,
+                                  bespoke: List[PostCounterpartyBespoke]): Box[CounterpartyTrait] =
     extractFutureToBox(actor ? cc.createCounterparty( createdByUserId, thisBankId,
                                                       thisAccountId, thisViewId, name,
                                                       otherAccountRoutingScheme,
@@ -51,7 +58,11 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                                       otherBankRoutingAddress,
                                                       otherBranchRoutingScheme,
                                                       otherBranchRoutingAddress,
-                                                      isBeneficiary))
+                                                      isBeneficiary,
+                                                      otherAccountSecondaryRoutingScheme,
+                                                      otherAccountSecondaryRoutingAddress,
+                                                      description,
+                                                      bespoke))
 
   override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean =
     extractFuture(actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))

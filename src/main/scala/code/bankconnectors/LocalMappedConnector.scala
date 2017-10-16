@@ -1496,6 +1496,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       otherBankRoutingAddress = otherBankRoutingAddress,
       otherBranchRoutingScheme = otherBranchRoutingScheme,
       otherBranchRoutingAddress = otherBranchRoutingAddress,
-      isBeneficiary = isBeneficiary
+      isBeneficiary = isBeneficiary,
+      otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
+      otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
+      description = description,
+      bespoke = bespoke
     )
 }

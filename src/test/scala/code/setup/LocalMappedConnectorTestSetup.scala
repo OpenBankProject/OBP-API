@@ -4,6 +4,7 @@ import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
@@ -46,7 +47,11 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       otherBankRoutingAddress = bankId,
       otherBranchRoutingScheme ="OBP",
       otherBranchRoutingAddress ="Berlin",
-      isBeneficiary = isBeneficiary
+      isBeneficiary = isBeneficiary,
+      otherAccountSecondaryRoutingScheme ="String",
+      otherAccountSecondaryRoutingAddress ="String",
+      description = "String",
+      bespoke = Nil
     ).openOrThrowException("Attempted to open an empty Box.")
   }
 

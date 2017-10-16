@@ -200,7 +200,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.addCardForBank ::
                           Implementations2_1_0.getUsers ::
                           Implementations2_1_0.createTransactionType ::
-                          Implementations2_1_0.createCounterparty ::
                           Implementations2_1_0.getAtm ::
                           Implementations2_1_0.getBranch ::
                           Implementations2_1_0.updateBranch ::

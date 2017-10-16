@@ -33,7 +33,7 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
@@ -1462,6 +1462,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def otherBranchRoutingScheme: String = counterparty.other_branch_routing_scheme
     def otherBranchRoutingAddress: String = counterparty.other_branch_routing_address
     def isBeneficiary : Boolean = counterparty.is_beneficiary
+    def description: String = ""
+    def otherAccountSecondaryRoutingScheme: String = ""
+    def otherAccountSecondaryRoutingAddress: String = ""
+    def bespoke: List[PostCounterpartyBespoke] = Nil
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{
