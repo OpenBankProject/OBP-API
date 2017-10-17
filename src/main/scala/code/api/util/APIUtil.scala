@@ -155,6 +155,7 @@ import code.api.util.APIUtil._
 
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+  val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
 
 
 
