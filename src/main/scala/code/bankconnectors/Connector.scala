@@ -759,9 +759,6 @@ trait Connector extends MdcLoggable{
   def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
-        fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
-          s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-        isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
         transactionRequests <- getTransactionRequestsImpl210(fromAccount)
       } yield transactionRequests
 

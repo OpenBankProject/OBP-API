@@ -698,6 +698,7 @@ trait APIMethods210 {
         BankNotFound,
         AccountNotFound,
         UserHasMissingRoles,
+        UserNoOwnerView,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
@@ -712,6 +713,7 @@ trait APIMethods210 {
               fromBank <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
+              isOwner <- booleanToBox(u.ownerAccess(fromAccount), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {
