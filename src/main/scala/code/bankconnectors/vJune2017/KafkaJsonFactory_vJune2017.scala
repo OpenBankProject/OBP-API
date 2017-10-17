@@ -27,30 +27,6 @@ case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustom
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
-case class CreateCBSAuthToken(authInfo: AuthInfo) extends TopicTrait
-case class CreateTransaction(
-  authInfo: AuthInfo,
-  
-  // fromAccount
-  fromAccountBankId : String,
-  fromAccountId : String,
-  
-  // transaction details
-  transactionRequestType: String,
-  transactionChargePolicy: String,
-  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-  
-  // toAccount or toCounterparty
-  toCounterpartyId: String,
-  toCounterpartyName: String,
-  toCounterpartyCurrency: String,
-  toCounterpartyRoutingAddress: String,
-  toCounterpartyRoutingScheme: String,
-  toCounterpartyBankRoutingAddress: String,
-  toCounterpartyBankRoutingScheme: String
-
-) extends TopicTrait
-
 case class OutboundCreateChallengeJune2017(
   authInfo: AuthInfo,
   bankId: String,
