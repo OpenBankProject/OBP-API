@@ -732,6 +732,73 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     res
   }
   
+  messageDocs += MessageDoc(
+    process = "obp.create.createCounterparty",
+    messageFormat = messageFormat,
+    description = "createCounterparty from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetTransactionRequests210(
+        authInfoExample,
+        OutboundTransactionRequests(
+          "accountId: String",
+          "accountType: String",
+          "currency: String",
+          "iban: String",
+          "number: String",
+          "bankId: BankId",
+          "branchId: String",
+          "accountRoutingScheme: String",
+          "accountRoutingAddress: String"
+        )
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetTransactionRequests210(
+        authInfoExample,
+        InternalGetTransactionRequests(
+          errorCodeExample,
+          inboundStatusMessagesExample,
+          Nil
+        )
+      )
+    )
+  )
+  
+  override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val req = OutboundGetTransactionRequests210(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      counterparty = OutboundTransactionRequests(
+        accountId = fromAccount.accountId.value,
+        accountType = fromAccount.accountType,
+        currency = fromAccount.currency,
+        iban = fromAccount.iban.getOrElse(""),
+        number = fromAccount.number,
+        bankId = fromAccount.bankId.value,
+        branchId = fromAccount.bankId.value,
+        accountRoutingScheme = fromAccount.accountRoutingScheme,
+        accountRoutingAddress= fromAccount.accountRoutingAddress
+      )
+    )
+  
+    logger.debug(s"Kafka createCounterparty Req says: is: $req")
+    val box: Box[InternalGetTransactionRequests] = processToBox[OutboundGetTransactionRequests210](req).map(_.extract[InboundGetTransactionRequests210].data)
+    logger.debug(s"Kafka createCounterparty Res says: is: $box")
+  
+    val res: Box[List[TransactionRequest]] = box match {
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x.transactionRequests)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
+  
   
   
   /////////////////////////////////////////////////////////////////////////////
