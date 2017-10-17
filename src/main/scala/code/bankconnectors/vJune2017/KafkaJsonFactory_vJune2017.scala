@@ -12,6 +12,7 @@ import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, BankAccount, BankId}
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -38,28 +39,14 @@ case class OutboundCreateChallengeJune2017(
   phoneNumber: String
 ) extends TopicTrait
 
-
-case class OutboundCounterparty(
-  name: String,
-  description: String,
-  createdByUserId: String,
-  thisBankId: String,
-  thisAccountId: String,
-  thisViewId: String,
-  otherAccountRoutingScheme: String,
-  otherAccountRoutingAddress: String,
-  otherAccountSecondaryRoutingScheme: String,
-  otherAccountSecondaryRoutingAddress: String,
-  otherBankRoutingScheme: String,
-  otherBankRoutingAddress: String,
-  otherBranchRoutingScheme: String,
-  otherBranchRoutingAddress: String,
-  isBeneficiary:Boolean,
-  bespoke: List[PostCounterpartyBespoke]
-)
 case class OutboundCreateCounterparty(
   authInfo: AuthInfo,
   counterparty: OutboundCounterparty
+) extends TopicTrait
+
+case class OutboundGetTransactionRequests210(
+  authInfo: AuthInfo,
+  counterparty: OutboundTransactionRequests
 ) extends TopicTrait
 
 /**
@@ -77,6 +64,7 @@ case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransac
 case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCreateCounterparty)
+case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 
 
 
@@ -154,6 +142,44 @@ case class InternalCreateChallengeJune2017(
   backendMessages: List[InboundStatusMessage],
   answer : String
 )
+
+case class InternalGetTransactionRequests(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  transactionRequests:List[TransactionRequest]
+)
+
+case class OutboundCounterparty(
+  name: String,
+  description: String,
+  createdByUserId: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary:Boolean,
+  bespoke: List[PostCounterpartyBespoke]
+)
+
+case class OutboundTransactionRequests(
+  accountId: String,
+  accountType: String,
+  currency: String,
+  iban: String,
+  number: String,
+  bankId: String,
+  branchId: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String
+)
+  
 
 case class InternalCreateCounterparty(
   status: String,
