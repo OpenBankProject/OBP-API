@@ -14,7 +14,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.vMar2017.InboundAdapterInfo
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
@@ -716,7 +716,7 @@ trait APIMethods300 {
         user =>
           for {
             _ <- Bank(bankId) ?~! BankNotFound
-            ai: InboundAdapterInfo <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
+            ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
           yield {
             successJsonResponseFromCaseClass(ai)

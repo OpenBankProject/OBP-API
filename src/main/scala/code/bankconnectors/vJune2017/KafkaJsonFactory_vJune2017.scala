@@ -19,16 +19,15 @@ import net.liftweb.util.Helpers.today
   * case classes used to define topics, these are outbound kafka messages
   */
 
-case class GetAdapterInfo(date: String) extends GetAdapterInfoTopic
-case class GetBanks(authInfo: AuthInfo) extends GetBanksTopic
-case class GetBank(authInfo: AuthInfo, bankId: String) extends GetBankTopic
-case class GetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends GetUserByUsernamePasswordTopic
-case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends GetAccountsTopic
-case class GetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends GetAccountbyAccountIDTopic
-case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, accountNumber: String)extends GetAccountbyAccountNumberTopic
-case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends GetTransactionsTopic
-case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends GetTransactionTopic
-case class CreateCBSAuthToken(authInfo: AuthInfo) extends CreateCBSAuthTokenTopic
+case class OutboundGetAdapterInfo(date: String) extends TopicTrait
+case class OutboundGetBanks(authInfo: AuthInfo) extends TopicTrait
+case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrait
+case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
+case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends TopicTrait
+case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
+case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
+case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
+case class CreateCBSAuthToken(authInfo: AuthInfo) extends TopicTrait
 case class CreateTransaction(
   authInfo: AuthInfo,
   
@@ -50,7 +49,7 @@ case class CreateTransaction(
   toCounterpartyBankRoutingAddress: String,
   toCounterpartyBankRoutingScheme: String
 
-) extends CreateTransactionTopic
+) extends TopicTrait
 
 case class OutboundCreateChallengeJune2017(
   authInfo: AuthInfo,
@@ -61,7 +60,7 @@ case class OutboundCreateChallengeJune2017(
   transactionRequestType: String,
   transactionRequestId: String,
   phoneNumber: String
-) extends OutboundCreateChallengeJune2017Topic
+) extends TopicTrait
 
 
 case class OutboundCounterparty(
@@ -85,21 +84,21 @@ case class OutboundCounterparty(
 case class OutboundCreateCounterparty(
   authInfo: AuthInfo,
   counterparty: OutboundCounterparty
-) extends OutboundCreateCounterpartyTopic
+) extends TopicTrait
 
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
 
 //AdapterInfo has no AuthInfo, because it just get data from Adapter, no need for AuthInfo
-case class AdapterInfo(data: InboundAdapterInfo)
-case class UserWrapper(authInfo: AuthInfo, data: InboundValidatedUser)
-case class Banks(authInfo: AuthInfo, data: List[InboundBank])
-case class BankWrapper(authInfo: AuthInfo, data: InboundBank)
-case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
-case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
-case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
-case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
+case class InboundAdapterInfo(data: InboundAdapterInfoInternal)
+case class InboundGetUserByUsernamePassword(authInfo: AuthInfo, data: InboundValidatedUser)
+case class InboundGetBanks(authInfo: AuthInfo, data: List[InboundBank])
+case class InboundGetBank(authInfo: AuthInfo, data: InboundBank)
+case class InboundGetAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
+case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccountJune2017)
+case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
+case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCreateCounterparty)
 
