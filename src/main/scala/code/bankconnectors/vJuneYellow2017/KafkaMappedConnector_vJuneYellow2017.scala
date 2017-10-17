@@ -57,7 +57,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
     messageFormat = messageFormat,
     description = "saveTransaction from kafka",
     exampleOutboundMessage = decompose(
-      CreateTransaction(
+      OutboundCreateTransaction(
         AuthInfo("userId","usename","cbsToken"),
         // fromAccount
         fromAccountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -100,7 +100,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
     
     val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     
-    val req = CreateTransaction(
+    val req = OutboundCreateTransaction(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
       
       // fromAccount
@@ -123,7 +123,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
     )
     
     // Since result is single account, we need only first list entry
-    val box= processToBox[CreateTransaction](req).map(_.extract[InboundCreateTransactionId].data)
+    val box= processToBox[OutboundCreateTransaction](req).map(_.extract[InboundCreateTransactionId].data)
     
     val res = box match {
       case Full(r) if (r.errorCode=="") =>
