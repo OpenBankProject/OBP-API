@@ -202,8 +202,8 @@ object Topics {
     * Request : North is producer, South is the consumer. North --> South
     * Response: South is producer, North is the consumer. South --> North
     */
-  private val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
-  private val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
+  private val requestTopic = Props.get("kafka.request_topic").openOr("Request")
+  private val responseTopic = Props.get("kafka.response_topic").openOr("Response")
   
   /**
     * set in props, we have two topics: Request and Response
