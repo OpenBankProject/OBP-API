@@ -24,8 +24,8 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
 
   implicit val formats = DefaultFormats
 
-  val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
-  val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
+  val requestTopic = Props.get("kafka.request_topic").openOr("Request")
+  val responseTopic = Props.get("kafka.response_topic").openOr("Response")
 
   val producerProps = new Properties()
   producerProps.put("bootstrap.servers", Props.get("kafka.bootstrap_hosts")openOr("localhost:9092"))
