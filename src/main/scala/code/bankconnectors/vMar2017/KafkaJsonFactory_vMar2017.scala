@@ -319,7 +319,7 @@ case class InboundBank(
   url: String
 )extends InboundMessageBase
 
-case class InboundAdapterInfo(
+case class InboundAdapterInfoInternal(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
   name: String,

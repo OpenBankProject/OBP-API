@@ -104,7 +104,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
-  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
 
 
   // Each Message Doc has a process, description, example outbound and inbound messages.
