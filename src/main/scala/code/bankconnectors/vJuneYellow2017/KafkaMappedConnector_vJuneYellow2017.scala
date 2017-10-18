@@ -307,7 +307,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
           challengeAnswer <- createChallenge(fromAccount.bankId,
             fromAccount.accountId, initiator.userId,
             transactionRequestType: TransactionRequestType,
-            transactionRequest.id.value, ""
+            transactionRequest.id.value
           ) ?~! "createTransactionRequestv300.createChallenge exception !"
           
           challengeId = UUID.randomUUID().toString
