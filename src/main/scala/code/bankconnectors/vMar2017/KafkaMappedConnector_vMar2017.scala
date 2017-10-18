@@ -431,14 +431,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  override def createChallenge(
-    bankId: BankId,
-    accountId: AccountId,
-    userId: String,
-    transactionRequestType: TransactionRequestType,
-    transactionRequestId: String,
-    phoneNumber: String
-  ): Box[String] = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
     // Create argument list
     val req = OutboundChallengeBase(
       messageFormat = messageFormat,

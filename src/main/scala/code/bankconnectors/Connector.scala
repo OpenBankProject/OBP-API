@@ -191,7 +191,7 @@ trait Connector extends MdcLoggable{
     )
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, phoneNumber: String): Box[String] = Failure(NotImplemented + currentMethodName)
+  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
 
@@ -656,7 +656,7 @@ trait Connector extends MdcLoggable{
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value,"" ).openOrThrowException("Exception: Couldn't create create challenge id")
+        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
   
         val challengeId = UUID.randomUUID().toString
         val salt = BCrypt.gensalt()
