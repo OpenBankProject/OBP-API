@@ -627,7 +627,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   messageDocs += MessageDoc(
-    process = "obp.create.createCounterparty",
+    process = "obp.create.Counterparty",
     messageFormat = messageFormat,
     description = "createCounterparty from kafka ",
     exampleOutboundMessage = decompose(
@@ -706,7 +706,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   
     logger.debug(s"Kafka createCounterparty Req says: is: $req")
-    val box: Box[InternalCreateCounterparty] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateCounterparty].data)
+    val box: Box[InternalCounterparty] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateCounterparty].data)
     logger.debug(s"Kafka createCounterparty Res says: is: $box")
     
     val res: Box[CounterpartyTrait] = box match {
@@ -725,9 +725,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   messageDocs += MessageDoc(
-    process = "obp.create.createCounterparty",
+    process = "obp.get.transactionRequests210",
     messageFormat = messageFormat,
-    description = "createCounterparty from kafka ",
+    description = "getTransactionRequests210 from kafka ",
     exampleOutboundMessage = decompose(
       OutboundGetTransactionRequests210(
         authInfoExample,
@@ -781,6 +781,67 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Full(x.transactionRequests)
       case Full(x) if (x.errorCode!="") =>
         Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.counterparties",
+    messageFormat = messageFormat,
+    description = "getCounterparties from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetTransactionRequests210(
+        authInfoExample,
+        OutboundTransactionRequests(
+          "accountId: String",
+          "accountType: String",
+          "currency: String",
+          "iban: String",
+          "number: String",
+          "bankId: BankId",
+          "branchId: String",
+          "accountRoutingScheme: String",
+          "accountRoutingAddress: String"
+        )
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetTransactionRequests210(
+        authInfoExample,
+        InternalGetTransactionRequests(
+          errorCodeExample,
+          inboundStatusMessagesExample,
+          Nil
+        )
+      )
+    )
+  )
+  
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = {
+    val req = OutboundGetCounterparties(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      counterparty = InternalOutboundGetCounterparties(
+        thisBankId = thisBankId.value,
+        thisAccountId = thisAccountId.value,
+        viewId = viewId.value
+      )
+    )
+  
+    logger.debug(s"Kafka getCounterparties Req says: is: $req")
+    val box: Box[List[InternalCounterparty]] = processToBox[OutboundGetCounterparties](req).map(_.extract[InboundGetCounterparties].data)
+    logger.debug(s"Kafka getCounterparties Res says: is: $box")
+  
+    val res: Box[List[CounterpartyTrait]] = box match {
+      case Full(x) if (x.head.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.head.errorCode!="") =>
+        Failure("OBP-Error:"+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
