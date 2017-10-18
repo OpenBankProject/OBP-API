@@ -47,6 +47,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("view(" + viewId +", "+ bankAccountId + ")")
       sender ! extractResult(mapper.view(viewId, bankAccountId))
 
+    case cc.viewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
+      logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
+      sender ! (mapper.view(viewId, bankAccountId))
+
     case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")
       sender ! extractResult(mapper.createView(bankAccountId, view))
@@ -106,6 +110,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.getNonPublicBankAccounts(user: User) =>
       logger.debug("getNonPublicBankAccounts(" + user +")")
       sender ! extractResult(mapper.getNonPublicBankAccounts(user))
+
+    case cc.getNonPublicBankAccountsFuture(user: User) =>
+      logger.debug("getNonPublicBankAccountsFuture(" + user +")")
+      sender ! (mapper.getNonPublicBankAccounts(user))
 
     case cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String) =>
       logger.debug("getOrCreateAccountView(" + BankIdAccountId +", "+ viewId +")")

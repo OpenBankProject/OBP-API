@@ -155,6 +155,7 @@ import code.api.util.APIUtil._
 
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+  val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
 
 
 
@@ -1633,6 +1634,16 @@ Versions are groups of endpoints in a file
   }
 
   /**
+    * This function is used to factor out common code at endpoints regarding Authorized access
+    * @param errorMsg is a message which will be provided as a response in inc case that Box[User] = Empty
+    */
+  def extractUserFromHeaderOrError(errorMsg: String): Future[Box[User]] = {
+    getUserFromAuthorizationHeaderFuture() map {
+      x => fullBoxOrException(x ?~! errorMsg)
+    }
+  }
+
+  /**
     * This Function is used to terminate a Future used in for-comprehension with specific message
     * Please note that boxToFailed(Empty ?~ ("Some failure message")) will be transformed to Failure("Some failure message", Empty, Empty)
     * @param box Some boxed type
@@ -1660,6 +1671,15 @@ Versions are groups of endpoints in a file
         throw new Exception(failuresMsg)
       case _ =>
         throw new Exception(UnknownError)
+    }
+  }
+
+  def unboxFull[T](box: Box[T])(implicit m: Manifest[T]) : T = {
+    box match {
+      case Full(value) =>
+        value
+      case _ =>
+        throw new Exception("Only Full Box is allowed at function unboxFull")
     }
   }
 

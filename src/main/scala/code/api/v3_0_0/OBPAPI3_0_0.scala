@@ -197,9 +197,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getConsumers ::
                           Implementations2_1_0.enableDisableConsumers ::
                           Implementations2_1_0.addCardForBank ::
-                          Implementations2_1_0.getUsers ::
+                          // Implementations2_1_0.getUsers ::
                           Implementations2_1_0.createTransactionType ::
-                          Implementations2_1_0.createCounterparty ::
                           // Implementations2_1_0.getAtm :: //now in V300
                           // Implementations2_1_0.getBranch :: //now in V300
                           Implementations2_1_0.updateBranch ::
@@ -223,6 +222,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.config ::
                           Implementations2_2_0.getConnectorMetrics ::
+                          Implementations2_2_0.createCounterparty ::
                           Nil
 
   
@@ -246,7 +246,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.createAtm ::
                           Implementations3_0_0.getAtm ::
                           Implementations3_0_0.getAtms ::
-                          // Implementations3_0_0.getUsers ::
+                          Implementations3_0_0.getUsers ::
                           Implementations3_0_0.getCustomersForUser ::
                           Implementations3_0_0.getCurrentUser ::
                           Nil
@@ -254,20 +254,19 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 3.0.0 Custom Folder
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
-
-
+  
+  val allResourceDocs = Implementations3_0_0.resourceDocs ++
+                        ImplementationsCustom3_0_0.resourceDocs ++
+                        Implementations2_2_0.resourceDocs ++
+                        Implementations2_1_0.resourceDocs ++
+                        Implementations2_0_0.resourceDocs ++
+                        Implementations1_4_0.resourceDocs ++
+                        Implementations1_3_0.resourceDocs ++
+                        Implementations1_2_1.resourceDocs
+  
   def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
-    val all = Implementations3_0_0.resourceDocs ++
-              ImplementationsCustom3_0_0.resourceDocs ++
-              Implementations2_2_0.resourceDocs ++
-              Implementations2_1_0.resourceDocs ++
-              Implementations2_0_0.resourceDocs ++
-              Implementations1_4_0.resourceDocs ++
-              Implementations1_3_0.resourceDocs ++
-              Implementations1_2_1.resourceDocs
-    all.find(_.partialFunction==pf)
+    allResourceDocs.find(_.partialFunction==pf)
   }
-
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =

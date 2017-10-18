@@ -68,22 +68,24 @@ case class TransactionRequestBodyTransferToAtmJson(
   to: ToAccountTransferToAtmJson
 ) extends TransactionRequestCommonBodyJSON
 
-case class CounterpartyTransferToAccount(
-  other_account_owner: String,
-  transfer_type: String,
-  transfer_is_scheduled : String,
-  future_date : String,
-  bank_code:String,
-  branch_number: String,
-  account_number: String,
+case class ToAccountTransferToAccountAccountJson(
+  number: String,
   iban: String
+)
+
+case class ToAccountTransferToAccountJson(
+  name: String,
+  bank_code: String,
+  branch_number : String,
+  account:ToAccountTransferToAccountAccountJson
 )
 
 case class TransactionRequestBodyTransferToAccount(
   value: AmountOfMoneyJsonV121,
   description: String,
-  charge_policy: String,
-  couterparty: CounterpartyTransferToAccount
+  transfer_type: String,
+  future_date: String,
+  to: ToAccountTransferToAccountJson
 ) extends TransactionRequestCommonBodyJSON
 
 object JSONFactory300{

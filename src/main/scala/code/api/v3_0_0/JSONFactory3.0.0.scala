@@ -30,11 +30,13 @@ import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
-import code.api.v2_0_0.JSONFactory200.UserJsonV200
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJSONV200}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
+import scala.collection.immutable.List
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
@@ -890,6 +892,9 @@ object JSONFactory300{
     }
   }
 
+  def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJSONV200 = {
+    UsersJSONV200(users.map(t => createUserJSON(Full(t._1), t._2)))
+  }
 
 
 

@@ -33,10 +33,10 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.vMar2017.{InboundAdapterInfo, KafkaMappedConnector_vMar2017}
+import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
@@ -101,7 +101,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
 
-  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
   
   // "Versioning" of the messages sent by this or similar connector might work like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -389,21 +389,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getChargeLevel")
   
   //TODO, not implement in Adapter, just fake the response 
-  override def createChallenge(
-    bankId: BankId,
-    accountId: AccountId,
-    userId: String,
-    transactionRequestType: TransactionRequestType,
-    transactionRequestId: String,
-    phoneNumber: String
-  ): Box[String] = saveConnectorMetric{
-    LocalMappedConnector.createChallenge(
-      bankId: BankId, accountId: AccountId,
-      userId: String,
-      transactionRequestType: TransactionRequestType,
-      transactionRequestId: String,
-      phoneNumber: String
-    )}("createChallenge")
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = saveConnectorMetric{
+    LocalMappedConnector.createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)}("createChallenge")
   
   //TODO, not implement in Adapter, just fake the response 
   override def validateChallengeAnswer(
@@ -1464,6 +1451,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def otherBranchRoutingScheme: String = counterparty.other_branch_routing_scheme
     def otherBranchRoutingAddress: String = counterparty.other_branch_routing_address
     def isBeneficiary : Boolean = counterparty.is_beneficiary
+    def description: String = ""
+    def otherAccountSecondaryRoutingScheme: String = ""
+    def otherAccountSecondaryRoutingAddress: String = ""
+    def bespoke: List[PostCounterpartyBespoke] = Nil
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{

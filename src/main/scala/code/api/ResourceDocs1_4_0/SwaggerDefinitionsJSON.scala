@@ -1618,16 +1618,31 @@ object SwaggerDefinitionsJSON {
   )
 
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
-
+  
+  
+  val postCounterpartyBespoke1 = PostCounterpartyBespoke(
+    key = "englishName",
+    value = "english Name"
+  )
+  val postCounterpartyBespoke2 = PostCounterpartyBespoke(
+    key = "englishDescription",
+    value = "englishDescription"
+  )
+  
+  //CM need to move into V220
   val postCounterpartyJSON = PostCounterpartyJSON(
-    name = "GOOD",
+    name = "CounterpartyName",
+    description ="My landlord",
     other_account_routing_scheme = "IBAN",
     other_account_routing_address = "7987987-2348987-234234",
-    other_bank_routing_scheme = "BIC",
-    other_bank_routing_address = "123456",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address = "Berlin",
-    is_beneficiary = true
+    other_account_secondary_routing_scheme = "accountNumber",
+    other_account_secondary_routing_address = "BIC201483",
+    other_bank_routing_scheme = "bankCode",
+    other_bank_routing_address = "10",
+    other_branch_routing_scheme = "branchNumber",
+    other_branch_routing_address = "10010", 
+    is_beneficiary = true,
+    bespoke =  List(postCounterpartyBespoke1,postCounterpartyBespoke2)
   )
 
   val metricsJson = MetricsJson(
@@ -1742,19 +1757,23 @@ object SwaggerDefinitionsJSON {
   )
 
   val counterpartyJsonV220 = CounterpartyJsonV220(
-    name = "b2dd6c2c-7ebd-4014-9c73-b7d28cc71fe1",
+    name = postCounterpartyJSON.name,
+    description = postCounterpartyJSON.description,
     created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
     this_bank_id = "gh.29.uk",
     this_account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     this_view_id = "owner",
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
-    other_bank_routing_scheme = "test",
-    other_bank_routing_address = "test",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address = "Berlin",
-    other_account_routing_scheme = "IBAN",
-    other_account_routing_address = "DE89 3704 0044 0532 0130 00",
-    is_beneficiary = true
+    other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
+    bespoke = postCounterpartyJSON.bespoke
   )
 
   val counterpartiesJsonV220 = CounterpartiesJsonV220(
@@ -2018,22 +2037,24 @@ object SwaggerDefinitionsJSON {
     to = toAccountTransferToAtmJson
   )
   
-  val counterpartyTransferToAccount= CounterpartyTransferToAccount(
-    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
-    transfer_is_scheduled ="if the transfer is scheduled to a future date then 1 otherwise 0",
-    future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
-    bank_code= "Bank code of the target account",
-    branch_number= "Branch number of the target account",
-    account_number ="Account number of the target account",
-    iban = "IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored",
-    other_account_owner ="Target bank type: 0-Leumi; 1-other bank"
+  val toAccountTransferToAccountAccountJson = ToAccountTransferToAccountAccountJson(
+    number = "Account number of the target account",
+    iban ="IBAN of the target account for RTGS transfer - if presented then bank/branch/account details are ignored"
+  )
+  
+  val toAccountTransferToAccountJson= ToAccountTransferToAccountJson(
+    name = "Tom Muller - has to be english if transfer_type = 2",
+    bank_code = "Bank code of the target account",
+    branch_number = "Branch number of the target account",
+    account = toAccountTransferToAccountAccountJson
   )
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
-    description = "Transaction description/purpose (20 symbols)",
-    charge_policy = "SHARED",
-    couterparty = counterpartyTransferToAccount
+    description = "This is a TRANSFER_TO_ACCOUNT Transaction Request",
+    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
+    future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
+    to = toAccountTransferToAccountJson
   )
   
   //The commont error or success format.

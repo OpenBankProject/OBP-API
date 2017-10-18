@@ -1,24 +1,18 @@
-package code.api.v2_1_0
+package code.api.v2_2_0
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.model.{AccountId, ViewId}
 import code.setup.DefaultUsers
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.Serialization.write
 
-class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
-
-  val counterpartyPostJSON = PostCounterpartyJSON(
-    name = "Company Salary",
-    other_account_routing_scheme="IBAN",
-    other_account_routing_address="DE12 1234 5123 4510 2207 8077 877",
-    other_bank_routing_scheme="BIC",
-    other_bank_routing_address="123456",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address ="Berlin",
-    is_beneficiary = true
-  )
+class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
+  
+  //The test Body should use the varible in SwaggerDefinitionsJson, 
+  // Because this body will be used in API-Explorer 
+  val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON
 
   override def beforeAll() {
     super.beforeAll()
@@ -44,7 +38,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
       When("We make the request Create counterparty for an account")
-      val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
+      val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 200 and check all the fields")
@@ -54,7 +48,8 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
         case JString(i) => i
         case _ => ""
       }
-      accountRoutingAddress should  equal(counterpartyPostJSON.other_account_routing_address)
+      
+      accountRoutingAddress should equal(counterpartyPostJSON.other_account_routing_address)
 
     }
 
@@ -63,12 +58,12 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
-      val accountId = AccountId("__acc1")
+      val accountId = AccountId("notExistingAccountId")
       val viewId =ViewId("owner")
       val ownerView = createOwnerView(bankId, accountId)
       grantAccessToView(resourceUser1, ownerView)
 
-      val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
+      val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
       Then("We should get a 400")
       responsePost.code should equal(400)
@@ -86,7 +81,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
       When("We make the request Create counterparty for an account")
-      val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
+      val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       var responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We make the request again, the same name/bank_id/account_id/view_id")

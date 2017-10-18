@@ -4,6 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.metadata.counterparties.{MapperCounterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
@@ -24,15 +25,33 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
                                name, otherAccountRoutingScheme,
                                otherAccountRoutingAddress, otherBankRoutingScheme,
                                otherBranchRoutingScheme, otherBranchRoutingAddress,
-                               otherBankRoutingAddress, isBeneficiary) =>
+                               otherBankRoutingAddress, isBeneficiary,
+                               otherAccountSecondaryRoutingScheme: String,
+                               otherAccountSecondaryRoutingAddress: String,
+                               description: String,
+                               bespoke: List[PostCounterpartyBespoke]
+    ) =>
       logger.debug("createCounterparty(" + createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
                     + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ otherBranchRoutingScheme+
-                    ", "+ otherBranchRoutingAddress+ ", "+ isBeneficiary+")")
-      sender ! extractResult(mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
-                                                       name, otherAccountRoutingScheme,
-                                                       otherAccountRoutingAddress, otherBankRoutingScheme,
-                                                       otherBranchRoutingScheme, otherBranchRoutingAddress,
-                                                       otherBankRoutingAddress, isBeneficiary))
+                    ", "+ otherBranchRoutingAddress+ ", "+ isBeneficiary+", "+ otherAccountSecondaryRoutingScheme+", "+ otherAccountSecondaryRoutingAddress+", "+ description+", "+ bespoke+")")
+      sender ! extractResult(mapper.createCounterparty(
+        createdByUserId: String,
+        thisBankId: String,
+        thisAccountId : String,
+        thisViewId : String,
+        name: String,
+        otherAccountRoutingScheme : String,
+        otherAccountRoutingAddress : String,
+        otherBankRoutingScheme : String,
+        otherBankRoutingAddress : String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        isBeneficiary: Boolean,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        description: String,
+        bespoke: List[PostCounterpartyBespoke]
+      ))
 
     case cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty) =>
       logger.debug("getOrCreateMetadata(" + originalPartyBankId +", " +originalPartyAccountId+otherParty+")")
