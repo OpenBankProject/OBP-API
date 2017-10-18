@@ -596,14 +596,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def createChallenge(
-    bankId: BankId,
-    accountId: AccountId,
-    userId: String,
-    transactionRequestType: TransactionRequestType,
-    transactionRequestId: String,
-    phoneNumber: String
-  ): Box[String] = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
     val req = OutboundCreateChallengeJune2017(
       authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
       bankId = bankId.value,
@@ -611,8 +604,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       userId = userId,
       username = AuthUser.getCurrentUserUsername,
       transactionRequestType = transactionRequestType.value,
-      transactionRequestId = transactionRequestId,
-      ""
+      transactionRequestId = transactionRequestId
     )
     logger.debug(s"Kafka createChallenge Req says:  is: $req")
     val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateChallengeJune2017](req).map(_.extract[InboundCreateChallengeJune2017].data)

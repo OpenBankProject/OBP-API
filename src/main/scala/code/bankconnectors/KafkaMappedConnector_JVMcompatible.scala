@@ -389,21 +389,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getChargeLevel")
   
   //TODO, not implement in Adapter, just fake the response 
-  override def createChallenge(
-    bankId: BankId,
-    accountId: AccountId,
-    userId: String,
-    transactionRequestType: TransactionRequestType,
-    transactionRequestId: String,
-    phoneNumber: String
-  ): Box[String] = saveConnectorMetric{
-    LocalMappedConnector.createChallenge(
-      bankId: BankId, accountId: AccountId,
-      userId: String,
-      transactionRequestType: TransactionRequestType,
-      transactionRequestId: String,
-      phoneNumber: String
-    )}("createChallenge")
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = saveConnectorMetric{
+    LocalMappedConnector.createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)}("createChallenge")
   
   //TODO, not implement in Adapter, just fake the response 
   override def validateChallengeAnswer(
