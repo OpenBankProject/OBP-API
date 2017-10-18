@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors.InboundUser
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -296,6 +297,10 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def otherBranchRoutingScheme: String = counterparty.otherBranchRoutingScheme
   def otherBranchRoutingAddress: String = counterparty.otherBranchRoutingAddress
   def isBeneficiary: Boolean = counterparty.isBeneficiary
+  def description: String = ""
+  def otherAccountSecondaryRoutingScheme: String = ""
+  def otherAccountSecondaryRoutingAddress: String = ""
+  def bespoke: List[PostCounterpartyBespoke] = Nil
 }
 
 case class InboundStatusMessage(
@@ -314,7 +319,7 @@ case class InboundBank(
   url: String
 )extends InboundMessageBase
 
-case class InboundAdapterInfo(
+case class InboundAdapterInfoInternal(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
   name: String,

@@ -1618,16 +1618,31 @@ object SwaggerDefinitionsJSON {
   )
 
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
-
+  
+  
+  val postCounterpartyBespoke1 = PostCounterpartyBespoke(
+    key = "englishName",
+    value = "english Name"
+  )
+  val postCounterpartyBespoke2 = PostCounterpartyBespoke(
+    key = "englishDescription",
+    value = "englishDescription"
+  )
+  
+  //CM need to move into V220
   val postCounterpartyJSON = PostCounterpartyJSON(
-    name = "GOOD",
+    name = "CounterpartyName",
+    description ="My landlord",
     other_account_routing_scheme = "IBAN",
     other_account_routing_address = "7987987-2348987-234234",
-    other_bank_routing_scheme = "BIC",
-    other_bank_routing_address = "123456",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address = "Berlin",
-    is_beneficiary = true
+    other_account_secondary_routing_scheme = "accountNumber",
+    other_account_secondary_routing_address = "BIC201483",
+    other_bank_routing_scheme = "bankCode",
+    other_bank_routing_address = "10",
+    other_branch_routing_scheme = "branchNumber",
+    other_branch_routing_address = "10010", 
+    is_beneficiary = true,
+    bespoke =  List(postCounterpartyBespoke1,postCounterpartyBespoke2)
   )
 
   val metricsJson = MetricsJson(
@@ -1742,19 +1757,23 @@ object SwaggerDefinitionsJSON {
   )
 
   val counterpartyJsonV220 = CounterpartyJsonV220(
-    name = "b2dd6c2c-7ebd-4014-9c73-b7d28cc71fe1",
+    name = postCounterpartyJSON.name,
+    description = postCounterpartyJSON.description,
     created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
     this_bank_id = "gh.29.uk",
     this_account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
     this_view_id = "owner",
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
-    other_bank_routing_scheme = "test",
-    other_bank_routing_address = "test",
-    other_branch_routing_scheme = "OBP",
-    other_branch_routing_address = "Berlin",
-    other_account_routing_scheme = "IBAN",
-    other_account_routing_address = "DE89 3704 0044 0532 0130 00",
-    is_beneficiary = true
+    other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
+    bespoke = postCounterpartyJSON.bespoke
   )
 
   val counterpartiesJsonV220 = CounterpartiesJsonV220(

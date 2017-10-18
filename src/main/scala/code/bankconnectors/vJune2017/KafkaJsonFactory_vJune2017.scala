@@ -4,13 +4,15 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
 import code.kafka.Topics._
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, BankAccount, BankId}
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -18,39 +20,14 @@ import net.liftweb.util.Helpers.today
   * case classes used to define topics, these are outbound kafka messages
   */
 
-case class GetAdapterInfo(date: String) extends GetAdapterInfoTopic
-case class GetBanks(authInfo: AuthInfo) extends GetBanksTopic
-case class GetBank(authInfo: AuthInfo, bankId: String) extends GetBankTopic
-case class GetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends GetUserByUsernamePasswordTopic
-case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends GetAccountsTopic
-case class GetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends GetAccountbyAccountIDTopic
-case class GetAccountbyAccountNumber(authInfo: AuthInfo, bankId: String, accountNumber: String)extends GetAccountbyAccountNumberTopic
-case class GetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends GetTransactionsTopic
-case class GetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends GetTransactionTopic
-case class CreateCBSAuthToken(authInfo: AuthInfo) extends CreateCBSAuthTokenTopic
-case class CreateTransaction(
-  authInfo: AuthInfo,
-  
-  // fromAccount
-  fromAccountBankId : String,
-  fromAccountId : String,
-  
-  // transaction details
-  transactionRequestType: String,
-  transactionChargePolicy: String,
-  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-  
-  // toAccount or toCounterparty
-  toCounterpartyId: String,
-  toCounterpartyName: String,
-  toCounterpartyCurrency: String,
-  toCounterpartyRoutingAddress: String,
-  toCounterpartyRoutingScheme: String,
-  toCounterpartyBankRoutingAddress: String,
-  toCounterpartyBankRoutingScheme: String
-
-) extends CreateTransactionTopic
-
+case class OutboundGetAdapterInfo(date: String) extends TopicTrait
+case class OutboundGetBanks(authInfo: AuthInfo) extends TopicTrait
+case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrait
+case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
+case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends TopicTrait
+case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
+case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
+case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
 case class OutboundCreateChallengeJune2017(
   authInfo: AuthInfo,
   bankId: String,
@@ -58,24 +35,40 @@ case class OutboundCreateChallengeJune2017(
   userId: String,
   username: String,
   transactionRequestType: String,
-  transactionRequestId: String,
-  phoneNumber: String
-) extends OutboundCreateChallengeJune2017Topic
+  transactionRequestId: String
+) extends TopicTrait
 
+case class OutboundCreateCounterparty(
+  authInfo: AuthInfo,
+  counterparty: OutboundCounterparty
+) extends TopicTrait
+
+case class OutboundGetTransactionRequests210(
+  authInfo: AuthInfo,
+  counterparty: OutboundTransactionRequests
+) extends TopicTrait
+
+case class OutboundGetCounterparties(
+  authInfo: AuthInfo,
+  counterparty: InternalOutboundGetCounterparties
+) extends TopicTrait
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
 
 //AdapterInfo has no AuthInfo, because it just get data from Adapter, no need for AuthInfo
-case class AdapterInfo(data: InboundAdapterInfo)
-case class UserWrapper(authInfo: AuthInfo, data: InboundValidatedUser)
-case class Banks(authInfo: AuthInfo, data: List[InboundBank])
-case class BankWrapper(authInfo: AuthInfo, data: InboundBank)
-case class InboundBankAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
-case class InboundBankAccount(authInfo: AuthInfo, data: InboundAccountJune2017)
-case class InboundTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
-case class InboundTransaction(authInfo: AuthInfo, data: InternalTransaction)
+case class InboundAdapterInfo(data: InboundAdapterInfoInternal)
+case class InboundGetUserByUsernamePassword(authInfo: AuthInfo, data: InboundValidatedUser)
+case class InboundGetBanks(authInfo: AuthInfo, data: List[InboundBank])
+case class InboundGetBank(authInfo: AuthInfo, data: InboundBank)
+case class InboundGetAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
+case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccountJune2017)
+case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
+case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
+case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
+case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
+case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
 
 
 
@@ -154,6 +147,72 @@ case class InternalCreateChallengeJune2017(
   answer : String
 )
 
+case class InternalGetTransactionRequests(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  transactionRequests:List[TransactionRequest]
+)
+
+case class OutboundCounterparty(
+  name: String,
+  description: String,
+  createdByUserId: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary:Boolean,
+  bespoke: List[PostCounterpartyBespoke]
+)
+
+case class InternalOutboundGetCounterparties(
+  thisBankId: String, 
+  thisAccountId: String,
+  viewId :String
+)
+
+case class OutboundTransactionRequests(
+  accountId: String,
+  accountType: String,
+  currency: String,
+  iban: String,
+  number: String,
+  bankId: String,
+  branchId: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String
+)
+  
+
+case class InternalCounterparty(
+  status: String,
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  createdByUserId: String,
+  name: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  counterpartyId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary: Boolean,
+  description: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  bespoke: List[PostCounterpartyBespoke]
+) extends CounterpartyTrait
 
 
 object JsonFactory_vJune2017 {

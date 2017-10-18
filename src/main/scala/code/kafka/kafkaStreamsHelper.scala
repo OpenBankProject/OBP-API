@@ -202,8 +202,8 @@ object Topics {
     * Request : North is producer, South is the consumer. North --> South
     * Response: South is producer, North is the consumer. South --> North
     */
-  private val requestTopic = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set")
-  private val responseTopic = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set")
+  private val requestTopic = Props.get("kafka.request_topic").openOr("Request")
+  private val responseTopic = Props.get("kafka.response_topic").openOr("Response")
   
   /**
     * set in props, we have two topics: Request and Response
@@ -237,31 +237,6 @@ object Topics {
   // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala 
   // This is for Kafka topics for both North and South sides.
   // In OBP-API, these topics will be created automatically. 
-  sealed trait TopicTrait
-  
-  // There design for OutBound Topics : North --> South
-  trait GetAdapterInfoTopic extends TopicTrait
-  trait GetBanksTopic extends TopicTrait
-  trait GetBankTopic extends TopicTrait
-  trait GetUserByUsernamePasswordTopic extends TopicTrait
-  trait GetAccountsTopic extends TopicTrait
-  trait GetAccountbyAccountIDTopic extends TopicTrait
-  trait GetAccountbyAccountNumberTopic extends TopicTrait
-  trait GetTransactionsTopic extends TopicTrait
-  trait GetTransactionTopic extends TopicTrait
-  trait CreateCBSAuthTokenTopic extends TopicTrait
-  trait CreateTransactionTopic extends TopicTrait
-  trait OutboundCreateChallengeJune2017Topic extends TopicTrait
-  
-  
-  //There design for InBound Topics : South --> North
-  trait AdapterInfoTopic extends TopicTrait
-  trait UserWrapperTopic extends TopicTrait
-  trait BanksTopic extends TopicTrait
-  trait BankWrapperTopic extends TopicTrait
-  trait InboundBankAccountsTopic extends TopicTrait
-  trait InboundBankAccountTopic extends TopicTrait
-  trait InboundTransactionsTopic extends TopicTrait
-  trait InboundTransactionTopic extends TopicTrait
+  trait TopicTrait
   
 }

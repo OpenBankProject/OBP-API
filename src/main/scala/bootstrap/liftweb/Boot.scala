@@ -58,7 +58,7 @@ import code.loginattempts.MappedBadLoginAttempt
 import code.management.{AccountsAPI, ImporterAPI}
 import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -84,7 +84,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
-import code.api.util.APIUtil.{enableVersionIfAllowed, ApiVersion}
+import code.api.util.APIUtil.{ApiVersion, enableVersionIfAllowed}
 
 
 /**
@@ -469,6 +469,7 @@ object ToSchemify {
     Token,
     Nonce,
     MappedCounterparty,
+    MappedCounterpartyBespoke,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,

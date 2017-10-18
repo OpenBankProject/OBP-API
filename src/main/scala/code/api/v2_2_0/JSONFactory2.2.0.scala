@@ -36,12 +36,12 @@ import java.util.Date
 
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_1_0.{MetricJson, MetricsJson, ResourceUserJSON}
+import code.api.v2_1_0.{MetricJson, MetricsJson, PostCounterpartyBespoke, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
 import code.customer.Customer
-import code.model.dataAccess.{ResourceUser, AuthUser}
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
@@ -147,6 +147,7 @@ case class FXRateJsonV220(
 
 case class CounterpartyJsonV220(
                              name: String,
+                             description: String,
                              created_by_user_id: String,
                              this_bank_id: String,
                              this_account_id: String,
@@ -158,7 +159,10 @@ case class CounterpartyJsonV220(
                              other_branch_routing_address: String,
                              other_account_routing_scheme: String,
                              other_account_routing_address: String,
-                             is_beneficiary: Boolean
+                             other_account_secondary_routing_scheme: String,
+                             other_account_secondary_routing_address: String,
+                             is_beneficiary: Boolean,
+                             bespoke:List[PostCounterpartyBespoke]
                            )
 
 case class CounterpartiesJsonV220(
@@ -438,18 +442,22 @@ object JSONFactory220{
   def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJsonV220 = {
     CounterpartyJsonV220(
       name = counterparty.name,
+      description = counterparty.description,
       created_by_user_id = counterparty.createdByUserId,
       this_bank_id = counterparty.thisBankId,
       this_account_id = counterparty.thisAccountId,
       this_view_id = counterparty.thisViewId,
       counterparty_id = counterparty.counterpartyId,
       other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
-      other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
       other_bank_routing_address = counterparty.otherBankRoutingAddress,
+      other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
       other_account_routing_address = counterparty.otherAccountRoutingAddress,
+      other_account_secondary_routing_scheme = counterparty.otherAccountSecondaryRoutingScheme,
+      other_account_secondary_routing_address = counterparty.otherAccountSecondaryRoutingAddress,
       other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
       other_branch_routing_address =counterparty.otherBranchRoutingAddress,
-      is_beneficiary = counterparty.isBeneficiary
+      is_beneficiary = counterparty.isBeneficiary,
+      bespoke= counterparty.bespoke
     )
   }
 
