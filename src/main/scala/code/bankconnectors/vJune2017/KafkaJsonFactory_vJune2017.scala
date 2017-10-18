@@ -48,6 +48,10 @@ case class OutboundGetTransactionRequests210(
   counterparty: OutboundTransactionRequests
 ) extends TopicTrait
 
+case class OutboundGetCounterparties(
+  authInfo: AuthInfo,
+  counterparty: InternalOutboundGetCounterparties
+) extends TopicTrait
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -62,8 +66,9 @@ case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccount
 case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
-case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCreateCounterparty)
+case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
+case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
 
 
 
@@ -167,6 +172,12 @@ case class OutboundCounterparty(
   bespoke: List[PostCounterpartyBespoke]
 )
 
+case class InternalOutboundGetCounterparties(
+  thisBankId: String, 
+  thisAccountId: String,
+  viewId :String
+)
+
 case class OutboundTransactionRequests(
   accountId: String,
   accountType: String,
@@ -180,7 +191,7 @@ case class OutboundTransactionRequests(
 )
   
 
-case class InternalCreateCounterparty(
+case class InternalCounterparty(
   status: String,
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
