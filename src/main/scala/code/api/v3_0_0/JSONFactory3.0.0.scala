@@ -548,6 +548,9 @@ object JSONFactory300{
       account.bankId.value,
       AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
     )
+  
+  def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccountJsonV300]): CoreAccountsJsonV300 =
+    CoreAccountsJsonV300(coreAccounts)
 
 
 

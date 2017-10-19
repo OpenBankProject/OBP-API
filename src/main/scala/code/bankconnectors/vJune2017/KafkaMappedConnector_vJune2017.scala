@@ -28,8 +28,8 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
-import code.api.util.ErrorMessages.NotImplemented
 import code.api.v2_1_0.PostCounterpartyBespoke
+import code.api.v3_0_0.{CoreAccountJsonV300}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
@@ -47,7 +47,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
-import scala.collection.immutable.{Nil, Seq}
+import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -406,6 +406,67 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Full(new BankAccountJune2017(f))
         case Full(f) if (f.errorCode!="") =>
           Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }}("getBankAccount")
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.Account",
+    messageFormat = messageFormat,
+    description = "getBankAccount from kafka",
+    exampleOutboundMessage = decompose(
+      OutboundGetAccountbyAccountID(
+        authInfoExample,
+        "bankId",
+        "accountId"
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetAccountbyAccountID(
+        authInfoExample,
+        InboundAccountJune2017(
+          errorCode = errorCodeExample,
+          inboundStatusMessagesExample,
+          cbsToken = "cbsToken",
+          bankId = "gh.29.uk",
+          branchId = "222",
+          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          accountNumber = "123",
+          accountType = "AC",
+          balanceAmount = "50",
+          balanceCurrency = "EUR",
+          owners = "Susan" :: " Frank" :: Nil,
+          viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+          bankRoutingScheme = "iban",
+          bankRoutingAddress = "bankRoutingAddress",
+          branchRoutingScheme = "branchRoutingScheme",
+          branchRoutingAddress = " branchRoutingAddress",
+          accountRoutingScheme = "accountRoutingScheme",
+          accountRoutingAddress = "accountRoutingAddress"
+        )
+      ))
+  )
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]] = saveConnectorMetric{
+    memoizeSync(getAccountTTL millisecond){
+      
+      val req = OutboundGetCoreBankAccounts(
+        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+        BankIdAccountIds
+      )
+      
+      logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
+      val box: Box[List[InternalInboundCoreAccount]] = processToBox[OutboundGetCoreBankAccounts](req).map(_.extract[InboundGetCoreBankAccounts].data)
+      logger.debug(s"Kafka getCoreBankAccounts says res is $box")
+      box match {
+        case Full(f) if (f.head.errorCode=="") =>
+          Full(f.map( x => CoreAccountJsonV300(x.id,x.label,x.bank_id,x.account_routing)))
+        case Full(f) if (f.head.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.head.errorCode+". + CoreBank-Error:"+ f.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>

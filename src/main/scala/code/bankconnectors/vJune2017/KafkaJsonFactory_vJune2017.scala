@@ -4,17 +4,19 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
-import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
+import code.api.v1_2_1.AccountRoutingJsonV121
+import code.api.v2_1_0.{PostCounterpartyBespoke}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, BankAccount, BankId}
+import code.model.{AccountId, BankAccount, BankId, BankIdAccountId}
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
+import scala.collection.immutable.List
 
 /**
   * case classes used to define topics, these are outbound kafka messages
@@ -26,6 +28,7 @@ case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrai
 case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
 case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends TopicTrait
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
+case class OutboundGetCoreBankAccounts(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
 case class OutboundCreateChallengeJune2017(
@@ -63,6 +66,7 @@ case class InboundGetBanks(authInfo: AuthInfo, data: List[InboundBank])
 case class InboundGetBank(authInfo: AuthInfo, data: InboundBank)
 case class InboundGetAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
 case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccountJune2017)
+case class InboundGetCoreBankAccounts(authInfo: AuthInfo, data: List[InternalInboundCoreAccount])
 case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
@@ -80,6 +84,15 @@ case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCount
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // These are case classes, used in internal message mapping
+case class InternalInboundCoreAccount(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  id : String,
+  label : String,
+  bank_id : String,
+  account_routing: AccountRoutingJsonV121
+)
+
 case class AuthInfo(userId: String, username: String, cbsToken: String)
 case class InboundAccountJune2017(
   errorCode: String,
