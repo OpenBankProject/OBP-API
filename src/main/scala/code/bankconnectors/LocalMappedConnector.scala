@@ -2,9 +2,11 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
-import code.api.util.APIUtil.saveConnectorMetric
+import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.{APIUtil, ErrorMessages}
+import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -36,6 +38,7 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Props
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -247,6 +250,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
       )
   }
+  
+  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= {
+    Full(
+        BankIdAcountIds
+        .map(bankIdAccountId =>
+          getBankAccount(
+            bankIdAccountId.bankId, 
+            bankIdAccountId.accountId)
+            .openOrThrowException(ErrorMessages.BankAccountNotFound))
+        .map(account => 
+          CoreAccountJsonV300(
+            account.accountId.value, 
+            stringOrNull(account.label),
+            account.bankId.value, 
+            AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)))
+    )
+  }
+  
 
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new MappedBankAccount())
