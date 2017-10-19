@@ -362,10 +362,9 @@ trait APIMethods300 {
             availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(user)
           } yield {
             for {
-              availableAccount <- availableAccounts
-              acc <- Connector.connector.vend.getBankAccount(availableAccount.bankId, availableAccount.accountId)
+              coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
             } yield {
-              JSONFactory300.createCoreAccountJSON(acc)
+              JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts)
             }
           }
       }

@@ -8,6 +8,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
+import code.api.v3_0_0.{CoreAccountJsonV300}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -31,6 +32,7 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
+import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
 import scala.util.Random
@@ -232,6 +234,8 @@ trait Connector extends MdcLoggable{
   def updateUserAccountViewsOld(user: ResourceUser) = {}
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
+  
+  def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
