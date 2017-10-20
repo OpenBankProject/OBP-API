@@ -12,7 +12,7 @@ import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.Failure
+import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import net.liftweb.util.Props
@@ -20,6 +20,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import code.api.util.ErrorMessages._
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
 
@@ -128,18 +129,18 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     *         If there is exception, recover to JValue to sender 
     */
   def pipeToSender(sender: ActorRef, future: Future[Any]) = future recover {
-    case e: InterruptedException => json.parse(s"""{"error":"sending message to kafka interrupted"}""")
-      logger.error(s"""{"error":"sending message to kafka interrupted,"${e}"}""")
-      Failure("Kafka_InterruptedException"+e.toString)
-    case e: ExecutionException => json.parse(s"""{"error":"could not send message to kafka"}""")
-      logger.error(s"""{"error":"could not send message to kafka, "${e}"}""")
-      Failure("Kafka_ExecutionException"+e.toString)
-    case e: TimeoutException => json.parse(s"""{"error":"receiving message from kafka timed out"}""")
-      logger.error(s"""{"error":"receiving message from kafka timed out", "${e}" "}""")
-      Failure("Kafka_TimeoutException"+e.toString)
-    case e: Throwable => json.parse(s"""{"error":"unexpected error sending message to kafka"}""")
-      logger.error(s"""{"error":"unexpected error sending message to kafka , "${e}"}""")
-      Failure("Kafka_Throwable"+e.toString)
+    case e: InterruptedException =>
+      logger.error(KafkaInterruptedException,e)
+      Failure(KafkaInterruptedException+e.toString,Full(e),None)
+    case e: ExecutionException =>
+      logger.error(KafkaExecutionException,e)
+      Failure(KafkaExecutionException+e.toString,Full(e),None)
+    case e: TimeoutException =>
+      logger.error(KafkaStreamTimeoutException,e)
+      Failure(KafkaStreamTimeoutException+e.toString,Full(e),None)
+    case e: Throwable =>
+      logger.error(KafkaUnknownError,e)
+      Failure(KafkaUnknownError+e.toString,Full(e),None)
   } pipeTo sender
 
   def receive = {
