@@ -25,7 +25,7 @@ trait CustomerProvider {
 
   def getCustomersByUserId(userId: String): List[Customer]
 
-  def getCustomersByUserIdFuture(userId: String): Future[List[Customer]]
+  def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]]
 
   def getCustomerByCustomerId(customerId: String): Box[Customer]
 
