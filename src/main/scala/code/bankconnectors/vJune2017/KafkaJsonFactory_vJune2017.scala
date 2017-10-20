@@ -5,17 +5,18 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
 import code.api.v1_2_1.AccountRoutingJsonV121
-import code.api.v2_1_0.{PostCounterpartyBespoke}
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.Customer
+import code.customer.{AmountOfMoney, CreditRating, Customer, CustomerFaceImage}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, BankAccount, BankId, BankIdAccountId}
+import code.model.{AmountOfMoney => _, _}
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
+
 import scala.collection.immutable.List
 
 /**
@@ -55,6 +56,11 @@ case class OutboundGetCounterparties(
   authInfo: AuthInfo,
   counterparty: InternalOutboundGetCounterparties
 ) extends TopicTrait
+
+case class OutboundGetCustomersByUserIdFuture(
+  authInfo: AuthInfo
+) extends TopicTrait
+
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -73,6 +79,7 @@ case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCrea
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
+case class InboundGetCustomersByUserIdFuture(authInfo: AuthInfo, data: List[InternalCustomer])
 
 
 
@@ -226,6 +233,30 @@ case class InternalCounterparty(
   otherAccountSecondaryRoutingAddress: String,
   bespoke: List[PostCounterpartyBespoke]
 ) extends CounterpartyTrait
+
+
+case class InternalCustomer(
+  status: String,
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  customerId : String, 
+  bankId : String,
+  number : String,   // The Customer number i.e. the bank identifier for the customer.
+  legalName : String,
+  mobileNumber : String,
+  email : String,
+  faceImage : CustomerFaceImage,
+  dateOfBirth: Date,
+  relationshipStatus: String,
+  dependents: Int,
+  dobOfDependents: List[Date],
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRating : CreditRating,
+  creditLimit: AmountOfMoney,
+  kycStatus: Boolean,
+  lastOkDate: Date
+)extends Customer
 
 
 object JsonFactory_vJune2017 {

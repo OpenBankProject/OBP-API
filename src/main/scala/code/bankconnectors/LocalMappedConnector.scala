@@ -13,6 +13,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
+import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -1523,4 +1524,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       description = description,
       bespoke = bespoke
     )
+  
+  
+  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] =
+    Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
+  
 }

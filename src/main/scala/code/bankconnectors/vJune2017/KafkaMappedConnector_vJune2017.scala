@@ -29,7 +29,7 @@ import java.util.{Date, Locale}
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.PostCounterpartyBespoke
-import code.api.v3_0_0.{CoreAccountJsonV300}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer.Customer
@@ -37,7 +37,6 @@ import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
@@ -49,6 +48,8 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
@@ -913,6 +914,47 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     res
   }
   
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.counterparties",
+    messageFormat = messageFormat,
+    description = "getCounterparties from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetCustomersByUserIdFuture(
+        authInfoExample
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCustomersByUserIdFuture(
+        authInfoExample,
+        Nil
+      )
+    )
+  )
+  
+  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] = Future {
+    val req = OutboundGetCustomersByUserIdFuture(
+      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)
+    )
+    
+    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+    val box: Box[List[InternalCustomer]] = processToBox[OutboundGetCustomersByUserIdFuture](req).map(_.extract[InboundGetCustomersByUserIdFuture].data)
+    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
+    
+    val res: Box[List[InternalCustomer]] = box match {
+      case Full(x) if (x.head.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.head.errorCode!="") =>
+        Failure("OBP-Error:"+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
   
   
   /////////////////////////////////////////////////////////////////////////////

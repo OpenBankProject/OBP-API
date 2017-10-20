@@ -1142,7 +1142,7 @@ trait APIMethods300 {
         _ => {
           for {
             user <- extractUserFromHeaderOrError(UserNotLoggedIn)  map { unboxFull(_) }
-            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.userId) map {
+            customers <- Connector.connector.vend.getCustomersByUserIdFuture(user.userId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
