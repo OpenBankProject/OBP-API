@@ -1634,7 +1634,7 @@ Versions are groups of endpoints in a file
 
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
-    * @param errorMsg is a message which will be provided as a response in inc case that Box[User] = Empty
+    * @param errorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def extractUserFromHeaderOrError(errorMsg: String): Future[Box[User]] = {
     getUserFromAuthorizationHeaderFuture() map {
