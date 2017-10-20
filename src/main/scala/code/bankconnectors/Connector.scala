@@ -8,12 +8,13 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
-import code.api.v3_0_0.{CoreAccountJsonV300}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
@@ -34,8 +35,12 @@ import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 /*
@@ -1243,5 +1248,7 @@ trait Connector extends MdcLoggable{
     bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
+  
+  def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] = Future{ Failure(NotImplemented + "createCounterparty in Connector!") }
   
 }
