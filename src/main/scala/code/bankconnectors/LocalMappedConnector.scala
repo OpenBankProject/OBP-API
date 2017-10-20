@@ -2,12 +2,14 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
-import code.api.util.APIUtil.saveConnectorMetric
+import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v1_2_1.AccountRoutingJsonV121
+import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.vMar2017.InboundAdapterInfo
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
@@ -36,6 +38,7 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Props
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -60,7 +63,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
 
-  override def getAdapterInfo: Box[InboundAdapterInfo] = Empty
+  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
@@ -87,7 +90,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
 //    val challengeId = UUID.randomUUID().toString
 //    val challenge = StringHelpers.randomString(6)
 //    // Random string. For instance: EONXOA
@@ -247,6 +250,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
       )
   }
+  
+  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= {
+    Full(
+        BankIdAcountIds
+        .map(bankIdAccountId =>
+          getBankAccount(
+            bankIdAccountId.bankId, 
+            bankIdAccountId.accountId)
+            .openOrThrowException(ErrorMessages.BankAccountNotFound))
+        .map(account => 
+          CoreAccountJsonV300(
+            account.accountId.value, 
+            stringOrNull(account.label),
+            account.bankId.value, 
+            AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)))
+    )
+  }
+  
 
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new MappedBankAccount())
@@ -1465,4 +1486,41 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                .saveMe()
              } ?~! ErrorMessages.UpdateBankError
     }
+  
+  override def createCounterparty(
+    name: String,
+    description: String,
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary:Boolean,
+    bespoke: List[PostCounterpartyBespoke]
+  ): Box[CounterpartyTrait] =
+    Counterparties.counterparties.vend.createCounterparty(
+      createdByUserId = createdByUserId,
+      thisBankId = thisBankId,
+      thisAccountId = thisAccountId,
+      thisViewId = thisViewId,
+      name = name,
+      otherAccountRoutingScheme = otherAccountRoutingScheme,
+      otherAccountRoutingAddress = otherAccountRoutingAddress,
+      otherBankRoutingScheme = otherBankRoutingScheme,
+      otherBankRoutingAddress = otherBankRoutingAddress,
+      otherBranchRoutingScheme = otherBranchRoutingScheme,
+      otherBranchRoutingAddress = otherBranchRoutingAddress,
+      isBeneficiary = isBeneficiary,
+      otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
+      otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
+      description = description,
+      bespoke = bespoke
+    )
 }

@@ -2,13 +2,14 @@ package code.metadata.counterparties
 
 import java.util.{Date, UUID}
 
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util._
 import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper.{By, _}
+import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.util.Helpers.tryo
 
 object MapperCounterparties extends Counterparties with MdcLoggable {
@@ -137,16 +138,19 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   otherBankRoutingAddress : String,
                                   otherBranchRoutingScheme: String,
                                   otherBranchRoutingAddress: String,
-                                  isBeneficiary: Boolean
+                                  isBeneficiary: Boolean,
+                                  otherAccountSecondaryRoutingScheme: String,
+                                  otherAccountSecondaryRoutingAddress: String,
+                                  description: String,
+                                  bespoke: List[PostCounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     val metadata = MappedCounterpartyMetadata.create
                                               .thisBankId(thisBankId)
                                               .thisAccountId(thisAccountId)
                                               .holder(name)
                                               .saveMe
-
-    Some(
-    MappedCounterparty.create
+  
+    val mappedCounterparty = MappedCounterparty.create
       .mCounterPartyId(metadata.metadataId)
       .mName(name)
       .mCreatedByUserId(createdByUserId)
@@ -160,8 +164,25 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       .mOtherBranchRoutingAddress(otherBranchRoutingAddress)
       .mOtherBranchRoutingScheme(otherBranchRoutingScheme)
       .mIsBeneficiary(isBeneficiary)
+      .mDescription(description)
+      .mOtherAccountSecondaryRoutingScheme(otherAccountSecondaryRoutingScheme)
+      .mOtherAccountSecondaryRoutingAddress(otherAccountSecondaryRoutingAddress)
       .saveMe()
+  
+    // This is especially for OneToMany table, to save a List to database.
+    bespoke.map(mBespoke => MappedCounterpartyBespoke.create
+      .mKey(mBespoke.key)
+      .mVaule(mBespoke.value)
+      .saveMe()
+    ).map(
+      mappedBespoke =>
+        mappedCounterparty.mBespoke += mappedBespoke
     )
+    
+    Some(
+      mappedCounterparty
+    )
+    
   }
 
  override def checkCounterpartyAvailable(
@@ -391,7 +412,7 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
 object MappedCounterpartyWhereTag extends MappedCounterpartyWhereTag with LongKeyedMetaMapper[MappedCounterpartyWhereTag]
 
 
-class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCounterparty] with IdPK with CreatedUpdated {
+class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCounterparty] with IdPK with CreatedUpdated with OneToMany[Long, MappedCounterparty] {
   def getSingleton = MappedCounterparty
 
   object mCreatedByUserId extends MappedString(this, 36)
@@ -407,8 +428,10 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mOtherBranchRoutingScheme extends MappedString(this, 255)
   object mOtherBranchRoutingAddress extends MappedString(this, 255)
   object mIsBeneficiary extends MappedBoolean(this)
-
-
+  object mDescription extends MappedString(this, 36)
+  object mOtherAccountSecondaryRoutingScheme extends MappedString(this, 255)
+  object mOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
+  object mBespoke extends MappedOneToMany(MappedCounterpartyBespoke, MappedCounterpartyBespoke.mCounterparty, OrderBy(MappedCounterpartyBespoke.id, Ascending))
 
   override def createdByUserId = mCreatedByUserId.get
   override def name = mName.get
@@ -423,8 +446,21 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def otherBranchRoutingAddress: String = mOtherBranchRoutingAddress.get
   override def otherBankRoutingAddress: String = mOtherBankRoutingAddress.get
   override def isBeneficiary: Boolean = mIsBeneficiary.get
+  override def description: String = mDescription.get
+  override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
+  override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
+  override def bespoke: List[PostCounterpartyBespoke] = mBespoke.map(a=>PostCounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
 }
 
 object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {
   override def dbIndexes = UniqueIndex(mCounterPartyId) :: UniqueIndex(mName, mThisBankId, mThisAccountId, mThisViewId) :: super.dbIndexes
 }
+
+class MappedCounterpartyBespoke extends LongKeyedMapper[MappedCounterpartyBespoke] with IdPK {
+  def getSingleton = MappedCounterpartyBespoke
+  
+  object mCounterparty extends MappedLongForeignKey(this, MappedCounterparty)
+  object mKey extends MappedString(this, 255)
+  object mVaule extends MappedString(this, 255)
+}
+object MappedCounterpartyBespoke extends MappedCounterpartyBespoke with LongKeyedMetaMapper[MappedCounterpartyBespoke]{}

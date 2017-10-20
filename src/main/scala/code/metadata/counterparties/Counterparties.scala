@@ -2,6 +2,7 @@ package code.metadata.counterparties
 
 import java.util.Date
 
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.remotedata.RemotedataCounterparties
 import net.liftweb.common.Box
@@ -46,7 +47,11 @@ trait Counterparties {
                           otherBankRoutingAddress: String,
                           otherBranchRoutingScheme: String,
                           otherBranchRoutingAddress: String,
-                          isBeneficiary:Boolean
+                          isBeneficiary:Boolean,
+                          otherAccountSecondaryRoutingScheme: String,
+                          otherAccountSecondaryRoutingAddress: String,
+                          description: String,
+                          bespoke: List[PostCounterpartyBespoke]
                         ): Box[CounterpartyTrait]
 
   def checkCounterpartyAvailable(
@@ -79,18 +84,21 @@ trait Counterparties {
 trait CounterpartyTrait {
   def createdByUserId: String
   def name: String
+  def description: String
   def thisBankId: String
   def thisAccountId: String
   def thisViewId: String
   def counterpartyId: String
   def otherAccountRoutingScheme: String
   def otherAccountRoutingAddress: String
+  def otherAccountSecondaryRoutingScheme: String
+  def otherAccountSecondaryRoutingAddress: String
   def otherBankRoutingScheme: String
   def otherBankRoutingAddress: String
   def otherBranchRoutingScheme: String
   def otherBranchRoutingAddress: String
   def isBeneficiary : Boolean
-
+  def bespoke: List[PostCounterpartyBespoke]
 }
 
 class RemotedataCounterpartiesCaseClasses {
@@ -112,7 +120,12 @@ class RemotedataCounterpartiesCaseClasses {
                                  otherAccountRoutingScheme: String,
                                  otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
                                  otherBranchRoutingScheme: String, otherBranchRoutingAddress: String,
-                                 otherBankRoutingAddress: String, isBeneficiary: Boolean)
+                                 otherBankRoutingAddress: String, isBeneficiary: Boolean,
+                                 otherAccountSecondaryRoutingScheme: String,
+                                 otherAccountSecondaryRoutingAddress: String,
+                                 description: String,
+                                 bespoke: List[PostCounterpartyBespoke]
+  )
 
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 
