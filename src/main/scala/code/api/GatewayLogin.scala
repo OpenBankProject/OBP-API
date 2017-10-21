@@ -391,4 +391,23 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   }
 
 
+  def getUser : Box[User] = {
+    val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+    httpCode match {
+      case 200 =>
+        val payload = GatewayLogin.parseJwt(parameters)
+        payload match {
+          case Full(payload) =>
+            val username = getFieldFromPayloadJson(payload, "username")
+            logger.debug("username: " + username)
+            Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username)
+          case _ =>
+            None
+        }
+      case _  =>
+        None
+    }
+  }
+
+
 }

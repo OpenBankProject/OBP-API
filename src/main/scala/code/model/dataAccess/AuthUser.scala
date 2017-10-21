@@ -37,7 +37,7 @@ import code.accountholder.AccountHolders
 import code.api.GatewayLogin.gateway
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.{DirectLogin, OAuthHandshake}
+import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundUser}
 import net.liftweb.common._
 import net.liftweb.http._
@@ -296,7 +296,7 @@ import net.liftweb.util.Helpers._
       else if (hasAnOAuthHeader) {
         OAuthHandshake.getUser
       } else if (hasGatewayHeader()){
-        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = getGatewayLoginUsername())
+        GatewayLogin.getUser
       } else {
         debug(ErrorMessages.CurrentUserNotFoundException)
         Failure(ErrorMessages.CurrentUserNotFoundException)
