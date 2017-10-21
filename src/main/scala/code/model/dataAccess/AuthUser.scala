@@ -34,6 +34,7 @@ package code.model.dataAccess
 import java.util.UUID
 
 import code.accountholder.AccountHolders
+import code.api.GatewayLogin.gateway
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
@@ -294,6 +295,8 @@ import net.liftweb.util.Helpers._
         DirectLogin.getUser
       else if (hasAnOAuthHeader) {
         OAuthHandshake.getUser
+      } else if (hasGatewayHeader()){
+        Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = getGatewayLoginUsername())
       } else {
         debug(ErrorMessages.CurrentUserNotFoundException)
         Failure(ErrorMessages.CurrentUserNotFoundException)

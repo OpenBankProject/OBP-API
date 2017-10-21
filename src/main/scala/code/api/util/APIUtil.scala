@@ -1324,6 +1324,19 @@ Returns a string showed to the developer
       case _ => Nil
     }
   }
+  /**
+    * Set value of GatewayLogin username.
+    */
+  def setGatewayLoginUsername(value: String) = S.setSessionAttribute(gatewayResponseHeaderName + "username", value)
+  /**
+    * @return - GatewayLogin username Header.
+    */
+  def getGatewayLoginUsername() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "username") match {
+      case Full(h) => h
+      case _ => ""
+    }
+  }
 
   /**
     * Turn a string of format "FooBar" into snake case "foo_bar"
@@ -1609,6 +1622,7 @@ Versions are groups of endpoints in a file
                       setGatewayResponseHeader {
                         GatewayLogin.createJwt(payload, cbsAuthToken)
                       }
+                      setGatewayLoginUsername(u.name)
                       Full(u)
                     case Failure(msg, _, _) =>
                       Failure(msg)
