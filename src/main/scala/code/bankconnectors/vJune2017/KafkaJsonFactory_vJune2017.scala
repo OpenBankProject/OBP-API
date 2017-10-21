@@ -245,15 +245,15 @@ case class InternalCustomer(
   legalName : String,
   mobileNumber : String,
   email : String,
-  faceImage : CustomerFaceImage,
+  faceImage : MockCustomerFaceImage,
   dateOfBirth: Date,
   relationshipStatus: String,
   dependents: Int,
   dobOfDependents: List[Date],
   highestEducationAttained: String,
   employmentStatus: String,
-  creditRating : CreditRating,
-  creditLimit: AmountOfMoney,
+  creditRating : MockCreditRating,
+  creditLimit: MockCreditLimit,
   kycStatus: Boolean,
   lastOkDate: Date
 )extends Customer

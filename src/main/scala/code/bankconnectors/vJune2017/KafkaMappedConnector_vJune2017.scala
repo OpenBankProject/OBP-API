@@ -32,7 +32,7 @@ import code.api.v2_1_0.PostCounterpartyBespoke
 import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.Customer
+import code.customer._
 import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -933,12 +933,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   
   override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] = Future {
-    val req = OutboundGetCustomersByUserIdFuture(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)
-    )
     
-    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
-    val box: Box[List[InternalCustomer]] = processToBox[OutboundGetCustomersByUserIdFuture](req).map(_.extract[InboundGetCustomersByUserIdFuture].data)
+    val box = for {
+      req <- Full(OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)))
+      _<- Full(logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req"))
+      kafkaMessage <- processToBox[OutboundGetCustomersByUserIdFuture](req)
+      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserIdFuture]} ?~! s"$InboundGetCustomersByUserIdFuture extract error"
+      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    } yield{
+      internalCustomer
+    }
+    
     logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
     
     val res: Box[List[InternalCustomer]] = box match {
