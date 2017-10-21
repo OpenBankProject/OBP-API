@@ -1120,7 +1120,7 @@ trait APIMethods300 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      metricsJson,
+      customerJsonV210,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
