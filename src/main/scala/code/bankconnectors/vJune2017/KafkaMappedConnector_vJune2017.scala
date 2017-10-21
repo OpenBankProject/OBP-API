@@ -296,6 +296,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
+        true,
         InternalBasicCustomers(customers =List(
           InternalBasicCustomer(
             bankId="bankId",
@@ -330,12 +331,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         ) :: Nil)
     )
   )
-  override def getBankAccounts(username: String): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String, callMfFlag: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
       
-      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, cbsToken),internalCustomers)
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, cbsToken),callMfFlag,internalCustomers)
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
       val box: Box[List[InboundAccountJune2017]] = processToBox[OutboundGetAccounts](req).map(_.extract[InboundGetAccounts].data)
       logger.debug(s"Kafka getBankAccounts says res is $box")
