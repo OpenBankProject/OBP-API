@@ -1,15 +1,12 @@
 package code.api.v3_0_0
 
-import java.io
-
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{getUserFromAuthorizationHeaderFuture, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v2_0_0.JSONFactory200
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -18,9 +15,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
-import code.customer.Customer
 import code.entitlement.Entitlement
-import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -1179,6 +1174,44 @@ trait APIMethods300 {
             JSONFactory300.createUserJSON (Full(user), entitlements)
           }
         }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      privateAccountsAtOneBank,
+      implementedInApiVersion,
+      "privateAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts/private",
+      "Get private accounts at one bank.",
+      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+         |For each account the API returns the ID and the available views.
+         |
+        |If you want to see more information on the Views, use the Account Detail call.
+         |If you want less information about the account, use the /my accounts call
+         |
+        |
+        |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      coreAccountsJsonV300,
+      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount)
+    )
+  
+    lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! BankNotFound
+            availableAccounts <- Full(Views.views.vend.getNonPublicBankAccounts(u, bankId))
+            accounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+          } yield {
+            val json =JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts)
+            successJsonResponse(Extraction.decompose(json))
+          }
       }
     }
 

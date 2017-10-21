@@ -179,7 +179,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getTransactionTypes ::
                           // Implementations2_0_0.getUser ::
                           //now in V300 Implementations2_0_0.corePrivateAccountsAllBanks ::
-                          Implementations2_0_0.privateAccountsAtOneBank ::
+                          //now in V300 Implementations2_0_0.privateAccountsAtOneBank ::
                           Implementations2_0_0.publicAccountsAllBanks ::
                           Implementations2_0_0.publicAccountsAtOneBank ::
                           Nil
@@ -249,6 +249,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUsers ::
                           Implementations3_0_0.getCustomersForUser ::
                           Implementations3_0_0.getCurrentUser ::
+                          Implementations3_0_0.privateAccountsAtOneBank ::
                           Nil
 
 
