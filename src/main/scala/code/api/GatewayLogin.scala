@@ -150,7 +150,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     if(isFirst.equalsIgnoreCase("true") || // Case is_first="true" OR
        cbsAuthToken.equalsIgnoreCase(""))  // Case There is no CBS_auth_token at all in JWT
     { // Call CBS
-      val res = Connector.connector.vend.getBankAccounts(username) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccounts(username, true) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full(l) =>
           Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
@@ -193,11 +193,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         } match {
           case Full(u) =>
             val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
-            // Update user account views, only when is_first == ture in the GatewayLogin token's parload .
+            // Update user account views, only when is_first == true in the GatewayLogin token's payload .
             if(isFirst.equalsIgnoreCase("true")) {
-              Future {
                 AuthUser.updateUserAccountViews(u)
-              }
             }
             Full((u, Some(getCbsTokens(s).head))) // Return user
           case Empty =>
