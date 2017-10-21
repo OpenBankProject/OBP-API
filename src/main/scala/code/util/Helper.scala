@@ -153,7 +153,7 @@ object Helper{
       * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
       */
     //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
-    val pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
+    val pattern = "([A-Za-z][A-Za-z0-9+.-]*):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
     val validRedirectURL = pattern findFirstIn input
     // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
     // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
