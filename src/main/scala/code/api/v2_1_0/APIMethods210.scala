@@ -1386,7 +1386,7 @@ trait APIMethods210 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      metricsJson,
+      customerJsonV210,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
