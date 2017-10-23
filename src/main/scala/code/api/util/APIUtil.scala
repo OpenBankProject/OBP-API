@@ -1332,7 +1332,12 @@ Returns a string showed to the developer
   /**
     * Set value of GatewayLogin username.
     */
-  def setGatewayLoginCbsToken(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", value)
+  def setGatewayLoginCbsToken(s: S)(value: Option[String]) = {
+    value match  {
+      case Some(v) => s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", v)
+      case _ => // Do nothing
+    }
+  }
   
   /**
     * @return - GatewayLogin username Header.

@@ -219,7 +219,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                         GatewayLogin.createJwt(payload, cbsAuthToken)
                       }
                       setGatewayLoginUsername(s)(u.name)
-                      setGatewayLoginCbsToken(s)(cbsAuthToken.get)
+                      setGatewayLoginCbsToken(s)(cbsAuthToken)
                       fn(Full(u))
                     case Failure(msg, _, _) => errorJsonResponse(msg)
                     case _ => errorJsonResponse(payload, httpCode)
