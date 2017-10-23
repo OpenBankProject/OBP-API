@@ -140,7 +140,7 @@ trait APIMethods300 {
                 createViewsJSON(views)
               }
             }
-          res map { unboxFull(_) }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -358,17 +358,19 @@ trait APIMethods300 {
       //get private accounts for all banks
       case "my" :: "accounts" :: Nil JsonGet json => {
         _ =>
-          for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(u)
-          } yield {
+          val res =
             for {
-              coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+              (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(u)
             } yield {
-              JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts)
+              for {
+                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+              } yield {
+                JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts)
+              }
             }
-          }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -436,7 +438,7 @@ trait APIMethods300 {
                 createCoreTransactionsJSON(transactions)
               }
             }
-          res map { fullBoxOrException(_) }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -504,7 +506,7 @@ trait APIMethods300 {
                 createTransactionsJson(transactions)
               }
             }
-          res map { fullBoxOrException(_) }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
