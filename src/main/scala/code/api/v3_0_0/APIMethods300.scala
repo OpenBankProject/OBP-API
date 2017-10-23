@@ -1148,7 +1148,7 @@ trait APIMethods300 {
           for {
             (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Future {Customer.customerProvider.vend.getCustomersByUserIdBox(u.userId)} map {
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)} map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
