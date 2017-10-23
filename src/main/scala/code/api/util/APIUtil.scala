@@ -1309,7 +1309,7 @@ Returns a string showed to the developer
   /**
     * Set value of Gateway Custom Response Header.
     */
-  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeaderName, value)
+  def setGatewayResponseHeader(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName, value)
   /**
     * @return - Gateway Custom Response Header.
     */
@@ -1582,7 +1582,7 @@ Versions are groups of endpoints in a file
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
     * @return An User wrapped into a Future
     */
-  def getUserFromAuthorizationHeaderFuture(): Future[Box[User]] = {
+  def getUserFromAuthorizationHeaderFuture(): Future[(Box[User], Option[String])] = {
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
@@ -1590,7 +1590,8 @@ Versions are groups of endpoints in a file
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
-          val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+          val s = S
+          val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
             case 200 =>
               val payload = GatewayLogin.parseJwt(parameters)
@@ -1601,34 +1602,34 @@ Versions are groups of endpoints in a file
                       Future {
                         GatewayLogin.getOrCreateConsumer(payload, u)
                       }
-                      setGatewayResponseHeader {
+                      setGatewayResponseHeader(s) {
                         GatewayLogin.createJwt(payload, cbsAuthToken)
                       }
-                      Full(u)
-                    case Failure(msg, _, _) =>
-                      Failure(msg)
+                      (Full(u), cbsAuthToken)
+                    case Failure(msg, t, c) =>
+                      (Failure(msg, t, c), None)
                     case _ =>
-                      Failure(payload)
+                      (Failure(payload), None)
                   }
-                case Failure(msg, _, _) =>
-                  Future { Failure(msg) }
+                case Failure(msg, t, c) =>
+                  Future { (Failure(msg, t, c), None) }
                 case _ =>
-                  Future { Failure(ErrorMessages.GatewayLoginUnknownError) }
+                  Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
               }
             case _ =>
-              Future { Failure(message) }
+              Future { (Failure(message), None) }
           }
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
-          Future { Failure(ErrorMessages.GatewayLoginWhiteListAddresses) }
+          Future { (Failure(ErrorMessages.GatewayLoginWhiteListAddresses), None) }
         case Empty =>
-          Future { Failure(ErrorMessages.GatewayLoginHostPropertyMissing) } // There is no gateway.host in props file
-        case Failure(msg, _, _) =>
-          Future { Failure(msg) }
+          Future { (Failure(ErrorMessages.GatewayLoginHostPropertyMissing), None) } // There is no gateway.host in props file
+        case Failure(msg, t, c) =>
+          Future { (Failure(msg, t, c), None) }
         case _ =>
-          Future { Failure(ErrorMessages.GatewayLoginUnknownError) }
+          Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
       }
     } else {
-      Future { Empty }
+      Future { (Empty, None) }
     }
   }
 
@@ -1636,9 +1637,9 @@ Versions are groups of endpoints in a file
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param errorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def extractUserFromHeaderOrError(errorMsg: String): Future[Box[User]] = {
+  def extractUserFromHeaderOrError(errorMsg: String): Future[(Box[User], Option[String])] = {
     getUserFromAuthorizationHeaderFuture() map {
-      x => fullBoxOrException(x ?~! errorMsg)
+      x => (fullBoxOrException(x._1 ?~! errorMsg), x._2)
     }
   }
 
@@ -1670,6 +1671,12 @@ Versions are groups of endpoints in a file
         throw new Exception(failuresMsg)
       case _ =>
         throw new Exception(UnknownError)
+    }
+  }
+
+  def unboxFullAndWrapIntoFuture[T](box: Box[T])(implicit m: Manifest[T]) : Future[T] = {
+    Future {
+      unboxFull(box)
     }
   }
 

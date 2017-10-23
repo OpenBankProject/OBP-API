@@ -130,7 +130,8 @@ trait APIMethods300 {
           // ************************************* Futures - parallel execution
           val res =
             for {
-              u <- userFuture map { unboxFull(_) }
+              (user, token) <- userFuture
+              u <- unboxFullAndWrapIntoFuture{ user }
               account <- bankAccountFuture map { unboxFull(_) }
             } yield {
               for {
@@ -139,7 +140,7 @@ trait APIMethods300 {
                 createViewsJSON(views)
               }
             }
-          res map { unboxFull(_) }
+          res map { fullBoxOrException(_) }
       }
     }
 
@@ -358,8 +359,9 @@ trait APIMethods300 {
       case "my" :: "accounts" :: Nil JsonGet json => {
         _ =>
           for {
-            user <- extractUserFromHeaderOrError(UserNotLoggedIn)  map { unboxFull(_) }
-            availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(user)
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(u)
           } yield {
             for {
               coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
@@ -412,14 +414,14 @@ trait APIMethods300 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         _ =>
           // Futures - parallel execution *************************************
-          val userFuture =extractUserFromHeaderOrError(UserNotLoggedIn)
+          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
           val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
             x => fullBoxOrException(x ?~! BankAccountNotFound)
           }
           // ************************************* Futures - parallel execution
           val res =
             for {
-              user <- userFuture
+              (user, token) <- userFuture
               bankAccount <- bankAccountFuture map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -434,7 +436,7 @@ trait APIMethods300 {
                 createCoreTransactionsJSON(transactions)
               }
             }
-          res map { unboxFull(_) }
+          res map { fullBoxOrException(_) }
       }
     }
 
@@ -487,7 +489,7 @@ trait APIMethods300 {
           // ************************************* Futures - parallel execution
           val res =
             for {
-              user <- userFuture
+              (user, token) <- userFuture
               bankAccount <- bankAccountFuture map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -502,7 +504,7 @@ trait APIMethods300 {
                 createTransactionsJson(transactions)
               }
             }
-          res map { unboxFull(_) }
+          res map { fullBoxOrException(_) }
       }
     }
 
@@ -603,9 +605,10 @@ trait APIMethods300 {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
         _ =>
           for {
-            user <- extractUserFromHeaderOrError(UserNotLoggedIn) map { unboxFull(_) }
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", user.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
@@ -638,9 +641,10 @@ trait APIMethods300 {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
         _ =>
           for {
-            authUsr <- extractUserFromHeaderOrError(UserNotLoggedIn) map { unboxFull(_) }
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", authUsr.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => fullBoxOrException(x ?~! UserNotFoundByUsername)
@@ -676,9 +680,10 @@ trait APIMethods300 {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
         _ =>
           for {
-            authUsr <- extractUserFromHeaderOrError(UserNotLoggedIn)  map { unboxFull(_) }
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", authUsr.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => fullBoxOrException(x ?~! UserNotFoundByUsername)
@@ -1102,9 +1107,10 @@ trait APIMethods300 {
       case "users" :: Nil JsonGet _ => {
         _ =>
           for {
-            user <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", user.map(_.userId).openOr(""), ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
@@ -1141,8 +1147,9 @@ trait APIMethods300 {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         _ => {
           for {
-            user <- extractUserFromHeaderOrError(UserNotLoggedIn)  map { unboxFull(_) }
-            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(user.userId) map {
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(u.userId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
@@ -1173,10 +1180,11 @@ trait APIMethods300 {
       case "users" :: "current" :: Nil JsonGet _ => {
         _ => {
           for {
-            user <- extractUserFromHeaderOrError(UserNotLoggedIn)  map { unboxFull(_) }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            JSONFactory300.createUserJSON (Full(user), entitlements)
+            JSONFactory300.createUserJSON (user, entitlements)
           }
         }
       }
