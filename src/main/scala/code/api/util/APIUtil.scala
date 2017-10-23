@@ -35,9 +35,10 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.Constant._
+import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
@@ -1313,7 +1314,7 @@ Returns a string showed to the developer
   /**
     * Set value of Gateway Custom Response Header.
     */
-  def setGatewayResponseHeader(value: String) = S.setSessionAttribute(gatewayResponseHeaderName, value)
+  def setGatewayResponseHeader(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName, value)
   /**
     * @return - Gateway Custom Response Header.
     */
@@ -1321,6 +1322,35 @@ Returns a string showed to the developer
     S.getSessionAttribute(gatewayResponseHeaderName) match {
       case Full(h) => List((gatewayResponseHeaderName, h))
       case _ => Nil
+    }
+  }
+  /**
+    * Set value of GatewayLogin username.
+    */
+  def setGatewayLoginUsername(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "username", value)
+  
+  /**
+    * Set value of GatewayLogin username.
+    */
+  def setGatewayLoginCbsToken(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", value)
+  
+  /**
+    * @return - GatewayLogin username Header.
+    */
+  def getGatewayLoginUsername() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "username") match {
+      case Full(h) => h
+      case _ => ""
+    }
+  }
+  
+  /**
+    * @return - GatewayLogin cbsToken Header.
+    */
+  def getGatewayLoginCbsToken() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "cbstoken") match {
+      case Full(h) => h
+      case _ => ""
     }
   }
 
@@ -1600,14 +1630,16 @@ Versions are groups of endpoints in a file
               val payload = GatewayLogin.parseJwt(parameters)
               payload match {
                 case Full(payload) =>
+                  val s = S
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
                     case Full((u, cbsAuthToken)) => // Authentication is successful
                       Future {
                         GatewayLogin.getOrCreateConsumer(payload, u)
                       }
-                      setGatewayResponseHeader {
+                      setGatewayResponseHeader(s) {
                         GatewayLogin.createJwt(payload, cbsAuthToken)
                       }
+                      setGatewayLoginUsername(s)(u.name)
                       Full(u)
                     case Failure(msg, _, _) =>
                       Failure(msg)
