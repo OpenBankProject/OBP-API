@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
@@ -90,13 +90,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val exampleDate = simpleDateFormat.parse("22/08/2013")
   val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-  def currentResourceUsername = AuthUser.getCurrentUserUsername
+  def currentResourceUsername = APIUtil.getGatewayLoginUsername
+  def cbsToken = APIUtil.getGatewayLoginCbsToken
+
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "OBP-6001: ..."
   
   //TODO, this a temporary way, we do not know when should we update the MfToken, for now, we update it once it call the override def getBankAccounts(username: String).
-  var cbsToken = ""
 //  var currentResourceUsername = ""
   
   //////////////////////////////////////////////////////////////////////////////
@@ -343,8 +344,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       logger.debug(s"Kafka getBankAccounts says res is $box")
       box match {
         case Full(list) if (list.head.errorCode=="") =>
-          cbsToken = list.head.cbsToken
-//          currentResourceUsername = username
           Full(list)
         case Full(list) if (list.head.errorCode!="") =>
           Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
@@ -935,7 +934,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] = Future {
+  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] =  {
     
     val box = for {
       req <- Full(OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)))
@@ -961,7 +960,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
-    res
+    Future{res}
   }
   
   
