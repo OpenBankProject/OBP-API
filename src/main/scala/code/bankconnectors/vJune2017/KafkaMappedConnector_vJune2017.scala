@@ -90,14 +90,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val exampleDate = simpleDateFormat.parse("22/08/2013")
   val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-  
+  def currentResourceUsername = AuthUser.getCurrentUserUsername
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "OBP-6001: ..."
   
   //TODO, this a temporary way, we do not know when should we update the MfToken, for now, we update it once it call the override def getBankAccounts(username: String).
   var cbsToken = ""
-  var currentResourceUsername = ""
+//  var currentResourceUsername = ""
   
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
@@ -344,7 +344,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       box match {
         case Full(list) if (list.head.errorCode=="") =>
           cbsToken = list.head.cbsToken
-          currentResourceUsername = username
+//          currentResourceUsername = username
           Full(list)
         case Full(list) if (list.head.errorCode!="") =>
           Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
