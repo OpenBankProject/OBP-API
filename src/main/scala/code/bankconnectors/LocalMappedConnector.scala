@@ -1526,7 +1526,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   
   
-  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] =
-    Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =
+    Customer.customerProvider.vend.getCustomersByUserIdBox(userId)
   
 }

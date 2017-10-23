@@ -934,7 +934,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] =  {
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
     
     val box = for {
       req <- Full(OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)))
@@ -960,7 +960,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
-    Future{res}
+    res
   }
   
   
