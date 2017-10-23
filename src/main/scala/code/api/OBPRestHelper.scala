@@ -205,7 +205,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
-          val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+          val s = S
+          val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
             case 200 =>
               val payload = GatewayLogin.parseJwt(parameters)
