@@ -51,7 +51,7 @@ object MappedCustomerProvider extends CustomerProvider {
     MappedCustomer.findAll(ByList(MappedCustomer.mCustomerId, customerIds))
   }
 
-  override def getCustomersByUserIdFuture(userId: String): Box[List[Customer]]= {
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]]= {
     Full(getCustomersByUserId(userId))
   }
 

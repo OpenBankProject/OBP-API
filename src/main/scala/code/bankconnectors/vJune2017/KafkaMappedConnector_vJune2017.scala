@@ -934,7 +934,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserId(userId: String): Box[List[Customer]] =  {
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
     
     val box = for {
       req <- Full(OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken)))

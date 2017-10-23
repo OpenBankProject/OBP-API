@@ -1140,7 +1140,7 @@ trait APIMethods220 {
         user => {
           for {
             user <- user ?~! UserNotLoggedIn
-            customers <- Connector.connector.vend.getCustomersByUserId(user.userId)
+            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
             // Return
