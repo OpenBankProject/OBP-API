@@ -140,7 +140,7 @@ trait APIMethods300 {
                 createViewsJSON(views)
               }
             }
-          res map { fullBoxOrException(_) }
+          res map { unboxFull(_) }
       }
     }
 
