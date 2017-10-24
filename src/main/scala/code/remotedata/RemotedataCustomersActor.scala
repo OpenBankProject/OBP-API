@@ -25,7 +25,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
     case cc.getCustomersByUserIdFuture(userId: String) =>
       logger.debug("getCustomersByUserIdFuture(" + userId + ")")
-      sender ! (mapper.getCustomersByUserId(userId))
+      sender ! (mapper.getCustomersByUserIdF(userId))
 
     case cc.getCustomerByCustomerId(customerId: String) =>
       logger.debug("getCustomerByCustomerId(" + customerId + ")")
