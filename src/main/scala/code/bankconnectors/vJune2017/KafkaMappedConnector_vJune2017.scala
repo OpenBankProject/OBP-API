@@ -97,9 +97,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "OBP-6001: ..."
   
-  //TODO, this a temporary way, we do not know when should we update the MfToken, for now, we update it once it call the override def getBankAccounts(username: String).
-//  var currentResourceUsername = ""
-  
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
   messageDocs += MessageDoc(
