@@ -29,6 +29,7 @@ case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrai
 case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
 case class OutboundGetAccounts(authInfo: AuthInfo, callMfFlag: Boolean, customers:InternalBasicCustomers) extends TopicTrait
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
+case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundGetCoreBankAccounts(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
@@ -57,7 +58,7 @@ case class OutboundGetCounterparties(
   counterparty: InternalOutboundGetCounterparties
 ) extends TopicTrait
 
-case class OutboundGetCustomersByUserIdFuture(
+case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
 
@@ -79,7 +80,7 @@ case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCrea
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
-case class InboundGetCustomersByUserIdFuture(authInfo: AuthInfo, data: List[InternalCustomer])
+case class InboundGetCustomersByUserId(authInfo: AuthInfo, data: List[InternalCustomer])
 
 
 

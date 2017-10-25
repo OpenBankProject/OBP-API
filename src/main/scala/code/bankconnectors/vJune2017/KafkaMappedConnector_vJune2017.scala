@@ -470,9 +470,79 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }}("getBankAccount")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Account",
+    process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
-    description = "getBankAccount from kafka",
+    description = "checkBankAccountExists from kafka",
+    exampleOutboundMessage = decompose(
+      OutboundCheckBankAccountExists(
+        authInfoExample,
+        "bankId",
+        "accountId"
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetAccountbyAccountID(
+        authInfoExample,
+        InboundAccountJune2017(
+          errorCode = errorCodeExample,
+          inboundStatusMessagesExample,
+          cbsToken = "cbsToken",
+          bankId = "gh.29.uk",
+          branchId = "222",
+          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          accountNumber = "123",
+          accountType = "AC",
+          balanceAmount = "50",
+          balanceCurrency = "EUR",
+          owners = "Susan" :: " Frank" :: Nil,
+          viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+          bankRoutingScheme = "iban",
+          bankRoutingAddress = "bankRoutingAddress",
+          branchRoutingScheme = "branchRoutingScheme",
+          branchRoutingAddress = " branchRoutingAddress",
+          accountRoutingScheme = "accountRoutingScheme",
+          accountRoutingAddress = "accountRoutingAddress"
+        )
+      )
+    )
+  )
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId): Box[BankAccountJune2017] = saveConnectorMetric{
+    memoizeSync(getAccountTTL millisecond){
+      // Generate random uuid to be used as request-response match id
+      val req = OutboundCheckBankAccountExists(
+        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
+        bankId = bankId.toString,
+        accountId = accountId.value
+      )
+      logger.debug(s"Kafka checkBankAccountExists says: req is: $req")
+      
+      val box = for {
+        kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
+        inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error"
+        inboundAccountJune2017 <- Full(inboundGetAccountbyAccountID.data)
+      } yield{
+        inboundAccountJune2017
+      }
+      
+      logger.debug(s"Kafka checkBankAccountExists says res is $box")
+      box match {
+        case Full(f) if (f.errorCode=="") =>
+          Full(new BankAccountJune2017(f))
+        case Full(f) if (f.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }}("getBankAccount")
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.coreBankAccounts",
+    messageFormat = messageFormat,
+    description = "getCoreBankAccounts from kafka",
     exampleOutboundMessage = decompose(
       OutboundGetAccountbyAccountID(
         authInfoExample,
@@ -535,7 +605,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
-    }}("getBankAccount")
+    }}("getBankAccounts")
   
   
   messageDocs += MessageDoc(
@@ -595,7 +665,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         // Populate fields and generate result
         val res = for {
           r: InternalTransaction <- list
-          bankAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))  ?~! ErrorMessages.BankAccountNotFound
+          bankAccount <- checkBankAccountExists(BankId(r.bankId), AccountId(r.accountId))  ?~! ErrorMessages.BankAccountNotFound
           transaction: Transaction <- createNewTransaction(bankAccount,r)
         } yield {
           transaction
@@ -656,7 +726,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
       case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
         for {
-          bankAccount <- getBankAccount(BankId(x.bankId), AccountId(x.accountId)) ?~! ErrorMessages.BankAccountNotFound
+          bankAccount <- checkBankAccountExists(BankId(x.bankId), AccountId(x.accountId)) ?~! ErrorMessages.BankAccountNotFound
           transaction: Transaction <- createNewTransaction(bankAccount,x)
         } yield {
           transaction
@@ -988,12 +1058,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getCustomersByUserIdBox from kafka ",
     exampleOutboundMessage = decompose(
-      OutboundGetCustomersByUserIdFuture(
+      OutboundGetCustomersByUserId(
         authInfoExample
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetCustomersByUserIdFuture(
+      InboundGetCustomersByUserId(
         authInfoExample,
         Nil
       )
@@ -1002,12 +1072,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
     
-    val req = OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken))
+    val req = OutboundGetCustomersByUserId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken))
     logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
     
     val box = for {
-      kafkaMessage <- processToBox[OutboundGetCustomersByUserIdFuture](req)
-      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserIdFuture]} ?~! s"$InboundGetCustomersByUserIdFuture extract error"
+      kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
+      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserId]} ?~! s"$InboundGetCustomersByUserId extract error"
       internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
     } yield{
       internalCustomer
