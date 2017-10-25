@@ -1182,7 +1182,7 @@ trait APIMethods220 {
         
           for {
             params <- getTransactionParams(json)
-            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            bankAccount <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)

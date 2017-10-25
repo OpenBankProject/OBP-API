@@ -252,6 +252,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
   }
   
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+    getBankAccount(bankId: BankId, accountId: AccountId)
+  }
+  
   override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= {
     Full(
         BankIdAcountIds
