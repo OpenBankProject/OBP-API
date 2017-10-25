@@ -35,9 +35,10 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.Constant._
+import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
@@ -286,6 +287,10 @@ import code.api.util.APIUtil._
   // This error may not be shown to user, just for debugging.
   val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
   val AnUnspecifiedOrInternalErrorOccurred = "OBP-50005: An unspecified or internal error occurred."
+  val KafkaInterruptedException = "OBP-50006: Kafka interrupted exception."
+  val KafkaExecutionException = "OBP-50007: Kafka execution exception."
+  val KafkaStreamTimeoutException = "OBP-50008: Akka Kafka stream timeout exception."
+  val KafkaUnknownError = "OBP-50009: Kafka unknown error."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
@@ -1317,6 +1322,35 @@ Returns a string showed to the developer
     S.getSessionAttribute(gatewayResponseHeaderName) match {
       case Full(h) => List((gatewayResponseHeaderName, h))
       case _ => Nil
+    }
+  }
+  /**
+    * Set value of GatewayLogin username.
+    */
+  def setGatewayLoginUsername(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "username", value)
+  
+  /**
+    * Set value of GatewayLogin cbsToken.
+    */
+  def setGatewayLoginCbsToken(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", value)
+  
+  /**
+    * @return - GatewayLogin username Header.
+    */
+  def getGatewayLoginUsername() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "username") match {
+      case Full(h) => h
+      case _ => ""
+    }
+  }
+  
+  /**
+    * @return - GatewayLogin cbsToken Header.
+    */
+  def getGatewayLoginCbsToken() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "cbstoken") match {
+      case Full(h) => h
+      case _ => ""
     }
   }
 

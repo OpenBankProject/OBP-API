@@ -2,10 +2,8 @@ package code.actorsystem
 
 import akka.util.Timeout
 import code.api.APIFailure
-import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,7 +39,7 @@ trait ObpActorInit extends MdcLoggable{
       case _ => Empty ~> APIFailure(s"future extraction to box failed", 501)
     }
     
-    tryo{Await.result(r, TIMEOUT).head} ?~! {FutureTimeoutException}
+    Await.result(r, TIMEOUT)
     
   }
 

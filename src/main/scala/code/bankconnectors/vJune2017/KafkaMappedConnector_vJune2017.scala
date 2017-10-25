@@ -27,17 +27,16 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v2_1_0.PostCounterpartyBespoke
-import code.api.v3_0_0.{CoreAccountJsonV300}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.Customer
+import code.customer._
 import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
@@ -49,6 +48,8 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
@@ -59,7 +60,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   type AccountType = BankAccountJune2017
   
-  implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.getClass.getSimpleName
+  implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.toString
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
@@ -89,13 +90,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val exampleDate = simpleDateFormat.parse("22/08/2013")
   val emptyObjectJson: JValue = decompose(Nil)
   def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-  def currentResourceUsername = AuthUser.getCurrentUserUsername
+  def getUsername = APIUtil.getGatewayLoginUsername
+  def getCbsToken = APIUtil.getGatewayLoginCbsToken
+
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "OBP-6001: ..."
   
   //TODO, this a temporary way, we do not know when should we update the MfToken, for now, we update it once it call the override def getBankAccounts(username: String).
-  var cbsToken = ""
+//  var currentResourceUsername = ""
   
   //////////////////////////////////////////////////////////////////////////////
   // the following methods, have been implemented in new Adapter code
@@ -123,7 +126,16 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val req = OutboundGetAdapterInfo((new Date()).toString)
     
     logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
-    val box = processToBox[OutboundGetAdapterInfo](req).map(_.extract[InboundAdapterInfo].data)
+  
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
+      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error"
+      inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
+    } yield{
+      inboundAdapterInfoInternal
+    }
+    
+    
     logger.debug(s"Kafka getAdapterInfo Res says:  is: $Box")
     
     val res = box match {
@@ -168,10 +180,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(getUserTTL millisecond) {
       
-      val req = OutboundGetUserByUsernamePassword(AuthInfo(currentResourceUserId, username, cbsToken), password = password)
+      val req = OutboundGetUserByUsernamePassword(AuthInfo(currentResourceUserId, username, getCbsToken), password = password)
   
       logger.debug(s"Kafka getUser Req says:  is: $req")
-      val box = processToBox[OutboundGetUserByUsernamePassword](req).map(_.extract[InboundGetUserByUsernamePassword].data)
+  
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetUserByUsernamePassword](req)
+        inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"$InboundGetUserByUsernamePassword extract error"
+        inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
+      } yield{
+        inboundValidatedUser
+      }
+      
       logger.debug(s"Kafka getUser Res says:  is: $Box")
       
       val res = box match {
@@ -216,9 +236,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(getBanksTTL millisecond){
-      val req = OutboundGetBanks(AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken))
+      val req = OutboundGetBanks(AuthInfo(currentResourceUserId, getUsername, getCbsToken))
       logger.info(s"Kafka getBanks Req is: $req")
-      val box: Box[List[InboundBank]] = processToBox[OutboundGetBanks](req).map(_.extract[InboundGetBanks].data)
+      
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetBanks](req)
+        inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error"
+        inboundBanks <- Full(inboundGetBanks.data)
+      } yield{
+        inboundBanks
+      }
+      
+      
       logger.debug(s"Kafka getBanks Res says:  is: $Box")
       val res = box match {
         case Full(list) if (list.head.errorCode=="") =>
@@ -263,11 +292,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(getBankTTL millisecond){
       val req = OutboundGetBank(
-        authInfo = AuthInfo(currentResourceUsername, currentResourceUserId, cbsToken),
+        authInfo = AuthInfo(getUsername, currentResourceUserId, getCbsToken),
         bankId = bankId.toString
       )
       logger.debug(s"Kafka getBank Req says:  is: $req")
-      val box =  processToBox[OutboundGetBank](req).map(_.extract[InboundGetBank].data)
+  
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetBank](req)
+        inboundGetBank <- tryo{kafkaMessage.extract[InboundGetBank]} ?~! s"$InboundGetBank extract error"
+        inboundBank <- Full(inboundGetBank.data)
+      } yield{
+        inboundBank
+      }
+      
+      
       logger.debug(s"Kafka getBank Res says:  is: $Box") 
       
       box match {
@@ -295,6 +333,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
+        true,
         InternalBasicCustomers(customers =List(
           InternalBasicCustomer(
             bankId="bankId",
@@ -329,18 +368,25 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         ) :: Nil)
     )
   )
-  override def getBankAccounts(username: String): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String, callMfFlag: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
       
-      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, cbsToken),internalCustomers)
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),callMfFlag,internalCustomers)
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
-      val box: Box[List[InboundAccountJune2017]] = processToBox[OutboundGetAccounts](req).map(_.extract[InboundGetAccounts].data)
+  
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetAccounts](req)
+        inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error"
+        inboundAccountJune2017 <- Full(inboundGetAccounts.data)
+      } yield{
+        inboundAccountJune2017
+      }
       logger.debug(s"Kafka getBankAccounts says res is $box")
+      
       box match {
         case Full(list) if (list.head.errorCode=="") =>
-          cbsToken = list.head.cbsToken
           Full(list)
         case Full(list) if (list.head.errorCode!="") =>
           Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
@@ -394,12 +440,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     memoizeSync(getAccountTTL millisecond){
       // Generate random uuid to be used as request-response match id
       val req = OutboundGetAccountbyAccountID(
-        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
         bankId = bankId.toString,
         accountId = accountId.value
       )
       logger.debug(s"Kafka getBankAccount says: req is: $req")
-      val box: Box[InboundAccountJune2017] = processToBox[OutboundGetAccountbyAccountID](req).map(_.extract[InboundGetAccountbyAccountID].data)
+  
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
+        inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error"
+        inboundAccountJune2017 <- Full(inboundGetAccountbyAccountID.data)
+      } yield{
+        inboundAccountJune2017
+      }
+      
       logger.debug(s"Kafka getBankAccount says res is $box")
       box match {
         case Full(f) if (f.errorCode=="") =>
@@ -455,13 +509,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     memoizeSync(getAccountTTL millisecond){
       
       val req = OutboundGetCoreBankAccounts(
-        authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
         BankIdAccountIds
       )
-      
       logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
-      val box: Box[List[InternalInboundCoreAccount]] = processToBox[OutboundGetCoreBankAccounts](req).map(_.extract[InboundGetCoreBankAccounts].data)
+  
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
+        inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error"
+        internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
+      } yield{
+        internalInboundCoreAccounts
+      }
       logger.debug(s"Kafka getCoreBankAccounts says res is $box")
+      
       box match {
         case Full(f) if (f.head.errorCode=="") =>
           Full(f.map( x => CoreAccountJsonV300(x.id,x.label,x.bank_id,x.account_routing)))
@@ -494,24 +555,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundGetTransactions(
         authInfoExample,
-        InternalTransaction(
-          errorCodeExample,
-          inboundStatusMessagesExample,
-          transactionId = "1234",
-          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-          amount = "100",
-          bankId = "gh.29.uk",
-          completedDate = "",
-          counterpartyId = "1234",
-          counterpartyName = "obp",
-          currency = "EUR",
-          description = "Good Boy",
-          newBalanceAmount = "10000",
-          newBalanceCurrency = "1000",
-          postedDate = "",
-          `type` = "AC",
-          userId = "1234"
-        ):: Nil
+         Nil
       ))
   )
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -525,17 +569,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
     
     val req = OutboundGetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = currentResourceUsername,cbsToken = cbsToken),
+      authInfo = AuthInfo(userId = currentResourceUserId, username = getUsername,cbsToken = getCbsToken),
       bankId = bankId.toString,
       accountId = accountId.value,
       limit = limit.value,
       fromDate = fromDate.value.toString,
       toDate = toDate.value.toString
     )
-    
-    implicit val formats = net.liftweb.json.DefaultFormats
     logger.debug(s"Kafka getTransactions says: req is: $req")
-    val box= processToBox[OutboundGetTransactions](req).map(_.extract[InboundGetTransactions].data)
+  
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetTransactions](req)
+      inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InboundGetTransactions extract error"
+      internalTransactionJune2017s <- Full(inboundGetTransactions.data)
+    } yield{
+      internalTransactionJune2017s
+    }
     logger.debug(s"Kafka getTransactions says: res is: $box")
     
     box match {
@@ -579,36 +628,25 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundGetTransaction(
         authInfoExample,
-        InternalTransaction(
-          errorCode = errorCodeExample,
-          inboundStatusMessagesExample,
-          transactionId = "1234",
-          accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-          amount = "100",
-          bankId = "gh.29.uk",
-          completedDate = "",
-          counterpartyId = "1234",
-          counterpartyName = "obp",
-          currency = "EUR",
-          description = "Good Boy",
-          newBalanceAmount = "10000",
-          newBalanceCurrency = "1000",
-          postedDate = "",
-          `type` = "AC",
-          userId = "1234"
-        )
+        null
       ))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    val req = OutboundGetTransaction(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+    
+    val req =  OutboundGetTransaction(
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       bankId = bankId.toString,
       accountId = accountId.value,
       transactionId = transactionId.toString)
-    
-    // Since result is single account, we need only first list entry
     logger.debug(s"Kafka getTransaction Req says:  is: $req")
-    val box: Box[InternalTransaction] = processToBox[OutboundGetTransaction](req).map(_.extract[InboundGetTransaction].data)
+    
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetTransaction](req)
+      inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InboundGetTransaction extract error"
+      internalTransactionJune2017 <- Full(inboundGetTransaction.data)
+    } yield{
+      internalTransactionJune2017
+    }
     logger.debug(s"Kafka getTransaction Res says: is: $box")
     
     box match {
@@ -659,7 +697,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
     val req = OutboundCreateChallengeJune2017(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       bankId = bankId.value,
       accountId = accountId.value,
       userId = userId,
@@ -668,7 +706,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       transactionRequestId = transactionRequestId
     )
     logger.debug(s"Kafka createChallenge Req says:  is: $req")
-    val box: Box[InternalCreateChallengeJune2017] = processToBox[OutboundCreateChallengeJune2017](req).map(_.extract[InboundCreateChallengeJune2017].data)
+    
+    val box = for {
+      kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
+      inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error"
+      internalCreateChallengeJune2017 <- Full(inboundCreateChallengeJune2017.data)
+    } yield{
+      internalCreateChallengeJune2017
+    }
     logger.debug(s"Kafka createChallenge Res says:  is: $Box")
     
     val res = box match {
@@ -745,7 +790,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] = {
     val req = OutboundCreateCounterparty(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = OutboundCounterparty(
         name: String,
         description: String,
@@ -765,16 +810,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         bespoke: List[PostCounterpartyBespoke]
       )
     )
-  
     logger.debug(s"Kafka createCounterparty Req says: is: $req")
-    val box: Box[InternalCounterparty] = processToBox[OutboundCreateCounterparty](req).map(_.extract[InboundCreateCounterparty].data)
+  
+    val box = for {
+      kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
+      inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error"
+      internalCounterparty <- Full(inboundCreateCounterparty.data)
+    } yield{
+      internalCounterparty
+    }
     logger.debug(s"Kafka createCounterparty Res says: is: $box")
     
     val res: Box[CounterpartyTrait] = box match {
       case Full(x) if (x.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -819,7 +870,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val req = OutboundGetTransactionRequests210(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = OutboundTransactionRequests(
         accountId = fromAccount.accountId.value,
         accountType = fromAccount.accountType,
@@ -832,16 +883,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         accountRoutingAddress= fromAccount.accountRoutingAddress
       )
     )
-  
     logger.debug(s"Kafka createCounterparty Req says: is: $req")
-    val box: Box[InternalGetTransactionRequests] = processToBox[OutboundGetTransactionRequests210](req).map(_.extract[InboundGetTransactionRequests210].data)
+    
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
+      inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InboundGetTransactionRequests210 extract error"
+      internalGetTransactionRequests <- Full(inboundGetTransactionRequests210.data)
+    } yield{
+      internalGetTransactionRequests
+    }
     logger.debug(s"Kafka createCounterparty Res says: is: $box")
   
     val res: Box[List[TransactionRequest]] = box match {
       case Full(x) if (x.errorCode=="")  =>
         Full(x.transactionRequests)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -886,23 +943,29 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = {
     val req = OutboundGetCounterparties(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = InternalOutboundGetCounterparties(
         thisBankId = thisBankId.value,
         thisAccountId = thisAccountId.value,
         viewId = viewId.value
       )
     )
-  
     logger.debug(s"Kafka getCounterparties Req says: is: $req")
-    val box: Box[List[InternalCounterparty]] = processToBox[OutboundGetCounterparties](req).map(_.extract[InboundGetCounterparties].data)
+    
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetCounterparties](req)
+      inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error"
+      internalCounterparties <- Full(inboundGetCounterparties.data)
+    } yield{
+      internalCounterparties
+    }
     logger.debug(s"Kafka getCounterparties Res says: is: $box")
   
     val res: Box[List[CounterpartyTrait]] = box match {
       case Full(x) if (x.head.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
-        Failure("OBP-Error:"+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -913,6 +976,52 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     res
   }
   
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.CustomersByUserIdBox",
+    messageFormat = messageFormat,
+    description = "getCustomersByUserIdBox from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetCustomersByUserIdFuture(
+        authInfoExample
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCustomersByUserIdFuture(
+        authInfoExample,
+        Nil
+      )
+    )
+  )
+  
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
+    
+    val req = OutboundGetCustomersByUserIdFuture(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken))
+    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+    
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetCustomersByUserIdFuture](req)
+      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserIdFuture]} ?~! s"$InboundGetCustomersByUserIdFuture extract error"
+      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    } yield{
+      internalCustomer
+    }
+    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
+    
+    val res: Box[List[InternalCustomer]] = box match {
+      case Full(x) if (x.head.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.head.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
   
   
   /////////////////////////////////////////////////////////////////////////////
