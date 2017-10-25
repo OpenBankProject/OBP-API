@@ -927,7 +927,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     else
       Empty
 
-  def getUserFromOAuthHeaderFuture(): Future[Box[User]] = {
+  def getUserFromOAuthHeaderFuture(): Future[(Box[User], Option[String])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
@@ -937,7 +937,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       _ <- Future { if (httpCode == 200) Full("ok") else Empty } map { x => APIUtil.fullBoxOrException(x ?~! message) }
       user <- getUserFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
     } yield {
-      user
+      (user, None)
     }
   }
   def getUserFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[User]] = {
