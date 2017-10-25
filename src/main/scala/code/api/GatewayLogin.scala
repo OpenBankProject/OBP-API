@@ -158,8 +158,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
         case Empty =>
           Empty
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
       }
     } else { // Do not call CBS
       Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
@@ -177,8 +177,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Full(u, None)
           case Empty =>
             Failure(ErrorMessages.GatewayLoginCannotFindUser)
-          case Failure(msg, _, _) =>
-            Failure(msg)
+          case Failure(msg, t, c) =>
+            Failure(msg, t, c)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
@@ -204,8 +204,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Full((u, Some(getCbsTokens(s).head))) // Return user
           case Empty =>
             Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
-          case Failure(msg, _, _) =>
-            Failure(msg)
+          case Failure(msg, t, c) =>
+            Failure(msg, t, c)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
@@ -216,8 +216,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case Empty =>
         logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
         Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, t, c) =>
+        Failure(msg, t, c)
       case _ =>
         Failure(ErrorMessages.GatewayLoginUnknownError)
     }
@@ -236,8 +236,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               Full(u, None)
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotFindUser)
-            case Failure(msg, _, _) =>
-              Failure(msg)
+            case Failure(msg, t, c) =>
+              Failure(msg, t, c)
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
@@ -255,8 +255,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               Full((u, Some(getCbsTokens(s).head))) // Return user
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
-            case Failure(msg, _, _) =>
-              Failure(msg)
+            case Failure(msg, t, c) =>
+              Failure(msg, t, c)
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
@@ -271,9 +271,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           Future {
             Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
           }
-        case Failure(msg, _, _) =>
+        case Failure(msg, t, c) =>
           Future {
-            Failure(msg)
+            Failure(msg, t, c)
           }
         case _ =>
           Future {
