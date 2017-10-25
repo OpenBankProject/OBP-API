@@ -55,10 +55,8 @@ object MappedCustomerProvider extends CustomerProvider {
     Full(getCustomersByUserId(userId))
   }
 
-  override def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]]= {
-    Future {
-      getCustomersByUserIdF(userId)
-    }
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]]= {
+    Full(getCustomersByUserId(userId))
   }
 
   override def getBankIdByCustomerId(customerId: String): Box[String] = {

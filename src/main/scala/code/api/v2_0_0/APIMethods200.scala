@@ -14,6 +14,7 @@ import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFacto
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{bankAccountsListToJson, _}
+import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
