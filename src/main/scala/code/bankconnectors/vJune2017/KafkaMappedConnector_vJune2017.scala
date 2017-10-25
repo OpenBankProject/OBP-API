@@ -777,7 +777,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -844,7 +844,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x.transactionRequests)
       case Full(x) if (x.errorCode!="") =>
-        Failure("OBP-Error:"+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -905,7 +905,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.head.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
-        Failure("OBP-Error:"+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -918,9 +918,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.counterparties",
+    process = "obp.get.CustomersByUserIdBox",
     messageFormat = messageFormat,
-    description = "getCounterparties from kafka ",
+    description = "getCustomersByUserIdBox from kafka ",
     exampleOutboundMessage = decompose(
       OutboundGetCustomersByUserIdFuture(
         authInfoExample
@@ -952,7 +952,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.head.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
-        Failure("OBP-Error:"+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
