@@ -374,7 +374,7 @@ trait BankAccount extends MdcLoggable {
       true
     else
       user match {
-        case Some(u) => u.permittedView(view, this)
+        case Some(u) => u.permittedView(view)
         case _ => false
       }
   }

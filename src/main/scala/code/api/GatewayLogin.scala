@@ -51,12 +51,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object JSONFactoryGateway {
   case class TokenJSON(
-                        username: String,
+                        login_user_name: String,
                         is_first: Option[Boolean],
-                        CBS_auth_token: Option[String],
+                        app_id: String,
+                        app_name: String,
                         timestamp: String,
-                        consumer_id: String,
-                        consumer_name: String
+                        cbs_token: Option[String],
+                        temenos_id: String
                       )
 }
 
@@ -65,22 +66,24 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
 
   def createJwt(payloadAsJsonString: String, cbsAuthToken: Option[String]) : String = {
-    val username = getFieldFromPayloadJson(payloadAsJsonString, "username")
-    val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "consumer_id")
-    val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "consumer_name")
+    val username = getFieldFromPayloadJson(payloadAsJsonString, "login_user_name")
+    val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "app_id")
+    val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "app_name")
     val isFirst = getFieldFromPayloadJson(payloadAsJsonString, "is_first")
-    val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "timestamp")
+    val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "time_stamp")
+    val temenosId = getFieldFromPayloadJson(payloadAsJsonString, "temenos_id")
     val cbsToken = cbsAuthToken match {
       case Some(v) => v
-      case None => getFieldFromPayloadJson(payloadAsJsonString, "CBS_auth_token")
+      case None => getFieldFromPayloadJson(payloadAsJsonString, "cbs_token")
     }
     val json = JSONFactoryGateway.TokenJSON(
-      username = username,
+      login_user_name = username,
       is_first = None,
-      CBS_auth_token = Some(cbsToken),
+      app_id = consumerId,
+      app_name = consumerName,
       timestamp = timestamp,
-      consumer_id = consumerId,
-      consumer_name = consumerName
+      cbs_token = Some(cbsToken),
+      temenos_id = temenosId
     )
     val header = JwtHeader("HS256")
     val claimsSet = JwtClaimsSet(compactRender(Extraction.decompose(json)))
@@ -143,12 +146,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   def refreshBankAccounts(jwtPayload: String) : Box[String] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
-    val cbsAuthToken = getFieldFromPayloadJson(jwtPayload, "CBS_auth_token")
-    val username = getFieldFromPayloadJson(jwtPayload, "username")
-    logger.debug("isFirst : " + isFirst)
-    logger.debug("cbsAuthToken : " + cbsAuthToken)
-    if(isFirst.equalsIgnoreCase("true") || // Case is_first="true" OR
-       cbsAuthToken.equalsIgnoreCase(""))  // Case There is no CBS_auth_token at all in JWT
+    val cbsAuthToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
+    val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
+    logger.debug("is_first : " + isFirst)
+    logger.debug("cbs_token : " + cbsAuthToken)
+    if(isFirst.equalsIgnoreCase("true")) // Case is_first="true"
     { // Call CBS
       val res = Connector.connector.vend.getBankAccounts(username, true) // Box[List[InboundAccountJune2017]]//
       res match {
@@ -156,8 +158,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
         case Empty =>
           Empty
-        case Failure(msg, _, _) =>
-          Failure(msg)
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
       }
     } else { // Do not call CBS
       Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
@@ -165,8 +167,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   }
 
   def getOrCreateResourceUser(jwtPayload: String) : Box[(User, Option[String])] = {
-    val username = getFieldFromPayloadJson(jwtPayload, "username")
-    logger.debug("username: " + username)
+    val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
+    logger.debug("login_user_name: " + username)
     refreshBankAccounts(jwtPayload) match {
       case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
         logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
@@ -175,8 +177,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Full(u, None)
           case Empty =>
             Failure(ErrorMessages.GatewayLoginCannotFindUser)
-          case Failure(msg, _, _) =>
-            Failure(msg)
+          case Failure(msg, t, c) =>
+            Failure(msg, t, c)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
@@ -200,8 +202,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Full((u, Some(getCbsTokens(s).head))) // Return user
           case Empty =>
             Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
-          case Failure(msg, _, _) =>
-            Failure(msg)
+          case Failure(msg, t, c) =>
+            Failure(msg, t, c)
           case _ =>
             Failure(ErrorMessages.GatewayLoginUnknownError)
         }
@@ -212,15 +214,15 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case Empty =>
         logger.debug(ErrorMessages.GatewayLoginCannotGetCbsToken)
         Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
-      case Failure(msg, _, _) =>
-        Failure(msg)
+      case Failure(msg, t, c) =>
+        Failure(msg, t, c)
       case _ =>
         Failure(ErrorMessages.GatewayLoginUnknownError)
     }
   }
   def getOrCreateResourceUserFuture(jwtPayload: String) : Future[Box[(User, Option[String])]] = {
-    val username = getFieldFromPayloadJson(jwtPayload, "username")
-    logger.debug("username: " + username)
+    val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
+    logger.debug("login_user_name: " + username)
     val cbsF = Future { refreshBankAccounts(jwtPayload) }
     for {
       cbs <- cbsF
@@ -232,8 +234,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               Full(u, None)
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotFindUser)
-            case Failure(msg, _, _) =>
-              Failure(msg)
+            case Failure(msg, t, c) =>
+              Failure(msg, t, c)
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
@@ -251,8 +253,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               Full((u, Some(getCbsTokens(s).head))) // Return user
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
-            case Failure(msg, _, _) =>
-              Failure(msg)
+            case Failure(msg, t, c) =>
+              Failure(msg, t, c)
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
@@ -267,9 +269,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           Future {
             Failure(ErrorMessages.GatewayLoginCannotGetCbsToken)
           }
-        case Failure(msg, _, _) =>
+        case Failure(msg, t, c) =>
           Future {
-            Failure(msg)
+            Failure(msg, t, c)
           }
         case _ =>
           Future {
@@ -282,10 +284,10 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   }
 
   def getOrCreateConsumer(jwtPayload: String, u: User) : Box[Consumer] = {
-    val consumerId = getFieldFromPayloadJson(jwtPayload, "consumer_id")
-    val consumerName = getFieldFromPayloadJson(jwtPayload, "consumer_name")
-    logger.debug("consumer_id: " + consumerId)
-    logger.debug("consumerName: " + consumerName)
+    val consumerId = getFieldFromPayloadJson(jwtPayload, "app_id")
+    val consumerName = getFieldFromPayloadJson(jwtPayload, "app_name")
+    logger.debug("app_id: " + consumerId)
+    logger.debug("app_name: " + consumerName)
     Consumers.consumers.vend.getOrCreateConsumer(
       consumerId=Some(consumerId),
       Some(Helpers.randomString(40).toLowerCase),

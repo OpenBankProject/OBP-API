@@ -466,7 +466,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def getUserFromDirectLoginHeaderFuture() : Future[Box[User]] = {
+  def getUserFromDirectLoginHeaderFuture() : Future[(Box[User], Option[String])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
@@ -476,7 +476,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
       user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
     } yield {
-      user
+      (user, None)
     }
   }
 

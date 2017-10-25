@@ -59,9 +59,30 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
 
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
-
-  val invalidSecretJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE0MTY5MjkxMDksImp0aSI6ImFhN2Y4ZDBhOTVjIiwic2NvcGVzIjpbInJlcG8iLCJwdWJsaWNfcmVwbyJdfQ.XCEwpBGvOLma4TCoh36FU7XhUbcskygS81HE1uHLf0E"
-  val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNpbW9uciIsImlzX2ZpcnN0IjpmYWxzZSwiQ0JTX2F1dGhfdG9rZW4iOiJxZndxZXZ3cmJ3dmIiLCJ0aW1lc3RhbXAiOiJ0aW1lc3RhbXAiLCJjb25zdW1lcl9pZCI6IjEyMyIsImNvbnN1bWVyX25hbWUiOiJOYW1lIG9mIENvbnN1bWVyIn0.Ztu_J0WpufqsN6LlOtpKppEgZwGTpZVu7TSMLVY6vr4"
+  /* Payload data. verified by secret "0844b5b8-4f27-488b-9eb6-6db2327a838b"
+    {
+      "login_user_name":"simonr",
+      "is_first":false,
+      "app_id":"593450734587345",
+      "app_name":"myapp4",
+      "time_stamp":"19-06-2017:22:27:11:100",
+      "cbs_token":"",
+      "temenos_id":""
+    }
+    */
+  val invalidSecretJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6dHJ1ZSwiYXBwX2lkIjoiNTkzNDUwNzM0NTg3MzQ1IiwiYXBwX25hbWUiOiJteWFwcDQiLCJ0aW1lX3N0YW1wIjoiMTktMDYtMjAxNzoyMjoyNzoxMToxMDAiLCJjYnNfdG9rZW4iOiIiLCJ0ZW1lbm9zX2lkIjoiIn0.XwpHG0XupGlOfIlPrYGgM2duJQNH_sxrkKqnhtIVxLU"
+  /* Payload data. verified by secret "Cannot get the secret"
+  {
+    "login_user_name":"simonr",
+    "is_first":false,
+    "app_id":"593450734587345",
+    "app_name":"myapp4",
+    "time_stamp":"19-06-2017:22:27:11:100",
+    "cbs_token":"",
+    "temenos_id":""
+  }
+  */
+  val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwidGVtZW5vc19pZCI6IiJ9.SH0SXU_IQ0jD6i2HexyKoV7DBMm8Ox1_ADXt-WQjJJw"
 
   val invalidJwt = ("Authorization", ("GatewayLogin token=%s").format(invalidSecretJwt))
   val validJwt = ("Authorization", ("GatewayLogin token=%s").format(jwt))
@@ -95,6 +116,9 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
           When("We try to login with an valid JWT")
           val request = gatewayLoginRequest.GET <@ (userGatewayLogin)
           val response = makeGetRequest(request, List(validJwt))
+            println("-----------------------------------------")
+            println(response)
+            println("-----------------------------------------")
           Then("We should get a 400 - Bad Request because we miss a proper role")
           response.code should equal(400)
           assertResponse(response, UserHasMissingRoles + CanGetAnyUser)

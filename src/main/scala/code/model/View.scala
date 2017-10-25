@@ -459,13 +459,16 @@ trait View {
 
     val accountUids = transactions.map(t => BankIdAccountId(t.bankId, t.accountId))
 
+    // This function will only accept transactions which have the same This Account.
     if(accountUids.toSet.size > 1) {
       viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
       Failure("Could not moderate transactions as they do not all belong to the same account")
     } else {
       transactions.headOption match {
         case Some(firstTransaction) =>
+          // Moderate the *This Account* based on the first transaction
           val moderatedAccount = moderate(firstTransaction.thisAccount)
+          // Moderate each *Transaction* based on the moderated Account
           Full(transactions.flatMap(t => moderate(t, moderatedAccount)))
         case None =>
           Full(Nil)

@@ -5,14 +5,13 @@ import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{emptyObjectJson, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.createTransactionsJson
 import code.bankconnectors._
 import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
@@ -21,7 +20,6 @@ import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper._
-import code.views.Views
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -32,7 +30,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 
 
 
@@ -1037,7 +1034,6 @@ trait APIMethods220 {
       }
     }
 
-    
 
 /*
     resourceDocs += ResourceDoc(
@@ -1113,8 +1109,8 @@ trait APIMethods220 {
 
 
  */
-  
-  
+
+
     resourceDocs += ResourceDoc(
       getCustomersForUser,
       implmentedInApiVersion,
@@ -1196,9 +1192,6 @@ trait APIMethods220 {
           }
       }
     }
-  
-  
-  
   }
 }
 
