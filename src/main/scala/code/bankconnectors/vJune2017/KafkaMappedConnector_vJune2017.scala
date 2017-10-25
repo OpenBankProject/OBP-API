@@ -595,7 +595,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         // Populate fields and generate result
         val res = for {
           r: InternalTransaction <- list
-          transaction: Transaction <- createNewTransaction(r)
+          bankAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))  ?~! ErrorMessages.BankAccountNotFound
+          transaction: Transaction <- createNewTransaction(bankAccount,r)
         } yield {
           transaction
         }
@@ -654,7 +655,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (transactionId.value != x.transactionId && x.errorCode=="") =>
         Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
       case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
-        createNewTransaction(x)
+        for {
+          bankAccount <- getBankAccount(BankId(x.bankId), AccountId(x.accountId)) ?~! ErrorMessages.BankAccountNotFound
+          transaction: Transaction <- createNewTransaction(bankAccount,x)
+        } yield {
+          transaction
+        }
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1026,7 +1032,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createNewTransaction(r: InternalTransaction): Box[Transaction] = {
+  def createNewTransaction(thisAccount: BankAccount,r: InternalTransaction): Box[Transaction] = {
     var datePosted: Date = null
     if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(r.postedDate)
