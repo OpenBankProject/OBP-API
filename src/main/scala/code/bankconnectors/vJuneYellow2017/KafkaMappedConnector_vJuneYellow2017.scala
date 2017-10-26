@@ -101,7 +101,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
     val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     
     val req = OutboundCreateTransaction(
-      authInfo = AuthInfo(currentResourceUserId, currentResourceUsername, cbsToken),
+      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       
       // fromAccount
       fromAccountId = fromAccount.accountId.value,
