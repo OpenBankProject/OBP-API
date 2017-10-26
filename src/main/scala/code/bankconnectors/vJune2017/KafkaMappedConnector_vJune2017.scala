@@ -660,10 +660,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
         if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
         // Populate fields and generate result
+        val bankAccount = checkBankAccountExists(BankId(list.head.bankId), AccountId(list.head.accountId))  
+        
         val res = for {
           r: InternalTransaction <- list
-          bankAccount <- checkBankAccountExists(BankId(r.bankId), AccountId(r.accountId))  ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createNewTransaction(bankAccount,r)
+          thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
+          transaction: Transaction <- createNewTransaction(thisBankAccount,r)
         } yield {
           transaction
         }
@@ -1109,17 +1111,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       dateCompleted = new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(r.completedDate)
 
     for {
-      counterpartyId <- tryo {
-        r.counterpartyId
-      }
-      counterpartyName <- tryo {
-        r.counterpartyName
-      }
-      thisAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))
+      counterpartyId <- tryo {r.counterpartyId}
+      counterpartyName <- tryo {r.counterpartyName}
+      thisAccount <- tryo {thisAccount}
       //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      dummyOtherBankAccount <- tryo {
-        createCounterparty(counterpartyId, counterpartyName, thisAccount, None)
-      }
+      dummyOtherBankAccount <- tryo {createCounterparty(counterpartyId, counterpartyName, thisAccount, None)}
       //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
       //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
       counterparty <- tryo {
@@ -1145,7 +1141,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccountJune2017, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,
