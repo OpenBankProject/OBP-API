@@ -594,6 +594,8 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherBankRoutingAddress_(true).
       canSeeOtherAccountRoutingScheme_(true).
       canSeeOtherAccountRoutingAddress_(true).
+      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
+      canAddTransactionRequestToAnyAccount_(false)
       saveMe)
   }
 
@@ -799,6 +801,8 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherBankRoutingAddress_(true)
       .canSeeOtherAccountRoutingScheme_(true)
       .canSeeOtherAccountRoutingAddress_(true)
+      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
+      .canAddTransactionRequestToAnyAccount_(true)
   }
 
   def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
@@ -884,7 +888,9 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherBankRoutingScheme_(true).
       canSeeOtherBankRoutingAddress_(true).
       canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true)
+      canSeeOtherAccountRoutingAddress_(true).
+      canAddTransactionRequestToOwnAccount_(false). //added following two for payments
+      canAddTransactionRequestToAnyAccount_(false)
   }
 
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
@@ -978,7 +984,9 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherBankRoutingScheme_(true).
       canSeeOtherBankRoutingAddress_(true).
       canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true)
+      canSeeOtherAccountRoutingAddress_(true).
+      canAddTransactionRequestToOwnAccount_(true). //added following two for payments
+      canAddTransactionRequestToAnyAccount_(false)
   }
 
   def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
@@ -1070,7 +1078,9 @@ Auditors
       canSeeOtherBankRoutingScheme_(true).
       canSeeOtherBankRoutingAddress_(true).
       canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true)
+      canSeeOtherAccountRoutingAddress_(true).
+      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
+      canAddTransactionRequestToAnyAccount_(false)
   }
 
   def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
