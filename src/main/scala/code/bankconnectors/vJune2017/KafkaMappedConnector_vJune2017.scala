@@ -478,7 +478,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetAccountbyAccountID(
+      InboundCheckBankAccountExists(
         authInfoExample,
         InboundAccountJune2017(
           errorCode = errorCodeExample,
@@ -515,8 +515,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       
       val box = for {
         kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
-        inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error"
-        inboundAccountJune2017 <- Full(inboundGetAccountbyAccountID.data)
+        inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error"
+        inboundAccountJune2017 <- Full(inboundCheckBankAccountExists.data)
       } yield{
         inboundAccountJune2017
       }
