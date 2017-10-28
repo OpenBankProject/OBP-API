@@ -241,7 +241,7 @@ trait CustomAPIMethods300 {
             _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! {BankNotFound}
-            fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
+            fromAccount <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {AccountNotFound}
             _ <- View.fromUrl(viewId, fromAccount) ?~! {ViewNotFound}
             isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
