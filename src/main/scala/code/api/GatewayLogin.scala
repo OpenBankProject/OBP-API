@@ -69,7 +69,6 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(payloadAsJsonString, "login_user_name")
     val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "app_id")
     val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "app_name")
-    val isFirst = getFieldFromPayloadJson(payloadAsJsonString, "is_first")
     val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "time_stamp")
     val temenosId = getFieldFromPayloadJson(payloadAsJsonString, "temenos_id")
     val cbsToken = cbsAuthToken match {
@@ -78,7 +77,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
     val json = JSONFactoryGateway.TokenJSON(
       login_user_name = username,
-      is_first = None,
+      is_first = Some(false),
       app_id = consumerId,
       app_name = consumerName,
       timestamp = timestamp,
