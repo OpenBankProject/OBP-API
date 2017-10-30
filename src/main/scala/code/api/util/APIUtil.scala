@@ -480,7 +480,15 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
-  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId())) ::: getGatewayResponseHeader()
+  def getGatewayLoginHeader(jwt: Option[String]) = {
+    val jwtalue = jwt.getOrElse("There is no useful value for JWT")
+    val header = (gatewayResponseHeaderName, jwtalue)
+    CustomResponseHeaders(List(header))
+  }
+
+  def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
+
+  def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
 
@@ -1561,9 +1569,9 @@ Versions are groups of endpoints in a file
     laf
   }
 
-  def futureToResponse[T](in: LAFuture[T]): JsonResponse = {
+  def futureToResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
+      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(t._2)))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1571,9 +1579,9 @@ Versions are groups of endpoints in a file
     })
   }
 
-  def futureToBoxedResponse[T](in: LAFuture[T]): Box[JsonResponse] = {
+  def futureToBoxedResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(t._2))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1581,7 +1589,7 @@ Versions are groups of endpoints in a file
     })
   }
 
-  implicit def scalaFutureToJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): JsonResponse = {
+  implicit def scalaFutureToJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): JsonResponse = {
     futureToResponse(scalaFutureToLaFuture(scf))
   }
 
@@ -1605,7 +1613,7 @@ Versions are groups of endpoints in a file
     * @tparam T
     * @return
     */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): Box[JsonResponse] = {
     futureToBoxedResponse(scalaFutureToLaFuture(scf))
   }
 
@@ -1633,13 +1641,9 @@ Versions are groups of endpoints in a file
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
                     case Full((u, cbsAuthToken)) => // Authentication is successful
-                      Future {
                         GatewayLogin.getOrCreateConsumer(payload, u)
-                      }
-                      setGatewayResponseHeader(s) {
-                        GatewayLogin.createJwt(payload, cbsAuthToken)
-                      }
-                      (Full(u), cbsAuthToken)
+                        val jwt = GatewayLogin.createJwt(payload, cbsAuthToken)
+                      (Full(u), Full(jwt))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>
