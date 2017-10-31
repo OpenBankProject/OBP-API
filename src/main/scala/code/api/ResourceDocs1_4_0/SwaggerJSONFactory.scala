@@ -383,7 +383,7 @@ object SwaggerJSONFactory {
     // eg return :  "required": ["id","name","bank","banks"],  
     val required =
       for {
-        f <- entity.getClass.getDeclaredFields
+        f <- entity.getClass.getDeclaredFields //get all the field name in the class
         if f.getType.toString.contains("Option") == false
       } yield {
         f.getName
@@ -431,41 +431,53 @@ object SwaggerJSONFactory {
       // _ = print("\n val properties for comprehension: " + key + " is " + value)
     } yield {
       value match {
+        //Boolean - 4 kinds
         case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case List(i: Boolean, _*)          => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
+        //String   
         case i: String                     => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
         case Some(i: String)               => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
         case List(i: String, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
         case Some(List(i: String, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
+        //Int 
         case i: Int                        => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
         case Some(i: Int)                  => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
-        case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case List(i: Int, _*)              => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case Some(List(i: Int, _*))        => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        //Long
         case i: Long                       => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
         case Some(i: Long)                 => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
-        case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
-        case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
+        case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        //Float
         case i: Float                      => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
         case Some(i: Float)                => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
         case List(i: Float, _*)            => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
         case Some(List(i: Float, _*))      => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
+        //Double
         case i: Double                     => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
         case Some(i: Double)               => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
         case List(i: Double, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
         case Some(List(i: Double, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
+        //Date
         case i: Date                       => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
         case Some(i: Date)                 => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
+       
         //TODO this should be improved, matching the JValue,now just support the default value
         case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string","example":""}"""
-        //the case classes.  
+        //List case classes.  
         case List(f)                       => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case List(f,_*)                    => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case List(Some(f))                 => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case List(Some(f),_*)              => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case Some(List(f))                 => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case Some(List(f,_*))              => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        //Single object
         case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case List(Some(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case Some(List(f))                 => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case _ => "unknown"
       }
