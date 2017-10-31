@@ -182,6 +182,8 @@ trait APIMethods300 {
         user =>
           for {
             json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
+            //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
             u <- user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
@@ -224,6 +226,10 @@ trait APIMethods300 {
         user =>
           for {
             updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
+            //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
+            view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
+            _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             updatedView <- account.updateView(u, viewId, updateJson)

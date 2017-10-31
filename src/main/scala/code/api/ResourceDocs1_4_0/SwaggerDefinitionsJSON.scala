@@ -44,7 +44,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val createViewJson = CreateViewJson(
-    name = "test",
+    name = "_test",
     description = "good",
     is_public = true,
     which_alias_to_use = "good",

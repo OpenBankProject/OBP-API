@@ -163,6 +163,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
   }
 
+  object isSystem_ extends MappedBoolean(this){
+    override def defaultValue = false
+    override def dbIndexed_? = true
+  }
 
   object isPublic_ extends MappedBoolean(this){
     override def defaultValue = false
@@ -396,6 +400,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   }
 
   def id: Long = id_.get
+  def isSystem: Boolean = isSystem_.get
 
   def viewId : ViewId = ViewId(permalink_.get)
   def accountId : AccountId = AccountId(accountPermalink.get)
