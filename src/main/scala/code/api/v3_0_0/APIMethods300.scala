@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -134,7 +134,7 @@ trait APIMethods300 {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                createViewsJSON(views)
+                (createViewsJSON(views), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -364,7 +364,7 @@ trait APIMethods300 {
               for {
                 coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
               } yield {
-                JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts)
+                (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -432,7 +432,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                createCoreTransactionsJSON(transactions)
+                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -500,7 +500,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                createTransactionsJson(transactions)
+                (createTransactionsJson(transactions), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -611,7 +611,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            JSONFactory300.createUserJSONs (users)
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
           }
       }
     }
@@ -650,7 +650,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            JSONFactory300.createUserJSON (Full(user), entitlements)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
           }
       }
     }
@@ -689,7 +689,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            JSONFactory300.createUserJSON (Full(user), entitlements)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
           }
       }
     }
@@ -1105,6 +1105,7 @@ trait APIMethods300 {
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
         _ =>
+          val s = S
           for {
             (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
@@ -1113,7 +1114,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            JSONFactory300.createUserJSONs (users)
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
           }
       }
     }
@@ -1152,7 +1153,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            JSONFactory210.createCustomersJson(customers)
+            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(token))
           }
         }
       }
@@ -1183,7 +1184,7 @@ trait APIMethods300 {
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            JSONFactory300.createUserJSON (user, entitlements)
+            (JSONFactory300.createUserJSON (user, entitlements), getGatewayLoginHeader(token))
           }
         }
       }

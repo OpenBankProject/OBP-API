@@ -55,7 +55,7 @@ object JSONFactoryGateway {
                         is_first: Option[Boolean],
                         app_id: String,
                         app_name: String,
-                        timestamp: String,
+                        time_stamp: String,
                         cbs_token: Option[String],
                         temenos_id: String
                       )
@@ -80,7 +80,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       is_first = Some(false),
       app_id = consumerId,
       app_name = consumerName,
-      timestamp = timestamp,
+      time_stamp = timestamp,
       cbs_token = Some(cbsToken),
       temenos_id = temenosId
     )
