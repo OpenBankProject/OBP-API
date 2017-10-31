@@ -521,6 +521,7 @@ trait View {
       None
   }
 
+  // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
   def moderate(otherBankAccount : Counterparty) : Option[ModeratedOtherBankAccount] = {
     if (canSeeTransactionOtherBankAccount)
     {
