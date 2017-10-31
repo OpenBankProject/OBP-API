@@ -170,6 +170,7 @@ import code.api.util.APIUtil._
   val GatewayLoginCannotFindUser = "OBP-20042: User cannot be found. Please initiate CBS communication in order to create it."
   val GatewayLoginCannotGetCbsToken = "OBP-20043: Cannot get the CBSToken response from South side"
   val GatewayLoginCannotGetOrCreateUser = "OBP-20044: Cannot get or create user during GatewayLogin process."
+  val GatewayLoginNoJwtForResponse = "OBP-200445: There is no useful value for JWT."
 
 
 
@@ -481,8 +482,8 @@ object APIUtil extends MdcLoggable {
   }
 
   def getGatewayLoginHeader(jwt: Option[String]) = {
-    val jwtalue = jwt.getOrElse("There is no useful value for JWT")
-    val header = (gatewayResponseHeaderName, jwtalue)
+    val jwtValue = jwt.getOrElse(GatewayLoginNoJwtForResponse)
+    val header = (gatewayResponseHeaderName, jwtValue)
     CustomResponseHeaders(List(header))
   }
 
@@ -1569,6 +1570,24 @@ Versions are groups of endpoints in a file
     laf
   }
 
+  /**
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @return value of type JsonResponse
+    *
+    * Process a request asynchronously. The thread will not
+    * block until there's a response.  The parameter is a function
+    * that takes a function as it's parameter.  The function is invoked
+    * when the calculation response is ready to be rendered:
+    * RestContinuation.async {
+    *   reply => {
+    *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
+    *   }
+    * }
+    * The body of the function will be executed on a separate thread.
+    * When the answer is ready, apply the reply function... the function
+    * body will be executed in the scope of the current request (the
+    * current session and the current Req object).
+    */
   def futureToResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(t._2)))
@@ -1579,6 +1598,25 @@ Versions are groups of endpoints in a file
     })
   }
 
+
+  /**
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @return value of type Box[JsonResponse]
+    *
+    * Process a request asynchronously. The thread will not
+    * block until there's a response.  The parameter is a function
+    * that takes a function as it's parameter.  The function is invoked
+    * when the calculation response is ready to be rendered:
+    * RestContinuation.async {
+    *   reply => {
+    *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
+    *   }
+    * }
+    * The body of the function will be executed on a separate thread.
+    * When the answer is ready, apply the reply function... the function
+    * body will be executed in the scope of the current request (the
+    * current session and the current Req object).
+    */
   def futureToBoxedResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
       in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(t._2))))
