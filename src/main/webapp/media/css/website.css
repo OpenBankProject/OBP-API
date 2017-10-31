@@ -100,6 +100,19 @@ nav {
 	font-size: 12px;
 }
 
+#for-banks {
+	padding: 50px 0;
+	text-align: center;
+	background-color: #f1f4f8;
+}
+#for-banks h1 {
+	font-size: 36px;
+	margin-bottom: 10px;
+}
+#for-banks a {
+	font-size: 24px;
+}
+
 
 
 footer {

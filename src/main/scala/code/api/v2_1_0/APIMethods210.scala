@@ -617,7 +617,7 @@ trait APIMethods210 {
               fromBank <- Bank(bankId) ?~! {BankNotFound}
 
               // Check Account exists on this server
-              fromAccount <- BankAccount(bankId, accountId) ?~! {BankAccountNotFound}
+              fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}

@@ -165,7 +165,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.elasticSearchWarehouse ::
                           Implementations2_0_0.getAllEntitlements ::
                           Implementations2_0_0.getCoreAccountById ::
-                          Implementations2_0_0.getCoreTransactionsForBankAccount ::
+                         // Implementations2_0_0.getCoreTransactionsForBankAccount ::
                           Implementations2_0_0.getCurrentUser ::
                           Implementations2_0_0.getEntitlements ::
                           Implementations2_0_0.getKycChecks ::
@@ -209,7 +209,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
                           Implementations2_1_0.getCustomersForCurrentUserAtBank ::
-                          Implementations2_1_0.getCustomersForUser ::
+                          //Implementations2_1_0.getCustomersForUser ::
                           Implementations2_1_0.updateConsumerRedirectUrl ::
                           Implementations2_1_0.getMetrics ::
                           Nil
@@ -230,6 +230,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createConsumer ::
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.createCounterparty ::
+                          Implementations2_2_0.getCustomersForUser ::
+                          Implementations2_2_0.getCoreTransactionsForBankAccount ::
                           Nil
   
   val allResourceDocs = Implementations2_2_0.resourceDocs ++

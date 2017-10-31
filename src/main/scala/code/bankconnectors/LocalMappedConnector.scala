@@ -13,6 +13,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
+import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -249,6 +250,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
               .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
       )
+  }
+  
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+    getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
   override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= {
@@ -1523,4 +1528,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       description = description,
       bespoke = bespoke
     )
+  
+  
+  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =
+    Customer.customerProvider.vend.getCustomersByUserIdBox(userId)
+  
 }

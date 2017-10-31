@@ -5,17 +5,18 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
 import code.api.v1_2_1.AccountRoutingJsonV121
-import code.api.v2_1_0.{PostCounterpartyBespoke}
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.Customer
+import code.customer.{Customer,MockCustomerFaceImage, MockCreditRating, MockCreditLimit}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, BankAccount, BankId, BankIdAccountId}
+import code.model.{AmountOfMoney => _, _}
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
+
 import scala.collection.immutable.List
 
 /**
@@ -26,8 +27,9 @@ case class OutboundGetAdapterInfo(date: String) extends TopicTrait
 case class OutboundGetBanks(authInfo: AuthInfo) extends TopicTrait
 case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrait
 case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
-case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers ) extends TopicTrait
+case class OutboundGetAccounts(authInfo: AuthInfo, callMfFlag: Boolean, customers:InternalBasicCustomers) extends TopicTrait
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
+case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundGetCoreBankAccounts(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
@@ -55,6 +57,11 @@ case class OutboundGetCounterparties(
   authInfo: AuthInfo,
   counterparty: InternalOutboundGetCounterparties
 ) extends TopicTrait
+
+case class OutboundGetCustomersByUserId(
+  authInfo: AuthInfo
+) extends TopicTrait
+
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -66,6 +73,7 @@ case class InboundGetBanks(authInfo: AuthInfo, data: List[InboundBank])
 case class InboundGetBank(authInfo: AuthInfo, data: InboundBank)
 case class InboundGetAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
 case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccountJune2017)
+case class InboundCheckBankAccountExists(authInfo: AuthInfo, data: InboundAccountJune2017)
 case class InboundGetCoreBankAccounts(authInfo: AuthInfo, data: List[InternalInboundCoreAccount])
 case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
 case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
@@ -73,6 +81,7 @@ case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCrea
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
+case class InboundGetCustomersByUserId(authInfo: AuthInfo, data: List[InternalCustomer])
 
 
 
@@ -226,6 +235,30 @@ case class InternalCounterparty(
   otherAccountSecondaryRoutingAddress: String,
   bespoke: List[PostCounterpartyBespoke]
 ) extends CounterpartyTrait
+
+
+case class InternalCustomer(
+  status: String,
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  customerId : String, 
+  bankId : String,
+  number : String,   // The Customer number i.e. the bank identifier for the customer.
+  legalName : String,
+  mobileNumber : String,
+  email : String,
+  faceImage : MockCustomerFaceImage,
+  dateOfBirth: Date,
+  relationshipStatus: String,
+  dependents: Int,
+  dobOfDependents: List[Date],
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRating : MockCreditRating,
+  creditLimit: MockCreditLimit,
+  kycStatus: Boolean,
+  lastOkDate: Date
+)extends Customer
 
 
 object JsonFactory_vJune2017 {

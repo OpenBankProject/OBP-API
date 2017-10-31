@@ -202,6 +202,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         }
       }
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+      logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val s = S
@@ -211,12 +212,15 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
               val payload = GatewayLogin.parseJwt(parameters)
               payload match {
                 case Full(payload) =>
+                  val s = S
                   GatewayLogin.getOrCreateResourceUser(payload: String) match {
                     case Full((u, cbsAuthToken)) => // Authentication is successful
                       GatewayLogin.getOrCreateConsumer(payload, u)
                       setGatewayResponseHeader(s) {
                         GatewayLogin.createJwt(payload, cbsAuthToken)
                       }
+                      setGatewayLoginUsername(s)(u.name)
+                      setGatewayLoginCbsToken(s)(cbsAuthToken.get)
                       fn(Full(u))
                     case Failure(msg, _, _) => errorJsonResponse(msg)
                     case _ => errorJsonResponse(payload, httpCode)

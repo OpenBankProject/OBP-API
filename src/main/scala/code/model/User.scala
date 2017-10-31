@@ -81,7 +81,7 @@ trait User {
      
 
   def views: List[View]
-  def permittedView(v: View, b: BankAccount): Boolean =
+  def permittedView(v: View): Boolean =
     views.contains(v)
   
   /**

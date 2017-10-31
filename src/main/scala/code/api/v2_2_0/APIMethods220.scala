@@ -11,6 +11,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
+import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
@@ -1110,9 +1111,87 @@ trait APIMethods220 {
  */
 
 
-
-
-
+    resourceDocs += ResourceDoc(
+      getCustomersForUser,
+      implmentedInApiVersion,
+      "getCustomersForUser",
+      "GET",
+      "/users/current/customers",
+      "Get Customers for Current User",
+      """Gets all Customers that are linked to a User.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      customerJsonV210,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagUser))
+  
+    lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        user => {
+          for {
+            user <- user ?~! UserNotLoggedIn
+            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)
+          } yield {
+            val json = JSONFactory210.createCustomersJson(customers)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      getCoreTransactionsForBankAccount,
+      implmentedInApiVersion,
+      "getCoreTransactionsForBankAccount",
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
+      "Get Transactions for Account (Core)",
+      """Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+        |
+        |Authentication is required.
+        |
+        |Possible custom headers for pagination:
+        |
+        |* obp_sort_by=CRITERIA ==> default value: "completed" field
+        |* obp_sort_direction=ASC/DESC ==> default value: DESC
+        |* obp_limit=NUMBER ==> default value: 50
+        |* obp_offset=NUMBER ==> default value: 0
+        |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
+        |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+        |
+        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+      emptyObjectJson,
+      moderatedCoreAccountJSON,
+      List(BankAccountNotFound, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransaction, apiTagAccount))
+  
+    //Note: we already have the method: getTransactionsForBankAccount in V121.
+    //The only difference here is "Core implies 'owner' view" 
+    lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get transactions
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
+        user =>
+        
+          for {
+            params <- getTransactionParams(json)
+            bankAccount <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            // Assume owner view was requested
+            view <- View.fromUrl( ViewId("owner"), bankAccount)
+            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
+          } yield {
+            val json = JSONFactory300.createCoreTransactionsJSON(transactions)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
   }
 }
 

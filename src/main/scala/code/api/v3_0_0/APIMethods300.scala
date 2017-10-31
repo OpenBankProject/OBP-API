@@ -5,11 +5,10 @@ import java.io
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{getUserFromAuthorizationHeaderFuture, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v2_0_0.JSONFactory200
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -18,9 +17,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
-import code.customer.Customer
 import code.entitlement.Entitlement
-import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -137,7 +134,7 @@ trait APIMethods300 {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                createViewsJSON(views)
+                (createViewsJSON(views), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -367,7 +364,7 @@ trait APIMethods300 {
               for {
                 coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
               } yield {
-                JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts)
+                (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -435,7 +432,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                createCoreTransactionsJSON(transactions)
+                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -503,7 +500,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                createTransactionsJson(transactions)
+                (createTransactionsJson(transactions), getGatewayLoginHeader(token))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -614,7 +611,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            JSONFactory300.createUserJSONs (users)
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
           }
       }
     }
@@ -653,7 +650,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            JSONFactory300.createUserJSON (Full(user), entitlements)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
           }
       }
     }
@@ -692,7 +689,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            JSONFactory300.createUserJSON (Full(user), entitlements)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
           }
       }
     }
@@ -1108,6 +1105,7 @@ trait APIMethods300 {
     lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
         _ =>
+          val s = S
           for {
             (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
@@ -1116,7 +1114,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            JSONFactory300.createUserJSONs (users)
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
           }
       }
     }
@@ -1151,11 +1149,11 @@ trait APIMethods300 {
           for {
             (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Customer.customerProvider.vend.getCustomersByUserIdFuture(u.userId) map {
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)} map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            JSONFactory210.createCustomersJson(customers)
+            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(token))
           }
         }
       }
@@ -1186,9 +1184,47 @@ trait APIMethods300 {
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            JSONFactory300.createUserJSON (user, entitlements)
+            (JSONFactory300.createUserJSON (user, entitlements), getGatewayLoginHeader(token))
           }
         }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      privateAccountsAtOneBank,
+      implementedInApiVersion,
+      "privateAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts/private",
+      "Get private accounts at one bank.",
+      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+         |For each account the API returns the ID and the available views.
+         |
+        |If you want to see more information on the Views, use the Account Detail call.
+         |If you want less information about the account, use the /my accounts call
+         |
+        |
+        |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      coreAccountsJsonV300,
+      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount)
+    )
+  
+    lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! BankNotFound
+            availableAccounts <- Full(Views.views.vend.getNonPublicBankAccounts(u, bankId))
+            accounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+          } yield {
+            val json =JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts)
+            successJsonResponse(Extraction.decompose(json))
+          }
       }
     }
 

@@ -8,12 +8,13 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
-import code.api.v3_0_0.{CoreAccountJsonV300}
+import code.api.v3_0_0.CoreAccountJsonV300
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
@@ -34,8 +35,12 @@ import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 /*
@@ -209,10 +214,14 @@ trait Connector extends MdcLoggable{
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
-
-  //Not implement yet, this will be called by AuthUser.updateUserAccountViews2
-  //when it is stable, will call this method.
-  def getBankAccounts(username: String) : Box[List[InboundAccountCommon]] = Failure(NotImplemented + currentMethodName)
+  
+  /**
+    * 
+    * @param username username of the user.
+    * @param callMfFlag call the MainFrame call, or only get the cache data. 
+    * @return all the accounts, get from Main Frame. 
+    */
+  def getBankAccounts(username: String, callMfFlag: Boolean) : Box[List[InboundAccountCommon]] = Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is for get User from external, eg kafka/obpjvm...
@@ -236,6 +245,8 @@ trait Connector extends MdcLoggable{
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
   
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= Failure(NotImplemented + currentMethodName)
+  
+  def checkBankAccountExists(bankId : BankId, accountId : AccountId) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
@@ -1242,5 +1253,7 @@ trait Connector extends MdcLoggable{
     bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
+  
+  def getCustomersByUserIdBox(userId: String): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
   
 }

@@ -298,6 +298,8 @@ trait View {
   def canDeleteWhereTag : Boolean
 
   def canInitiateTransaction: Boolean  
+  def canAddTransactionRequestToOwnAccount: Boolean   //added following two for payments
+  def canAddTransactionRequestToAnyAccount: Boolean  
 
   def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
     moderate(transaction, moderate(transaction.thisAccount))

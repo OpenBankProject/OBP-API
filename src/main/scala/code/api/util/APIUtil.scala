@@ -35,9 +35,10 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.Constant._
+import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
@@ -169,6 +170,7 @@ import code.api.util.APIUtil._
   val GatewayLoginCannotFindUser = "OBP-20042: User cannot be found. Please initiate CBS communication in order to create it."
   val GatewayLoginCannotGetCbsToken = "OBP-20043: Cannot get the CBSToken response from South side"
   val GatewayLoginCannotGetOrCreateUser = "OBP-20044: Cannot get or create user during GatewayLogin process."
+  val GatewayLoginNoJwtForResponse = "OBP-200445: There is no useful value for JWT."
 
 
 
@@ -286,6 +288,10 @@ import code.api.util.APIUtil._
   // This error may not be shown to user, just for debugging.
   val CurrentUserNotFoundException = "OBP-50004: Method (AuthUser.getCurrentUser) can not find the current user in the current context!"
   val AnUnspecifiedOrInternalErrorOccurred = "OBP-50005: An unspecified or internal error occurred."
+  val KafkaInterruptedException = "OBP-50006: Kafka interrupted exception."
+  val KafkaExecutionException = "OBP-50007: Kafka execution exception."
+  val KafkaStreamTimeoutException = "OBP-50008: Akka Kafka stream timeout exception."
+  val KafkaUnknownError = "OBP-50009: Kafka unknown error."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
@@ -475,7 +481,15 @@ object APIUtil extends MdcLoggable {
     commit
   }
 
-  def getHeaders() = headers ::: List(("Correlation-Id", getCorrelationId())) ::: getGatewayResponseHeader()
+  def getGatewayLoginHeader(jwt: Option[String]) = {
+    val jwtValue = jwt.getOrElse(GatewayLoginNoJwtForResponse)
+    val header = (gatewayResponseHeaderName, jwtValue)
+    CustomResponseHeaders(List(header))
+  }
+
+  def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
+
+  def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
 
@@ -1319,6 +1333,35 @@ Returns a string showed to the developer
       case _ => Nil
     }
   }
+  /**
+    * Set value of GatewayLogin username.
+    */
+  def setGatewayLoginUsername(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "username", value)
+  
+  /**
+    * Set value of GatewayLogin cbsToken.
+    */
+  def setGatewayLoginCbsToken(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", value)
+  
+  /**
+    * @return - GatewayLogin username Header.
+    */
+  def getGatewayLoginUsername() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "username") match {
+      case Full(h) => h
+      case _ => ""
+    }
+  }
+  
+  /**
+    * @return - GatewayLogin cbsToken Header.
+    */
+  def getGatewayLoginCbsToken() = {
+    S.getSessionAttribute(gatewayResponseHeaderName + "cbstoken") match {
+      case Full(h) => h
+      case _ => ""
+    }
+  }
 
   /**
     * Turn a string of format "FooBar" into snake case "foo_bar"
@@ -1527,9 +1570,27 @@ Versions are groups of endpoints in a file
     laf
   }
 
-  def futureToResponse[T](in: LAFuture[T]): JsonResponse = {
+  /**
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @return value of type JsonResponse
+    *
+    * Process a request asynchronously. The thread will not
+    * block until there's a response.  The parameter is a function
+    * that takes a function as it's parameter.  The function is invoked
+    * when the calculation response is ready to be rendered:
+    * RestContinuation.async {
+    *   reply => {
+    *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
+    *   }
+    * }
+    * The body of the function will be executed on a separate thread.
+    * When the answer is ready, apply the reply function... the function
+    * body will be executed in the scope of the current request (the
+    * current session and the current Req object).
+    */
+  def futureToResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t)))
+      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(t._2)))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1537,9 +1598,28 @@ Versions are groups of endpoints in a file
     })
   }
 
-  def futureToBoxedResponse[T](in: LAFuture[T]): Box[JsonResponse] = {
+
+  /**
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @return value of type Box[JsonResponse]
+    *
+    * Process a request asynchronously. The thread will not
+    * block until there's a response.  The parameter is a function
+    * that takes a function as it's parameter.  The function is invoked
+    * when the calculation response is ready to be rendered:
+    * RestContinuation.async {
+    *   reply => {
+    *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
+    *   }
+    * }
+    * The body of the function will be executed on a separate thread.
+    * When the answer is ready, apply the reply function... the function
+    * body will be executed in the scope of the current request (the
+    * current session and the current Req object).
+    */
+  def futureToBoxedResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(t._2))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1547,7 +1627,7 @@ Versions are groups of endpoints in a file
     })
   }
 
-  implicit def scalaFutureToJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): JsonResponse = {
+  implicit def scalaFutureToJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): JsonResponse = {
     futureToResponse(scalaFutureToLaFuture(scf))
   }
 
@@ -1571,7 +1651,7 @@ Versions are groups of endpoints in a file
     * @tparam T
     * @return
     */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): Box[JsonResponse] = {
     futureToBoxedResponse(scalaFutureToLaFuture(scf))
   }
 
@@ -1599,13 +1679,9 @@ Versions are groups of endpoints in a file
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
                     case Full((u, cbsAuthToken)) => // Authentication is successful
-                      Future {
                         GatewayLogin.getOrCreateConsumer(payload, u)
-                      }
-                      setGatewayResponseHeader(s) {
-                        GatewayLogin.createJwt(payload, cbsAuthToken)
-                      }
-                      (Full(u), cbsAuthToken)
+                        val jwt = GatewayLogin.createJwt(payload, cbsAuthToken)
+                      (Full(u), Full(jwt))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>
