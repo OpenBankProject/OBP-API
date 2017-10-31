@@ -232,14 +232,17 @@ webui_top_text=""
 #webui_footer2_middle_text=
 
 
-# API Explorer url. Change to your instance
-webui_api_explorer_url = http://apiexplorer.openbankproject.com
+# API Explorer URL, change to your instance
+webui_api_explorer_url = https://apiexplorer.openbankproject.com
 
-# Sofi url. (AKA Social Finance) Change to your instance
-webui_sofi_url = http://sofi.openbankproject.com
+# Sofi URL (aka Social Finance), change to your instance
+webui_sofi_url = https://sofi.openbankproject.com
 
-# API Manager url. Change to your instance
-webui_api_manager_url = http://apimanager.openbankproject.com
+# API Manager URL, change to your instance
+webui_api_manager_url = https://apimanager.openbankproject.com
+
+# API Tester URL, change to your instance
+webui_api_manager_url = https://apitester.openbankproject.com
 
 # Starting page of documentation. Change this if you have a specific landing page.
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
