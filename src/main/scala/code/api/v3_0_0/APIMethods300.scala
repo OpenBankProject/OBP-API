@@ -708,7 +708,7 @@ trait APIMethods300 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagApi))
@@ -716,13 +716,13 @@ trait APIMethods300 {
 
     lazy val getAdapter: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
             _ <- Bank(bankId) ?~! BankNotFound
             ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
           yield {
-            successJsonResponseFromCaseClass(ai)
+            successJsonResponseFromCaseClass(createAdapterInfoJson(ai))
           }
       }
     }

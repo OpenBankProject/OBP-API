@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
-import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.api.v3_0_0.{AdapterInfoJsonV300, LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -2000,6 +2000,14 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
+
+  val adapterInfoJsonV300 = AdapterInfoJsonV300(
+    name = "String",
+    version = "String",
+    git_commit = "String",
+    date = "String"
+  )
+
   //The commont error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
