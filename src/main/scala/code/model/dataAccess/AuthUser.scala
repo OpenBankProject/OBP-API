@@ -372,10 +372,10 @@ import net.liftweb.util.Helpers._
           <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
           <form action={S.uri} method="post">
             <div class="form-group">
-              <label>Username or email address</label> <span id="recover-password-email"><user:email /></span>
+              <label>Username or email address</label> <span id="recover-password-email"><input id="email" type="text" /></span>
             </div>
             <div id="recover-password-submit">
-                <user:submit />
+              <input type="submit" />
             </div>
           </form>
     </div>
@@ -383,7 +383,7 @@ import net.liftweb.util.Helpers._
 
   override def lostPassword = {
     val bind =
-          ".email" #> SHtml.text("", sendPasswordReset _) &
+          "#email" #> SHtml.text("", sendPasswordReset _) &
           "type=submit" #> lostPasswordSubmitButton(S.?("submit"))
 
     bind(lostPasswordXhtml)
