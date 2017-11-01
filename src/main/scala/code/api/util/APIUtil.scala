@@ -156,6 +156,8 @@ import code.api.util.APIUtil._
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
+  val InvalidCustomViewFormat = "OBP-20020: View name must start with `_`. eg: _work, _life "
+  val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
 
 
 

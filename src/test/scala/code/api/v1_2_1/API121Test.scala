@@ -237,7 +237,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   def randomView(isPublic: Boolean, alias: String) : CreateViewJson = {
     CreateViewJson(
-      name = randomString(3),
+      name = "_"+randomString(3),//Now, all created views should start with `_`.
       description = randomString(3),
       is_public = isPublic,
       which_alias_to_use=alias,
@@ -1537,7 +1537,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
 
       Given("a view does not exist")
-      val nonExistantViewId = "asdfasdfasdfasdfasdf"
+      val nonExistantViewId = "_asdfasdfasdfasdfasdf"
       val getReply = getAccountViews(bankId, bankAccount.id, user1)
       getReply.code should equal (200)
       val views : ViewsJSONV121 = getReply.body.extract[ViewsJSONV121]
@@ -1545,8 +1545,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 404")
-      reply.code should equal(404)
+      Then("We should get a 400")
+      reply.code should equal(400)
     }
 
     scenario("We will not update a view on a bank account due to missing token", API1_2, PutView) {

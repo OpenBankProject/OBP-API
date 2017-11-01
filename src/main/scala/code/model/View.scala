@@ -195,6 +195,12 @@ trait View {
   val viewLogger = Logger(classOf[View])
   //e.g. "Public", "Authorities", "Our Network", etc.
 
+  //This is used for distinguishing all the views
+  //For now, we need have some system views and user created views.
+  // System Views: eg: owner, accountant ... They are the fixed views, account owner can not modify it. 
+  // User Created Views: Start with _, eg _son, _wife ... The owner can update the fields for these views. 
+  def isSystem : Boolean
+  
   //these ids are used together to uniquely identify a view
   def viewId : ViewId
   def accountId : AccountId

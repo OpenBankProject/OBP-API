@@ -6,7 +6,7 @@ import java.util.{Date, Locale}
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.TransactionDisabled
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -576,10 +576,15 @@ trait APIMethods210 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+        |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
-        |TRANSACTION_REQUEST_TYPE : is the same as createTransactionRequest request URL . 
-        |TRANSACTION_REQUEST_ID : is the `id` field in createTransactionRequest response body.
-        |`id` in the Json Body:  is `challenge.id` field in createTransactionRequest response body. 
+        |
+        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL . 
+        |
+        |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
+        |
+        |3) `id` in the Json Body:  is `challenge.id` field in createTransactionRequest response body. 
+        |
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
@@ -653,12 +658,7 @@ trait APIMethods210 {
               challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
 
               // All Good, proceed with the Transaction creation...
-              transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-                case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
-                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType)
-                case _ =>
-                  Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
-              } 
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
             } yield {
               // Format explicitly as v2.0.0 json
               val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)

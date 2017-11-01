@@ -239,7 +239,7 @@ object MapperViews extends Views with MdcLoggable {
     if(view.name.contentEquals("")) {
       return Failure("You cannot create a View with an empty Name")
     }
-
+    //view-permalink is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
     val newViewPermalink = {
       view.name.replaceAllLiterally(" ", "").toLowerCase
     }
@@ -517,6 +517,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     Full(ViewImpl.create.
+      isSystem_(false).
       name_(randomString(5)).
       description_(randomString(3)).
       permalink_(randomString(3)).
@@ -722,6 +723,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create
+      .isSystem_(true)
       .bankPermalink(bankId.value)
       .accountPermalink(accountId.value)
       .name_("Owner")
@@ -812,6 +814,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
+      isSystem_(true).
       name_("Public").
       description_(description).
       permalink_("public").
@@ -907,6 +910,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
+      isSystem_(true).
       name_("Accountant"). // Use the singular form
       description_(description).
       permalink_("accountant"). // Use the singular form
@@ -1001,6 +1005,7 @@ Auditors
 
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
+      isSystem_(true).
       name_("Auditor"). // Use the singular form
       description_(description).
       permalink_("auditor"). // Use the singular form

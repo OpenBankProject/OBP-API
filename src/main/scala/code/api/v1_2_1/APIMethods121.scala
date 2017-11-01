@@ -30,6 +30,7 @@ import net.liftweb.json.Extraction._
 import scalacache.{memoization}
 import scalacache.memoization.memoizeSync
 import code.api.util.APIUtil._
+import code.util.Helper.booleanToBox
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -539,6 +540,8 @@ trait APIMethods121 {
           for {
             u <- user ?~  UserNotLoggedIn
             json <- tryo{json.extract[CreateViewJson]} ?~ InvalidJsonFormat
+            //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
@@ -583,6 +586,10 @@ trait APIMethods121 {
             updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             u <- user ?~  UserNotLoggedIn
+            //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
+            view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
+            _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)

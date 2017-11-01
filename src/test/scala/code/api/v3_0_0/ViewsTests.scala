@@ -250,8 +250,8 @@ class ViewsTests extends V300ServerSetup {
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccountId, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 404")
-      reply.code should equal(404)
+      Then("We should get a 400")
+      reply.code should equal(400)
     }
 
     scenario("We will not update a view on a bank account due to missing token") {
