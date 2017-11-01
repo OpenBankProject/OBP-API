@@ -189,16 +189,16 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       val usr = getUser
       usr match {
         case Full(u) => fn(Full(u)) // Authentication is successful
-        case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
-        case Failure(msg, _, _) => errorJsonResponse(msg)
-        case _ => errorJsonResponse("oauth error")
+        case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
+        case Failure(msg, t, c) => Failure(msg, t, c)
+        case _ => Failure("oauth error")
       }
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
       DirectLogin.getUser match {
         case Full(u) => fn(Full(u)) // Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
-          errorJsonResponse(message, httpCode)
+          Full(errorJsonResponse(message, httpCode))
         }
       }
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
@@ -222,21 +222,25 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                       setGatewayLoginUsername(s)(u.name)
                       setGatewayLoginCbsToken(s)(cbsAuthToken.get)
                       fn(Full(u))
-                    case Failure(msg, _, _) => errorJsonResponse(msg)
-                    case _ => errorJsonResponse(payload, httpCode)
+                    case Failure(msg, t, c) => Failure(msg, t, c)
+                    case _ => Full(errorJsonResponse(payload, httpCode))
                   }
-                case Failure(msg, _, _) =>
-                  errorJsonResponse(msg)
+                case Failure(msg, t, c) =>
+                  Failure(msg, t, c)
                 case _ =>
-                  errorJsonResponse(ErrorMessages.GatewayLoginUnknownError)
+                  Failure(ErrorMessages.GatewayLoginUnknownError)
               }
-            case _ => errorJsonResponse(message, httpCode)
+            case _ =>
+              Failure(message)
           }
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
-          errorJsonResponse(ErrorMessages.GatewayLoginWhiteListAddresses)
-        case Empty => errorJsonResponse(ErrorMessages.GatewayLoginHostPropertyMissing) // There is no gateway.host in props file
-        case Failure(msg, _, _) => errorJsonResponse(msg)
-        case _ => errorJsonResponse(ErrorMessages.GatewayLoginUnknownError)
+          Failure(ErrorMessages.GatewayLoginWhiteListAddresses)
+        case Empty =>
+          Failure(ErrorMessages.GatewayLoginHostPropertyMissing) // There is no gateway.host in props file
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+        case _ =>
+          Failure(ErrorMessages.GatewayLoginUnknownError)
       }
     } else {
       fn(Empty)
