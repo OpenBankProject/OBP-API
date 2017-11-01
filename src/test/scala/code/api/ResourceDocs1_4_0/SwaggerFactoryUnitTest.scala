@@ -9,24 +9,23 @@ import org.scalatest._
 
 import scala.collection.mutable.ArrayBuffer
 
-class SwaggerFactoryUnitTest extends FeatureSpec
+class SwaggerFactoryUnitTest extends FlatSpec
   with Matchers
   with MdcLoggable {
   
-  feature("Test SwaggerJSONFactory.translateEntity ") {
-    scenario("A simple example to explain how to use SwaggerJSONFactory.translateEntity ") {
+  "SwaggerJSONFactory.translateEntity" should "translate simple case class not incude wired string" in {
       val translateCaseClassToSwaggerFormatString: String = SwaggerJSONFactory.translateEntity(SwaggerDefinitionsJSON.license )
       logger.debug("{"+translateCaseClassToSwaggerFormatString+"}")
       translateCaseClassToSwaggerFormatString should not include("$colon")
     }
   
-    scenario("Procee the List[Case Class] in translateEntity function") {
+  it should ("Procee the List[Case Class] in translateEntity function") in{
       val translateCaseClassToSwaggerFormatString: String = SwaggerJSONFactory.translateEntity(SwaggerDefinitionsJSON.postCounterpartyJSON)
       logger.debug("{"+translateCaseClassToSwaggerFormatString+"}")
       translateCaseClassToSwaggerFormatString should not include("$colon")
     }
-    
-    scenario("Test all the case classes in SwaggerDefinitionsJSON") {
+
+  it should ("Test all the case classes in SwaggerDefinitionsJSON") in{
       val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
 
       val listNestingMissDefinition: List[String] =
@@ -39,9 +38,9 @@ class SwaggerFactoryUnitTest extends FeatureSpec
       listNestingMissDefinition.toString() should not include("$colon")
 
     }
-  
-    scenario("Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies") {
-  
+
+  it should ("Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies") in {
+
       val resourceDocList: ArrayBuffer[ResourceDoc] = OBPAPI3_0_0.allResourceDocs ++ OBPAPI2_2_0.allResourceDocs++ OBPAPI2_1_0.allResourceDocs
   
       //Translate every entity(JSON Case Class) in a list to appropriate swagger format
@@ -56,11 +55,11 @@ class SwaggerFactoryUnitTest extends FeatureSpec
           yield {
             SwaggerJSONFactory.translateEntity(e.successResponseBody)
           }
-      
+
       listOfExampleRequestBodyDefinition.toString() should not include("$colon")
       listOfSuccessRequestBodyDefinition.toString() should not include("$colon")
-    
+      logger.debug(listOfExampleRequestBodyDefinition)
+      logger.debug(listOfExampleRequestBodyDefinition)
     }
-  }
   
 }
