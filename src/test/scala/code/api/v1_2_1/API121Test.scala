@@ -50,7 +50,7 @@ import scala.util.Random._
 
 class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
-  def v1_2Request = baseRequest / "obp" / "v1.2.1"
+  def v1_2_1Request = baseRequest / "obp" / "v1.2.1"
 
   val viewFields = List(
     "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
@@ -161,7 +161,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   /********************* API test methods ********************/
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
@@ -169,7 +169,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def randomViewPermalinkButNotOwner(bankId: String, account: AccountJSON) : String = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
     val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filterNot(_.id == "owner")
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
@@ -248,168 +248,168 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def getAPIInfo : APIResponse = {
-    val request = v1_2Request / "root"
+    val request = v1_2_1Request / "root"
     makeGetRequest(request)
   }
 
   def getBanksInfo : APIResponse  = {
-    val request = v1_2Request / "banks"
+    val request = v1_2_1Request / "banks"
     makeGetRequest(request)
   }
 
   def getBankInfo(bankId : String) : APIResponse  = {
-    val request = v1_2Request / "banks" / bankId
+    val request = v1_2_1Request / "banks" / bankId
     makeGetRequest(request)
   }
 
   def getPublicAccounts(bankId : String) : APIResponse= {
-    val request = v1_2Request / "banks" / bankId / "accounts" / "public"
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / "public"
     makeGetRequest(request)
   }
 
   def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "accounts" <@(consumerAndToken)
+    val request = v1_2_1Request / "accounts" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getPublicAccountsForAllBanks() : APIResponse= {
-    val request = v1_2Request / "accounts" / "public"
+    val request = v1_2_1Request / "accounts" / "public"
     makeGetRequest(request)
   }
 
   def getPrivateAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "accounts" / "private" <@(consumerAndToken)
+    val request = v1_2_1Request / "accounts" / "private" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getBankAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getPublicBankAccountDetails(bankId : String, accountId : String, viewId : String) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "account"
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account"
     makeGetRequest(request)
   }
 
   //get one bank account
   def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }
 
   def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
     makePutRequest(request, write(view))
   }
 
   def deleteView(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / userId <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / userId <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(consumerAndToken)
     makePostRequest(request)
   }
 
   def grantUserAccessToViews(bankId : String, accountId : String, userId : String, viewIds : List[String], consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").POST <@(consumerAndToken)
     val viewsJson = ViewIdsJson(viewIds)
     makePostRequest(request, write(viewsJson))
   }
 
   def revokeUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def revokeUserAccessToAllViews(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getTheCounterparties(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getTheCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getMetadataOfOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getThePublicAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postAPublicAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, alias : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").POST <@(consumerAndToken)
     val aliasJson = AliasJSON(alias)
     makePostRequest(request, write(aliasJson))
   }
 
   def updateThePublicAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, alias : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").PUT <@(consumerAndToken)
     val aliasJson = AliasJSON(alias)
     makePutRequest(request, write(aliasJson))
   }
 
   def deleteThePublicAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "public_alias").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getThePrivateAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postAPrivateAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, alias : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").POST <@(consumerAndToken)
     val aliasJson = AliasJSON(alias)
     makePostRequest(request, write(aliasJson))
   }
 
   def updateThePrivateAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, alias : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").PUT <@(consumerAndToken)
     val aliasJson = AliasJSON(alias)
     makePutRequest(request, write(aliasJson))
   }
 
   def deleteThePrivateAliasForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "private_alias").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -418,19 +418,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postMoreInfoForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, moreInfo : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "more_info").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "more_info").POST <@(consumerAndToken)
     val moreInfoJson = MoreInfoJSON(moreInfo)
     makePostRequest(request, write(moreInfoJson))
   }
 
   def updateMoreInfoForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, moreInfo : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").PUT <@(consumerAndToken)
     val moreInfoJson = MoreInfoJSON(moreInfo)
     makePutRequest(request, write(moreInfoJson))
   }
 
   def deleteMoreInfoForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -439,19 +439,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, url : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").POST <@(consumerAndToken)
     val urlJson = UrlJSON(url)
     makePostRequest(request, write(urlJson))
   }
 
   def updateUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, url : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").PUT <@(consumerAndToken)
     val urlJson = UrlJSON(url)
     makePutRequest(request, write(urlJson))
   }
 
   def deleteUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "url").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -460,19 +460,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postImageUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, imageUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").POST <@(consumerAndToken)
     val imageUrlJson = ImageUrlJSON(imageUrl)
     makePostRequest(request, write(imageUrlJson))
   }
 
   def updateImageUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, imageUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").PUT <@(consumerAndToken)
     val imageUrlJson = ImageUrlJSON(imageUrl)
     makePutRequest(request, write(imageUrlJson))
   }
 
   def deleteImageUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -481,19 +481,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postOpenCorporatesUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, openCorporateUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").POST <@(consumerAndToken)
     val openCorporateUrlJson = OpenCorporateUrlJSON(openCorporateUrl)
     makePostRequest(request, write(openCorporateUrlJson))
   }
 
   def updateOpenCorporatesUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, openCorporateUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").PUT <@(consumerAndToken)
     val openCorporateUrlJson = OpenCorporateUrlJSON(openCorporateUrl)
     makePutRequest(request, write(openCorporateUrlJson))
   }
 
   def deleteOpenCorporatesUrlForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -502,19 +502,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postCorporateLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, corporateLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").POST <@(consumerAndToken)
     val corpLocationJson = CorporateLocationJSON(corporateLocation)
     makePostRequest(request, write(corpLocationJson))
   }
 
   def updateCorporateLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, corporateLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").PUT <@(consumerAndToken)
     val corpLocationJson = CorporateLocationJSON(corporateLocation)
     makePutRequest(request, write(corpLocationJson))
   }
 
   def deleteCorporateLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -523,128 +523,128 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postPhysicalLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, physicalLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").POST <@(consumerAndToken)
     val physLocationJson = PhysicalLocationJSON(physicalLocation)
     makePostRequest(request, write(physLocationJson))
   }
 
   def updatePhysicalLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, physicalLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)])  : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").PUT <@(consumerAndToken)
     val physLocationJson = PhysicalLocationJSON(physicalLocation)
     makePutRequest(request, write(physLocationJson))
   }
 
   def deletePhysicalLocationForOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
     makeGetRequest(request, params)
   }
 
   def getTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postTransaction(bankId: String, accountId: String, viewId: String, paymentJson: MakePaymentJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
     makePostRequest(request, compactRender(Extraction.decompose(paymentJson)))
   }
 
   def getNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, narrative: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").POST <@(consumerAndToken)
     val narrativeJson = TransactionNarrativeJSON(narrative)
     makePostRequest(request, write(narrativeJson))
   }
 
   def updateNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, narrative: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").PUT <@(consumerAndToken)
     val narrativeJson = TransactionNarrativeJSON(narrative)
     makePutRequest(request, write(narrativeJson))
   }
 
   def deleteNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getCommentsForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postCommentForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, comment: PostTransactionCommentJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments").POST <@(consumerAndToken)
     makePostRequest(request, write(comment))
   }
 
   def deleteCommentForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, commentId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments" / commentId).DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments" / commentId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getTagsForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postTagForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, tag: PostTransactionTagJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags").POST <@(consumerAndToken)
     makePostRequest(request, write(tag))
   }
 
   def deleteTagForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, tagId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags" / tagId).DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "tags" / tagId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getImagesForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postImageForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, image: PostTransactionImageJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images").POST <@(consumerAndToken)
     makePostRequest(request, write(image))
   }
 
   def deleteImageForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, imageId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images" / imageId).DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "images" / imageId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getWhereForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def postWhereForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, where : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").POST <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").POST <@(consumerAndToken)
     val whereJson = PostTransactionWhereJSON(where)
     makePostRequest(request, write(whereJson))
   }
 
   def updateWhereForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, where : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").PUT <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").PUT <@(consumerAndToken)
     val whereJson = PostTransactionWhereJSON(where)
     makePutRequest(request, write(whereJson))
   }
 
   def deleteWhereForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").DELETE <@(consumerAndToken)
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "where").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getTheCounterpartyOfOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "other_account" <@(consumerAndToken)
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "other_account" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
