@@ -2053,7 +2053,7 @@ object SwaggerDefinitionsJSON {
   
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
-    description = "This is a TRANSFER_TO_ACCOUNT Transaction Request",
+    description = "Transaction description/purpose (20 symbols)",
     transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
     future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
     to = toAccountTransferToAccountJson

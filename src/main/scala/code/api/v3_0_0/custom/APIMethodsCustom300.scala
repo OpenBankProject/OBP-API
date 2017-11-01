@@ -119,10 +119,16 @@ trait CustomAPIMethods300 {
          |Special instructions for ${TRANSFER_TO_PHONE.toString}:
          |
          |When using a ${TRANSFER_TO_PHONE.toString}, the following fields need to be filling in Json Body
-         |from_account_owner_nickname : Nickname of the money sender (20 symbols)
-         |from_account_phone_number   : Mobile number of the money sender (10 digits)
-         |other_account_phone_number  : Mobile number of the money receiver (10 digits)
-         |other_account_message       : Message text to the money receiver (50 symbols)
+         |
+         |1)from.nickname : Nickname of the money sender (20 symbols)
+         |
+         |2)from.mobile_phone_number : Mobile number of the money sender (10 digits)
+         |
+         |3)to.mobile_phone_number : Mobile number of the money receiver (10 digits)
+         |
+         |4)message : Message text to the money receiver (50 symbols)
+         |
+         |5)description Transaction description/purpose (20 symbols):
        """.stripMargin,
       transactionRequestBodyTransferToPhoneJson,
       transactionRequestWithChargeJSON210,
