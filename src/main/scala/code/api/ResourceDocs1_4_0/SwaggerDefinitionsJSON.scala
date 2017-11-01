@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
-import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.api.v3_0_0.{AdapterInfoJsonV300, LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -1895,7 +1895,7 @@ object SwaggerDefinitionsJSON {
   val connectorMetricJson = ConnectorMetricJson(
     connector_name = "mapper",
     function_name = "getBanks",
-    obp_api_request_id = "12345",
+    correlation_id = "12345",
     date = exampleDate,
     duration = 1000
   )
@@ -2000,7 +2000,13 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
-  
+
+  val adapterInfoJsonV300 = AdapterInfoJsonV300(
+    name = "String",
+    version = "String",
+    git_commit = "String",
+    date = "String"
+  )
   
   //V300Custom
   ///////////////////////////////////////////////////////////////////////////
