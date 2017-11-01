@@ -575,7 +575,12 @@ trait APIMethods210 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
+      """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+        |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
+        |TRANSACTION_REQUEST_TYPE : is the same as createTransactionRequest request URL . 
+        |TRANSACTION_REQUEST_ID : is the `id` field in createTransactionRequest response body.
+        |`id` in the Json Body:  is `challenge.id` field in createTransactionRequest response body. 
+      """.stripMargin,
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
       List(
