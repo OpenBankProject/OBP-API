@@ -42,6 +42,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import _root_.net.liftweb.util.{Props, _}
+import code.api.ErrorMessage
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2Accounts, User1AllPrivileges}
 import org.scalatest.Tag
 
@@ -1473,6 +1474,26 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+  
+    scenario("can not create the System View") {
+      Given("The BANK_ID, ACCOUNT_ID, Login user, views")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewWithSystemName = CreateViewJson(
+        name = "owner",
+        description = randomString(3),
+        is_public = true,
+        which_alias_to_use="alias",
+        hide_metadata_if_alias_used = false,
+        allowed_actions = viewFields
+      )
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, viewWithSystemName, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Update a view on a bank account") {
@@ -1584,6 +1605,26 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+  
+    scenario("we can not update a System view on a bank account") {
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+    
+      val updateViewJSON = UpdateViewJSON(
+        description = "good",
+        is_public =false,
+        which_alias_to_use ="",
+        hide_metadata_if_alias_used= false,
+        allowed_actions= Nil
+      )
+    
+      When("We use a valid access token and valid put json")
+      val reply = putView(bankId, bankAccount.id, "owner", updateViewJSON, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Delete a view on a bank account"){
@@ -1657,8 +1698,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = deleteView(bankId, bankAccount.id, randomString(3), user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  
+    scenario("we can not delete a system view on a bank account", API1_2, DeleteView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val reply = deleteView(bankId, bankAccount.id, "owner", user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }

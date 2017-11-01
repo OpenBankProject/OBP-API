@@ -33,6 +33,7 @@ package code.api.v2_2_0
 
 
 import _root_.net.liftweb.json.Serialization.write
+import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
@@ -67,6 +68,9 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
   /********************* API test methods ********************/
 
+  //System view, owner
+  val postBodySystemViewJson = createViewJson.copy(name="owner")
+  
   def randomBank : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
     val randomPosition = nextInt(banksJson.banks.size)
@@ -271,6 +275,18 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+  
+    scenario("can not create the System View") {
+      Given("The BANK_ID, ACCOUNT_ID, Login user, views")
+      val bankId = randomBankId
+      val bankAccountId = randomPrivateAccountId(bankId)
+      When("the request is sent")
+      val reply = postView(bankId, bankAccountId, postBodySystemViewJson, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Update a view on a bank account - v2.2.0") {
@@ -379,6 +395,26 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400")
       reply.code should equal(400)
 
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  
+    scenario("we can not update a System view on a bank account") {
+      val bankId = randomBankId
+      val bankAccountId = randomPrivateAccountId(bankId)
+    
+      val updateViewJSON = UpdateViewJSON(
+        description = "good",
+        is_public =false,
+        which_alias_to_use ="",
+        hide_metadata_if_alias_used= false,
+        allowed_actions= Nil
+      )
+    
+      When("We use a valid access token and valid put json")
+      val reply = putView(bankId, bankAccountId, "owner", updateViewJSON, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
