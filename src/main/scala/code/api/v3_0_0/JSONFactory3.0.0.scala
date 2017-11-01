@@ -32,6 +32,7 @@ import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJSONV200}
 import code.atms.Atms.{Atm, AtmId, AtmT}
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
@@ -339,6 +340,14 @@ case class AtmJsonV300 (
                )
 
 case class AtmsJsonV300(branches : List[AtmJsonV300])
+
+
+case class AdapterInfoJsonV300(
+                                name: String,
+                                version: String,
+                                git_commit: String,
+                                date: String
+                              )
 
 
 object JSONFactory300{
@@ -904,5 +913,13 @@ object JSONFactory300{
   }
 
 
+  def createAdapterInfoJson(ai: InboundAdapterInfoInternal): AdapterInfoJsonV300 = {
+    AdapterInfoJsonV300(
+      name = ai.name,
+      version = ai.version,
+      git_commit = ai.git_commit,
+      date = ai.date
+    )
+  }
 
 }
