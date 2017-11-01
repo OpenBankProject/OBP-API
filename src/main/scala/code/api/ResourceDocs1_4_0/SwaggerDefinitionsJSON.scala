@@ -1895,7 +1895,7 @@ object SwaggerDefinitionsJSON {
   val connectorMetricJson = ConnectorMetricJson(
     connector_name = "mapper",
     function_name = "getBanks",
-    obp_api_request_id = "12345",
+    correlation_id = "12345",
     date = exampleDate,
     duration = 1000
   )

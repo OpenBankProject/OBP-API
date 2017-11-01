@@ -252,7 +252,7 @@ case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, 
 case class ConnectorMetricJson(
                                connector_name: String,
                                function_name: String,
-                               obp_api_request_id: String,
+                               correlation_id: String,
                                date: Date,
                                duration: Long
                              )
@@ -576,7 +576,7 @@ object JSONFactory220{
     ConnectorMetricJson(
       connector_name = metric.getConnectorName(),
       function_name = metric.getFunctionName(),
-      obp_api_request_id = metric.getCorrelationId(),
+      correlation_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
       date = metric.getDate()
     )
