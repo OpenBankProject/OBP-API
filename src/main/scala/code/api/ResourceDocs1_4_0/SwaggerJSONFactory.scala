@@ -183,7 +183,7 @@ object SwaggerJSONFactory {
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
-    val basePath = s"/$ApiPathZero/" + infoApiVersion
+    val basePath = s"/$ApiPathZero/" + infoApiVersion.toString.replace("_", ".")
     val schemas = List("http", "https")
     // Paths Object
     // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#paths-object
