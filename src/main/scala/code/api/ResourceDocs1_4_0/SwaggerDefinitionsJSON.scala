@@ -43,6 +43,18 @@ object SwaggerDefinitionsJSON {
     amount = "100"
   )
   
+  val accountRouting =  AccountRouting(
+    scheme = "String",
+    address = "String" 
+  )
+  
+  val coreAccount = CoreAccount(
+    id ="String",
+    label=" String",
+    bank_id=" String",
+    account_routing= accountRouting
+  )
+  
   val createViewJson = CreateViewJson(
     name = "_test",
     description = "good",
@@ -1999,7 +2011,7 @@ object SwaggerDefinitionsJSON {
     bank_id = "String",
     account_routing = accountRoutingJsonV121
   )
-  val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJsonV300))
+  val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
 
   val adapterInfoJsonV300 = AdapterInfoJsonV300(
     name = "String",

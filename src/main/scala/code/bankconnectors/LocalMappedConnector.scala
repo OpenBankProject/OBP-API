@@ -256,7 +256,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
-  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]]= {
+  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccount]]= {
     Full(
         BankIdAcountIds
         .map(bankIdAccountId =>
@@ -264,12 +264,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             bankIdAccountId.bankId, 
             bankIdAccountId.accountId)
             .openOrThrowException(ErrorMessages.BankAccountNotFound))
-        .map(account => 
-          CoreAccountJsonV300(
+        .map(account =>
+          CoreAccount(
             account.accountId.value, 
             stringOrNull(account.label),
             account.bankId.value, 
-            AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)))
+            AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress)))
     )
   }
   
