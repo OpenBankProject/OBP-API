@@ -658,7 +658,12 @@ trait APIMethods210 {
               challengeAnswerKafkaOK <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
 
               // All Good, proceed with the Transaction creation...
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
+              transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+                case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
+                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType)
+                case _ =>
+                  Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
+              } 
             } yield {
               // Format explicitly as v2.0.0 json
               val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
