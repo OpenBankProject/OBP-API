@@ -739,3 +739,15 @@ case class AmountOfMoney (
 case class Iban(
   val iban: String
 )
+
+case class AccountRouting(
+  scheme: String,
+  address: String
+)
+
+case class CoreAccount(
+  id: String,
+  label: String,
+  bank_id: String,
+  account_routing: AccountRouting
+)
