@@ -1,6 +1,7 @@
 package code.api.v3_0_0.custom
 
 
+import java.text.SimpleDateFormat
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -43,7 +44,6 @@ trait CustomAPIMethods300 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-    
   
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
@@ -271,6 +271,8 @@ trait CustomAPIMethods300 {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToPhoneJson]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_PHONE.toString()} input format"
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from.mobile_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.to.mobile_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
+                  _ <- booleanToBox(transDetailsP2PJson.message.length<=50,s"$InvalidValueCharacters. Message field can only contains no more than 50 symbols")
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -286,8 +288,14 @@ trait CustomAPIMethods300 {
               case TRANSFER_TO_ATM => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAtmJson]} ?~! s"${InvalidJsonFormat} It should be be ${TRANSFER_TO_ATM.toString()} input format"
+                  _ <- booleanToBox(isValidAmountNumber%100 ==0, s"$InvalidValueCharacters. Amount to transfer - has to be divisible by 100")
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.from.mobile_phone_number)) ?~! InvalidPhoneNumber
                   _ <- booleanToBox(validatePhoneNumber(transDetailsP2PJson.to.mobile_phone_number)) ?~! InvalidPhoneNumber
+                  _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
+                  _ <- booleanToBox(transDetailsP2PJson.message.length<=50,s"$InvalidValueCharacters. Message field can only contains no more than 50 symbols")                
+                  _ <- booleanToBox(transDetailsP2PJson.to.kyc_document.`type`=="1" ||transDetailsP2PJson.to.kyc_document.`type`=="5" ,s"$InvalidValueCharacters. to.kyc_document.type of the money receiver: 1 - National; 5- Passport")
+                  _ <- booleanToBox(transDetailsP2PJson.to.date_of_birth.length ==6, s"$InvalidValueCharacters. The date_of_birth format YYMMDD")
+                  _ <- tryo {new SimpleDateFormat("YYMMDD").parse(transDetailsP2PJson.to.date_of_birth)} ?~! s"$InvalidValueCharacters The date_of_birth format YYMMDD"
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
@@ -303,6 +311,10 @@ trait CustomAPIMethods300 {
               case TRANSFER_TO_ACCOUNT => {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
+                  _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
+                  _ <- booleanToBox(transDetailsP2PJson.transfer_type =="1" || transDetailsP2PJson.transfer_type =="2" ,s"$InvalidValueCharacters. Transfer type: 1=regular; 2=RTGS - real time")
+                  _ <- booleanToBox(transDetailsP2PJson.future_date.length == 8, s"$InvalidValueCharacters. The future_date format YYYYMMDD")
+                  _ <- tryo {new SimpleDateFormat("YYYYMMDD").parse(transDetailsP2PJson.future_date)} ?~! s"$InvalidValueCharacters. The future_date format YYYYMMDD"
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
