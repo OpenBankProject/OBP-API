@@ -174,6 +174,7 @@ class ViewsTests extends V300ServerSetup {
       Given("The BANK_ID, ACCOUNT_ID, Login user, views")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
+      postView(bankId, bankAccountId, postBodyViewJson, user1)
       When("the request is sent")
       val reply = postView(bankId, bankAccountId, postBodyViewJson, user1)
       Then("we should get a 400 code")

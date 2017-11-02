@@ -93,8 +93,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
   dlServe
   {
     //Handling get request for a token
-    // Why do we support GET here? TODO disable GET?
-    case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest|GetRequest) => {
+    case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
 
       //Extract the directLogin parameters from the header and test if the request is valid
       var (httpCode, message, directLoginParameters) = validator("authorizationToken", getHttpMethod)
@@ -123,7 +122,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       }
 
       if (httpCode == 200)
-        successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)))
+        successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)), 201)
       else
         errorJsonResponse(message, httpCode)
     }
@@ -132,7 +131,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
   def getHttpMethod = S.request match {
     case Full(s) => s.post_? match {
       case true => "POST"
-      case _    => "GET"
+      case _    => "ERROR"
     }
     case _ => "ERROR"
   }
