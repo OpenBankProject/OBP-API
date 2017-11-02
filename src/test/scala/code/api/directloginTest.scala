@@ -218,8 +218,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", validHeaders)
       var token = "INVALID"
-      Then("We should get a 200 - OK and a token")
-      response.code should equal(200)
+      Then("We should get a 201 - OK and a token")
+      response.code should equal(201)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>
           name should equal("token")
