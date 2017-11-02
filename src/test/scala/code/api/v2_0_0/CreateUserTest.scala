@@ -88,8 +88,8 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       var request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validHeaders)
       var token = "INVALID"
-      Then("we should get a 200 - OK and a token")
-      response.code should equal(200)
+      Then("we should get a 201 - OK and a token")
+      response.code should equal(201)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>
           name should equal("token")
