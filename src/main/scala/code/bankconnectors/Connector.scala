@@ -897,7 +897,7 @@ trait Connector extends MdcLoggable{
       //Note, it should be four different type of details in mappedtransactionrequest.
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
-      detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
+      detailsJsonExtract <- tryo{details.extract[TransactionRequestDetailsMapperJSON]} ?~! s"create transaction detail body, can not extract to $TransactionRequestDetailsMapperJSON "
 
       toBankId = detailsJsonExtract.to.bank_id
 
