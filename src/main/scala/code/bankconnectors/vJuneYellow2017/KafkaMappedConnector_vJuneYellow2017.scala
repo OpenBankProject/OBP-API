@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Locale, UUID}
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.MessageDoc
+import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_0_0.custom.{TransactionRequestBodyTransferToAccount, TransactionRequestBodyTransferToAtmJson, TransactionRequestBodyTransferToPhoneJson}
@@ -48,9 +48,20 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.{BCrypt, Props}
 
+import scala.collection.immutable.List
 import scala.language.postfixOps
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scalacache.memoization.memoizeSync
 
 object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune2017 with KafkaHelper with MdcLoggable {
+  
+  //Leumi do not need other data, only the accountids back, so we faked the data here. 
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]] = saveConnectorMetric{
+    memoizeSync(getAccountTTL millisecond){
+      Full(BankIdAccountIds.map(x =>CoreAccount(x.accountId.value,"","", AccountRouting("",""))))
+    }
+  }("getCoreBankAccounts")
   
   messageDocs += MessageDoc(
     process = "obp.makePaymentImpl",
