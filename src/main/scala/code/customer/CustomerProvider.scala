@@ -103,7 +103,7 @@ trait Customer {
   def faceImage : CustomerFaceImage
   def dateOfBirth: Date
   def relationshipStatus: String
-  def dependents: Int
+  def dependents: Integer
   def dobOfDependents: List[Date]
   def highestEducationAttained: String
   def employmentStatus: String
