@@ -222,7 +222,7 @@ case class CoreAccountJsonV300(
   bank_id : String,
   account_routing: AccountRoutingJsonV121
 )
-case class CoreAccountsJsonV300( accounts: List[CoreAccountJsonV300])
+case class CoreAccountsJsonV300(accounts: List[CoreAccount])
 
 case class ModeratedCoreAccountJSON(
   id: String,
@@ -562,7 +562,7 @@ object JSONFactory300{
       AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
     )
   
-  def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccountJsonV300]): CoreAccountsJsonV300 =
+  def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts)
 
 
