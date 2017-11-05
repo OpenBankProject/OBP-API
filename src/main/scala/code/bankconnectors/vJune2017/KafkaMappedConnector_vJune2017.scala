@@ -289,7 +289,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(getBankTTL millisecond){
       val req = OutboundGetBank(
-        authInfo = AuthInfo(getUsername, currentResourceUserId, getCbsToken),
+        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
         bankId = bankId.toString
       )
       logger.debug(s"Kafka getBank Req says:  is: $req")
@@ -572,7 +572,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccountJsonV300]] = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
       
       val req = OutboundGetCoreBankAccounts(
@@ -592,7 +592,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       
       box match {
         case Full(f) if (f.head.errorCode=="") =>
-          Full(f.map( x => CoreAccountJsonV300(x.id,x.label,x.bank_id,x.account_routing)))
+          Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
         case Full(f) if (f.head.errorCode!="") =>
           Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.head.errorCode+". + CoreBank-Error:"+ f.head.backendMessages)
         case Empty =>

@@ -99,7 +99,7 @@ case class InternalInboundCoreAccount(
   id : String,
   label : String,
   bank_id : String,
-  account_routing: AccountRoutingJsonV121
+  account_routing: AccountRouting
 )
 
 case class AuthInfo(userId: String, username: String, cbsToken: String)
