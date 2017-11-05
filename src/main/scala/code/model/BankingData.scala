@@ -552,6 +552,7 @@ trait BankAccount extends MdcLoggable {
    end views
   */
 
+  // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
