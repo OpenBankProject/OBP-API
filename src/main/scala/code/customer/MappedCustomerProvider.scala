@@ -180,7 +180,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   }
   override def dateOfBirth: Date = mDateOfBirth.get
   override def relationshipStatus: String = mRelationshipStatus.get
-  override def dependents: Int = mDependents.get
+  override def dependents: Integer = mDependents.get
   override def dobOfDependents: List[Date] = List(createdAt.get)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
