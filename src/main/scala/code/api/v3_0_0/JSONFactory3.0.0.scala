@@ -224,6 +224,11 @@ case class CoreAccountJsonV300(
 )
 case class CoreAccountsJsonV300(accounts: List[CoreAccount])
 
+case class AccountIdJson(
+  id: String
+)
+case class AccountsIdsJsonV300(accounts: List[AccountIdJson])
+
 case class ModeratedCoreAccountJSON(
   id: String,
   bank_id: String,
@@ -565,7 +570,8 @@ object JSONFactory300{
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts)
 
-
+  def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
+    AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))
 
 
   def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedAccountJsonV300 =  {

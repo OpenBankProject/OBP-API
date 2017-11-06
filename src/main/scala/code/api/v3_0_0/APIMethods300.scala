@@ -391,12 +391,11 @@ trait APIMethods300 {
         |
         |Possible custom headers for pagination:
         |
-        |* obp_sort_by=CRITERIA ==> default value: "completed" field
-        |* obp_sort_direction=ASC/DESC ==> default value: DESC
+        |* obp_sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* obp_limit=NUMBER ==> default value: 50
         |* obp_offset=NUMBER ==> default value: 0
-        |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+        |* obp_from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
+        |* obp_to_date=DATE => default value: 3049-01-01
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -459,12 +458,11 @@ trait APIMethods300 {
         |
         |Possible custom headers for pagination:
         |
-        |* obp_sort_by=CRITERIA ==> default value: "completed" field
-        |* obp_sort_direction=ASC/DESC ==> default value: DESC
+        |* obp_sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* obp_limit=NUMBER ==> default value: 50
         |* obp_offset=NUMBER ==> default value: 0
         |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+        |* obp_to_date=DATE => default value: 3049-01-01
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -1234,6 +1232,43 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getAccountIdsByBankId,
+      implementedInApiVersion,
+      "privateAccountIdsAtOneBank",
+      "GET",
+      "banks/BANK_ID/accounts/account_ids/private",
+      "Get private accounts ids at one bank.",
+      s"""Returns the list of private (non-public) accounts ids at BANK_ID that the user has access to.
+         |For each account the API returns the ID
+         |
+         |If you want to see more information on the Views, use the Account Detail call.
+         |If you want less information about the account, use the /my accounts call
+         |
+         |
+         |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      accountsIdsJsonV300,
+      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount)
+    )
+  
+    lazy val getAccountIdsByBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! BankNotFound
+            bankAccountIds <- Full(Views.views.vend.getNonPublicBankAccounts(u, bankId))
+          } yield {
+            val json =JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+    
 /* WIP
     resourceDocs += ResourceDoc(
       getOtherAccountsForBank,

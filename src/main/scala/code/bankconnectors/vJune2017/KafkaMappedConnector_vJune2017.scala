@@ -625,6 +625,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
          Nil
       ))
   )
+
+
+  // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
@@ -1142,6 +1145,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   // Helper for creating other bank account
   def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
+
+    // TODO Remove the counterPartyId input parameter since we are not using it.
+    // TODO Fix dummy values.
+
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,

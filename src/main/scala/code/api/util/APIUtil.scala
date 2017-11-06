@@ -76,6 +76,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object ErrorMessages {
 import code.api.util.APIUtil._
 
+val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   // Notes to developers. Please:
   // 1) Follow (the existing) grouping of messages
@@ -714,7 +715,12 @@ object APIUtil extends MdcLoggable {
       case Full(d) => {
         DateParser.parse(d)
       }
-      case _ => Full(new Date())
+      case _ => {
+        // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
+        // (Else caching is invlidated by constantly changing date)
+        val toDate = dateformat.parse("3049-01-01")
+        Full (toDate)
+      }
     }
 
     date.map(OBPToDate(_))
