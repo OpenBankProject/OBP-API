@@ -1152,20 +1152,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,
-      nationalIdentifier = "1234",
+      nationalIdentifier = "",
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
       thisAccountId = AccountId(counterpartyId),
       thisBankId = BankId(""),
-      kind = "1234",
+      kind = "",
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-      name = "sushan",
-      otherBankRoutingScheme = "obp",
-      otherAccountRoutingScheme = "obp",
-      otherAccountProvider = "obp",
-      isBeneficiary = true
+      name = "",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme = "",
+      otherAccountProvider = "",
+      isBeneficiary = false
     )
   }
 
