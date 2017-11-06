@@ -2012,6 +2012,12 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
+  
+  val accountIdJson = AccountIdJson(
+    id = "String"
+  )
+  
+  val accountsIdsJsonV300 = AccountsIdsJsonV300(accounts = List(accountIdJson))
 
   val adapterInfoJsonV300 = AdapterInfoJsonV300(
     name = "String",
