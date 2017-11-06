@@ -838,12 +838,32 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundCreateChallengeJune2017(
+      InboundCreateCounterparty(
         authInfoExample,
-        InternalCreateChallengeJune2017(
-          errorCodeExample,
-          inboundStatusMessagesExample,
-          "1234"
+        InternalCounterparty(
+          errorCode= errorCodeExample,
+          backendMessages = inboundStatusMessagesExample,
+          status = "String",
+          createdByUserId= "String",
+          name= "String",
+          thisBankId= "String",
+          thisAccountId= "String",
+          thisViewId= "String",
+          counterpartyId= "String",
+          otherAccountRoutingScheme= "String",
+          otherAccountRoutingAddress= "String",
+          otherBankRoutingScheme= "String",
+          otherBankRoutingAddress= "String",
+          otherBranchRoutingScheme= "String",
+          otherBranchRoutingAddress= "String",
+          isBeneficiary = false,
+          description= "String",
+          otherAccountSecondaryRoutingScheme= "String",
+          otherAccountSecondaryRoutingAddress= "String",
+          bespoke =  List(PostCounterpartyBespoke(
+            key = "String",
+            value = "String"
+          ))
         )
       )
     )
@@ -901,7 +921,30 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     val res: Box[CounterpartyTrait] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x)
+        Full(
+          InternalCounterparty(
+          x.status,
+            x.errorCode,
+              x.backendMessages,
+            createdByUserId = createdByUserId,
+            name = name,
+            thisBankId = thisBankId,
+            thisAccountId = thisAccountId,
+            thisViewId= thisViewId,
+            counterpartyId =x.counterpartyId,
+            otherAccountRoutingScheme= otherAccountRoutingScheme,
+            otherAccountRoutingAddress = otherAccountRoutingAddress,
+            otherBankRoutingScheme = otherBankRoutingScheme,
+            otherBankRoutingAddress = otherBankRoutingAddress,
+            otherBranchRoutingScheme= otherBranchRoutingScheme,
+            otherBranchRoutingAddress= otherBranchRoutingAddress,
+            isBeneficiary: Boolean,
+            description: String,
+            otherAccountSecondaryRoutingScheme: String,
+            otherAccountSecondaryRoutingAddress: String,
+            bespoke: List[PostCounterpartyBespoke]
+        )
+        )
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1152,20 +1195,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,
-      nationalIdentifier = "1234",
+      nationalIdentifier = null,
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
       thisAccountId = AccountId(counterpartyId),
-      thisBankId = BankId(""),
-      kind = "1234",
+      thisBankId = BankId(null),
+      kind = null,
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-      name = "sushan",
-      otherBankRoutingScheme = "obp",
-      otherAccountRoutingScheme = "obp",
-      otherAccountProvider = "obp",
-      isBeneficiary = true
+      name = null,
+      otherBankRoutingScheme = null,
+      otherAccountRoutingScheme = null,
+      otherAccountProvider = null,
+      isBeneficiary = false
     )
   }
 
