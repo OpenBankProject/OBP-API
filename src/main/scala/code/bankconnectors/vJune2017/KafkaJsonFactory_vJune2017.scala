@@ -250,7 +250,7 @@ case class InternalCustomer(
   faceImage : MockCustomerFaceImage,
   dateOfBirth: Date,
   relationshipStatus: String,
-  dependents: Int,
+  dependents: Integer,
   dobOfDependents: List[Date],
   highestEducationAttained: String,
   employmentStatus: String,

@@ -312,7 +312,7 @@ case class CustomerJsonV210(
   face_image : CustomerFaceImageJson,
   date_of_birth: Date,
   relationship_status: String,
-  dependants: Int,
+  dependants: Integer,
   dob_of_dependants: List[Date],
   credit_rating: Option[CustomerCreditRatingJSON],
   credit_limit: Option[AmountOfMoneyJsonV121],
