@@ -56,13 +56,6 @@ import scalacache.memoization.memoizeSync
 
 object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune2017 with KafkaHelper with MdcLoggable {
   
-  //Leumi do not need other data, only the accountids back, so we faked the data here. 
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]] = saveConnectorMetric{
-    memoizeSync(getAccountTTL millisecond){
-      Full(BankIdAccountIds.map(x =>CoreAccount(x.accountId.value,"","", AccountRouting("",""))))
-    }
-  }("getCoreBankAccounts")
-  
   messageDocs += MessageDoc(
     process = "obp.makePaymentImpl",
     messageFormat = messageFormat,
