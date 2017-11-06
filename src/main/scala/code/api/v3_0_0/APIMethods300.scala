@@ -1243,7 +1243,6 @@ trait APIMethods300 {
          |For each account the API returns the ID
          |
          |If you want to see more information on the Views, use the Account Detail call.
-         |If you want less information about the account, use the /my accounts call
          |
          |
          |${authenticationRequiredMessage(true)}""",
