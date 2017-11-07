@@ -823,7 +823,7 @@ trait APIMethods200 {
         |
         |OAuth authentication is required""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      moderatedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -874,7 +874,7 @@ trait APIMethods200 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransaction, apiTagAccount))
@@ -1429,7 +1429,7 @@ trait APIMethods200 {
         |
         |""",
       createUserJson,
-      userJSONV200,
+      userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
@@ -1745,7 +1745,7 @@ trait APIMethods200 {
         |Login is required.
       """.stripMargin,
       emptyObjectJson,
-      userJSONV200,
+      userJsonV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1780,7 +1780,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))

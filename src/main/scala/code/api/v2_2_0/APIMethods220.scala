@@ -1128,7 +1128,7 @@ trait APIMethods220 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      customerJsonV210,
+      customerJSONs, 
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1192,7 +1192,7 @@ trait APIMethods220 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      moderatedCoreAccountJsonV300,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransaction, apiTagAccount))
