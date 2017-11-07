@@ -1144,24 +1144,24 @@ trait APIMethods220 {
             user <- user ?~! UserNotLoggedIn
             customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)
           } yield {
-            implicit val formats = new DefaultFormats {
-              override val dateFormat = new DateFormat {
-                def parse(s: String) = try {
-                  Some(formatter.parse(s))
-                } catch {
-                  case e: ParseException => None
-                }
-
-                def format(d: Date) = formatter.format(d)
-
-                private def formatter = {
-                  val f = dateFormatter
-                  f.setTimeZone(TimeZone.getTimeZone("Asia/Tel_Aviv"))
-                  f
-                }
-              }
-              override def dateFormatter = new SimpleDateFormat("yyyy-MM-dd", new Locale("he", "IL"))
-            }
+//            implicit val formats = new DefaultFormats {
+//              override val dateFormat = new DateFormat {
+//                def parse(s: String) = try {
+//                  Some(formatter.parse(s))
+//                } catch {
+//                  case e: ParseException => None
+//                }
+//
+//                def format(d: Date) = formatter.format(d)
+//
+//                private def formatter = {
+//                  val f = dateFormatter
+//                  f.setTimeZone(TimeZone.getTimeZone("Asia/Tel_Aviv"))
+//                  f
+//                }
+//              }
+//              override def dateFormatter = new SimpleDateFormat("yyyy-MM-dd", new Locale("he", "IL"))
+//            }
             val json = JSONFactory210.createCustomersJson(customers)
             // Return
             successJsonResponse(Extraction.decompose(json))
