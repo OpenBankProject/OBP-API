@@ -1235,7 +1235,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAccountIdsByBankId,
       implementedInApiVersion,
-      "privateAccountIdsAtOneBank",
+      "getAccountIdsByBankId",
       "GET",
       "banks/BANK_ID/accounts/account_ids/private",
       "Get private accounts ids at one bank.",
