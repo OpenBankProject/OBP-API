@@ -264,7 +264,7 @@ trait APIMethods300 {
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""",
       emptyObjectJson,
-      moderatedAccountJSON,
+      moderatedAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -309,7 +309,7 @@ trait APIMethods300 {
         |
         |OAuth authentication is required""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      moderatedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
@@ -399,7 +399,7 @@ trait APIMethods300 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      coreTransactionsJsonV300,
       List(
         FilterSortDirectionError,
         FilterOffersetError,
@@ -466,7 +466,7 @@ trait APIMethods300 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      transactionsJSON,
+      transactionsJsonV300,
       List(
         FilterSortDirectionError,
         FilterOffersetError,
@@ -598,7 +598,7 @@ trait APIMethods300 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -634,7 +634,7 @@ trait APIMethods300 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -673,7 +673,7 @@ trait APIMethods300 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1097,7 +1097,7 @@ trait APIMethods300 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1175,7 +1175,7 @@ trait APIMethods300 {
         |Login is required.
       """.stripMargin,
       emptyObjectJson,
-      userJSONV200,
+      userJsonV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1237,7 +1237,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "getAccountIdsByBankId",
       "GET",
-      "banks/BANK_ID/accounts/account_ids/private",
+      "/banks/BANK_ID/accounts/account_ids/private",
       "Get private accounts ids at one bank.",
       s"""Returns the list of private (non-public) accounts ids at BANK_ID that the user has access to.
          |For each account the API returns the ID

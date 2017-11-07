@@ -9,6 +9,8 @@ import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
+import scala.collection.immutable.List
+
 /**
   * This object prepare all the JSON case classes for Swagger .
   * For now, just support all the endpoints for V220.
@@ -466,7 +468,7 @@ object SwaggerDefinitionsJSON {
     accounts = List(accountJSON)
   )
 
-  val bankRoutingJSON = BankRoutingJsonV121(
+  val bankRoutingJsonV121 = BankRoutingJsonV121(
     scheme = "Bank_ID",
     address = "gh.29.uk"
   )
@@ -477,7 +479,7 @@ object SwaggerDefinitionsJSON {
     full_name = "full_name",
     logo = "logo",
     website = "www.openbankproject.com",
-    bank_routing = bankRoutingJSON
+    bank_routing = bankRoutingJsonV121
   )
 
   val banksJSON = BanksJSON(
@@ -870,7 +872,7 @@ object SwaggerDefinitionsJSON {
 
 
   // Internal data examples (none JSON format).
-  // Use transform... to convert these to our various json formats for differernt API versions
+  // Use transform... to convert these to our various json formats for different API versions
 
   val meta: Meta =  Meta(license = License (id = "PDDL", name = "Open Data Commons Public Domain Dedication and License "))  // Note the meta  is V140
   val openingTimesV300 =OpeningTimesV300(
@@ -1211,7 +1213,7 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
-  val userJSONV200 = UserJsonV200(
+  val userJsonV200 = UserJsonV200(
     user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     email = "robert.x.0.gh@example.com",
     provider_id = "OBP",
@@ -1444,8 +1446,8 @@ object SwaggerDefinitionsJSON {
     transaction_requests_with_charges = List(transactionRequestWithChargeJson)
   )
 
-  val usersJSONV200 = UsersJSONV200(
-    users = List(userJSONV200)
+  val usersJsonV200 = UsersJsonV200(
+    users = List(userJsonV200)
   )
 
   val counterpartiesJSON = CounterpartiesJSON(
@@ -1536,6 +1538,8 @@ object SwaggerDefinitionsJSON {
     kyc_status = true,
     last_ok_date = exampleDate
   )
+  
+  val customerJSONs = CustomerJSONs(customers = List(customerJsonV210))
 
   val userJSONV210 = UserJSONV210(
     id = "123",
@@ -2025,8 +2029,88 @@ object SwaggerDefinitionsJSON {
     git_commit = "String",
     date = "String"
   )
-
-  //The commont error or success format.
+  
+  val thisAccountJsonV300 = ThisAccountJsonV300(
+    id ="String",
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    holders =  List(accountHolderJSON),
+    kind ="String"
+  )
+  
+  val otherAccountJsonV300 = OtherAccountJsonV300(
+    id = "String",
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    kind = "String",
+    metadata = otherAccountMetadataJSON
+  )
+  
+  val otherAccountsJsonV300 = OtherAccountsJsonV300(
+    other_accounts = List(otherAccountJsonV300)
+  )
+  
+  val transactionJsonV300 = TransactionJsonV300(
+    id= "String",
+    this_account = thisAccountJsonV300,
+    other_account = otherAccountJsonV300,
+    details = transactionDetailsJSON,
+    metadata = transactionMetadataJSON
+  )
+  
+  val transactionsJsonV300 = TransactionsJsonV300(
+    transactions = List(transactionJsonV300)
+  )
+  
+  val coreCounterpartyJsonV300 = CoreCounterpartyJsonV300(
+    id = "String",
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    kind= "String"
+  )
+  
+  val coreTransactionJsonV300 = CoreTransactionJsonV300(
+    id = "String",
+    account = thisAccountJsonV300,
+    counterparty = coreCounterpartyJsonV300,
+    details = coreTransactionDetailsJSON
+  )
+  
+  val coreCounterpartiesJsonV300 =  CoreCounterpartiesJsonV300(
+    counterparties = List(coreCounterpartyJsonV300)
+  )
+  
+  val coreTransactionsJsonV300 = CoreTransactionsJsonV300(
+    transactions = List(coreTransactionJsonV300)
+  )
+  
+  //ended -- Transaction relevant case classes /////
+  
+  //stated -- account relevant case classes /////
+  val moderatedAccountJsonV300 = ModeratedAccountJsonV300(
+    id= "String",
+    bank_id = "String",
+    label = "String",
+    number = "String",
+    owners = List(userJSONV121),
+    `type`= "String",
+    balance =  amountOfMoneyJsonV121,
+    views_available = List(viewJsonV300),
+    account_routing = accountRoutingJsonV121
+  )
+  
+  val moderatedCoreAccountJsonV300 = ModeratedCoreAccountJsonV300(
+    id = "String",
+    bank_id= "String",
+    label= "String",
+    number= "String",
+    owners =  List(userJSONV121),
+    `type`= "String",
+    balance = amountOfMoneyJsonV121,
+    account_routing = accountRoutingJsonV121
+  )
+  
+  //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
   
