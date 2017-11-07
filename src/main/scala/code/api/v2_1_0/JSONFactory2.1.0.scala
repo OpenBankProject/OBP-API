@@ -31,12 +31,13 @@ Berlin 13359, Germany
  */
 package code.api.v2_1_0
 
+import java.lang
 import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJsonV140, ChallengeJsonV140, CustomerFaceImageJson, DriveUpStringJson, LicenseJsonV140, LobbyStringJson, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140}
-import code.api.v1_4_0.JSONFactory1_4_0.{transformToLocationFromV140,transformToMetaFromV140,transformToAddressFromV140}
+import code.api.v1_4_0.JSONFactory1_4_0.{transformToAddressFromV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.atms.Atms.AtmId
 import code.branches.Branches._
@@ -318,7 +319,7 @@ case class CustomerJsonV210(
   credit_limit: Option[AmountOfMoneyJsonV121],
   highest_education_attained: String,
   employment_status: String,
-  kyc_status: Boolean,
+  kyc_status: lang.Boolean,
   last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV210])
 

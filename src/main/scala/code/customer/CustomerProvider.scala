@@ -1,11 +1,13 @@
 package code.customer
 
+import java.lang
 import java.util.Date
 
 import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
 import scala.concurrent.Future
 
 object Customer extends SimpleInjector {
@@ -109,7 +111,7 @@ trait Customer {
   def employmentStatus: String
   def creditRating : CreditRating
   def creditLimit: AmountOfMoney
-  def kycStatus: Boolean
+  def kycStatus: lang.Boolean
   def lastOkDate: Date
 }
 
