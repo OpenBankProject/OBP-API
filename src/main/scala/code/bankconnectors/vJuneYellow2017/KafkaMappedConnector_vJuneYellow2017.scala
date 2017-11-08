@@ -178,7 +178,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
         transactionRequestCommonBody,
         transactionRequestType,
         tr.charge_policy
-      ) ?~ "Couldn't create Transaction"
+      ) ?~ "OBP-40xxx : Couldn't create Transaction"
       
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       
@@ -260,7 +260,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
         initiator.name,
         transactionRequestType.value,
         fromAccount.currency
-      ) ?~! s"createTransactionRequestv300.getChargeLevel exception !"
+      ) ?~! s"OBP-40xxx : createTransactionRequestv300.getChargeLevel exception !"
       
       chargeLevelAmount <- tryo(BigDecimal(chargeLevel.amount)) ?~! s"chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !"
       
@@ -280,7 +280,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
         status,
         charge,
         chargePolicy
-      ) ?~! "createTransactionRequestv300.createTransactionRequestImpl210, Exception: Couldn't create transactionRequest"
+      ) ?~! "OBP-40xxx : createTransactionRequestv300.createTransactionRequestImpl210, Exception: Couldn't create transactionRequest"
       
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
       newTransactionRequest: TransactionRequest <-
@@ -294,7 +294,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
             transactionRequestCommonBody,
             transactionRequestType,
             chargePolicy
-          ) ?~! "createTransactionRequestv300.makePaymentv300 exception"
+          ) ?~! "OBP-40xxx : createTransactionRequestv300.makePaymentv300 exception"
           //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
           transactionRequest <- Full(transactionRequest.copy(challenge = null))
           //save transaction_id into database
@@ -312,7 +312,7 @@ object KafkaMappedConnector_vJuneYellow2017 extends KafkaMappedConnector_vJune20
             fromAccount.accountId, initiator.userId,
             transactionRequestType: TransactionRequestType,
             transactionRequest.id.value
-          ) ?~! "createTransactionRequestv300.createChallenge exception !"
+          ) ?~! "OBP-40xxx : createTransactionRequestv300.createChallenge exception !"
           
           challengeId = UUID.randomUUID().toString
           salt = BCrypt.gensalt()
