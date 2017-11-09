@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.model.{AccountId, ViewId}
 import code.setup.DefaultUsers
-import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 
 class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
@@ -50,6 +50,35 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       }
       
       accountRoutingAddress should equal(counterpartyPostJSON.other_account_routing_address)
+  
+      val counterpartyId = (responsePost.body \ "counterparty_id" ) match {
+        case JString(i) => i
+        case _ => ""
+      }
+  
+      
+      Then("we can test the `Get Counterparty by Id, endpoint`")
+      val requestGet = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / counterpartyId ).POST <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+  
+  
+      Then("We should get a 200 and check all the fields")
+      responsePost.code should equal(200)
+  
+      val accountRoutingAddressGet = (responsePost.body \ "other_account_routing_address" ) match {
+        case JString(i) => i
+        case _ => ""
+      }
+  
+      accountRoutingAddressGet should equal(counterpartyPostJSON.other_account_routing_address)
+  
+  
+      val counterpartyIdGet = (responsePost.body \ "counterparty_id" ) match {
+        case JString(i) => i
+        case _ => ""
+      }
+  
+      counterpartyIdGet should equal(counterpartyId)
 
     }
 
