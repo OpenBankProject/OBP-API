@@ -5,7 +5,7 @@ import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{emptyObjectJson, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{ApiRole, ErrorMessages}
@@ -310,6 +310,42 @@ trait APIMethods220 {
       }
     }
 
+  
+    resourceDocs += ResourceDoc(
+      getCounterpartyById,
+      implmentedInApiVersion,
+      "getCounterpartyById",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Get Counterparty by Counterparty Id.",
+      s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
+         |
+         |${authenticationRequiredMessage(true)}""",
+      emptyObjectJson,
+      counterpartyJsonV220,
+      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount)
+    )
+  
+    lazy val getCounterpartyById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! UserNotLoggedIn
+            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            view <- View.fromUrl(viewId, account)?~! ViewNotFound
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
+          } yield {
+            val counterpartyJson = JSONFactory220.createCounterpartyJSON(counterparty)
+            successJsonResponse(Extraction.decompose(counterpartyJson))
+          }
+      }
+    }
+  
     resourceDocs += ResourceDoc(
       getMessageDocs,
       implmentedInApiVersion,
