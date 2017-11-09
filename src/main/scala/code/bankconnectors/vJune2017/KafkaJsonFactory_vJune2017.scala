@@ -1,5 +1,6 @@
 package code.bankconnectors.vJune2017
 
+import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
@@ -8,7 +9,7 @@ import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.{Customer,MockCustomerFaceImage, MockCreditRating, MockCreditLimit}
+import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
@@ -256,7 +257,7 @@ case class InternalCustomer(
   employmentStatus: String,
   creditRating : MockCreditRating,
   creditLimit: MockCreditLimit,
-  kycStatus: Boolean,
+  kycStatus: lang.Boolean,
   lastOkDate: Date
 )extends Customer
 
