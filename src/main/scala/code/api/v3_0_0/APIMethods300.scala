@@ -9,6 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.api.util.ApiSession.setGatewayLoginInfo
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -1153,7 +1154,7 @@ trait APIMethods300 {
           for {
             (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)} map {
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(setGatewayLoginInfo(token, None))} map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {

@@ -7,6 +7,7 @@ import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
+import code.api.util.ApiSession.setGatewayLoginInfo
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_1_0._
@@ -1142,7 +1143,7 @@ trait APIMethods220 {
         user => {
           for {
             user <- user ?~! UserNotLoggedIn
-            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)
+            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)(setGatewayLoginInfo(getGlJwt(), None))
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
             // Return

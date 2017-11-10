@@ -1355,6 +1355,14 @@ Returns a string showed to the developer
       case _ => Nil
     }
   }
+  def getGlJwt(): Option[String] = {
+    getGatewayResponseHeader() match {
+      case Nil =>
+        None
+      case x :: Nil =>
+        Some(x._2)
+    }
+  }
   /**
     * Set value of GatewayLogin username.
     */

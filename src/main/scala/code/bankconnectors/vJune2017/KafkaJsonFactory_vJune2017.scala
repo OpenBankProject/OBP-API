@@ -103,7 +103,7 @@ case class InternalInboundCoreAccount(
   account_routing: AccountRouting
 )
 
-case class AuthInfo(userId: String, username: String, cbsToken: String)
+case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst: Boolean = true)
 case class InboundAccountJune2017(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
