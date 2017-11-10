@@ -59,6 +59,11 @@ case class OutboundGetCounterparties(
   counterparty: InternalOutboundGetCounterparties
 ) extends TopicTrait
 
+case class OutboundGetCounterpartyByCounterpartyId(
+  authInfo: AuthInfo,
+  counterparty: InternalOutboundGetCounterpartyById
+) extends TopicTrait
+
 case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
@@ -82,6 +87,7 @@ case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCrea
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
+case class InboundGetCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetCustomersByUserId(authInfo: AuthInfo, data: List[InternalCustomer])
 
 
@@ -199,6 +205,13 @@ case class InternalOutboundGetCounterparties(
   thisBankId: String, 
   thisAccountId: String,
   viewId :String
+)
+
+case class InternalOutboundGetCounterpartyById(
+  thisBankId: String,
+  thisAccountId: String,
+  viewId : String,
+  counterpartyById : String
 )
 
 case class OutboundTransactionRequests(
