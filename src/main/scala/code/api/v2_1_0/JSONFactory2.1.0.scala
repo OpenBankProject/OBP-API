@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.api.v2_1_0
 
 import java.lang
-import java.util.{Date}
+import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
