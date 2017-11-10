@@ -93,10 +93,10 @@ trait User {
     permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
 
   /**
-  * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+  * @return the bank accounts where the user has at least access to a Private view (is_public==false)
   */
-  def nonPublicAccounts : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(this).flatMap { a =>
+  def privateAccounts : List[BankAccount] = {
+    Views.views.vend.getPrivateBankAccounts(this).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }

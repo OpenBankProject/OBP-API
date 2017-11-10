@@ -564,7 +564,7 @@ object JSONFactory200{
                        entitlements : EntitlementJSONs
                      )
 
-  case class UsersJSONV200(
+  case class UsersJsonV200(
                       users: List[UserJsonV200]
                       )
 
@@ -603,8 +603,8 @@ object JSONFactory200{
     }
   }
 
-  def createUserJSONs(users : List[User]) : UsersJSONV200 = {
-    UsersJSONV200(users.map(createUserJSON))
+  def createUserJSONs(users : List[User]) : UsersJsonV200 = {
+    UsersJsonV200(users.map(createUserJSON))
   }
 
 
