@@ -84,7 +84,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
   val messageFormat: String = "June2017"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
+  implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse("22/08/2013")

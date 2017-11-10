@@ -3,6 +3,7 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.fullBoxOrException
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
@@ -135,7 +136,7 @@ object Helper{
   Returns a pretty json representation of the input
    */
   def prettyJson(input: JValue) : String = {
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
     prettyRender(decompose(input))
   }
 

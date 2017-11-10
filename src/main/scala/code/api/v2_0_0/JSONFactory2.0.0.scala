@@ -33,7 +33,8 @@ package code.api.v2_0_0
 
 import java.util.Date
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJsonV121}
+import code.api.util.APIUtil
+import code.api.v1_2_1.AccountRoutingJsonV121
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
@@ -354,7 +355,7 @@ case class EntitlementJSONs(list: List[EntitlementJSON])
 object JSONFactory200{
 
 
-  implicit val formats = net.liftweb.json.DefaultFormats
+  implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
 
 
 // If we use this we would not use basic views json etc.
