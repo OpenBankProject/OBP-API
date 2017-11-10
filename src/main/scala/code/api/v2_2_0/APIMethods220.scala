@@ -74,7 +74,7 @@ trait APIMethods220 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val implmentedInApiVersion: String = "2_2_0"
+    val implementedInApiVersion: String = "2_2_0"
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -85,7 +85,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -142,7 +142,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createViewForBankAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
@@ -195,7 +195,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
@@ -240,7 +240,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getCurrentFxRate,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getCurrentFxRate",
       "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
@@ -270,7 +270,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getCounterpartiesForAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
@@ -313,7 +313,7 @@ trait APIMethods220 {
   
     resourceDocs += ResourceDoc(
       getCounterpartyById,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
@@ -348,7 +348,7 @@ trait APIMethods220 {
   
     resourceDocs += ResourceDoc(
       getMessageDocs,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getMessageDocs",
       "GET",
       "/message-docs/mar2017",
@@ -381,7 +381,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createBank,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createBank",
       "POST",
       "/banks",
@@ -438,7 +438,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createBranch,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createBranch",
       "POST",
       "/banks/BANK_ID/branches",
@@ -489,7 +489,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createAtm,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createAtm",
       "POST",
       "/banks/BANK_ID/atms",
@@ -543,7 +543,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createProduct,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createProduct",
       "PUT",
       "/banks/BANK_ID/products",
@@ -608,7 +608,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createFx,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createFx",
       "PUT",
       "/banks/BANK_ID/fx",
@@ -666,7 +666,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
@@ -752,7 +752,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       config,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "config",
       "GET",
       "/config",
@@ -785,7 +785,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getConnectorMetrics,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getConnectorMetrics",
       "GET",
       "/management/connector/metrics",
@@ -914,7 +914,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       createConsumer,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createConsumer",
       "POST",
       "/management/consumers",
@@ -980,7 +980,7 @@ trait APIMethods220 {
   
     resourceDocs += ResourceDoc(
       createCounterparty,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "createCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
@@ -1155,7 +1155,7 @@ trait APIMethods220 {
 
     resourceDocs += ResourceDoc(
       getCustomersForUser,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getCustomersForUser",
       "GET",
       "/users/current/customers",
@@ -1208,7 +1208,7 @@ trait APIMethods220 {
   
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
-      implmentedInApiVersion,
+      implementedInApiVersion,
       "getCoreTransactionsForBankAccount",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",

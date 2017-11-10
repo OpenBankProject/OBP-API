@@ -365,7 +365,7 @@ trait APIMethods300 {
             for {
               (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
               u <- unboxFullAndWrapIntoFuture{ user }
-              availableAccounts <- Views.views.vend.getNonPublicBankAccountsFuture(u)
+              availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             } yield {
               for {
                 coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
@@ -1201,7 +1201,7 @@ trait APIMethods300 {
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts at one bank.",
-      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      s"""Returns the list of private accounts at BANK_ID that the user has access to.
          |For each account the API returns the ID and the available views.
          |
         |If you want to see more information on the Views, use the Account Detail call.
@@ -1223,7 +1223,7 @@ trait APIMethods300 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
-            availableAccounts <- Full(Views.views.vend.getNonPublicBankAccounts(u, bankId))
+            availableAccounts <- Full(Views.views.vend.getPrivateBankAccounts(u, bankId))
             accounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
           } yield {
             val json =JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts)
@@ -1233,13 +1233,13 @@ trait APIMethods300 {
     }
 
     resourceDocs += ResourceDoc(
-      getAccountIdsByBankId,
+      getPrivateAccountIdsbyBankId,
       implementedInApiVersion,
-      "getAccountIdsByBankId",
+      "getPrivateAccountIdsbyBankId",
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
       "Get private accounts ids at one bank.",
-      s"""Returns the list of private (non-public) accounts ids at BANK_ID that the user has access to.
+      s"""Returns the list of private accounts ids at BANK_ID that the user has access to.
          |For each account the API returns the ID
          |
          |If you want to see more information on the Views, use the Account Detail call.
@@ -1253,14 +1253,14 @@ trait APIMethods300 {
       List(apiTagAccount)
     )
   
-    lazy val getAccountIdsByBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPrivateAccountIdsbyBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
-            bankAccountIds <- Full(Views.views.vend.getNonPublicBankAccounts(u, bankId))
+            bankAccountIds <- Full(Views.views.vend.getPrivateBankAccounts(u, bankId))
           } yield {
             val json =JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds)
             successJsonResponse(Extraction.decompose(json))

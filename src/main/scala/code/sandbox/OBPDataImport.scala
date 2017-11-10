@@ -537,7 +537,7 @@ trait OBPDataImport extends MdcLoggable {
           account.save()
 
           views.filterNot(_.isPublic).foreach(v => {
-            //grant the owner access to non-public views
+            //grant the owner access to Private views
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
             val accOwners = us.filter(u => accOwnerUsernames.exists(name => u.name == name))
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))

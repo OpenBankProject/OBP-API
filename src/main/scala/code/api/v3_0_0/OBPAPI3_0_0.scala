@@ -256,7 +256,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getCustomersForUser ::
                           Implementations3_0_0.getCurrentUser ::
                           Implementations3_0_0.privateAccountsAtOneBank ::
-                          Implementations3_0_0.getAccountIdsByBankId ::
+                          Implementations3_0_0.getPrivateAccountIdsbyBankId ::
                           Nil
 
 

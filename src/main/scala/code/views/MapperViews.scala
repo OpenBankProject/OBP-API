@@ -312,8 +312,8 @@ object MapperViews extends Views with MdcLoggable {
     //TODO: do this more efficiently?
     //select all views by user.
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    //select the nonpublic views by BankAccountUid
-    val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
+    //select the Private views by BankAccountUid
+    val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
       p.view.obj match {
         case Full(v) => if(
           !v.isPublic &&
@@ -324,8 +324,8 @@ object MapperViews extends Views with MdcLoggable {
         case _ => None
       }
     })
-    // merge the nonPublic and public views
-    userNonPublicViewsForAccount ++ publicViews(bankAccountId)
+    // merge the Private and public views
+    userPrivateViewsForAccount ++ publicViews(bankAccountId)
   }
 
   def publicViews(bankAccountId : BankIdAccountId) : List[View] = {
@@ -374,13 +374,13 @@ object MapperViews extends Views with MdcLoggable {
           else
             Nil
 
-        val nonPublicViewBankAndAccounts = ViewPrivileges
+        val privateViewBankAndAccounts = ViewPrivileges
           .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(!_.isPublic) //select all the non-public views
+          .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
-        //we remove duplicates here, because some accounts, has both public views and non-public views
-        (publicViewBankAndAccounts ++ nonPublicViewBankAndAccounts).distinct
+        //we remove duplicates here, because some accounts, has both public views and Private views
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
       }
       case _ => getAllPublicAccounts()
     }
@@ -401,45 +401,45 @@ object MapperViews extends Views with MdcLoggable {
           else
             Nil
 
-        val nonPublicViewBankAndAccounts = ViewPrivileges
+        val privateViewBankAndAccounts = ViewPrivileges
           .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId ==bank.bankId) //select all the non-public views according to bankId
+          .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId ==bank.bankId) //select all the Private views according to bankId
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
-        //we remove duplicates here, because some accounts, has both public views and non-public views
-        (publicViewBankAndAccounts ++ nonPublicViewBankAndAccounts).distinct
+        //we remove duplicates here, because some accounts, has both public views and Private views
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
       }
       case _ => getPublicBankAccounts(bank)
     }
   }
 
   /**
-   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+   * @return the bank accounts where the user has at least access to a Private view (is_public==false)
    */
-  def getNonPublicBankAccounts(user : User) :  List[BankIdAccountId] = {
+  def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {
     ViewPrivileges
     .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(!_.isPublic) //select all the non-public views
+      .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
 
   /**
-    * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+    * @return the bank accounts where the user has at least access to a Private view (is_public==false)
     */
-  def getNonPublicBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] = {
+  def getPrivateBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] = {
     Future {
-      getNonPublicBankAccounts(user)
+      getPrivateBankAccounts(user)
     }
   }
 
   /**
-   * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
+   * @return the bank accounts where the user has at least access to a Private view (is_public==false) for a specific bank
    */
-  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] = {
+  def getPrivateBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] = {
     ViewPrivileges
       .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId) //select all the non-public views according to bankId
+      .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId) //select all the Private views according to bankId
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
