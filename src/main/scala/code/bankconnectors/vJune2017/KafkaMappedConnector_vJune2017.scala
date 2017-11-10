@@ -922,30 +922,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     val res: Box[CounterpartyTrait] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(
-          InternalCounterparty(
-          x.status,
-            x.errorCode,
-              x.backendMessages,
-            createdByUserId = createdByUserId,
-            name = name,
-            thisBankId = thisBankId,
-            thisAccountId = thisAccountId,
-            thisViewId= thisViewId,
-            counterpartyId =x.counterpartyId,
-            otherAccountRoutingScheme= otherAccountRoutingScheme,
-            otherAccountRoutingAddress = otherAccountRoutingAddress,
-            otherBankRoutingScheme = otherBankRoutingScheme,
-            otherBankRoutingAddress = otherBankRoutingAddress,
-            otherBranchRoutingScheme= otherBranchRoutingScheme,
-            otherBranchRoutingAddress= otherBranchRoutingAddress,
-            isBeneficiary: Boolean,
-            description: String,
-            otherAccountSecondaryRoutingScheme: String,
-            otherAccountSecondaryRoutingAddress: String,
-            bespoke: List[PostCounterpartyBespoke]
-        )
-        )
+        Full(x)
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1103,7 +1080,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           thisBankId = "String",
           thisAccountId = "String",
           viewId = "String",
-          counterpartyById = "String"
+          counterpartyId = "String"
         )
       )
     ),
