@@ -27,6 +27,7 @@ Berlin 13359, Germany
 package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.api.JSONFactoryGateway.{PayloadOfJwtJSON}
 import code.api.util.ErrorMessages
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -40,6 +41,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props}
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -50,15 +52,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 object JSONFactoryGateway {
-  case class TokenJSON(
-                        login_user_name: String,
-                        is_first: Option[Boolean],
-                        app_id: String,
-                        app_name: String,
-                        time_stamp: String,
-                        cbs_token: Option[String],
-                        temenos_id: String
-                      )
+
+  case class PayloadOfJwtJSON(
+                               login_user_name: String,
+                               is_first: Boolean,
+                               app_id: String,
+                               app_name: String,
+                               time_stamp: String,
+                               cbs_token: Option[String],
+                               temenos_id: String
+                             )
+
 }
 
 object GatewayLogin extends RestHelper with MdcLoggable {
@@ -75,9 +79,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case Some(v) => v
       case None => getFieldFromPayloadJson(payloadAsJsonString, "cbs_token")
     }
-    val json = JSONFactoryGateway.TokenJSON(
+    val json = JSONFactoryGateway.PayloadOfJwtJSON(
       login_user_name = username,
-      is_first = Some(false),
+      is_first = false,
       app_id = consumerId,
       app_name = consumerName,
       time_stamp = timestamp,
@@ -389,6 +393,19 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       JField("cbsToken", JString(fieldName)) <- obj
     } yield fieldName
     listOfValues
+  }
+
+
+  def getPayloadFromJwt(jwt: String): PayloadOfJwtJSON = {
+    implicit val formats = DefaultFormats
+    jwt match {
+      case JsonWebToken(header, payload, signature) =>
+        logger.debug("getPayloadFromJwt" + payload)
+        val x = parse(payload.asJsonString)
+        x.extract[PayloadOfJwtJSON]
+      case _ =>
+        throw new Exception(ErrorMessages.GatewayLoginCannotExtractJwtToken)
+    }
   }
 
 

@@ -3,7 +3,7 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.api.v3_0_0.CoreAccountJsonV300
@@ -1535,7 +1535,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   
   
-  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =
+  override def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] =
     Customer.customerProvider.vend.getCustomersByUserIdBox(userId)
   
 }
