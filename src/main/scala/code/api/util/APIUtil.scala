@@ -1355,7 +1355,7 @@ Returns a string showed to the developer
       case _ => Nil
     }
   }
-  def getGlJwt(): Option[String] = {
+  def getGatewayLoginJwt(): Option[String] = {
     getGatewayResponseHeader() match {
       case Nil =>
         None
