@@ -1027,7 +1027,7 @@ trait APIMethods210 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,

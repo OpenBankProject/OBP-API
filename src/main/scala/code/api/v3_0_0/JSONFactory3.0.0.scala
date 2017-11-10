@@ -28,9 +28,9 @@ package code.api.v3_0_0
 
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
-import code.api.v1_2_1._
+import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
-import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJSONV200}
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
@@ -224,7 +224,12 @@ case class CoreAccountJsonV300(
 )
 case class CoreAccountsJsonV300(accounts: List[CoreAccount])
 
-case class ModeratedCoreAccountJSON(
+case class AccountIdJson(
+  id: String
+)
+case class AccountsIdsJsonV300(accounts: List[AccountIdJson])
+
+case class ModeratedCoreAccountJsonV300(
   id: String,
   bank_id: String,
   label: String,
@@ -565,7 +570,8 @@ object JSONFactory300{
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts)
 
-
+  def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
+    AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))
 
 
   def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedAccountJsonV300 =  {
@@ -583,9 +589,9 @@ object JSONFactory300{
     )
   }
 
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJSON =  {
+  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
-    new ModeratedCoreAccountJSON (
+    new ModeratedCoreAccountJsonV300 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
@@ -908,8 +914,8 @@ object JSONFactory300{
     }
   }
 
-  def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJSONV200 = {
-    UsersJSONV200(users.map(t => createUserJSON(Full(t._1), t._2)))
+  def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJsonV200 = {
+    UsersJsonV200(users.map(t => createUserJSON(Full(t._1), t._2)))
   }
 
 
