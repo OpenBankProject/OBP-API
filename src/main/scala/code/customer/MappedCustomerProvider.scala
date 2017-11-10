@@ -1,5 +1,6 @@
 package code.customer
 
+import java.lang
 import java.util.Date
 
 import code.model.{BankId, User}
@@ -192,7 +193,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
     override def currency: String = mCreditLimitCurrency.get
     override def amount: String = mCreditLimitAmount.get
   }
-  override def kycStatus: Boolean = mKycStatus.get
+  override def kycStatus: lang.Boolean = mKycStatus.get
   override def lastOkDate: Date = mLastOkDate.get
 }
 
