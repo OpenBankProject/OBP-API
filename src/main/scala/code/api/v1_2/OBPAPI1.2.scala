@@ -131,8 +131,8 @@
 //
 //  /**
 //   * This call is technically incorrect, but being kept this way for backwards compatibility. The original
-//   * intent was to return non-public accounts the user has access to AND the public accounts. When a user is logged
-//   * in, this in fact only returns the non-public accounts. Fixed in v1.2.1
+//   * intent was to return Private accounts the user has access to AND the public accounts. When a user is logged
+//   * in, this in fact only returns the Private accounts. Fixed in v1.2.1
 //   */
 //  oauthServe(apiPrefix {
 //  //get accounts for a single bank
@@ -153,7 +153,7 @@
 //          u <- user ?~ "user not found"
 //          bank <- Bank(bankId)
 //        } yield {
-//          val availableAccounts = bank.nonPublicAccounts(u)
+//          val availableAccounts = bank.PrivateAccounts(u)
 //          successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
 //        }
 //    }
