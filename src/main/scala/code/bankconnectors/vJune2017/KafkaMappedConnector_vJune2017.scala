@@ -41,6 +41,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
+import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -843,7 +844,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         InternalCounterparty(
           errorCode= errorCodeExample,
           backendMessages = inboundStatusMessagesExample,
-          status = "String",
           createdByUserId= "String",
           name= "String",
           thisBankId= "String",
@@ -921,30 +921,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     val res: Box[CounterpartyTrait] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(
-          InternalCounterparty(
-          x.status,
-            x.errorCode,
-              x.backendMessages,
-            createdByUserId = createdByUserId,
-            name = name,
-            thisBankId = thisBankId,
-            thisAccountId = thisAccountId,
-            thisViewId= thisViewId,
-            counterpartyId =x.counterpartyId,
-            otherAccountRoutingScheme= otherAccountRoutingScheme,
-            otherAccountRoutingAddress = otherAccountRoutingAddress,
-            otherBankRoutingScheme = otherBankRoutingScheme,
-            otherBankRoutingAddress = otherBankRoutingAddress,
-            otherBranchRoutingScheme= otherBranchRoutingScheme,
-            otherBranchRoutingAddress= otherBranchRoutingAddress,
-            isBeneficiary: Boolean,
-            description: String,
-            otherAccountSecondaryRoutingScheme: String,
-            otherAccountSecondaryRoutingAddress: String,
-            bespoke: List[PostCounterpartyBespoke]
-        )
-        )
+        Full(x)
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1035,18 +1012,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getCounterparties from kafka ",
     exampleOutboundMessage = decompose(
-      OutboundGetTransactionRequests210(
+      OutboundGetCounterparties(
         authInfoExample,
-        OutboundTransactionRequests(
-          "accountId: String",
-          "accountType: String",
-          "currency: String",
-          "iban: String",
-          "number: String",
-          "bankId: BankId",
-          "branchId: String",
-          "accountRoutingScheme: String",
-          "accountRoutingAddress: String"
+        InternalOutboundGetCounterparties(
+          thisBankId = "String",
+          thisAccountId = "String",
+          viewId = "String"
         )
       )
     ),
@@ -1087,6 +1058,77 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.CounterpartyByCounterpartyId",
+    messageFormat = messageFormat,
+    description = "getCounterpartyByCounterpartyId from kafka ",
+    exampleOutboundMessage = Extraction.decompose(
+      OutboundGetCounterpartyByCounterpartyId(
+        authInfoExample,
+        InternalOutboundGetCounterpartyById(
+          thisBankId = "String",
+          thisAccountId = "String",
+          viewId = "String",
+          counterpartyId = "String"
+        )
+      )
+    ),
+    exampleInboundMessage = Extraction.decompose(
+      InboundGetCounterparty(
+        authInfoExample,
+        InternalCounterparty(
+          errorCodeExample,
+          inboundStatusMessagesExample,
+          createdByUserId = "String",
+          name = "String",
+          thisBankId = "String",
+          thisAccountId = "String",
+          thisViewId = "String",
+          counterpartyId = "String",
+          otherAccountRoutingScheme = "String",
+          otherAccountRoutingAddress = "String",
+          otherBankRoutingScheme = "String",
+          otherBankRoutingAddress = "String",
+          otherBranchRoutingScheme = "String",
+          otherBranchRoutingAddress = "String",
+          isBeneficiary = true,
+          description = "String",
+          otherAccountSecondaryRoutingScheme = "String",
+          otherAccountSecondaryRoutingAddress = "String",
+          bespoke = Nil
+        )
+      )
+    )
+  )
+  
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),InternalOutboundGetCounterpartyById("","","",counterpartyId.value))
+    logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
+  
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetCounterpartyByCounterpartyId](req)
+      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCustomersByUserId extract error"
+      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    } yield{
+      internalCustomer
+    }
+    logger.debug(s"Kafka getCounterpartyByCounterpartyId Res says: is: $box")
+  
+    val res = box match {
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>

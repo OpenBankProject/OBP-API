@@ -190,7 +190,7 @@ trait Bank {
   def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
     user match {
       case Full(u) => {
-        Full(nonPublicAccounts(u))
+        Full(privateAccounts(u))
       }
       case _ => {
         Full(publicAccounts)
@@ -204,16 +204,16 @@ trait Bank {
     }
   }
 
-  def nonPublicAccounts(user : User) : List[BankAccount] = {
+  def privateAccounts(user : User) : List[BankAccount] = {
 
-    Views.views.vend.getNonPublicBankAccounts(user, bankId).flatMap { a =>
+    Views.views.vend.getPrivateBankAccounts(user, bankId).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
 
     // Note: An alternative to the above implmentation (which will call BankAccount (e.g. Kafka) once for each
     // account) - could be:
     // 1) Get the accounts / view the user should have access to:
-    // Views.views.vend.getNonPublicBankAccounts(user, bankId)
+    // Views.views.vend.getPrivateBankAccounts(user, bankId)
     // 2) Get all accounts for User
     // 3) Return just the accounts found in step 1.
     // 4) If any accounts are missing (because they belong to another user), call BankAccount for the missing accounts.
@@ -623,8 +623,8 @@ object BankAccount {
     }
   }
 
-  def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user).flatMap { a =>
+  def privateAccounts(user : User) : List[BankAccount] = {
+    Views.views.vend.getPrivateBankAccounts(user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }

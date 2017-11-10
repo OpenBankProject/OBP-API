@@ -7,6 +7,7 @@ import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
 import scala.concurrent.Future
 
 object Customer extends SimpleInjector {
