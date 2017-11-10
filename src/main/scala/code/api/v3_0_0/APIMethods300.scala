@@ -1233,13 +1233,13 @@ trait APIMethods300 {
     }
 
     resourceDocs += ResourceDoc(
-      getAccountIdsByBankId,
+      getPrivateAccountIdsbyBankId,
       implementedInApiVersion,
-      "getAccountIdsByBankId",
+      "getPrivateAccountIdsbyBankId",
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
       "Get private accounts ids at one bank.",
-      s"""Returns the list of private (non-public) accounts ids at BANK_ID that the user has access to.
+      s"""Returns the list of private accounts ids at BANK_ID that the user has access to.
          |For each account the API returns the ID
          |
          |If you want to see more information on the Views, use the Account Detail call.
@@ -1253,7 +1253,7 @@ trait APIMethods300 {
       List(apiTagAccount)
     )
   
-    lazy val getAccountIdsByBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPrivateAccountIdsbyBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
         user =>
