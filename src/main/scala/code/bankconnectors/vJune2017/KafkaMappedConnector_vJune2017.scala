@@ -844,7 +844,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         InternalCounterparty(
           errorCode= errorCodeExample,
           backendMessages = inboundStatusMessagesExample,
-          status = "String",
           createdByUserId= "String",
           name= "String",
           thisBankId= "String",
@@ -1088,7 +1087,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCounterparty(
         authInfoExample,
         InternalCounterparty(
-          status = "String",
           errorCodeExample,
           inboundStatusMessagesExample,
           createdByUserId = "String",

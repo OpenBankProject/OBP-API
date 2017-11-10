@@ -228,7 +228,6 @@ case class OutboundTransactionRequests(
   
 
 case class InternalCounterparty(
-  status: String,
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
   createdByUserId: String,
