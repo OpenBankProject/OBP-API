@@ -195,24 +195,27 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
    } yield y
 
 
-
    val rawTagsParam = S.param("tags")
 
-   val tags: Option[List[ResourceDocTag]] = rawTagsParam match {
-     // if tags= is supplied in the url we want to ignore it
-     case Full("") => None
-     case _  => {
-       val commaSeparatedList : String = rawTagsParam.getOrElse("")
-       val tagList : List[String] = commaSeparatedList.trim().split(",").toList
-       val resourceDocTags =
-       for {
-         y <- tagList
-       } yield {
-         ResourceDocTag(y)
+
+   val tags: Option[List[ResourceDocTag]] =
+       rawTagsParam match {
+       // if tags= is supplied in the url, we want to ignore it
+       case Full("") => None
+       // if tags is not mentioned at all, we want to ignore it
+       case Empty => None
+       case _  => {
+         val commaSeparatedList : String = rawTagsParam.getOrElse("")
+         val tagList : List[String] = commaSeparatedList.trim().split(",").toList
+         val resourceDocTags =
+         for {
+           y <- tagList
+         } yield {
+           ResourceDocTag(y)
+         }
+        Some(resourceDocTags)
        }
-      Some(resourceDocTags)
      }
-   }
    logger.info(s"tags are $tags")
 
 
@@ -223,13 +226,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
   def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-     val (showCore, showPSD2, showOBWG, tagsParam) =  getParams()
+     val (showCore, showPSD2, showOBWG, tags) =  getParams()
       user => {
 
        for {
          requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tagsParam)
+         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags)
         }
         yield {
           json
