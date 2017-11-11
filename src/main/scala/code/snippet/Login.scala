@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.api.OpenIdConnectConfig
+import code.api.util.APIUtil
 import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
@@ -90,7 +91,7 @@ class Login {
     def customiseLogin : CssSel = {
       val specialLoginInstructions  = scala.xml.Unparsed(Props.get("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
-      implicit val formats = net.liftweb.json.DefaultFormats
+      implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
       "#login-special-instructions *" #> specialLoginInstructions
     }
 

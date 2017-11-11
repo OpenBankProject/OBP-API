@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat
 
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
+import code.api.util.APIUtil
 import code.model.BankId
 import code.util.Helper.MdcLoggable
 import dispatch._
@@ -50,8 +51,8 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable {
 
-  implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
+  // implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
+  implicit val dateformats = APIUtil.getLiftWebJsonDefaultFormats()
   
   
   val server = TestServer

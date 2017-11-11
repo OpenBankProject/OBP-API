@@ -28,7 +28,7 @@ import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v2_1_0._
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
@@ -96,7 +96,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   val messageFormat: String  = "Mar2017"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
+  implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDateString: String = "22/08/2013"
@@ -658,7 +658,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       accountId = accountId.toString,
       queryParams = queryParams.toString)
 
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -718,7 +718,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
     }
@@ -793,7 +793,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
           bankId = a._1.value,
           accountId = a._2.value)
 
-        implicit val formats = net.liftweb.json.DefaultFormats
+        implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
         val r = {
           cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[InboundAccount]])
         }
@@ -858,7 +858,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
     }
@@ -917,7 +917,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         counterpartyId = counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
-      implicit val formats = net.liftweb.json.DefaultFormats
+      implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
       val r = {
         cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterparty])
       }
