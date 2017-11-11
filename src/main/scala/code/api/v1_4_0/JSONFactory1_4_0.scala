@@ -330,7 +330,7 @@ object JSONFactory1_4_0 {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     ResourceDocJson(
-      operation_id = s"${rd.implementedInApiVersion.toString}-${rd.apiFunction.toString}",
+      operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.apiFunction.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary,
