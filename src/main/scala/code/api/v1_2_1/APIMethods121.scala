@@ -203,7 +203,7 @@ trait APIMethods121 {
          |For each account the API returns the account ID and the available views.
          |
          |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-         |the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
+         |the user is authenticated, the list will contain Private accounts to which the user has access, in addition to
          |all public accounts.
          |
          |Note for those upgrading from v1.2:
@@ -231,7 +231,7 @@ trait APIMethods121 {
       "GET",
       "/accounts/private",
       "Get private accounts at all banks (Authenticated access).",
-      """Returns the list of private (non-public) accounts the user has access to at all banks.
+      """Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -248,7 +248,7 @@ trait APIMethods121 {
           for {
             u <- user ?~  UserNotLoggedIn
           } yield {
-            val availableAccounts = BankAccount.nonPublicAccounts(u)
+            val availableAccounts = BankAccount.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
           }
       }
@@ -261,7 +261,7 @@ trait APIMethods121 {
       "GET",
       "/accounts/public",
       "Get public accounts at all banks (Anonymous access).",
-      """Returns the list of private (non-public) accounts the user has access to at all banks.
+      """Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       accountJSON,
@@ -320,7 +320,7 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts at one bank.",
-      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(true)}""",
@@ -338,7 +338,7 @@ trait APIMethods121 {
             u <- user ?~  UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
-            val availableAccounts = bank.nonPublicAccounts(u)
+            val availableAccounts = bank.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
           }
       }

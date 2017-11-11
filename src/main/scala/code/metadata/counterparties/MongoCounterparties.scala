@@ -53,7 +53,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String, otherAccountNumber : String) : Metadata = {
     //create it
     if(otherAccountHolder.isEmpty){
-      logger.info("other account holder is Empty. creating a metadata record with no public alias")
+      logger.info("other account holder is Empty. creating a metadata record with private alias")
       //no holder name, nothing to hide, so we don't need to create a public alias
       Metadata
         .createRecord

@@ -14,7 +14,6 @@ import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFacto
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{bankAccountsListToJson, _}
-import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
@@ -128,7 +127,7 @@ trait APIMethods200 {
          |For each account the API returns the account ID and the available views.
          |
          |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-         |the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
+         |the user is authenticated, the list will contain Private accounts to which the user has access, in addition to
          |all public accounts.
          |
          |${authenticationRequiredMessage(false)}
@@ -181,7 +180,7 @@ trait APIMethods200 {
               for {
                 u <- user ?~! ErrorMessages.UserNotLoggedIn
               } yield {
-                val availableAccounts = BankAccount.nonPublicAccounts(u)
+                val availableAccounts = BankAccount.privateAccounts(u)
                 val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, availableAccounts, Full(u))
                 val response = successJsonResponse(coreBankAccountListJson)
                 response
@@ -268,12 +267,12 @@ trait APIMethods200 {
 
 
     def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
-      val availableAccounts = bank.nonPublicAccounts(u)
+      val availableAccounts = bank.privateAccounts(u)
       successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
     }
 
     def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext, bank: Bank, u: User) = {
-      val availableAccounts = bank.nonPublicAccounts(u)
+      val availableAccounts = bank.privateAccounts(u)
       successJsonResponse(coreBankAccountListToJson(callerContext, codeContext, availableAccounts, Full(u)))
     }
 
@@ -348,7 +347,7 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts at one bank.",
-      s"""Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
         |If you want to see more information on the Views, use the Account Detail call.
@@ -371,7 +370,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
           } yield {
-            val availableAccounts = bank.nonPublicAccounts(u)
+            val availableAccounts = bank.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
           }
       }
@@ -874,7 +873,7 @@ trait APIMethods200 {
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      moderatedCoreAccountJSON,
+      coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransaction, apiTagAccount))
@@ -1429,7 +1428,7 @@ trait APIMethods200 {
         |
         |""",
       createUserJson,
-      userJSONV200,
+      userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
@@ -1745,7 +1744,7 @@ trait APIMethods200 {
         |Login is required.
       """.stripMargin,
       emptyObjectJson,
-      userJSONV200,
+      userJsonV200,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
@@ -1780,7 +1779,7 @@ trait APIMethods200 {
         |
       """.stripMargin,
       emptyObjectJson,
-      usersJSONV200,
+      usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))

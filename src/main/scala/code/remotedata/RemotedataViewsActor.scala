@@ -103,17 +103,17 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getAllAccountsUserCanSee(" + bank +", "+ user +")")
       sender ! extractResult(mapper.getAllAccountsUserCanSee(bank, Full(user)))
 
-    case cc.getNonPublicBankAccounts(user: User, bankId: BankId) =>
-      logger.debug("getNonPublicBankAccounts(" + user +", "+ bankId +")")
-      sender ! extractResult(mapper.getNonPublicBankAccounts(user, bankId))
+    case cc.getPrivateBankAccounts(user: User, bankId: BankId) =>
+      logger.debug("getPrivateBankAccounts(" + user +", "+ bankId +")")
+      sender ! extractResult(mapper.getPrivateBankAccounts(user, bankId))
 
-    case cc.getNonPublicBankAccounts(user: User) =>
-      logger.debug("getNonPublicBankAccounts(" + user +")")
-      sender ! extractResult(mapper.getNonPublicBankAccounts(user))
+    case cc.getPrivateBankAccounts(user: User) =>
+      logger.debug("getPrivateBankAccounts(" + user +")")
+      sender ! extractResult(mapper.getPrivateBankAccounts(user))
 
-    case cc.getNonPublicBankAccountsFuture(user: User) =>
-      logger.debug("getNonPublicBankAccountsFuture(" + user +")")
-      sender ! (mapper.getNonPublicBankAccounts(user))
+    case cc.getPrivateBankAccountsFuture(user: User) =>
+      logger.debug("getPrivateBankAccountsFuture(" + user +")")
+      sender ! (mapper.getPrivateBankAccounts(user))
 
     case cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String) =>
       logger.debug("getOrCreateAccountView(" + BankIdAccountId +", "+ viewId +")")

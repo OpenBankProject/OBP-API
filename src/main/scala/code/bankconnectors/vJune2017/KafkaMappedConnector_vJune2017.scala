@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
@@ -41,6 +41,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
+import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -838,12 +839,31 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundCreateChallengeJune2017(
+      InboundCreateCounterparty(
         authInfoExample,
-        InternalCreateChallengeJune2017(
-          errorCodeExample,
-          inboundStatusMessagesExample,
-          "1234"
+        InternalCounterparty(
+          errorCode= errorCodeExample,
+          backendMessages = inboundStatusMessagesExample,
+          createdByUserId= "String",
+          name= "String",
+          thisBankId= "String",
+          thisAccountId= "String",
+          thisViewId= "String",
+          counterpartyId= "String",
+          otherAccountRoutingScheme= "String",
+          otherAccountRoutingAddress= "String",
+          otherBankRoutingScheme= "String",
+          otherBankRoutingAddress= "String",
+          otherBranchRoutingScheme= "String",
+          otherBranchRoutingAddress= "String",
+          isBeneficiary = false,
+          description= "String",
+          otherAccountSecondaryRoutingScheme= "String",
+          otherAccountSecondaryRoutingAddress= "String",
+          bespoke =  List(PostCounterpartyBespoke(
+            key = "String",
+            value = "String"
+          ))
         )
       )
     )
@@ -992,18 +1012,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getCounterparties from kafka ",
     exampleOutboundMessage = decompose(
-      OutboundGetTransactionRequests210(
+      OutboundGetCounterparties(
         authInfoExample,
-        OutboundTransactionRequests(
-          "accountId: String",
-          "accountType: String",
-          "currency: String",
-          "iban: String",
-          "number: String",
-          "bankId: BankId",
-          "branchId: String",
-          "accountRoutingScheme: String",
-          "accountRoutingAddress: String"
+        InternalOutboundGetCounterparties(
+          thisBankId = "String",
+          thisAccountId = "String",
+          viewId = "String"
         )
       )
     ),
@@ -1054,6 +1068,77 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     res
   }
   
+  messageDocs += MessageDoc(
+    process = "obp.get.CounterpartyByCounterpartyId",
+    messageFormat = messageFormat,
+    description = "getCounterpartyByCounterpartyId from kafka ",
+    exampleOutboundMessage = Extraction.decompose(
+      OutboundGetCounterpartyByCounterpartyId(
+        authInfoExample,
+        OutboundGetCounterpartyById(
+          thisBankId = "String",
+          thisAccountId = "String",
+          viewId = "String",
+          counterpartyId = "String"
+        )
+      )
+    ),
+    exampleInboundMessage = Extraction.decompose(
+      InboundGetCounterparty(
+        authInfoExample,
+        InternalCounterparty(
+          errorCodeExample,
+          inboundStatusMessagesExample,
+          createdByUserId = "String",
+          name = "String",
+          thisBankId = "String",
+          thisAccountId = "String",
+          thisViewId = "String",
+          counterpartyId = "String",
+          otherAccountRoutingScheme = "String",
+          otherAccountRoutingAddress = "String",
+          otherBankRoutingScheme = "String",
+          otherBankRoutingAddress = "String",
+          otherBranchRoutingScheme = "String",
+          otherBranchRoutingAddress = "String",
+          isBeneficiary = true,
+          description = "String",
+          otherAccountSecondaryRoutingScheme = "String",
+          otherAccountSecondaryRoutingAddress = "String",
+          bespoke = Nil
+        )
+      )
+    )
+  )
+  
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById("","","",counterpartyId.value))
+    logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
+  
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetCounterpartyByCounterpartyId](req)
+      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCustomersByUserId extract error"
+      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    } yield{
+      internalCustomer
+    }
+    logger.debug(s"Kafka getCounterpartyByCounterpartyId Res says: is: $box")
+  
+    val res = box match {
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }
+  
   
   messageDocs += MessageDoc(
     process = "obp.get.CustomersByUserIdBox",
@@ -1072,9 +1157,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
+  override def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] =  {
     
-    val req = OutboundGetCustomersByUserId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken))
+    val payloadOfJwt = ApiSession.getGatawayLoginInfo(session)
+    val req = OutboundGetCustomersByUserId(
+      authInfo =
+        AuthInfo(
+          currentResourceUserId,
+          payloadOfJwt.login_user_name,
+          payloadOfJwt.cbs_token.getOrElse(""),
+          payloadOfJwt.is_first
+        )
+    )
     logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
     
     val box = for {
@@ -1152,20 +1246,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = counterpartyName,
-      nationalIdentifier = "1234",
+      nationalIdentifier = null,
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
       thisAccountId = AccountId(counterpartyId),
-      thisBankId = BankId(""),
-      kind = "1234",
+      thisBankId = BankId(null),
+      kind = null,
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-      name = "sushan",
-      otherBankRoutingScheme = "obp",
-      otherAccountRoutingScheme = "obp",
-      otherAccountProvider = "obp",
-      isBeneficiary = true
+      name = null,
+      otherBankRoutingScheme = null,
+      otherAccountRoutingScheme = null,
+      otherAccountProvider = null,
+      isBeneficiary = false
     )
   }
 

@@ -1,5 +1,6 @@
 package code.bankconnectors.vJune2017
 
+import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
@@ -8,7 +9,7 @@ import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.{Customer,MockCustomerFaceImage, MockCreditRating, MockCreditLimit}
+import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
@@ -58,6 +59,11 @@ case class OutboundGetCounterparties(
   counterparty: InternalOutboundGetCounterparties
 ) extends TopicTrait
 
+case class OutboundGetCounterpartyByCounterpartyId(
+  authInfo: AuthInfo,
+  counterparty: OutboundGetCounterpartyById
+) extends TopicTrait
+
 case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
@@ -81,6 +87,7 @@ case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCrea
 case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
 case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
+case class InboundGetCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
 case class InboundGetCustomersByUserId(authInfo: AuthInfo, data: List[InternalCustomer])
 
 
@@ -102,7 +109,7 @@ case class InternalInboundCoreAccount(
   account_routing: AccountRouting
 )
 
-case class AuthInfo(userId: String, username: String, cbsToken: String)
+case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst: Boolean = true)
 case class InboundAccountJune2017(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
@@ -200,6 +207,13 @@ case class InternalOutboundGetCounterparties(
   viewId :String
 )
 
+case class OutboundGetCounterpartyById(
+  thisBankId: String,
+  thisAccountId: String,
+  viewId : String,
+  counterpartyId : String
+)
+
 case class OutboundTransactionRequests(
   accountId: String,
   accountType: String,
@@ -214,7 +228,6 @@ case class OutboundTransactionRequests(
   
 
 case class InternalCounterparty(
-  status: String,
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
   createdByUserId: String,
@@ -250,13 +263,13 @@ case class InternalCustomer(
   faceImage : MockCustomerFaceImage,
   dateOfBirth: Date,
   relationshipStatus: String,
-  dependents: Int,
+  dependents: Integer,
   dobOfDependents: List[Date],
   highestEducationAttained: String,
   employmentStatus: String,
   creditRating : MockCreditRating,
   creditLimit: MockCreditLimit,
-  kycStatus: Boolean,
+  kycStatus: lang.Boolean,
   lastOkDate: Date
 )extends Customer
 
