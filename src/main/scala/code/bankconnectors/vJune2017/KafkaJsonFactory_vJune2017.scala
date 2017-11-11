@@ -61,7 +61,7 @@ case class OutboundGetCounterparties(
 
 case class OutboundGetCounterpartyByCounterpartyId(
   authInfo: AuthInfo,
-  counterparty: InternalOutboundGetCounterpartyById
+  counterparty: OutboundGetCounterpartyById
 ) extends TopicTrait
 
 case class OutboundGetCustomersByUserId(
@@ -109,7 +109,7 @@ case class InternalInboundCoreAccount(
   account_routing: AccountRouting
 )
 
-case class AuthInfo(userId: String, username: String, cbsToken: String)
+case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst: Boolean = true)
 case class InboundAccountJune2017(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
@@ -207,7 +207,7 @@ case class InternalOutboundGetCounterparties(
   viewId :String
 )
 
-case class InternalOutboundGetCounterpartyById(
+case class OutboundGetCounterpartyById(
   thisBankId: String,
   thisAccountId: String,
   viewId : String,

@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
+import code.api.util.{ErrorMessages, SessionContext}
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0._
 import code.api.v3_0_0.CoreAccountJsonV300
@@ -38,7 +38,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -1255,6 +1254,6 @@ trait Connector extends MdcLoggable{
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
-  def getCustomersByUserIdBox(userId: String): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
+  def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
   
 }

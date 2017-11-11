@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
@@ -1075,7 +1075,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = Extraction.decompose(
       OutboundGetCounterpartyByCounterpartyId(
         authInfoExample,
-        InternalOutboundGetCounterpartyById(
+        OutboundGetCounterpartyById(
           thisBankId = "String",
           thisAccountId = "String",
           viewId = "String",
@@ -1112,7 +1112,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),InternalOutboundGetCounterpartyById("","","",counterpartyId.value))
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById("","","",counterpartyId.value))
     logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
   
     val box = for {
@@ -1157,9 +1157,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdBox(userId: String): Box[List[Customer]] =  {
+  override def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] =  {
     
-    val req = OutboundGetCustomersByUserId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken))
+    val payloadOfJwt = ApiSession.getGatawayLoginInfo(session)
+    val req = OutboundGetCustomersByUserId(
+      authInfo =
+        AuthInfo(
+          currentResourceUserId,
+          payloadOfJwt.login_user_name,
+          payloadOfJwt.cbs_token.getOrElse(""),
+          payloadOfJwt.is_first
+        )
+    )
     logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
     
     val box = for {
