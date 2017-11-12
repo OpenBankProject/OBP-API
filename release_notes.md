@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+12/11/2017    9529c3b       Make Payments in 1.2.1 disabled. Internal Accounts API disabled.
 20/09/2017                  Upgraded Lift version to 3.1.0. Script scripts/migrate/migrate_0000008.sql has to be executed at existing instances
 13/09/2017    1503229       DISABLED API versions v1.0, v1.1, v1.2
 09/09/2017    fa3b054       Added Props api_enabled_versions and api_enabled_endpoints
