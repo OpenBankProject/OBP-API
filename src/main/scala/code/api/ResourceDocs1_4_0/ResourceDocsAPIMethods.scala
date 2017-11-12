@@ -1,7 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.ApiVersion
+import code.api.util.APIUtil._
 import code.api.util.APIUtil.ApiVersion._
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -34,8 +34,6 @@ import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
 import java.text.SimpleDateFormat
-
-import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 import code.api.util.ErrorMessages._
@@ -116,8 +114,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/resource-docs/API_VERSION/obp",
       "Get Resource Documentation in OBP format.",
       """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
-        | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
-        | In the future this information will be used to create Swagger (WIP) and RAML files.
+        | So the OBP API Explorer (and other apps) can display and work with the API documentation.
+        | This information is used to create Swagger files.
         |<ul>
         |<li> operation_id is concatenation of version and function and should be unque (the aim of this is to allow links to code) </li>
         |<li> version references the version that the API call is defined in.</li>
@@ -155,7 +153,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]]) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
@@ -163,7 +161,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags)
+          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
           // Format the data as json
           val json = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
@@ -177,7 +175,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
- def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]] ) = {
+ def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]] ) = {
 
    val showCore: Option[Boolean] = for {
      x <- S.param("core")
@@ -216,23 +214,44 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         Some(resourceDocTags)
        }
      }
-   logger.info(s"tags are $tags")
+   logger.info(s"tagsOption is $tags")
 
 
+   val rawPartialFunctionNames = S.param("functions")
 
-   (showCore, showPSD2, showOBWG, tags)
+   val partialFunctionNames: Option[List[String]] =
+     rawPartialFunctionNames match {
+       // if functions= is supplied in the url, we want to ignore it
+       case Full("") => None
+       // if functions is not mentioned at all, we want to ignore it
+       case Empty => None
+       case _  => {
+         val commaSeparatedList : String = rawPartialFunctionNames.getOrElse("")
+         val stringList : List[String] = commaSeparatedList.trim().split(",").toList
+         val pfns =
+           for {
+             y <- stringList
+           } yield {
+             y
+           }
+         Some(pfns)
+       }
+     }
+   logger.info(s"partialFunctionNames is $partialFunctionNames")
 
+
+   (showCore, showPSD2, showOBWG, tags, partialFunctionNames)
  }
 
   def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-     val (showCore, showPSD2, showOBWG, tags) =  getParams()
+     val (showCore, showPSD2, showOBWG, tags, partialFunctions) =  getParams()
       user => {
 
        for {
          requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags)
+         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
         }
         yield {
           json
@@ -246,7 +265,7 @@ Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
 so the caller must specify any required filtering by catalog explicitly.
  */
-def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]]) : List[ResourceDoc] = {
+def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] = showCore match {
@@ -285,13 +304,35 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
     case None => filteredResources3
   }
 
-  val resourcesToUse = filteredResources4.toSet.toList
+
+  // Check if we have tags, and if so filter by them
+  val filteredResources5: List[ResourceDoc] = partialFunctionNames match {
+    // We have tags
+    case Some(pfNames) => {
+      // This can create duplicates to use toSet below
+      for {
+        rd <- filteredResources4
+        partialFunctionName <- pfNames
+        if rd.partialFunctionName.contains(partialFunctionName)
+      } yield {
+        rd
+      }
+    }
+    // tags param was not mentioned in url or was empty, so return all
+    case None => filteredResources4
+  }
+  
+
+
+  val resourcesToUse = filteredResources5.toSet.toList
 
 
   logger.debug(s"allResources count is ${allResources.length}")
   logger.debug(s"filteredResources1 count is ${filteredResources1.length}")
   logger.debug(s"filteredResources2 count is ${filteredResources2.length}")
   logger.debug(s"filteredResources3 count is ${filteredResources3.length}")
+  logger.debug(s"filteredResources4 count is ${filteredResources4.length}")
+  logger.debug(s"filteredResources5 count is ${filteredResources5.length}")
   logger.debug(s"resourcesToUse count is ${resourcesToUse.length}")
 
 
@@ -324,7 +365,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
     )
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]]) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
@@ -334,7 +375,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags)
+          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
           // Format the data as json
           val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
           //Get definitions of objects of success responses
@@ -349,8 +390,8 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
-        val (showCore, showPSD2, showOBWG, resourceDocTags) =  getParams()
-        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags)
+        val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) =  getParams()
+        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
       }
     }
 
