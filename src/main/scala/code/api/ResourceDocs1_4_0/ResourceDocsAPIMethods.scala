@@ -232,16 +232,26 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "getResourceDocsObp",
       "GET",
       "/resource-docs/API_VERSION/obp",
-      "Get Resource Documentation in OBP format.",
-      """Returns documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+      "Get Resource Docs in OBP format.",
+      """Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+        |
         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
+        |
         | Most (but not all) fields are also available in swagger format.
+        |
+        | API_VERSION is the version you want documentation about e.g. v3.0.0
+        |
         | You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        |
+        |
         | You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |
+        | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+        |
         |<ul>
-        |<li> operation_id is concatenation of version and function and should be unque (the aim of this is to allow links to code) </li>
+        |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
         |<li> version references the version that the API call is defined in.</li>
-        |<li> function is the (scala) function.</li>
+        |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
         |<li> request_url is empty for the root call, else the path.</li>
         |<li> summary is a short description inline with the swagger terminology. </li>
         |<li> description may contain html markup (generated from markdown on the server).</li>
@@ -281,13 +291,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "getResourceDocsSwagger",
       "GET",
       "/resource-docs/v.2.2.0/swagger",
-      "Get Resource Documentation in Swagger format. Work In Progress!",
+      "Get Resource Docs in Swagger format.",
       """Returns documentation about the RESTful resources on this server in Swagger format.
         |
-        | You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
-        | You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |The information returned in this endpoint is continuously being enhanced.
         |
-        | Also see the Resource Doc endpoint.
+        |API_VERSION is the version you want documentation about e.g. v3.0.0
+        |
+        |You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        |
+        |You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |
+        |See the Resource Doc endpoint for more information.
         |
       """,
       emptyObjectJson,
