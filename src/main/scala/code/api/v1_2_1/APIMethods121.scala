@@ -2816,7 +2816,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       }
     }
 
-    
+  /*
 
     resourceDocs += ResourceDoc(
       makePayment,
@@ -2846,6 +2846,10 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
+*/
+
+    /*
+
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
         user =>
@@ -2866,6 +2870,10 @@ Authentication via OAuth is required. The user must either have owner privileges
 
       }
     }
+
+
+    */
+
   }
 }
 

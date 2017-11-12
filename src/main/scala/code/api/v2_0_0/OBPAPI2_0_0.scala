@@ -117,8 +117,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getOtherAccountForTransaction,
-    Implementations1_2_1.makePayment
+    Implementations1_2_1.getOtherAccountForTransaction
+    //Implementations1_2_1.makePayment
   )
 
     // New in 1.3.0
