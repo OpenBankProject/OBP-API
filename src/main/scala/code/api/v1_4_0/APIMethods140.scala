@@ -50,6 +50,8 @@ import code.api.util.APIUtil.authenticationRequiredMessage
 import code.api.util.ErrorMessages._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 
+import code.api.util.APIUtil.noV
+
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
@@ -59,7 +61,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = "1_4_0"
+    val apiVersion : String = noV(ApiVersion.v1_4_0) //  "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
     val exampleDateString : String ="22/08/2013"

@@ -997,7 +997,7 @@ object APIUtil extends MdcLoggable {
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                          implementedInApiVersion: String, // TODO: Constrain to certain strings?
+                          implementedInApiVersion: String, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
@@ -1548,6 +1548,9 @@ Versions are groups of endpoints in a file
 
   def dottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".").replace("v","")
   def vDottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".")
+
+  // TODO make this a method of the ApiVersion object so its easier to call
+  def noV (apiVersion: ApiVersion) : String = apiVersion.toString.replace("v", "").replace("V","")
 
 
   def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
