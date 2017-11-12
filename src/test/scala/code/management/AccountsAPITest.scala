@@ -29,6 +29,9 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
   val SERVER_ERROR: Int = 500
 
   //Tests start here
+/*
+
+// internal/v1.0 has been removed.
 
   feature("Delete an account resource") {
     scenario("User deletes one of his private accounts", Management, DeleteBankAccount) {
@@ -67,4 +70,5 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
       Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) should not equal(Empty)
     }
   }
+  */
 }

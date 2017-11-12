@@ -55,7 +55,7 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.MappedBadLoginAttempt
-import code.management.{AccountsAPI, ImporterAPI}
+import code.management.{ImporterAPI}
 import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -242,7 +242,7 @@ class Boot extends MdcLoggable {
     // TODO Wrap these with enableVersionIfAllowed as well
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
-    LiftRules.statelessDispatch.append(AccountsAPI)
+    //LiftRules.statelessDispatch.append(AccountsAPI)
 
     // add other apis
     LiftRules.statelessDispatch.append(BankMockAPI)
