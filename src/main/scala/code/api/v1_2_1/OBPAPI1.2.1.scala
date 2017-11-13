@@ -112,8 +112,8 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getOtherAccountForTransaction,
-    Implementations1_2_1.makePayment
+    Implementations1_2_1.getOtherAccountForTransaction
+    //Implementations1_2_1.makePayment
   )
 
   routes.foreach(route => {

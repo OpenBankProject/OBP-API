@@ -300,6 +300,7 @@ object JSONFactory1_4_0 {
 
   // Used to describe the OBP API calls for documentation and API discovery purposes
   case class ResourceDocJson(operation_id: String,
+                         implemented_by: ImplementedByJson,
                          request_verb: String,
                          request_url: String,
                          summary: String,
@@ -307,7 +308,6 @@ object JSONFactory1_4_0 {
                          example_request_body: scala.Product,
                          success_response_body: scala.Product,
                          error_response_bodies: List[String],
-                         implemented_by: ImplementedByJson,
                          is_core: Boolean,
                          is_psd2: Boolean,
                          is_obwg: Boolean,
@@ -330,7 +330,7 @@ object JSONFactory1_4_0 {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     ResourceDocJson(
-      operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.apiFunction.toString}",
+      operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.partialFunctionName.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary,
@@ -339,7 +339,7 @@ object JSONFactory1_4_0 {
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
-      implemented_by = ImplementedByJson(rd.implementedInApiVersion, rd.apiFunction),
+      implemented_by = ImplementedByJson(rd.implementedInApiVersion, rd.partialFunctionName),
       is_core = rd.catalogs.core,
       is_psd2 = rd.catalogs.psd2,
       is_obwg = rd.catalogs.obwg,// No longer tracking isCore

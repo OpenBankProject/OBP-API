@@ -433,7 +433,7 @@ object APIUtil extends MdcLoggable {
       var appName = if (u != null) c.name.toString() else "null"
       var developerEmail = if (u != null) c.developerEmail.toString() else "null"
       val implementedByPartialFunction = rd match {
-        case Some(r) => r.apiFunction
+        case Some(r) => r.partialFunctionName
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
@@ -936,6 +936,7 @@ object APIUtil extends MdcLoggable {
 
    */
 
+
   // Used to tag Resource Docs
   case class ResourceDocTag(tag: String)
 
@@ -996,8 +997,8 @@ object APIUtil extends MdcLoggable {
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                          implementedInApiVersion: String, // TODO: Constrain to certain strings?
-                          apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
+                          implementedInApiVersion: String, // TODO: Use ApiVersion enumeration instead of string
+                          partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
@@ -1377,7 +1378,7 @@ Returns a string showed to the developer
       case _ => // Do nothing
     }
   }
-  
+
   /**
     * @return - GatewayLogin username Header.
     */
@@ -1387,7 +1388,7 @@ Returns a string showed to the developer
       case _ => ""
     }
   }
-  
+
   /**
     * @return - GatewayLogin cbsToken Header.
     */
@@ -1447,8 +1448,8 @@ Returns a string showed to the developer
   def getEnabledVersions() : List[String] = Props.get("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
-  
-  
+
+
   def validatePhoneNumber(number: String): Boolean = {
     number.toList match {
       case x :: _ if x != '+' => false // First char has to be +
@@ -1548,6 +1549,9 @@ Versions are groups of endpoints in a file
   def dottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".").replace("v","")
   def vDottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".")
 
+  // TODO make this a method of the ApiVersion object so its easier to call
+  def noV (apiVersion: ApiVersion) : String = apiVersion.toString.replace("v", "").replace("V","")
+
 
   def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
 
@@ -1563,9 +1567,9 @@ Versions are groups of endpoints in a file
       item <- resourceDocs
          if
            // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
-           !disabledEndpoints.contains(item.apiFunction) &&
+           !disabledEndpoints.contains(item.partialFunctionName) &&
            // Only allow Resrouce Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
-           (enabledEndpoints.contains(item.apiFunction) || enabledEndpoints.isEmpty)  &&
+           (enabledEndpoints.contains(item.partialFunctionName) || enabledEndpoints.isEmpty)  &&
            // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
              // i.e. this function may recieve more Resource Docs than version endpoints
             endpoints.exists(_ == item.partialFunction)
