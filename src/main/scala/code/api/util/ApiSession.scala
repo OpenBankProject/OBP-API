@@ -9,7 +9,7 @@ object ApiSession {
 
   val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", temenos_id = "", time_stamp = "", cbs_token = None)
 
-  def setGatewayLoginInfo(jwt: Option[String], cnt: Option[SessionContext]): Option[SessionContext] = {
+  def updateSessionContext(jwt: Option[String], cnt: Option[SessionContext]): Option[SessionContext] = {
     jwt match {
       case None =>
         cnt

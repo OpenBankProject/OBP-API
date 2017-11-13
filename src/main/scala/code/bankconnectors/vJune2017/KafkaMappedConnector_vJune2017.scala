@@ -1157,7 +1157,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] =  {
+  override def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] =  {
     
     val payloadOfJwt = ApiSession.getGatawayLoginInfo(session)
     val req = OutboundGetCustomersByUserId(

@@ -1253,6 +1253,6 @@ trait Connector extends MdcLoggable{
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
-  def getCustomersByUserIdBox(userId: String)(implicit session: Option[SessionContext] = None): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
+  def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
   
 }
