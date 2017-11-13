@@ -138,17 +138,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
-        val json = for {
+        val obpResourceDocJson = for {
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
           val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
           // Format the data as json
-          val json = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
+          val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
-          successJsonResponse(Extraction.decompose(json))
+          successJsonResponse(Extraction.decompose(innerJson))
         }
-        json
+        obpResourceDocJson
       }
     }
 
@@ -225,6 +225,53 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
  }
 
 
+    val exampleResourceDoc =  ResourceDoc(
+      dummy(statedApiVersion, "DUMMY"),
+      statedApiVersion,
+      "testResourceDoc",
+      "GET",
+      "/dummy",
+      "Test Resource Doc.",
+      """
+        |I am only a test Resource Doc
+        |
+        |It's turtles all the way down.
+        |
+        |#This should be H1
+        |
+        |##This should be H2
+        |
+        |###This should be H3
+        |
+        |####This should be H4
+        |
+        |Here is a list with two items:
+        |
+        |* One
+        |* Two
+        |
+        |There are underscores by them selves _
+        |
+        |There are _underscores_ around a word
+        |
+        |There are underscores_in_words
+        |
+        |There are 'underscores_in_words_inside_quotes'
+        |
+        |There are (underscores_in_words_in_brackets)
+        |
+        |_etc_...""",
+      emptyObjectJson,
+      emptyObjectJson,
+      UnknownError :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi))
+
+
+    val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc))
+
+
+
 
     localResourceDocs += ResourceDoc(
       getResourceDocsObp,
@@ -258,7 +305,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         |</ul>
       """,
       emptyObjectJson,
-      emptyObjectJson,
+      emptyObjectJson, //exampleResourceDocsJson
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi)
