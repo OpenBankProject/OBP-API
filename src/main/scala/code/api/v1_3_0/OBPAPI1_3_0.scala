@@ -86,8 +86,8 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getOtherAccountForTransaction,
-    Implementations1_2_1.makePayment
+    Implementations1_2_1.getOtherAccountForTransaction
+    //Implementations1_2_1.makePayment
   )
 
   val endpointsOf1_3_0 = List(

@@ -1,7 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.ApiVersion
+import code.api.util.APIUtil._
 import code.api.util.APIUtil.ApiVersion._
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -34,8 +34,6 @@ import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
 import java.text.SimpleDateFormat
-
-import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
 import code.api.util.ErrorMessages._
@@ -52,7 +50,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
   val ImplementationsResourceDocs = new Object() {
 
-    val resourceDocs = ArrayBuffer[ResourceDoc]()
+    val localResourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
     val statedApiVersion : String = "1_4_0"
 
@@ -102,40 +100,21 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
 
+
+      val activePlusLocalResourceDocs = ArrayBuffer[ResourceDoc]()
+
+      activePlusLocalResourceDocs ++= activeResourceDocs
+      activePlusLocalResourceDocs ++= localResourceDocs
+
+
+      logger.debug(s"There are ${activePlusLocalResourceDocs.length} resource docs (including local) available to $requestedApiVersion")
+
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
-      Some(activeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
+      Some(activePlusLocalResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
 
 
-    resourceDocs += ResourceDoc(
-      getResourceDocsObp,
-      statedApiVersion,
-      "getResourceDocsObp",
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Documentation in OBP format.",
-      """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
-        | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
-        | In the future this information will be used to create Swagger (WIP) and RAML files.
-        |<ul>
-        |<li> operation_id is concatenation of version and function and should be unque (the aim of this is to allow links to code) </li>
-        |<li> version references the version that the API call is defined in.</li>
-        |<li> function is the (scala) function.</li>
-        |<li> request_url is empty for the root call, else the path.</li>
-        |<li> summary is a short description inline with the swagger terminology. </li>
-        |<li> description may contain html markup (generated from markdown on the server).</li>
-        |</ul>
-      """,
-      emptyObjectJson,
-      emptyObjectJson,
-      UnknownError :: Nil,
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
-    )
-
-    // Provides resource documents so that API Explorer (or other apps) can display API documentation
-    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
 
 
     // TODO constrain version?
@@ -155,21 +134,21 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
-        val json = for {
+        val obpResourceDocJson = for {
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
+          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
           // Format the data as json
-          val json = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
+          val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
-          successJsonResponse(Extraction.decompose(json))
+          successJsonResponse(Extraction.decompose(innerJson))
         }
-        json
+        obpResourceDocJson
       }
     }
 
@@ -177,7 +156,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
- def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean] ) = {
+ def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]] ) = {
 
    val showCore: Option[Boolean] = for {
      x <- S.param("core")
@@ -195,19 +174,155 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
    } yield y
 
 
-   (showCore, showPSD2, showOBWG)
+   val rawTagsParam = S.param("tags")
 
+
+   val tags: Option[List[ResourceDocTag]] =
+       rawTagsParam match {
+       // if tags= is supplied in the url, we want to ignore it
+       case Full("") => None
+       // if tags is not mentioned at all, we want to ignore it
+       case Empty => None
+       case _  => {
+         val commaSeparatedList : String = rawTagsParam.getOrElse("")
+         val tagList : List[String] = commaSeparatedList.trim().split(",").toList
+         val resourceDocTags =
+         for {
+           y <- tagList
+         } yield {
+           ResourceDocTag(y)
+         }
+        Some(resourceDocTags)
+       }
+     }
+   logger.info(s"tagsOption is $tags")
+
+   // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
+   val rawPartialFunctionNames = S.param("functions")
+
+   val partialFunctionNames: Option[List[String]] =
+     rawPartialFunctionNames match {
+       // if functions= is supplied in the url, we want to ignore it
+       case Full("") => None
+       // if functions is not mentioned at all, we want to ignore it
+       case Empty => None
+       case _  => {
+         val commaSeparatedList : String = rawPartialFunctionNames.getOrElse("")
+         val stringList : List[String] = commaSeparatedList.trim().split(",").toList
+         val pfns =
+           for {
+             y <- stringList
+           } yield {
+             y
+           }
+         Some(pfns)
+       }
+     }
+   logger.info(s"partialFunctionNames is $partialFunctionNames")
+
+
+   (showCore, showPSD2, showOBWG, tags, partialFunctionNames)
  }
 
-  def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+
+    val exampleResourceDoc =  ResourceDoc(
+      dummy(statedApiVersion, "DUMMY"),
+      statedApiVersion,
+      "testResourceDoc",
+      "GET",
+      "/dummy",
+      "Test Resource Doc.",
+      """
+        |I am only a test Resource Doc
+        |
+        |It's turtles all the way down.
+        |
+        |#This should be H1
+        |
+        |##This should be H2
+        |
+        |###This should be H3
+        |
+        |####This should be H4
+        |
+        |Here is a list with two items:
+        |
+        |* One
+        |* Two
+        |
+        |There are underscores by them selves _
+        |
+        |There are _underscores_ around a word
+        |
+        |There are underscores_in_words
+        |
+        |There are 'underscores_in_words_inside_quotes'
+        |
+        |There are (underscores_in_words_in_brackets)
+        |
+        |_etc_...""",
+      emptyObjectJson,
+      emptyObjectJson,
+      UnknownError :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi))
+
+
+    val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc))
+
+
+
+
+    localResourceDocs += ResourceDoc(
+      getResourceDocsObp,
+      statedApiVersion,
+      "getResourceDocsObp",
+      "GET",
+      "/resource-docs/API_VERSION/obp",
+      "Get Resource Docs in OBP format.",
+      """Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+        |
+        | This endpoint is used by OBP API Explorer to display and work with the API documentation.
+        |
+        | Most (but not all) fields are also available in swagger format.
+        |
+        | API_VERSION is the version you want documentation about e.g. v3.0.0
+        |
+        | You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        |
+        |
+        | You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |
+        | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+        |
+        |<ul>
+        |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
+        |<li> version references the version that the API call is defined in.</li>
+        |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
+        |<li> request_url is empty for the root call, else the path.</li>
+        |<li> summary is a short description inline with the swagger terminology. </li>
+        |<li> description may contain html markup (generated from markdown on the server).</li>
+        |</ul>
+      """,
+      emptyObjectJson,
+      emptyObjectJson, //exampleResourceDocsJson
+      UnknownError :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi)
+    )
+
+    // Provides resource documents so that API Explorer (or other apps) can display API documentation
+    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
+
+    def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-     val (showCore, showPSD2, showOBWG) =  getParams()
+     val (showCore, showPSD2, showOBWG, tags, partialFunctions) =  getParams()
       user => {
 
        for {
          requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion)
+         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
         }
         yield {
           json
@@ -216,12 +331,53 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
+
+    localResourceDocs += ResourceDoc(
+      getResourceDocsSwagger,
+      statedApiVersion,
+      "getResourceDocsSwagger",
+      "GET",
+      "/resource-docs/v.2.2.0/swagger",
+      "Get Resource Docs in Swagger format.",
+      """Returns documentation about the RESTful resources on this server in Swagger format.
+        |
+        |The information returned in this endpoint is continuously being enhanced.
+        |
+        |API_VERSION is the version you want documentation about e.g. v3.0.0
+        |
+        |You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        |
+        |You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |
+        |See the Resource Doc endpoint for more information.
+        |
+      """,
+      emptyObjectJson,
+      emptyObjectJson,
+      UnknownError :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi)
+    )
+
+
+    def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
+        val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) =  getParams()
+        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
+      }
+    }
+
+
+
+
+
+
 /*
 Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
 so the caller must specify any required filtering by catalog explicitly.
  */
-def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], allResources: List[ResourceDoc]) : List[ResourceDoc] = {
+def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] = showCore match {
@@ -242,28 +398,71 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
       case _ => filteredResources2
     }
 
-    filteredResources3
+
+  // Check if we have tags, and if so filter by them
+  val filteredResources4: List[ResourceDoc] = resourceDocTags match {
+    // We have tags
+    case Some(tags) => {
+      // This can create duplicates to use toSet below
+      for {
+        r <- filteredResources3
+        t <- tags
+        if r.tags.contains(t)
+      } yield {
+        r
+      }
+    }
+    // tags param was not mentioned in url or was empty, so return all
+    case None => filteredResources3
+  }
+
+
+  // Check if we have tags, and if so filter by them
+  val filteredResources5: List[ResourceDoc] = partialFunctionNames match {
+    // We have tags
+    case Some(pfNames) => {
+      // This can create duplicates to use toSet below
+      for {
+        rd <- filteredResources4
+        partialFunctionName <- pfNames
+        if rd.partialFunctionName.contains(partialFunctionName)
+      } yield {
+        rd
+      }
+    }
+    // tags param was not mentioned in url or was empty, so return all
+    case None => filteredResources4
+  }
+
+
+
+  val resourcesToUse = filteredResources5.toSet.toList
+
+
+  logger.debug(s"allResources count is ${allResources.length}")
+  logger.debug(s"filteredResources1 count is ${filteredResources1.length}")
+  logger.debug(s"filteredResources2 count is ${filteredResources2.length}")
+  logger.debug(s"filteredResources3 count is ${filteredResources3.length}")
+  logger.debug(s"filteredResources4 count is ${filteredResources4.length}")
+  logger.debug(s"filteredResources5 count is ${filteredResources5.length}")
+  logger.debug(s"resourcesToUse count is ${resourcesToUse.length}")
+
+
+  if (filteredResources4.length > 0 && resourcesToUse.length == 0) {
+    logger.info("tags filter reduced the list of resource docs to zero")
+  }
+
+
+
+
+
+  resourcesToUse
 }
 
-    resourceDocs += ResourceDoc(
-      getResourceDocsSwagger,
-      statedApiVersion,
-      "getResourceDocsSwagger",
-      "GET",
-      "/resource-docs/v.2.2.0/swagger",
-      "Get Resource Documentation in Swagger format. Work In Progress!",
-      """Returns documentation about the RESTful resources on this server in Swagger format.
-        | Currently this is incomplete.
-      """,
-      emptyObjectJson,
-      emptyObjectJson,
-      UnknownError :: Nil,
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
-    )
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String) : Box[JsonResponse] = {
+
+    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
@@ -273,7 +472,7 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
           // Filter
-          val rdFiltered = filterResourceDocs(showCore, showPSD2, showOBWG, rd)
+          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
           // Format the data as json
           val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
           //Get definitions of objects of success responses
@@ -286,24 +485,20 @@ def filterResourceDocs(showCore: Option[Boolean], showPSD2: Option[Boolean], sho
     }
 
 
-    def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
-        val (showCore, showPSD2, showOBWG) =  getParams()
-        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion)
-      }
-    }
+
 
 
 
     if (Props.devMode) {
-      resourceDocs += ResourceDoc(
+      localResourceDocs += ResourceDoc(
         dummy(statedApiVersion, "DUMMY"),
         statedApiVersion,
         "testResourceDoc",
         "GET",
         "/dummy",
-        "I am only a test resource Doc",
+        "Test Resource Doc.",
         """
+          |I am only a test Resource Doc
           |
           |#This should be H1
           |

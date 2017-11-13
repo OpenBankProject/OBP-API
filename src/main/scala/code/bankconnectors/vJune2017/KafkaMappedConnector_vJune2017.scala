@@ -1075,7 +1075,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = Extraction.decompose(
       OutboundGetCounterpartyByCounterpartyId(
         authInfoExample,
-        InternalOutboundGetCounterpartyById(
+        OutboundGetCounterpartyById(
           thisBankId = "String",
           thisAccountId = "String",
           viewId = "String",
@@ -1112,7 +1112,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),InternalOutboundGetCounterpartyById("","","",counterpartyId.value))
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById("","","",counterpartyId.value))
     logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
   
     val box = for {

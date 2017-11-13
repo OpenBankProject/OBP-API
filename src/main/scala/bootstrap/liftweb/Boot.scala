@@ -38,7 +38,7 @@ import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs
+import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.{APIUtil, ErrorMessages}
@@ -55,7 +55,7 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.MappedBadLoginAttempt
-import code.management.{AccountsAPI, ImporterAPI}
+import code.management.{ImporterAPI}
 import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -226,10 +226,6 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
-//    enableVersionIfAllowed(ApiVersion.v1_0)
-//    enableVersionIfAllowed(ApiVersion.v1_1)
-//    enableVersionIfAllowed(ApiVersion.v1_2)
-    // Can we depreciate the above?
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)
@@ -242,15 +238,24 @@ class Boot extends MdcLoggable {
     // TODO Wrap these with enableVersionIfAllowed as well
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
-    LiftRules.statelessDispatch.append(AccountsAPI)
+
+    //LiftRules.statelessDispatch.append(AccountsAPI)
 
     // add other apis
-    LiftRules.statelessDispatch.append(BankMockAPI)
+    LiftRules.statelessDispatch.append(BankMockAPI) // Do we still need this?
 
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
+    // to avoid a circular dependency.
+    // Make the (currently identical) endpoints available to different versions.
+    LiftRules.statelessDispatch.append(ResourceDocs140)
+    LiftRules.statelessDispatch.append(ResourceDocs200)
+    LiftRules.statelessDispatch.append(ResourceDocs210)
+    LiftRules.statelessDispatch.append(ResourceDocs220)
+    LiftRules.statelessDispatch.append(ResourceDocs300)
+    ////////////////////////////////////////////////////
 
-    // Add Resource Docs These are treated separately else we have circular dependency.
-    LiftRules.statelessDispatch.append(ResourceDocs)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 

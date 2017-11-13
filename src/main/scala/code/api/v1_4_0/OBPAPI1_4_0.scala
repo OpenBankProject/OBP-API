@@ -80,8 +80,8 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
     Implementations1_2_1.addWhereTagForViewOnTransaction,
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
-    Implementations1_2_1.getOtherAccountForTransaction,
-    Implementations1_2_1.makePayment // Back for a while
+    Implementations1_2_1.getOtherAccountForTransaction
+    //Implementations1_2_1.makePayment // Back for a while
   )
 
     // New in 1.3.0
