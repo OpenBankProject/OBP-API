@@ -342,7 +342,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
 object APIUtil extends MdcLoggable {
 
-  implicit val formats = getLiftWebJsonDefaultFormats()
+  implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(Nil)(APIUtil.formats)
@@ -353,18 +353,6 @@ object APIUtil extends MdcLoggable {
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   import code.api.util.ErrorMessages._
-
-  def getLiftWebJsonDefaultFormats() = {
-    Props.get("liftweb_json_date_format") match {
-      case Full(format) =>
-        val formats = new net.liftweb.json.DefaultFormats {
-          override def dateFormatter = new SimpleDateFormat(format)
-        }
-        formats
-      case _ =>
-        net.liftweb.json.DefaultFormats
-    }
-  }
 
   def httpMethod : String =
     S.request match {
@@ -1591,7 +1579,7 @@ Versions are groups of endpoints in a file
     }
   
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
-    implicit val formats = getLiftWebJsonDefaultFormats()
+    implicit val formats = net.liftweb.json.DefaultFormats
     try {
       val parseJValue: JValue = parse(in)
       val t: T = parseJValue.extract[T]

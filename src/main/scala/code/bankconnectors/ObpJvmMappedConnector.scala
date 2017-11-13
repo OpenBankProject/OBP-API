@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.ErrorMessages
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
@@ -99,7 +99,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   logger.info(s"ObpJvmMappedConnector running")
 
-  implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
+  implicit val formats = net.liftweb.json.DefaultFormats
 
   def toOptional[T](opt: Option[T]): Optional[T] = Optional.ofNullable(opt.getOrElse(null).asInstanceOf[T])
   def toOption[T](opt: Optional[T]): Option[T] = if (opt.isPresent) Some(opt.get()) else None
@@ -332,7 +332,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
       val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
       val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-      implicit val formats = APIUtil.getLiftWebJsonDefaultFormats()
+      implicit val formats = net.liftweb.json.DefaultFormats
 
       val parameters = new JHashMap
       val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)

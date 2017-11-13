@@ -401,7 +401,3 @@ use_akka=false
 # }
 display_internal_errors=false
 # -------------------------------------- Display internal errors --
-
-# This format is used to override default format value used at net.liftweb.json.DefaultFormats
-# Default format value is "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-liftweb_json_date_format=yyyy-MM-dd
