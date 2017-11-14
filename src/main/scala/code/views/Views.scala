@@ -47,6 +47,7 @@ trait Views {
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
+  def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
   def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
@@ -95,7 +96,10 @@ class RemotedataViewsCaseClasses {
     def apply(user: User): List[(BankId, AccountId)] = this (user)
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
   }
-  case class getPrivateBankAccountsFuture(user : User)
+  case class getPrivateBankAccountsFuture(pars: Any*) {
+    def apply(user: User): List[(BankId, AccountId)] = this (user)
+    def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
+  }
   case class view(pars: Any*) {
     def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)

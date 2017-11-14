@@ -1264,7 +1264,7 @@ trait APIMethods300 {
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
-            bankAccountIds <- Future{ Views.views.vend.getPrivateBankAccounts(u, bankId) }
+            bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
           } yield {
             (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), getGatewayLoginHeader(sessioContext))
           }
