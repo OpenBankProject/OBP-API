@@ -1220,15 +1220,19 @@ trait APIMethods300 {
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
-        user =>
+        _ =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId) ?~! BankNotFound
-            availableAccounts <- Full(Views.views.vend.getPrivateBankAccounts(u, bankId))
-            accounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bank <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ?~! BankNotFound)
+            }
+            availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts) } map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
           } yield {
-            val json =JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), getGatewayLoginHeader(sessioContext))
           }
       }
     }
