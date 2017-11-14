@@ -1257,14 +1257,16 @@ trait APIMethods300 {
     lazy val getPrivateAccountIdsbyBankId : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
-        user =>
+        _ =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId) ?~! BankNotFound
-            bankAccountIds <- Full(Views.views.vend.getPrivateBankAccounts(u, bankId))
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bank <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ?~! BankNotFound)
+            }
+            bankAccountIds <- Future{ Views.views.vend.getPrivateBankAccounts(u, bankId) }
           } yield {
-            val json =JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), getGatewayLoginHeader(sessioContext))
           }
       }
     }
