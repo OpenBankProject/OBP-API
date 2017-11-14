@@ -9,7 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
-import code.api.util.ApiSession.setGatewayLoginInfo
+import code.api.util.ApiSession.updateSessionContext
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms
@@ -128,14 +128,14 @@ trait APIMethods300 {
           // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, token) <- userFuture
+              (user, sessioContext) <- userFuture
               u <- unboxFullAndWrapIntoFuture{ user }
               account <- bankAccountFuture map { unboxFull(_) }
             } yield {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                (createViewsJSON(views), getGatewayLoginHeader(token))
+                (createViewsJSON(views), getGatewayLoginHeader(sessioContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -364,14 +364,14 @@ trait APIMethods300 {
         _ =>
           val res =
             for {
-              (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+              (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
               u <- unboxFullAndWrapIntoFuture{ user }
               availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             } yield {
               for {
                 coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
               } yield {
-                (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(token))
+                (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(sessioContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -426,7 +426,7 @@ trait APIMethods300 {
           // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, token) <- userFuture
+              (user, sessioContext) <- userFuture
               bankAccount <- bankAccountFuture map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -438,7 +438,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(token))
+                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessioContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -493,7 +493,7 @@ trait APIMethods300 {
           // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, token) <- userFuture
+              (user, sessioContext) <- userFuture
               bankAccount <- bankAccountFuture map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -505,7 +505,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
               } yield {
-                (createTransactionsJson(transactions), getGatewayLoginHeader(token))
+                (createTransactionsJson(transactions), getGatewayLoginHeader(sessioContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -609,14 +609,14 @@ trait APIMethods300 {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
         _ =>
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
           }
       }
     }
@@ -645,7 +645,7 @@ trait APIMethods300 {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
         _ =>
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -655,7 +655,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(sessioContext))
           }
       }
     }
@@ -684,7 +684,7 @@ trait APIMethods300 {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
         _ =>
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -694,7 +694,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(token))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(sessioContext))
           }
       }
     }
@@ -1112,14 +1112,14 @@ trait APIMethods300 {
         _ =>
           val s = S
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(token))
+            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
           }
       }
     }
@@ -1152,13 +1152,13 @@ trait APIMethods300 {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         _ => {
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(setGatewayLoginInfo(token, None))} map {
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(sessioContext)} map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(token))
+            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
           }
         }
       }
@@ -1185,11 +1185,11 @@ trait APIMethods300 {
       case "users" :: "current" :: Nil JsonGet _ => {
         _ => {
           for {
-            (user, token) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            (JSONFactory300.createUserJSON (user, entitlements), getGatewayLoginHeader(token))
+            (JSONFactory300.createUserJSON (user, entitlements), getGatewayLoginHeader(sessioContext))
           }
         }
       }
