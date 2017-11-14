@@ -395,19 +395,6 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     listOfValues
   }
 
-
-  def getPayloadFromJwt(jwt: String): PayloadOfJwtJSON = {
-    implicit val formats = DefaultFormats
-    jwt match {
-      case JsonWebToken(header, payload, signature) =>
-        logger.debug("getPayloadFromJwt" + payload)
-        val x = parse(payload.asJsonString)
-        x.extract[PayloadOfJwtJSON]
-      case _ =>
-        throw new Exception(ErrorMessages.GatewayLoginCannotExtractJwtToken)
-    }
-  }
-
   def getUser : Box[User] = {
     val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
     httpCode match {
@@ -425,5 +412,4 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         None
     }
   }
-
 }

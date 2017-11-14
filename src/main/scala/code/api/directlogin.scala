@@ -31,7 +31,7 @@ import java.util.Date
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.token.Tokens
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.consumer.Consumers._
 import code.model.dataAccess.{AuthUser, ResourceUserCaseClass}
 import code.model.{Consumer, Token, TokenType, User}
@@ -465,7 +465,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def getUserFromDirectLoginHeaderFuture() : Future[(Box[User], Option[String])] = {
+  def getUserFromDirectLoginHeaderFuture() : Future[(Box[User], Option[SessionContext])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
