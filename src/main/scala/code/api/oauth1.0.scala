@@ -32,7 +32,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 import code.api.Constant._
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.consumer.Consumers
 import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
@@ -927,7 +927,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     else
       Empty
 
-  def getUserFromOAuthHeaderFuture(): Future[(Box[User], Option[String])] = {
+  def getUserFromOAuthHeaderFuture(): Future[(Box[User], Option[SessionContext])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
