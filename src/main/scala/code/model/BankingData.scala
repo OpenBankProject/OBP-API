@@ -37,6 +37,7 @@ import scala.math.BigDecimal
 import java.util.Date
 
 import code.accountholder.AccountHolders
+import code.api.util.SessionContext
 
 import scala.collection.immutable.Set
 import net.liftweb.json.JObject
@@ -553,7 +554,7 @@ trait BankAccount extends MdcLoggable {
   */
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
+  final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[SessionContext]): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactions(bankId, accountId, queryParams: _*)

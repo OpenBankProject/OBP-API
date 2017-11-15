@@ -2072,7 +2072,7 @@ trait APIMethods121 {
         params <- paramsBox
         bankAccount <- BankAccount(bankId, accountId)
         view <- View.fromUrl(viewId, bankAccount)
-        transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
+        transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)(None)
       } yield {
         val json = JSONFactory.createTransactionsJSON(transactions)
         successJsonResponse(Extraction.decompose(json))

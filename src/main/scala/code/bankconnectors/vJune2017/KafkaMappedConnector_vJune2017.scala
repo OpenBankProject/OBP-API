@@ -629,7 +629,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
 
   // TODO Get rid on these param lookups and document.
-  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -638,9 +638,21 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       //we don't care about the intended sort field and only sort on finish date for now
       case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
     val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
+
+    val (userName, cbs) = session match {
+      case Some(c) =>
+        c.gatewayLoginRequestPayload match {
+          case Some(p) =>
+            (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+          case _ =>
+            (getUsername, getCbsToken) // Old Style Endpoints use S object
+        }
+      case _ =>
+        (getUsername, getCbsToken) // Old Style Endpoints use S object
+    }
     
     val req = OutboundGetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = getUsername,cbsToken = getCbsToken),
+      authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
       bankId = bankId.toString,
       accountId = accountId.value,
       limit = limit.value,
