@@ -269,7 +269,7 @@ trait APIMethods300 {
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
-
+    // TODO Rewrite as New Style Endpoint
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
@@ -314,7 +314,7 @@ trait APIMethods300 {
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
-
+    // TODO Rewrite as New Style Endpoint
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
@@ -567,7 +567,7 @@ trait APIMethods300 {
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDataWarehouse))
-
+    // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
@@ -872,7 +872,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank)
     )
-
+    // TODO Rewrite as New Style Endpoint
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
         user => {
@@ -937,7 +937,7 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank)
     )
-
+    // TODO Rewrite as New Style Endpoint
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
@@ -997,7 +997,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagATM)
     )
-
+    // TODO Rewrite as New Style Endpoint
     lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
         user => {
@@ -1051,7 +1051,7 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagATM)
     )
-
+    // TODO Rewrite as New Style Endpoint
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
         user => {
