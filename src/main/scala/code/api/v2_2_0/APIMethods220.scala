@@ -1,7 +1,7 @@
 package code.api.v2_2_0
 
-import java.text.{ParseException, SimpleDateFormat}
-import java.util.{Date, Locale, TimeZone, UUID}
+import java.text.SimpleDateFormat
+import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -24,13 +24,15 @@ import code.util.Helper._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
-import net.liftweb.json.{DateFormat, DefaultFormats, Extraction}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 
@@ -1173,35 +1175,18 @@ trait APIMethods220 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagUser))
-  
+
     lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
-        user => {
+        _ => {
           for {
-            user <- user ?~! UserNotLoggedIn
-            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)(None)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(sessioContext)} map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
           } yield {
-//            implicit val formats = new DefaultFormats {
-//              override val dateFormat = new DateFormat {
-//                def parse(s: String) = try {
-//                  Some(formatter.parse(s))
-//                } catch {
-//                  case e: ParseException => None
-//                }
-//
-//                def format(d: Date) = formatter.format(d)
-//
-//                private def formatter = {
-//                  val f = dateFormatter
-//                  f.setTimeZone(TimeZone.getTimeZone("Asia/Tel_Aviv"))
-//                  f
-//                }
-//              }
-//              override def dateFormatter = new SimpleDateFormat("yyyy-MM-dd", new Locale("he", "IL"))
-//            }
-            val json = JSONFactory210.createCustomersJson(customers)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
           }
         }
       }
