@@ -31,6 +31,8 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 
@@ -1173,17 +1175,18 @@ trait APIMethods220 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagUser))
-  
+
     lazy val getCustomersForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
-        user => {
+        _ => {
           for {
-            user <- user ?~! UserNotLoggedIn
-            customers <- Connector.connector.vend.getCustomersByUserIdBox(user.userId)(None)
+            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(sessioContext)} map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
           } yield {
-            val json = JSONFactory210.createCustomersJson(customers)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
           }
         }
       }
