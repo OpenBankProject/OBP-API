@@ -445,6 +445,15 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   /**
+    * @return the bank accounts where the user has at least access to a Private view (is_public==false) for a specific bank
+    */
+  def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = {
+    Future {
+      getPrivateBankAccounts(user, bankId)
+    }
+  }
+
+  /**
     * @param bankIdAccountId the IncomingAccount from Kafka
     * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support
     * these four values.
