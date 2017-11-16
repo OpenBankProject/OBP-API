@@ -384,7 +384,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[KafkaBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",

@@ -390,7 +390,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = memoizeSync(getAccountTTL millisecond) {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[ObpJvmBankAccount] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername

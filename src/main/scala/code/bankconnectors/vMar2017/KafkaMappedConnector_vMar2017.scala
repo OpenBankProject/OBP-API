@@ -706,7 +706,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     )
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount2] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount2] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
       action = "obp.get.Account",

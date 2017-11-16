@@ -418,16 +418,12 @@ trait APIMethods300 {
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         _ =>
-          // Futures - parallel execution *************************************
-          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
-          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
-            x => fullBoxOrException(x ?~! BankAccountNotFound)
-          }
-          // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, sessioContext) <- userFuture
-              bankAccount <- bankAccountFuture map { unboxFull(_) }
+              (user, sessionContext) <-  extractUserFromHeaderOrError(UserNotLoggedIn)
+              bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
                 x => fullBoxOrException(x ?~! ViewNotFound)
@@ -436,9 +432,9 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessioContext)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessionContext)
               } yield {
-                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessioContext))
+                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessionContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
