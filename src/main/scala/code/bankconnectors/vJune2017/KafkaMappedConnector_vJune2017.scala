@@ -517,11 +517,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId): Box[BankAccountJune2017] = saveConnectorMetric{
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccountJune2017] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
+      val (userName, cbs) = session match {
+        case Some(c) =>
+          c.gatewayLoginRequestPayload match {
+            case Some(p) =>
+              (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+            case _ =>
+              (getUsername, getCbsToken) // Old Style Endpoints use S object
+          }
+        case _ =>
+          (getUsername, getCbsToken) // Old Style Endpoints use S object
+      }
+
       // Generate random uuid to be used as request-response match id
       val req = OutboundCheckBankAccountExists(
-        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
+        authInfo = AuthInfo(currentResourceUserId, userName, cbs),
         bankId = bankId.toString,
         accountId = accountId.value
       )
@@ -689,7 +701,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
         if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
         // Populate fields and generate result
-        val bankAccount = checkBankAccountExists(BankId(list.head.bankId), AccountId(list.head.accountId))  
+        val bankAccount = checkBankAccountExists(BankId(list.head.bankId), AccountId(list.head.accountId), session)
         
         val res = for {
           r: InternalTransaction <- list

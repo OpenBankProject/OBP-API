@@ -249,7 +249,7 @@ trait Connector extends MdcLoggable{
 
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
   
-  def checkBankAccountExists(bankId : BankId, accountId : AccountId) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExists(bankId : BankId, accountId : AccountId, session: Option[SessionContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
