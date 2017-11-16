@@ -556,7 +556,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getBankAccount(
     bankId: BankId, 
-    accountId: AccountId
+    accountId: AccountId,
+    session: Option[SessionContext]
   ): Box[KafkaBankAccount] = saveConnectorMetric{
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
