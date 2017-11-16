@@ -369,7 +369,7 @@ trait APIMethods300 {
               availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             } yield {
               for {
-                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext)
               } yield {
                 (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(sessioContext))
               }
@@ -1224,7 +1224,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts) } map {
+            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext) } map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
