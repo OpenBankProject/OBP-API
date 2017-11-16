@@ -557,7 +557,7 @@ trait BankAccount extends MdcLoggable {
   final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[SessionContext]): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
-        transactions <- Connector.connector.vend.getTransactions(bankId, accountId, queryParams: _*)
+        transactions <- Connector.connector.vend.getTransactions(bankId, accountId, session, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
       } yield moderated
     }
