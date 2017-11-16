@@ -612,6 +612,10 @@ object BankAccount {
     Connector.connector.vend.getBankAccount(bankId, accountId)
   }
 
+  def apply(bankId: BankId, accountId: AccountId, sessionContext: Option[SessionContext]) : Box[BankAccount] = {
+    Connector.connector.vend.getBankAccount(bankId, accountId, sessionContext)
+  }
+
   def publicAccounts : List[BankAccount] = {
     Views.views.vend.getAllPublicAccounts.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
