@@ -120,22 +120,18 @@ trait APIMethods300 {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         _ =>
-          // Futures - parallel execution *************************************
-          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
-          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
-            x => fullBoxOrException(x ?~! BankAccountNotFound)
-          }
-          // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, sessioContext) <- userFuture
+              (user, sessionContext) <-  extractUserFromHeaderOrError(UserNotLoggedIn)
               u <- unboxFullAndWrapIntoFuture{ user }
-              account <- bankAccountFuture map { unboxFull(_) }
+              account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
             } yield {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                (createViewsJSON(views), getGatewayLoginHeader(sessioContext))
+                (createViewsJSON(views), getGatewayLoginHeader(sessionContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
