@@ -598,11 +598,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]] = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
     memoizeSync(getAccountTTL millisecond){
+
+      val (userName, cbs) = session match {
+        case Some(c) =>
+          c.gatewayLoginRequestPayload match {
+            case Some(p) =>
+              (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+            case _ =>
+              (getUsername, getCbsToken) // Old Style Endpoints use S object
+          }
+        case _ =>
+          (getUsername, getCbsToken) // Old Style Endpoints use S object
+      }
       
       val req = OutboundGetCoreBankAccounts(
-        authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
+        authInfo = AuthInfo(currentResourceUserId, userName, cbs),
         BankIdAccountIds
       )
       logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
