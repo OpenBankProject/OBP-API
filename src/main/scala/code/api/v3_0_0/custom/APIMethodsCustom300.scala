@@ -26,7 +26,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{Extraction, NoTypeHints, Serialization}
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -313,8 +313,12 @@ trait CustomAPIMethods300 {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
                   _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
                   _ <- booleanToBox(transDetailsP2PJson.transfer_type =="1" || transDetailsP2PJson.transfer_type =="2" ,s"$InvalidValueCharacters. Transfer type: 1=regular; 2=RTGS - real time")
-                  _ <- booleanToBox(transDetailsP2PJson.future_date.length == 8, s"$InvalidValueCharacters. The future_date format YYYYMMDD")
-                  _ <- tryo {new SimpleDateFormat("YYYYMMDD").parse(transDetailsP2PJson.future_date)} ?~! s"$InvalidValueCharacters. The future_date format YYYYMMDD"
+                  _ <- booleanToBox(transDetailsP2PJson.future_date.length == 8 || transDetailsP2PJson.future_date.length == 0, s"$InvalidValueCharacters. The future_date format yyyyMMdd or leave it empty. ")
+                  _ <- if(transDetailsP2PJson.future_date.length == 8) {
+                         val parse = new SimpleDateFormat("yyyyMMdd").parse(transDetailsP2PJson.future_date)
+                         booleanToBox(parse.after(now),s"$InvalidValueCharacters. The future_date should be any date starting from tomorrow or leave it empty. ")
+                       } else Full("")// This else is always success, no error here.
+                
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,
