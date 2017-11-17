@@ -640,14 +640,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
-
-  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
-    //TODO: write logic / data access
-    // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
-    Full(validTransactionRequestTypes)
-  }
-
   /*
     Bank account creation
    */
