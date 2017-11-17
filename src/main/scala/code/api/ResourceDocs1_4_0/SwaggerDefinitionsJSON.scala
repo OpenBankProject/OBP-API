@@ -2108,7 +2108,8 @@ object SwaggerDefinitionsJSON {
     owners =  List(userJSONV121),
     `type`= "String",
     balance = amountOfMoneyJsonV121,
-    account_routing = accountRoutingJsonV121
+    account_routing = accountRoutingJsonV121,
+    credit_limit = amountOfMoneyJsonV121
   )
   
   //The common error or success format.

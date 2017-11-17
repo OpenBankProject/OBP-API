@@ -526,7 +526,7 @@ trait View {
           accountRoutingScheme = accountRoutingScheme,
           accountRoutingAddress = accountRoutingAddress,
           creditLimitCurrency = accountCreditLimitCurrency,
-          creditLimitBalance = accountCreditLimitValue
+          creditLimitValue = accountCreditLimitValue
         )
       )
     }

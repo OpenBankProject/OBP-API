@@ -238,7 +238,8 @@ case class ModeratedCoreAccountJsonV300(
   owners: List[UserJSONV121],
   `type`: String,
   balance: AmountOfMoneyJsonV121,
-  account_routing: AccountRoutingJsonV121
+  account_routing: AccountRoutingJsonV121,
+  credit_limit: AmountOfMoneyJsonV121
 )
 
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
@@ -601,7 +602,8 @@ object JSONFactory300{
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAmountOfMoneyJSON(account.creditLimitCurrency.getOrElse(""), account.creditLimitValue)
     )
   }
 
