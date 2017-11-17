@@ -362,7 +362,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingScheme = "branchRoutingScheme",
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
-          accountRoutingAddress = "accountRoutingAddress"
+          accountRoutingAddress = "accountRoutingAddress",
+          creditLimitAmount = "creditLimitAmount",
+          creditLimitCurrency = "creditLimitCurrency"
         ) :: Nil)
     )
   )
@@ -430,7 +432,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingScheme = "branchRoutingScheme",
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
-          accountRoutingAddress = "accountRoutingAddress"
+          accountRoutingAddress = "accountRoutingAddress",
+          creditLimitAmount = "creditLimitAmount",
+          creditLimitCurrency = "creditLimitCurrency"
         )
       ))
   )
@@ -512,7 +516,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingScheme = "branchRoutingScheme",
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
-          accountRoutingAddress = "accountRoutingAddress"
+          accountRoutingAddress = "accountRoutingAddress",
+          creditLimitAmount = "creditLimitAmount",
+          creditLimitCurrency = "creditLimitCurrency"
         )
       )
     )
@@ -594,7 +600,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingScheme = "branchRoutingScheme",
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
-          accountRoutingAddress = "accountRoutingAddress"
+          accountRoutingAddress = "accountRoutingAddress",
+          creditLimitAmount = "creditLimitAmount",
+          creditLimitCurrency = "creditLimitCurrency"
         )
       ))
   )
