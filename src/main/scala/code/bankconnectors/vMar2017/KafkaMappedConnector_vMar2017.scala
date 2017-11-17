@@ -1396,11 +1396,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
 
 
-  override def getTransactionRequestTypesImpl(fromAccount: BankAccount): Box[List[TransactionRequestType]] = {
-    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
-    Full(validTransactionRequestTypes)
-  }
-
   /*
     Bank account creation
    */

@@ -775,11 +775,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
-    //TODO: write logic / data access
-    Full(List(TransactionRequestType(SANDBOX_TAN.toString)))
-  }
-
   /*
     Bank account creation
    */

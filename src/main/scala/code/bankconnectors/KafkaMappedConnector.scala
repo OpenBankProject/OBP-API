@@ -728,12 +728,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
-
-  override def getTransactionRequestTypesImpl(fromAccount: BankAccount): Box[List[TransactionRequestType]] = {
-    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
-    Full(validTransactionRequestTypes)
-  }
-
   /*
     Bank account creation
    */
