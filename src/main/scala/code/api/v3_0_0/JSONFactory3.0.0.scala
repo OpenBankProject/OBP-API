@@ -137,7 +137,8 @@ case class ViewJsonV300(
   val can_see_other_account_routing_scheme: Boolean,
   val can_see_other_account_routing_address: Boolean,
   val can_add_transaction_request_to_own_account: Boolean, //added following two for payments
-  val can_add_transaction_request_to_any_account: Boolean
+  val can_add_transaction_request_to_any_account: Boolean,
+  val can_see_bank_account_credit_limit: Boolean
 )
 
 case class BasicViewJson(
@@ -540,7 +541,8 @@ object JSONFactory300{
       can_see_other_account_routing_scheme = view.canSeeOtherAccountRoutingScheme,
       can_see_other_account_routing_address= view.canSeeOtherAccountRoutingAddress,
       can_add_transaction_request_to_own_account = view.canAddTransactionRequestToOwnAccount, //added following two for payments
-      can_add_transaction_request_to_any_account = view.canAddTransactionRequestToAnyAccount
+      can_add_transaction_request_to_any_account = view.canAddTransactionRequestToAnyAccount,
+      can_see_bank_account_credit_limit = view.canSeeBankAccountCreditLimit
     )
   }
   def createBasicViewJSON(view : View) : BasicViewJson = {

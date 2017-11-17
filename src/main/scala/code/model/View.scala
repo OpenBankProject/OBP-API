@@ -306,6 +306,7 @@ trait View {
   def canInitiateTransaction: Boolean  
   def canAddTransactionRequestToOwnAccount: Boolean   //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean  
+  def canSeeBankAccountCreditLimit: Boolean
 
   def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
     moderate(transaction, moderate(transaction.thisAccount))

@@ -606,6 +606,7 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherAccountRoutingAddress_(true).
       canAddTransactionRequestToOwnAccount_(false).//added following two for payments
       canAddTransactionRequestToAnyAccount_(false)
+      canSeeBankAccountCreditLimit_(true)
       saveMe)
   }
 
