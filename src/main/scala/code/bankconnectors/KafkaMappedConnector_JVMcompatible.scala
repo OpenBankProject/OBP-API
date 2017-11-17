@@ -1419,6 +1419,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def accountRoutingScheme: String = "NONE" //TODO
     def accountRoutingAddress: String = "NONE" //TODO
     def branchId: String = "NONE" //TODO
+    def creditLimitValue: Option[BigDecimal] = None //TODO
+    def creditLimitCurrency: String = "NONE" //TODO
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

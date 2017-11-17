@@ -391,6 +391,9 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
+
+  def creditLimitValue: Option[BigDecimal] = None
+  def creditLimitCurrency: String = ""
   
 }
 
