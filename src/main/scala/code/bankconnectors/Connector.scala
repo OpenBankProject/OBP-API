@@ -825,7 +825,12 @@ trait Connector extends MdcLoggable{
     } yield transactionRequestTypes
   }
 
-  protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = Failure(NotImplemented + currentMethodName)
+  protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+    //TODO: write logic / data access
+    // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
+    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
+    Full(validTransactionRequestTypes)
+  }
 
 
   //Note: Now we use validateChallengeAnswer instead, new methods validate over kafka, and move the allowed_attempts guard into API level.
