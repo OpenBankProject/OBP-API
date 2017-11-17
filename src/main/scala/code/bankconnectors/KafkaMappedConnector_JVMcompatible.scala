@@ -31,7 +31,7 @@ import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
-import code.api.util.ErrorMessages
+import code.api.util.{ErrorMessages, SessionContext}
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
@@ -470,9 +470,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   
   //CM 4 checked the cache, is it in the method or in the lower level
   override def getTransactions(
-    bankId: BankId, 
-    accountId: AccountId, 
-    queryParams: OBPQueryParam*
+                                bankId: BankId,
+                                accountId: AccountId,
+                                session: Option[SessionContext],
+                                queryParams: OBPQueryParam*
   ): Box[List[Transaction]] = 
     saveConnectorMetric 
     {
@@ -555,7 +556,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getBankAccount(
     bankId: BankId, 
-    accountId: AccountId
+    accountId: AccountId,
+    session: Option[SessionContext]
   ): Box[KafkaBankAccount] = saveConnectorMetric{
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)

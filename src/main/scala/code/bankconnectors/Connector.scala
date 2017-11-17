@@ -241,11 +241,15 @@ trait Connector extends MdcLoggable{
   @deprecated("Now move it to AuthUser.updateUserAccountViews","17-07-2017")
   def updateUserAccountViewsOld(user: ResourceUser) = {}
 
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
+  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]= {
+    getBankAccount(bankId, accountId, None)
+  }
+
+  def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
+
+  def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
   
-  def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
-  
-  def checkBankAccountExists(bankId : BankId, accountId : AccountId) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExists(bankId : BankId, accountId : AccountId, session: Option[SessionContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
@@ -298,7 +302,11 @@ trait Connector extends MdcLoggable{
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]]= Failure(NotImplemented + currentMethodName)
 
-  def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
+  def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= {
+    getTransactions(bankId, accountID, None, queryParams: _*)
+  }
+
+  def getTransactions(bankId: BankId, accountID: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction] = Failure(NotImplemented + currentMethodName)
 

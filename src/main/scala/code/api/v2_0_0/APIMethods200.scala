@@ -890,7 +890,7 @@ trait APIMethods200 {
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), bankAccount)
-            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
+            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)(None)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))

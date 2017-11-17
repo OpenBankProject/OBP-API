@@ -180,7 +180,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
 
     // TODO Refactor this. No need for database lookups etc.
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -245,7 +245,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[MappedBankAccount] = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value),
         By(MappedBankAccount.theAccountId, accountId.value))
@@ -257,11 +257,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
   }
   
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[MappedBankAccount] = {
     getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
-  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId]) : Box[List[CoreAccount]]= {
+  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]]= {
     Full(
         BankIdAcountIds
         .map(bankIdAccountId =>

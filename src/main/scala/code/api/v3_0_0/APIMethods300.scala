@@ -120,22 +120,18 @@ trait APIMethods300 {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         _ =>
-          // Futures - parallel execution *************************************
-          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
-          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
-            x => fullBoxOrException(x ?~! BankAccountNotFound)
-          }
-          // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, sessioContext) <- userFuture
+              (user, sessionContext) <-  extractUserFromHeaderOrError(UserNotLoggedIn)
               u <- unboxFullAndWrapIntoFuture{ user }
-              account <- bankAccountFuture map { unboxFull(_) }
+              account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
             } yield {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                (createViewsJSON(views), getGatewayLoginHeader(sessioContext))
+                (createViewsJSON(views), getGatewayLoginHeader(sessionContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -369,7 +365,7 @@ trait APIMethods300 {
               availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             } yield {
               for {
-                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts)
+                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext)
               } yield {
                 (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(sessioContext))
               }
@@ -418,16 +414,12 @@ trait APIMethods300 {
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         _ =>
-          // Futures - parallel execution *************************************
-          val userFuture = extractUserFromHeaderOrError(UserNotLoggedIn)
-          val bankAccountFuture = Future { BankAccount(bankId, accountId) } map {
-            x => fullBoxOrException(x ?~! BankAccountNotFound)
-          }
-          // ************************************* Futures - parallel execution
           val res =
             for {
-              (user, sessioContext) <- userFuture
-              bankAccount <- bankAccountFuture map { unboxFull(_) }
+              (user, sessionContext) <-  extractUserFromHeaderOrError(UserNotLoggedIn)
+              bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
               // Assume owner view was requested
               view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
                 x => fullBoxOrException(x ?~! ViewNotFound)
@@ -436,9 +428,9 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessionContext)
               } yield {
-                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessioContext))
+                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessionContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -503,7 +495,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessioContext)
               } yield {
                 (createTransactionsJson(transactions), getGatewayLoginHeader(sessioContext))
               }
@@ -1228,7 +1220,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts) } map {
+            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext) } map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {

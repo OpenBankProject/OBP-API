@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.api.util.SessionContext
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
@@ -67,7 +68,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getBanks(): Box[List[Bank]] =
     Full(HostedBank.findAll)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[Account] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[Account] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -137,7 +138,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
       bank <- getHostedBank(bankId)
