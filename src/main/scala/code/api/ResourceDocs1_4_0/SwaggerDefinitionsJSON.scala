@@ -2002,7 +2002,8 @@ object SwaggerDefinitionsJSON {
     can_see_other_account_routing_scheme = true,
     can_see_other_account_routing_address = true,
     can_add_transaction_request_to_own_account = true, //added following two for payments
-    can_add_transaction_request_to_any_account = true
+    can_add_transaction_request_to_any_account = true,
+    can_see_bank_account_credit_limit = true
   )
   
   val viewsJsonV300 =  ViewsJsonV300(
@@ -2107,7 +2108,8 @@ object SwaggerDefinitionsJSON {
     owners =  List(userJSONV121),
     `type`= "String",
     balance = amountOfMoneyJsonV121,
-    account_routing = accountRoutingJsonV121
+    account_routing = accountRoutingJsonV121,
+    credit_limit = amountOfMoneyJsonV121
   )
   
   //The common error or success format.

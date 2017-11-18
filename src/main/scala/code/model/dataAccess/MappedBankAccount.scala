@@ -37,6 +37,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object mAccountRoutingAddress extends MappedString(this, 128)
   object mBranchId extends UUIDString(this)
 
+  object creditLimitCurrency_ extends MappedString(this, 10)
+  object creditLimitValue_ extends MappedLong(this)
+
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
     val i = accountIban.get
@@ -60,6 +63,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   def accountRoutingScheme: String = mAccountRoutingScheme.get
   def accountRoutingAddress: String = mAccountRoutingAddress.get
   def branchId: String = mBranchId.get
+
+  override def creditLimitCurrency: String = creditLimitCurrency_.get
+  override def creditLimitValue: Option[BigDecimal] = if (creditLimitValue_.get.toString.isEmpty) None else Some(Helper.smallestCurrencyUnitToBigDecimal(creditLimitValue_.get, creditLimitCurrency))
 }
 
 object MappedBankAccount extends MappedBankAccount with LongKeyedMetaMapper[MappedBankAccount] {

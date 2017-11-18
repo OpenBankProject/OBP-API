@@ -128,7 +128,9 @@ case class InboundAccountJune2017(
   branchRoutingScheme: String,
   branchRoutingAddress: String,
   accountRoutingScheme: String,
-  accountRoutingAddress: String
+  accountRoutingAddress: String,
+  creditLimitAmount: String,
+  creditLimitCurrency: String
 ) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
@@ -157,6 +159,9 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
+
+  def creditLimitValue: Option[BigDecimal] = None
+  def creditLimitCurrency: String = ""
   
 }
 

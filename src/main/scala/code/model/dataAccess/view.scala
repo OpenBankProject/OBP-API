@@ -161,6 +161,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
     canAddTransactionRequestToOwnAccount_(actions.exists(_ == "can_add_transaction_request_to_own_account")) //added following two for payments
     canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
+    canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
   }
 
   object isSystem_ extends MappedBoolean(this){
@@ -398,6 +399,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canAddTransactionRequestToAnyAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeBankAccountCreditLimit_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   def id: Long = id_.get
   def isSystem: Boolean = isSystem_.get
@@ -501,6 +505,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canInitiateTransaction: Boolean = canInitiateTransaction_.get
   def canAddTransactionRequestToOwnAccount: Boolean = canAddTransactionRequestToOwnAccount_.get //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
+  def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }

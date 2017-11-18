@@ -83,6 +83,9 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   object mAccountRoutingScheme extends StringField(this, 255)
   object mAccountRoutingAddress extends StringField(this, 255)
   object mBranchId extends StringField(this, 255)
+
+  object mCreditLimitValue extends DecimalField(this, 0)
+  object mCreditLimitCurrency extends StringField(this, 255)
   
   
   def transactionsForAccount: QueryBuilder = {
@@ -176,6 +179,8 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def accountRoutingScheme: String = mAccountRoutingScheme.get
   override def accountRoutingAddress: String = mAccountRoutingAddress.get
   override def branchId: String = mBranchId.get
+  override def creditLimitValue: Option[BigDecimal] = if (mCreditLimitValue.get.toString().isEmpty) None else Some(mCreditLimitValue.get)
+  override def creditLimitCurrency: String = mCreditLimitCurrency.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
