@@ -1180,7 +1180,7 @@ trait APIMethods220 {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         _ => {
           for {
-            (user, sessioContext) <- extractUserFromHeaderOrError(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
             customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(sessioContext)} map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)

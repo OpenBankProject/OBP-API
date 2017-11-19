@@ -83,6 +83,21 @@ object Helper{
       Empty
   }
 
+  /**
+    * Helper function which wrap some statement into Future.
+    * The function is curried i.e.
+    * use this parameter syntax ---> (failMsg: String)(statement: => Boolean)
+    * instead of this one ---------> (failMsg: String, statement: => Boolean)
+    * Below is an example of recommended usage.
+    * Please note that the second parameter is provided in curly bracket in order to mimics body of a function.
+    *   booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+    *     hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+    *   }
+    * @param failMsg is used in case that result of call of function booleanToBox returns Empty
+    * @param statement is call by name parameter.
+    * @return In case the statement is false the function returns Future[Failure(failMsg)].
+    *         Otherwise returns Future[Full()].
+    */
   def booleanToFuture(failMsg: String)(statement: => Boolean): Future[Box[Unit]] = {
     Future{
       booleanToBox(statement)

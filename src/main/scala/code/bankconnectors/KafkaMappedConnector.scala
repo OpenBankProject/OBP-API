@@ -1205,7 +1205,9 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def accountHolder : String      = r.owners.head
     def accountRoutingScheme: String = r.accountRoutingScheme
     def accountRoutingAddress: String = r.accountRoutingAddress
-    def branchId: String = r.branchId
+    def branchId: String              = r.branchId
+    def creditLimitValue: Option[BigDecimal]      = None
+    def creditLimitCurrency: String   = ""
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

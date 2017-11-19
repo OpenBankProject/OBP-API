@@ -1173,6 +1173,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def accountRoutingScheme: String = r.account_routing_scheme
     def accountRoutingAddress: String = r.account_routing_address
     def branchId: String = r.branchId
+    def creditLimitValue: Option[BigDecimal] = None
+    def creditLimitCurrency: String = ""
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
