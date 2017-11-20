@@ -36,7 +36,8 @@ object SwaggerJSONFactory {
   // Security Definitions Object
   // link->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityDefinitionsObject
   case class SecurityDefinitionsJson(
-    directLogin: DirectLoginJson
+    directLogin: DirectLoginJson ,
+    gatewayLogin: GatewayLoginJson
   )
   case class DirectLoginJson(
     `type`: String = "apiKey",
@@ -45,10 +46,18 @@ object SwaggerJSONFactory {
     name: String = "Authorization"
   )
   
+  case class GatewayLoginJson(
+    `type`: String = "apiKey",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login",
+    in: String = "header",
+    name: String = "Authorization"
+  )
+  
   //Security Requirement Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityRequirementObject
   case class SecurityJson(
-    directLogin: List[String] = Nil
+    directLogin: List[String] = Nil,
+    gatewayLogin: List[String] = Nil
   )
   
   case class ResponseObjectSchemaJson(
@@ -183,7 +192,7 @@ object SwaggerJSONFactory {
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
-    val basePath = s"/$ApiPathZero/" + APIUtil.vDottedApiVersion(infoApiVersion)
+    val basePath = ""
     val schemas = List("http", "https")
     // Paths Object
     // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#paths-object
@@ -205,9 +214,11 @@ object SwaggerJSONFactory {
     //          "schema": {"$ref": "#/definitions/Error"
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
-      //TODO here can extract to  a method
+      //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
+      val pathAddedObpandVersion = s"/$ApiPathZero/" + APIUtil.vDottedApiVersion(infoApiVersion)+mrd._1
+      //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
-        mrd._1
+        pathAddedObpandVersion
         .replaceAll("/BANK_ID", "/{BANK_ID}")
         .replaceAll("/ACCOUNT_ID", "/{ACCOUNT_ID}")
         .replaceAll("/VIEW_ID", "/{VIEW_ID}")
@@ -284,15 +295,14 @@ object SwaggerJSONFactory {
       if(path.contains("/{AMT_ID}"))
         pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
       if(path.contains("/{API_VERSION}"))
-        pathParameters = OperationParameterPathJson(name="API_VERSION", description="v2.2.0") :: pathParameters
+        pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
   
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
           OperationObjectJson(
-            tags = List(s"${rd.implementedInApiVersion.toString}"), 
+            tags = rd.tags.map(_.tag),
             summary = rd.summary,
-            //description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
-            description = rd.description.stripMargin,
+            description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.partialFunctionName match {
                 //No longer need this special case since all transaction reqquest Resource Docs have explicit URL
@@ -351,7 +361,7 @@ object SwaggerJSONFactory {
       host = host,
       basePath = basePath,
       schemes = schemas,
-      securityDefinitions = SecurityDefinitionsJson(DirectLoginJson()), //default value
+      securityDefinitions = SecurityDefinitionsJson(DirectLoginJson(),GatewayLoginJson()), //default value
       security = SecurityJson()::Nil, //default value
       paths = paths
     )
