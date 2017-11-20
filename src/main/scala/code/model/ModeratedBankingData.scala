@@ -182,22 +182,24 @@ object ModeratedTransactionMetadata {
 
 
 class ModeratedBankAccount(
-  val accountId : AccountId,
-  val owners : Moderated[Set[User]],
-  val accountType : Moderated[String],
-  val balance: String = "", //TODO: Moderated[String]?
-  val currency : Moderated[String],
-  val label : Moderated[String],
-  val nationalIdentifier : Moderated[String],
-  val swift_bic : Moderated[String],
-  val iban : Moderated[String],
-  val number: Moderated[String],
-  val bankName: Moderated[String],
-  val bankId : BankId,
-  val bankRoutingScheme : Moderated[String],
-  val bankRoutingAddress :Moderated[String],
-  val accountRoutingScheme : Moderated[String],
-  val accountRoutingAddress :Moderated[String]
+                            val accountId : AccountId,
+                            val owners : Moderated[Set[User]],
+                            val accountType : Moderated[String],
+                            val balance: String = "", //TODO: Moderated[String]?
+                            val currency : Moderated[String],
+                            val label : Moderated[String],
+                            val nationalIdentifier : Moderated[String],
+                            val swift_bic : Moderated[String],
+                            val iban : Moderated[String],
+                            val number: Moderated[String],
+                            val bankName: Moderated[String],
+                            val bankId : BankId,
+                            val bankRoutingScheme : Moderated[String],
+                            val bankRoutingAddress :Moderated[String],
+                            val accountRoutingScheme : Moderated[String],
+                            val accountRoutingAddress :Moderated[String],
+                            val creditLimitValue: String,
+                            val creditLimitCurrency: Moderated[String]
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson = {

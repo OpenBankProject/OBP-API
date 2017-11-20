@@ -298,6 +298,8 @@ trait BankAccount extends MdcLoggable {
   def branchId: String
   def accountRoutingScheme: String
   def accountRoutingAddress: String
+  def creditLimitValue: Option[BigDecimal]
+  def creditLimitCurrency: String
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String

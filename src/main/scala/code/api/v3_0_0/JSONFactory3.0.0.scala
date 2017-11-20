@@ -137,7 +137,8 @@ case class ViewJsonV300(
   val can_see_other_account_routing_scheme: Boolean,
   val can_see_other_account_routing_address: Boolean,
   val can_add_transaction_request_to_own_account: Boolean, //added following two for payments
-  val can_add_transaction_request_to_any_account: Boolean
+  val can_add_transaction_request_to_any_account: Boolean,
+  val can_see_bank_account_credit_limit: Boolean
 )
 
 case class BasicViewJson(
@@ -237,7 +238,8 @@ case class ModeratedCoreAccountJsonV300(
   owners: List[UserJSONV121],
   `type`: String,
   balance: AmountOfMoneyJsonV121,
-  account_routing: AccountRoutingJsonV121
+  account_routing: AccountRoutingJsonV121,
+  credit_limit: AmountOfMoneyJsonV121
 )
 
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
@@ -540,7 +542,8 @@ object JSONFactory300{
       can_see_other_account_routing_scheme = view.canSeeOtherAccountRoutingScheme,
       can_see_other_account_routing_address= view.canSeeOtherAccountRoutingAddress,
       can_add_transaction_request_to_own_account = view.canAddTransactionRequestToOwnAccount, //added following two for payments
-      can_add_transaction_request_to_any_account = view.canAddTransactionRequestToAnyAccount
+      can_add_transaction_request_to_any_account = view.canAddTransactionRequestToAnyAccount,
+      can_see_bank_account_credit_limit = view.canSeeBankAccountCreditLimit
     )
   }
   def createBasicViewJSON(view : View) : BasicViewJson = {
@@ -599,7 +602,8 @@ object JSONFactory300{
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAmountOfMoneyJSON(account.creditLimitCurrency.getOrElse(""), account.creditLimitValue)
     )
   }
 
