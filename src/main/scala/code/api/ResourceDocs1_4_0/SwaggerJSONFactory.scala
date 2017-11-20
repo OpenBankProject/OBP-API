@@ -36,7 +36,8 @@ object SwaggerJSONFactory {
   // Security Definitions Object
   // link->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityDefinitionsObject
   case class SecurityDefinitionsJson(
-    directLogin: DirectLoginJson
+    directLogin: DirectLoginJson ,
+    gatewayLogin: GatewayLoginJson
   )
   case class DirectLoginJson(
     `type`: String = "apiKey",
@@ -45,10 +46,18 @@ object SwaggerJSONFactory {
     name: String = "Authorization"
   )
   
+  case class GatewayLoginJson(
+    `type`: String = "apiKey",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login",
+    in: String = "header",
+    name: String = "Authorization"
+  )
+  
   //Security Requirement Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityRequirementObject
   case class SecurityJson(
-    directLogin: List[String] = Nil
+    directLogin: List[String] = Nil,
+    gatewayLogin: List[String] = Nil
   )
   
   case class ResponseObjectSchemaJson(
@@ -352,7 +361,7 @@ object SwaggerJSONFactory {
       host = host,
       basePath = basePath,
       schemes = schemas,
-      securityDefinitions = SecurityDefinitionsJson(DirectLoginJson()), //default value
+      securityDefinitions = SecurityDefinitionsJson(DirectLoginJson(),GatewayLoginJson()), //default value
       security = SecurityJson()::Nil, //default value
       paths = paths
     )
