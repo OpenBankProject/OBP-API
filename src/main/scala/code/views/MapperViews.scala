@@ -328,11 +328,23 @@ object MapperViews extends Views with MdcLoggable {
     userPrivateViewsForAccount ++ publicViews(bankAccountId)
   }
 
+  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
+    Future {
+      permittedViews(user, bankAccountId)
+    }
+  }
+
   def publicViews(bankAccountId : BankIdAccountId) : List[View] = {
     if(ALLOW_PUBLIC_VIEWS)
       ViewImpl.findAll(By(ViewImpl.isPublic_,true)::ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
     else
       Nil
+  }
+
+  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]] = {
+    Future {
+      publicViews(bankAccountId)
+    }
   }
 
   /**

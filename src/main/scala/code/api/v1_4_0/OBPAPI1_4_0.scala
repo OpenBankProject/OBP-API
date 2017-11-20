@@ -1,8 +1,12 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint,getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.v2_1_0.OBPAPI2_1_0.findResourceDoc
+import code.model.User
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Box
+import net.liftweb.http.{JsonResponse, Req}
 
 
 object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
@@ -108,7 +112,14 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
   )
 
 
+  val allResourceDocs =
+    Implementations1_4_0.resourceDocs ++
+      Implementations1_3_0.resourceDocs ++
+      Implementations1_2_1.resourceDocs
 
+  def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
+    allResourceDocs.find(_.partialFunction==pf)
+  }
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
@@ -117,7 +128,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
 
   routes.foreach(route => {
-    oauthServe(apiPrefix{route})
+    oauthServe(apiPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
