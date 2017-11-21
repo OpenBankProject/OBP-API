@@ -1066,7 +1066,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         accountRoutingAddress= fromAccount.accountRoutingAddress
       )
     )
-    logger.debug(s"Kafka createCounterparty Req says: is: $req")
+    logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
@@ -1075,17 +1075,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       internalGetTransactionRequests
     }
-    logger.debug(s"Kafka createCounterparty Res says: is: $box")
+    logger.debug(s"Kafka getTransactionRequests210 Res says: is: $box")
   
     val res: Box[List[TransactionRequest]] = box match {
       case Full(x) if (x.errorCode=="")  =>
         //For consistency with sandbox mode, we need combine obp transactions in database and adapter transactions  
         for{
-          mfTransactions <- Full(x.transactionRequests)
+          adapterTransactionRequests <- Full(x.transactionRequests)
           //TODO, this will cause performance issue, we need limit the number of transaction requests. 
           obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
         } yield {
-          obpTransactionRequests ::: obpTransactionRequests
+          adapterTransactionRequests ::: obpTransactionRequests
         }
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
@@ -1261,7 +1261,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           payloadOfJwt.is_first
         )
     )
-    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+    logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
@@ -1270,7 +1270,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       internalCustomer
     }
-    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
+    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $box")
     
     val res: Box[List[InternalCustomer]] = box match {
       case Full(x) if (x.head.errorCode=="")  =>
