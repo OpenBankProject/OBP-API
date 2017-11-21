@@ -359,7 +359,7 @@ trait APIMethods220 {
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
         | 
-        | `CONNECTOR_VERSION`: vMar2017 or vYellow2017 or ... 
+        | `CONNECTOR_VERSION`: vMar2017 or vJune2017 or ... 
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
