@@ -27,9 +27,9 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
+import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
 import code.api.v2_1_0.PostCounterpartyBespoke
-import code.api.v3_0_0.CoreAccountJsonV300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer._
@@ -37,7 +37,7 @@ import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests.TransactionRequest
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestAccount, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
@@ -49,8 +49,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
@@ -1017,7 +1015,37 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         InternalGetTransactionRequests(
           errorCodeExample,
           inboundStatusMessagesExample,
-          Nil
+          List(TransactionRequest(
+            id = TransactionRequestId("id"),
+            `type` = "String",
+            from = TransactionRequestAccount("10", "12"),
+            details = null,
+            body = TransactionRequestBody(
+              TransactionRequestAccount("", ""),
+              AmountOfMoney("ILS", "0"), ""
+            ),
+            transaction_ids = "",
+            status = "COMPLETED",
+            start_date = exampleDate,
+            end_date = exampleDate,
+            challenge = TransactionRequestChallenge("", 0, ""),
+            charge = TransactionRequestCharge(
+              "", 
+              AmountOfMoney("ILS", "0")
+            ),
+            charge_policy = "",
+            counterparty_id = CounterpartyId(""),
+            name = "name",
+            this_bank_id = BankId("10"),
+            this_account_id = AccountId("1"),
+            this_view_id = ViewId(""),
+            other_account_routing_scheme = "",
+            other_account_routing_address = "",
+            other_bank_routing_scheme = "",
+            other_bank_routing_address = "",
+            is_beneficiary = false
+          )
+          )
         )
       )
     )
@@ -1038,20 +1066,27 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         accountRoutingAddress= fromAccount.accountRoutingAddress
       )
     )
-    logger.debug(s"Kafka createCounterparty Req says: is: $req")
+    logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
-      inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InboundGetTransactionRequests210 extract error"
+      inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error"
       internalGetTransactionRequests <- Full(inboundGetTransactionRequests210.data)
     } yield{
       internalGetTransactionRequests
     }
-    logger.debug(s"Kafka createCounterparty Res says: is: $box")
+    logger.debug(s"Kafka getTransactionRequests210 Res says: is: $box")
   
     val res: Box[List[TransactionRequest]] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x.transactionRequests)
+        //For consistency with sandbox mode, we need combine obp transactions in database and adapter transactions  
+        for{
+          adapterTransactionRequests <- Full(x.transactionRequests)
+          //TODO, this will cause performance issue, we need limit the number of transaction requests. 
+          obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
+        } yield {
+          adapterTransactionRequests ::: obpTransactionRequests
+        }
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1133,9 +1168,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       OutboundGetCounterpartyByCounterpartyId(
         authInfoExample,
         OutboundGetCounterpartyById(
-          thisBankId = "String",
-          thisAccountId = "String",
-          viewId = "String",
           counterpartyId = "String"
         )
       )
@@ -1169,7 +1201,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById("","","",counterpartyId.value))
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById(counterpartyId.value))
     logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
   
     val box = for {
@@ -1226,7 +1258,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           payloadOfJwt.is_first
         )
     )
-    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+    logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
@@ -1235,7 +1267,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       internalCustomer
     }
-    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
+    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $box")
     
     val res: Box[List[InternalCustomer]] = box match {
       case Full(x) if (x.head.errorCode=="")  =>

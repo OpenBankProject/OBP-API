@@ -11,7 +11,7 @@ import net.liftweb.common.{Box, Full}
 /**
   * Created by zhanghongwei on 14/07/2017.
   */
-object MockedCardConnector extends ServerSetup  
+object MockedJune2017Connector extends ServerSetup  
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
   

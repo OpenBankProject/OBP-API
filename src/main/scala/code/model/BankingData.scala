@@ -54,6 +54,8 @@ import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties
 import code.util.Helper.MdcLoggable
 
+import scala.concurrent.Future
+
 /**
  * Uniquely identifies a view
  */
@@ -364,6 +366,16 @@ trait BankAccount extends MdcLoggable {
         //logger.debug("No user was passed to permittedViews")
         publicViews
       }
+    }
+  }
+
+  final def permittedViewsFuture(user: Box[User]) : Future[List[View]] = {
+    val acc = BankIdAccountId(this.bankId, this.accountId)
+    user match {
+      case Full(u) =>
+        Views.views.vend.permittedViewsFuture(u, acc)
+      case _ =>
+        Views.views.vend.publicViewsFuture(acc)
     }
   }
 

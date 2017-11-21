@@ -2,7 +2,7 @@ package code.model
 
 import code.accountholder.MapperAccountHolders
 import code.bankconnectors.{Connector}
-import code.connector.MockedCardConnector
+import code.connector.MockedJune2017Connector
 import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.MapperViews
@@ -14,7 +14,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
   
   override def beforeAll() = {
     super.beforeAll()
-    Connector.connector.default.set(MockedCardConnector)
+    Connector.connector.default.set(MockedJune2017Connector)
     ViewImpl.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
@@ -26,8 +26,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
     MapperAccountHolders.bulkDelete_!!()
   }
   
-  val bankIdAccountId = MockedCardConnector.bankIdAccountId
-  val bankIdAccountId2 = MockedCardConnector.bankIdAccountId2
+  val bankIdAccountId = MockedJune2017Connector.bankIdAccountId
+  val bankIdAccountId2 = MockedJune2017Connector.bankIdAccountId2
   
   
   feature("Test the updateUserAccountViews method") {

@@ -583,7 +583,9 @@ trait APIMethods210 {
         |
         |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
         |
-        |3) `id` in the Json Body:  is `challenge.id` field in createTransactionRequest response body. 
+        |3) `id` :  is `challenge.id` field in createTransactionRequest response body. 
+        |
+        |4) `answer` : is `challenge.answer` can be any Interge in sandbox mode.  
         |
       """.stripMargin,
       challengeAnswerJSON,
