@@ -310,22 +310,30 @@ trait APIMethods300 {
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
-    // TODO Rewrite as New Style Endpoint
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
-        user =>
-          for {
-            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
-            availableviews <- Full(account.permittedViews(user))
+        _ =>
+          val res =
+            for {
+            (user, sessionContext) <-  extractCallContext(UserNotLoggedIn)
+            account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+              x => fullBoxOrException(x ?~! BankAccountNotFound)
+            } map { unboxFull(_) }
+            availableViews <- (account.permittedViewsFuture(user))
             // Assume owner view was requested
-            view <- View.fromUrl( ViewId("owner"), account)
-            moderatedAccount <- account.moderatedBankAccount(view, user)
+            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
+              x => fullBoxOrException(x ?~! ViewNotFound)
+            } map { unboxFull(_) }
           } yield {
-            val viewsAvailable = availableviews.map(JSONFactory300.createViewJSON)
-            val moderatedAccountJson = createCoreBankAccountJSON(moderatedAccount, viewsAvailable)
-            successJsonResponse(Extraction.decompose(moderatedAccountJson))
+            for {
+              moderatedAccount <- account.moderatedBankAccount(view, user)
+            } yield {
+              val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON)
+              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), getGatewayLoginHeader(sessionContext))
+            }
           }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -358,7 +366,7 @@ trait APIMethods300 {
       //get private accounts for all banks
       case "my" :: "accounts" :: Nil JsonGet json => {
         _ =>
-          val res =
+          val res: Future[Box[(CoreAccountsJsonV300, CustomResponseHeaders)]] =
             for {
               (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
               u <- unboxFullAndWrapIntoFuture{ user }

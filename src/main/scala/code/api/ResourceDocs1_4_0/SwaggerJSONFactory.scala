@@ -52,7 +52,7 @@ object SwaggerJSONFactory {
     in: String = "header",
     name: String = "Authorization"
   )
-  
+
   //Security Requirement Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityRequirementObject
   case class SecurityJson(
@@ -214,7 +214,7 @@ object SwaggerJSONFactory {
     //          "schema": {"$ref": "#/definitions/Error"
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
-      //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
+      //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID`
       val pathAddedObpandVersion = s"/$ApiPathZero/" + APIUtil.vDottedApiVersion(infoApiVersion)+mrd._1
       //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
