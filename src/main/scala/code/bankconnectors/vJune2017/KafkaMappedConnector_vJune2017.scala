@@ -1079,7 +1079,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
     val res: Box[List[TransactionRequest]] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x.transactionRequests)
+        //For consistency with sandbox mode, we need combine obp transactions in database and adapter transactions  
+        for{
+          mfTransactions <- Full(x.transactionRequests)
+          //TODO, this will cause performance issue, we need limit the number of transaction requests. 
+          obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
+        } yield {
+          obpTransactionRequests ::: obpTransactionRequests
+        }
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
