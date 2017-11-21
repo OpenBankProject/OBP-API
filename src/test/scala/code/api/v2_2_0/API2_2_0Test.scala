@@ -419,6 +419,14 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
   }
-
-
+  
+  feature("Get Message Docs - v2.2.0"){
+    scenario("Get Message Docs - vYellow2017") {
+      val request = (v2_2Request / "message-docs" / "vJune2017" )
+      val response: APIResponse = makeGetRequest(request)
+  
+      response.code should be (200)
+    }
+  }
+  
 }
