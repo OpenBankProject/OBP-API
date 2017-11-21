@@ -260,7 +260,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InsufficientAuthorisationToCreateBranch  = "OBP-30209: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
   val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
-  val InvalidConnectorVersion = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR_VERSION."
+  val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."
   
   // General Resource related messages above here
 

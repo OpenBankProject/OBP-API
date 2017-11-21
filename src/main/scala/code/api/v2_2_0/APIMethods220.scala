@@ -354,12 +354,12 @@ trait APIMethods220 {
       implementedInApiVersion,
       "getMessageDocs",
       "GET",
-      "/message-docs/CONNECTOR_VERSION",
+      "/message-docs/CONNECTOR",
       "Get Message Docs",
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
         | 
-        | `CONNECTOR_VERSION`: vMar2017 or vJune2017 or ... 
+        | `CONNECTOR`: kafka_vJuneYellow2017, kafka_vJune2017 , kafka_vMar2017 or ... 
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
@@ -369,11 +369,13 @@ trait APIMethods220 {
     )
 
     lazy val getMessageDocs: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "message-docs" :: connectorVersion :: Nil JsonGet _ => {
+      case "message-docs" :: connector :: Nil JsonGet _ => {
         user => {
           for {
-            connector <- tryo{Connector.getObjectInstance(s"code.bankconnectors.$connectorVersion.KafkaMappedConnector_$connectorVersion")} ?~! s"$InvalidConnectorVersion Current CONNECTOR_VERSION is $connectorVersion. "
-            messageDocs <- Full{connector.messageDocs.toList} 
+            //afka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
+            connectorVersion<- tryo(connector.split("_")(1))?~! s"$InvalidConnector Current CONNECTOR is $connector. It should be eg: kafka_vJune2017"
+            connectorObject <- tryo{Connector.getObjectInstance(s"code.bankconnectors.$connectorVersion.KafkaMappedConnector_$connectorVersion")} ?~! s"$InvalidConnector Current CONNECTOR is $connector.It should be eg: kafka_vJune2017"
+            messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JsonFactory_vMar2017.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
