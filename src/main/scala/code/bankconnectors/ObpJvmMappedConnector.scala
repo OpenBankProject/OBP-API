@@ -43,6 +43,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions._
+import scala.collection.immutable.Seq
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache._
@@ -317,22 +318,17 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     def getTransactionsInner(bankId: BankId, accountId: AccountId, userName: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = memoizeSync(getTransactionsTTL millisecond) {
-      val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-      val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-      val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-      val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+      val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
+      val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
+      val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
+      val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
       val ordering = queryParams.collect {
         //we don't care about the intended sort field and only sort on finish date for now
-        case OBPOrdering(_, direction) =>
-          direction match {
-            case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-            case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-          }
-      }
-      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
-      val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-      val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+        case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
+      val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
       implicit val formats = net.liftweb.json.DefaultFormats
+
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
 
       val parameters = new JHashMap
       val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
