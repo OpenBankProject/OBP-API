@@ -269,19 +269,29 @@ trait APIMethods300 {
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
-        user =>
-          for {
-            bank <- Bank(bankId) ?~ BankNotFound
-            account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
-            view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
-            availableViews <- Full(account.permittedViews(user))
-            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
-            moderatedAccount <- account.moderatedBankAccount(view, user)
-          } yield {
-            val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
-            val moderatedAccountJson = createBankAccountJSON(moderatedAccount, viewsAvailable)
-            successJsonResponse(Extraction.decompose(moderatedAccountJson))
-          }
+        _ =>
+          val res =
+            for {
+              (user, sessionContext) <- extractCallContext(UserNotLoggedIn)
+              account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
+              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+              availableViews <- (account.permittedViewsFuture(user))
+              _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+                (availableViews.contains(view))
+              }
+            } yield {
+              for {
+                moderatedAccount <- account.moderatedBankAccount(view, user)
+              } yield {
+                val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
+                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), getGatewayLoginHeader(sessionContext))
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
