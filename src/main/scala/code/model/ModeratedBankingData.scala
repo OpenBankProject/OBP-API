@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.model
 import java.util.Date
+
 import code.model.Moderation.Moderated
 import code.util.Helper
 import net.liftweb.json.JsonAST.JObject
@@ -40,8 +41,12 @@ import net.liftweb.json.JsonAST.JField
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import java.net.URL
+
+import code.bankconnectors.vJune2017.AccountRules
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
+
+import scala.collection.immutable.List
 
 object Moderation {
   type Moderated[A] = Option[A]
@@ -198,8 +203,7 @@ class ModeratedBankAccount(
                             val bankRoutingAddress :Moderated[String],
                             val accountRoutingScheme : Moderated[String],
                             val accountRoutingAddress :Moderated[String],
-                            val creditLimitValue: String,
-                            val creditLimitCurrency: Moderated[String]
+                            val accountRules: List[AccountRules]
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson = {

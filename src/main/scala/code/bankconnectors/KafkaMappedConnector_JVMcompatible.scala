@@ -36,6 +36,7 @@ import code.api.util.ErrorMessages._
 import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
+import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.{FXRate, fx}
@@ -67,7 +68,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
-import scala.collection.immutable.Seq
+import scala.collection.immutable.{List, Seq}
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -1406,8 +1407,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def accountRoutingScheme: String = "NONE" //TODO
     def accountRoutingAddress: String = "NONE" //TODO
     def branchId: String = "NONE" //TODO
-    def creditLimitValue: Option[BigDecimal] = None //TODO
-    def creditLimitCurrency: String = "NONE" //TODO
+    def accountRules: List[AccountRules] = List() //TODO
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

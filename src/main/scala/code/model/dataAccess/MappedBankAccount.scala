@@ -2,9 +2,12 @@ package code.model.dataAccess
 
 import java.util.Date
 
+import code.bankconnectors.vJune2017.AccountRules
 import code.model._
 import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
 import net.liftweb.mapper._
+
+import scala.collection.immutable.List
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
 
@@ -37,8 +40,10 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object mAccountRoutingAddress extends MappedString(this, 128)
   object mBranchId extends UUIDString(this)
 
-  object creditLimitCurrency_ extends MappedString(this, 10)
-  object creditLimitValue_ extends MappedLong(this)
+  object accountRuleScheme1 extends MappedString(this, 10)
+  object accountRuleValue1 extends MappedLong(this)
+  object accountRuleScheme2 extends MappedString(this, 10)
+  object accountRuleValue2 extends MappedLong(this)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
@@ -59,13 +64,23 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate : Date = accountLastUpdate.get
-  
+
   def accountRoutingScheme: String = mAccountRoutingScheme.get
   def accountRoutingAddress: String = mAccountRoutingAddress.get
   def branchId: String = mBranchId.get
 
-  override def creditLimitCurrency: String = creditLimitCurrency_.get
-  override def creditLimitValue: Option[BigDecimal] = if (creditLimitValue_.get.toString.isEmpty) None else Some(Helper.smallestCurrencyUnitToBigDecimal(creditLimitValue_.get, creditLimitCurrency))
+  def createAccountRule(scheme: String, value: Long) = {
+    scheme match {
+      case s: String if s.equalsIgnoreCase("") == false =>
+        val v = Helper.smallestCurrencyUnitToBigDecimal(value, accountCurrency.get)
+        List(AccountRules(scheme, v.toString()))
+      case _ =>
+        Nil
+    }
+  }
+  override def accountRules: List[AccountRules] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::
+                                                  createAccountRule(accountRuleScheme2.get, accountRuleValue2.get)
+
 }
 
 object MappedBankAccount extends MappedBankAccount with LongKeyedMetaMapper[MappedBankAccount] {

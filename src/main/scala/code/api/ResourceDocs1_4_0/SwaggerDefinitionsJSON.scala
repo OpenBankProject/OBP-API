@@ -379,6 +379,10 @@ object SwaggerDefinitionsJSON {
     currency = "EUR",
     amount = "10"
   )
+  val accountRuleJsonV300 = AccountRuleJsonV300(
+    scheme = "OVERDRAFT",
+    value = "10"
+  )
   val userJSONV121 = UserJSONV121(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     provider = "OBP",
@@ -2109,7 +2113,7 @@ object SwaggerDefinitionsJSON {
     `type`= "String",
     balance = amountOfMoneyJsonV121,
     account_routing = accountRoutingJsonV121,
-    credit_limit = amountOfMoneyJsonV121
+    account_rules = List(accountRuleJsonV300)
   )
   
   //The common error or success format.
