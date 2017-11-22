@@ -2161,7 +2161,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val toAccountTransferToAccountJson= ToAccountTransferToAccountJson(
-    name = "Tom Muller - has to be english if transfer_type = 2",
+    name = "Tom Muller - has to be english if transfer_type = RealTime",
     bank_code = "Bank code of the target account",
     branch_number = "Branch number of the target account",
     account = toAccountTransferToAccountAccountJson
@@ -2170,7 +2170,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyAccountToAccount = TransactionRequestBodyTransferToAccount(
     value = amountOfMoneyJsonV121,
     description = "Transaction description/purpose (20 symbols)",
-    transfer_type = "Transfer type: 1=regular; 2=RTGS - real time",
+    transfer_type = "Transfer type: regular=regular; RealTime=RTGS - real time",
     future_date = "The future date (see K050_SW_ATIDI) if applicable in format YYYYMMDD",
     to = toAccountTransferToAccountJson
   )

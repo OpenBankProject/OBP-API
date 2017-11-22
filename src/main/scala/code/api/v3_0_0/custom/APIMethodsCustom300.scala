@@ -314,7 +314,7 @@ trait CustomAPIMethods300 {
                 for {
                   transDetailsP2PJson <- tryo {json.extract[TransactionRequestBodyTransferToAccount]} ?~! s"${InvalidJsonFormat} It should be ${TRANSFER_TO_ACCOUNT.toString} input format"
                   _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
-                  _ <- booleanToBox(transDetailsP2PJson.transfer_type =="1" || transDetailsP2PJson.transfer_type =="2" ,s"$InvalidValueCharacters. Transfer type: 1=regular; 2=RTGS - real time")
+                  _ <- booleanToBox(transDetailsP2PJson.transfer_type =="regular" || transDetailsP2PJson.transfer_type =="RealTime" ,s"$InvalidValueCharacters. Transfer type: regular=regular; RealTime=RTGS - real time")
                   _ <- booleanToBox(transDetailsP2PJson.future_date.length == 8 || transDetailsP2PJson.future_date.length == 0, s"$InvalidValueCharacters. The future_date format yyyyMMdd or leave it empty. ")
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
