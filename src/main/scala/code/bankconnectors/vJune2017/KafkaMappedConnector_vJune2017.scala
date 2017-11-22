@@ -1062,7 +1062,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         accountRoutingAddress= fromAccount.accountRoutingAddress
       )
     )
-    logger.debug(s"Kafka createCounterparty Req says: is: $req")
+    logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
@@ -1071,11 +1071,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       internalGetTransactionRequests
     }
-    logger.debug(s"Kafka createCounterparty Res says: is: $box")
+    logger.debug(s"Kafka getTransactionRequests210 Res says: is: $box")
   
     val res: Box[List[TransactionRequest]] = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x.transactionRequests)
+        //For consistency with sandbox mode, we need combine obp transactions in database and adapter transactions  
+        for{
+          adapterTransactionRequests <- Full(x.transactionRequests)
+          //TODO, this will cause performance issue, we need limit the number of transaction requests. 
+          obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
+        } yield {
+          adapterTransactionRequests ::: obpTransactionRequests
+        }
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
       case Empty =>
@@ -1157,9 +1164,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       OutboundGetCounterpartyByCounterpartyId(
         authInfoExample,
         OutboundGetCounterpartyById(
-          thisBankId = "String",
-          thisAccountId = "String",
-          viewId = "String",
           counterpartyId = "String"
         )
       )
@@ -1193,7 +1197,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById("","","",counterpartyId.value))
+    val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById(counterpartyId.value))
     logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
   
     val box = for {
@@ -1250,7 +1254,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           payloadOfJwt.is_first
         )
     )
-    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+    logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
@@ -1259,7 +1263,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       internalCustomer
     }
-    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $box")
+    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $box")
     
     val res: Box[List[InternalCustomer]] = box match {
       case Full(x) if (x.head.errorCode=="")  =>

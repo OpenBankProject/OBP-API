@@ -354,11 +354,12 @@ trait APIMethods220 {
       implementedInApiVersion,
       "getMessageDocs",
       "GET",
-      "/message-docs/mar2017",
+      "/message-docs/CONNECTOR",
       "Get Message Docs",
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
-        | Note: To enable Kafka connector and this message format, you must set conenctor=kafka_vMar2017 in your Props
+        | 
+        | `CONNECTOR`: kafka_vJuneYellow2017, kafka_vJune2017 , kafka_vMar2017 or ... 
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
@@ -368,11 +369,13 @@ trait APIMethods220 {
     )
 
     lazy val getMessageDocs: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "message-docs" :: "mar2017" :: Nil JsonGet _ => {
+      case "message-docs" :: connector :: Nil JsonGet _ => {
         user => {
           for {
-            connector <- tryo{Connector.getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_vMar2017""")}
-            messageDocs <- tryo{connector.messageDocs.toList}
+            //afka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
+            connectorVersion<- tryo(connector.split("_")(1))?~! s"$InvalidConnector Current CONNECTOR is $connector. It should be eg: kafka_vJune2017"
+            connectorObject <- tryo{Connector.getObjectInstance(s"code.bankconnectors.$connectorVersion.KafkaMappedConnector_$connectorVersion")} ?~! s"$InvalidConnector Current CONNECTOR is $connector.It should be eg: kafka_vJune2017"
+            messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JsonFactory_vMar2017.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
