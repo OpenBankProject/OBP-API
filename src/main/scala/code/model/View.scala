@@ -504,8 +504,7 @@ trait View {
       val bankRoutingAddress = if(canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None 
       val accountRoutingScheme = if(canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None 
       val accountRoutingAddress = if(canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None 
-      val accountCreditLimitValue = if(canSeeBankAccountCreditLimit) bankAccount.creditLimitValue.toString else ""
-      val accountCreditLimitCurrency = if(canSeeBankAccountCreditLimit) Some(bankAccount.creditLimitCurrency) else None
+      val accountRules = if(canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
 
       Some(
         new ModeratedBankAccount(
@@ -525,8 +524,7 @@ trait View {
           bankRoutingAddress = bankRoutingAddress,
           accountRoutingScheme = accountRoutingScheme,
           accountRoutingAddress = accountRoutingAddress,
-          creditLimitCurrency = accountCreditLimitCurrency,
-          creditLimitValue = accountCreditLimitValue
+          accountRules = accountRules
         )
       )
     }

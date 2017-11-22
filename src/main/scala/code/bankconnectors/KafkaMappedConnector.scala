@@ -31,6 +31,7 @@ import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
+import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches.MappedBranch
@@ -58,7 +59,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
-import scala.collection.immutable.Seq
+import scala.collection.immutable.{List, Seq}
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
 
@@ -1202,8 +1203,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def accountRoutingScheme: String = r.accountRoutingScheme
     def accountRoutingAddress: String = r.accountRoutingAddress
     def branchId: String              = r.branchId
-    def creditLimitValue: Option[BigDecimal]      = None
-    def creditLimitCurrency: String   = ""
+    def accountRules: List[AccountRules] = List()
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
