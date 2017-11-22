@@ -45,8 +45,7 @@ object MockedJune2017Connector extends ServerSetup
         branchRoutingAddress = " branchRoutingAddress",
         accountRoutingScheme = "accountRoutingScheme",
         accountRoutingAddress = "accountRoutingAddress",
-        creditLimitAmount = "1000",
-        creditLimitCurrency = "EUR"
+        accountRules = Nil
       ) :: InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
         List(InboundStatusMessage("ESB", "Success", "0", "OK")),
@@ -66,8 +65,7 @@ object MockedJune2017Connector extends ServerSetup
         branchRoutingAddress = " branchRoutingAddress",
         accountRoutingScheme = "accountRoutingScheme",
         accountRoutingAddress = "accountRoutingAddress",
-        creditLimitAmount = "1000",
-        creditLimitCurrency = "EUR"
+        accountRules = Nil
       ) :: Nil
     )
   }

@@ -361,8 +361,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
           accountRoutingAddress = "accountRoutingAddress",
-          creditLimitAmount = "creditLimitAmount",
-          creditLimitCurrency = "creditLimitCurrency"
+          accountRules = Nil
         ) :: Nil)
     )
   )
@@ -431,8 +430,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
           accountRoutingAddress = "accountRoutingAddress",
-          creditLimitAmount = "creditLimitAmount",
-          creditLimitCurrency = "creditLimitCurrency"
+          accountRules = Nil
         )
       ))
   )
@@ -515,8 +513,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
           accountRoutingAddress = "accountRoutingAddress",
-          creditLimitAmount = "creditLimitAmount",
-          creditLimitCurrency = "creditLimitCurrency"
+          accountRules = Nil
         )
       )
     )
@@ -599,8 +596,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           branchRoutingAddress = " branchRoutingAddress",
           accountRoutingScheme = "accountRoutingScheme",
           accountRoutingAddress = "accountRoutingAddress",
-          creditLimitAmount = "creditLimitAmount",
-          creditLimitCurrency = "creditLimitCurrency"
+          accountRules = Nil
         )
       ))
   )
