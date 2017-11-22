@@ -20,6 +20,8 @@ object TransactionRequests extends SimpleInjector {
   val STATUS_PENDING = "PENDING"
   val STATUS_FAILED = "FAILED"
   val STATUS_COMPLETED = "COMPLETED"
+  val STATUS_FORWARDED = "FORWARDED"
+  val STATUS_REJECTED = "REJECTED"
 
   val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
   
