@@ -11,6 +11,7 @@ import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
+import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.branches.MappedBranch
@@ -43,7 +44,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions._
-import scala.collection.immutable.Seq
+import scala.collection.immutable.{List, Seq}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache._
@@ -1169,8 +1170,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def accountRoutingScheme: String = r.account_routing_scheme
     def accountRoutingAddress: String = r.account_routing_address
     def branchId: String = r.branchId
-    def creditLimitValue: Option[BigDecimal] = None
-    def creditLimitCurrency: String = ""
+    def accountRules: List[AccountRules] = List()
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

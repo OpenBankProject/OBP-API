@@ -316,14 +316,6 @@ trait CustomAPIMethods300 {
                   _ <- booleanToBox(transDetailsP2PJson.description.length<=20,s"$InvalidValueCharacters. Description field can only contains no more than 20 symbols")
                   _ <- booleanToBox(transDetailsP2PJson.transfer_type =="1" || transDetailsP2PJson.transfer_type =="2" ,s"$InvalidValueCharacters. Transfer type: 1=regular; 2=RTGS - real time")
                   _ <- booleanToBox(transDetailsP2PJson.future_date.length == 8 || transDetailsP2PJson.future_date.length == 0, s"$InvalidValueCharacters. The future_date format yyyyMMdd or leave it empty. ")
-                  _ <- if(transDetailsP2PJson.future_date.length == 8) {
-                    // getInstance method, contains the Local TimeZone : Locale.Category.FORMAT
-                    val nowTimeWithLocalTimeZone = Calendar.getInstance.getTime
-                    // new SimpleDateFormat("yyyyMMdd") also contains the Local TimeZone: Locale.Category.FORMAT
-                    val theTimeFromRequestWithLocalTimeZone = new SimpleDateFormat("yyyyMMdd").parse(transDetailsP2PJson.future_date)
-                    booleanToBox(nowTimeWithLocalTimeZone.before(theTimeFromRequestWithLocalTimeZone),s"$InvalidValueCharacters. The future_date should be any date starting from tomorrow or leave it empty. ")
-                  } else Full("")// This else is always success, no error here.
-                
                   transDetailsSerialized <- tryo {write(transDetailsP2PJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv300(u,
                     viewId,

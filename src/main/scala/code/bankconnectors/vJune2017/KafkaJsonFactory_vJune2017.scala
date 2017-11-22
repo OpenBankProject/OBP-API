@@ -110,6 +110,7 @@ case class InternalInboundCoreAccount(
 )
 
 case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst: Boolean = true)
+case class AccountRules(scheme: String, value: String)
 case class InboundAccountJune2017(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
@@ -129,8 +130,7 @@ case class InboundAccountJune2017(
   branchRoutingAddress: String,
   accountRoutingScheme: String,
   accountRoutingAddress: String,
-  creditLimitAmount: String,
-  creditLimitCurrency: String
+  accountRules: List[AccountRules]
 ) extends InboundMessageBase with InboundAccountCommon
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
@@ -160,8 +160,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
 
-  def creditLimitValue: Option[BigDecimal] = None
-  def creditLimitCurrency: String = ""
+  def accountRules: List[AccountRules] = r.accountRules
   
 }
 

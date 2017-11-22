@@ -32,11 +32,13 @@ import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.atms.Atms.{Atm, AtmId, AtmT}
+import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
+
 import scala.collection.immutable.List
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
@@ -230,6 +232,8 @@ case class AccountIdJson(
 )
 case class AccountsIdsJsonV300(accounts: List[AccountIdJson])
 
+case class AccountRuleJsonV300(scheme: String, value: String)
+
 case class ModeratedCoreAccountJsonV300(
   id: String,
   bank_id: String,
@@ -239,7 +243,7 @@ case class ModeratedCoreAccountJsonV300(
   `type`: String,
   balance: AmountOfMoneyJsonV121,
   account_routing: AccountRoutingJsonV121,
-  credit_limit: AmountOfMoneyJsonV121
+  account_rules: List[AccountRuleJsonV300]
 )
 
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
@@ -591,6 +595,9 @@ object JSONFactory300{
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
+  def createAccountRulesJSON(rules: List[AccountRules]): List[AccountRuleJsonV300] = {
+    rules.map(i => AccountRuleJsonV300(scheme = i.scheme, value = i.value))
+  }
 
   def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
@@ -603,7 +610,7 @@ object JSONFactory300{
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
-      createAmountOfMoneyJSON(account.creditLimitCurrency.getOrElse(""), account.creditLimitValue)
+      createAccountRulesJSON(account.accountRules)
     )
   }
 
