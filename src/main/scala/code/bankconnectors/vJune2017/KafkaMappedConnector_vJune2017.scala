@@ -72,6 +72,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
   val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
   val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
+  val createCounterpartyMetaDataWithFakedAccountTTL = Props.get("connector.cache.ttl.seconds.createCounterpartyMetaDataWithFakedAccount", "0").toInt * 1000 // Miliseconds
+  val createCounterpartyWithMetadataTTL = Props.get("connector.cache.ttl.seconds.createCounterpartyWithMetadata", "0").toInt * 1000 // Miliseconds
   
   
   // "Versioning" of the messages sent by this or similar connector works like this:
@@ -703,24 +705,24 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransactions](req)
       inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InboundGetTransactions extract error"
-      internalTransactionJune2017s <- Full(inboundGetTransactions.data)
+      internalTransactions <- Full(inboundGetTransactions.data)
     } yield{
-      internalTransactionJune2017s
+      internalTransactions
     }
     logger.debug(s"Kafka getTransactions says: res is: $box")
     
     box match {
-      case Full(list) if (list.head.errorCode=="")  =>
+      case Full(internalTransactions) if (internalTransactions.head.errorCode=="")  =>
         // Check does the response data match the requested data
-        val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
+        val isCorrect = internalTransactions.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
         if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
         // Populate fields and generate result
-        val bankAccount = checkBankAccountExists(BankId(list.head.bankId), AccountId(list.head.accountId), session)
+        val bankAccount = checkBankAccountExists(BankId(internalTransactions.head.bankId), AccountId(internalTransactions.head.accountId), session)
         
         val res = for {
-          r: InternalTransaction <- list
+          internalTransaction: InternalTransaction <- internalTransactions
           thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createNewTransaction(thisBankAccount,r)
+          transaction <- createNewTransaction(thisBankAccount,internalTransaction)
         } yield {
           transaction
         }
@@ -768,20 +770,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransaction](req)
       inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InboundGetTransaction extract error"
-      internalTransactionJune2017 <- Full(inboundGetTransaction.data)
+      internalTransaction <- Full(inboundGetTransaction.data)
     } yield{
-      internalTransactionJune2017
+      internalTransaction
     }
     logger.debug(s"Kafka getTransaction Res says: is: $box")
     
     box match {
       // Check does the response data match the requested data
-      case Full(x) if (transactionId.value != x.transactionId && x.errorCode=="") =>
+      case Full(x) if (transactionId.value != x.transactionId ) =>
         Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
+      case Full(x) if (x.errorCode != "") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)  
+      case Full(internalTransaction) if (transactionId.value == internalTransaction.transactionId && internalTransaction.errorCode=="") =>
         for {
-          bankAccount <- checkBankAccountExists(BankId(x.bankId), AccountId(x.accountId)) ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createNewTransaction(bankAccount,x)
+          bankAccount <- checkBankAccountExists(BankId(internalTransaction.bankId), AccountId(internalTransaction.accountId)) ?~! ErrorMessages.BankAccountNotFound
+          transaction <- createNewTransaction(bankAccount,internalTransaction)
         } yield {
           transaction
         }
@@ -1283,71 +1287,96 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createNewTransaction(thisAccount: BankAccount,r: InternalTransaction): Box[Transaction] = {
-    var datePosted: Date = null
-    if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(r.postedDate)
-
-    var dateCompleted: Date = null
-    if (r.completedDate != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(r.completedDate)
-
+  def createNewTransaction(thisBankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] = {
     for {
-      counterpartyId <- tryo {r.counterpartyId}
-      counterpartyName <- tryo {r.counterpartyName}
-      thisAccount <- tryo {thisAccount}
-      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      dummyOtherBankAccount <- tryo {createCounterparty(counterpartyId, counterpartyName, thisAccount, None)}
-      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+      datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
+      dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
+      counterpartyName <- tryo {internalTransaction.counterpartyName}?~!s"$InvalidConnectorResponseForGetTransaction counterpartyName is missing"
+
+      //We create the counterpartyMetadata in database, because in OBP, there is no counterparty in database only counterpartyMetadata there.
+      //Note: here we use the thisBankAccount as the parameter in createCounterpartyWithoutMetadata method.
+      //      Normally, we need the otherBankAccount here, but here, we cannot get data from Adapter. So we only use thisBankAccount to fake it.
+      //      We only need the counterpartyMetaData here, so it is ok to use `thisBankAccount`. 
+      counterpartyMetaData <- createCounterpartyMetaDataWithFakedAccount(counterpartyName, thisBankAccount).map(_.metadata)
+    
+      //We create the proper OtherBankAccount with the correct "id" attribute set to the counterpartyMetaData.metadataId
       //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      counterparty <- tryo {
-        createCounterparty(counterpartyId, counterpartyName, thisAccount, Some(dummyOtherBankAccount.metadata))
-      }
+      //we create the counterpary object in real time, and show it in HttpResponse Json Body. 
+      counterparty <- createCounterpartyWithMetadata(counterpartyName, thisBankAccount, counterpartyMetaData)
+      
     } yield {
       // Create new transaction
       new Transaction(
-        r.transactionId, // uuid:String
-        TransactionId(r.transactionId), // id:TransactionId
-        thisAccount, // thisAccount:BankAccount
+        internalTransaction.transactionId, // uuid:String
+        TransactionId(internalTransaction.transactionId), // id:TransactionId
+        thisBankAccount, // thisAccount:BankAccount
         counterparty, // otherAccount:OtherBankAccount
-        r.`type`, // transactionType:String
-        BigDecimal(r.amount), // val amount:BigDecimal
-        thisAccount.currency, // currency:String
-        Some(r.description), // description:Option[String]
+        internalTransaction.`type`, // transactionType:String
+        BigDecimal(internalTransaction.amount), // val amount:BigDecimal
+        thisBankAccount.currency, // currency:String
+        Some(internalTransaction.description), // description:Option[String]
         datePosted, // startDate:Date
         dateCompleted, // finishDate:Date
-        BigDecimal(r.newBalanceAmount) // balance:BigDecimal)
+        BigDecimal(internalTransaction.newBalanceAmount) // balance:BigDecimal)
       )
     }
   }
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]) = {
-
-    // TODO Remove the counterPartyId input parameter since we are not using it.
-    // TODO Fix dummy values.
-
-    new Counterparty(
-      counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+  def createCounterpartyWithMetadata(counterpartyName: String, thisBankAccount: BankAccount, alreadyFoundMetadata: CounterpartyMetadata): Box[Counterparty] = memoizeSync(createCounterpartyWithMetadataTTL millisecond) {
+    Full(new Counterparty(
+      //we can get following 3 fields from Adapter. 
       label = counterpartyName,
+      thisBankId = thisBankAccount.bankId,
+      thisAccountId = thisBankAccount.accountId ,
+      
+      //we create these following 3 fields in obp side.
+      counterPartyId = alreadyFoundMetadata.metadataId,
+      alreadyFoundMetadata = Some(alreadyFoundMetadata),
+      isBeneficiary = true,
+  
+      // All the following will be null, can not get data from Adapter. 
+      otherBankId = BankId(null) ,
+      otherAccountId = AccountId(null),
       nationalIdentifier = null,
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
-      thisAccountId = AccountId(counterpartyId),
-      thisBankId = BankId(null),
       kind = null,
-      otherBankId = o.bankId,
-      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
       name = null,
       otherBankRoutingScheme = null,
       otherAccountRoutingScheme = null,
-      otherAccountProvider = null,
-      isBeneficiary = false
-    )
+      otherAccountProvider = null
+    ))
   }
-
+  
+  // Helper for creating Counterparty for one Transaction, this method is expensive, normally, it need be cached.
+  // Note, there is no transaction-counterparty in obp database, but we create the transaction-counterparty-metadata in database.
+  // Here we also create the 
+  def createCounterpartyMetaDataWithFakedAccount(counterpartyName: String, otherBankAccount: BankAccount): Box[Counterparty] = memoizeSync(createCounterpartyMetaDataWithFakedAccountTTL millisecond) {
+    Full (new Counterparty(
+        //we can get following 3 fields from Adapter. 
+        label = counterpartyName,
+        otherBankId = otherBankAccount.bankId,
+        otherAccountId = otherBankAccount.accountId,
+        
+        // All the following will be null, can not get data from Adapter. 
+        isBeneficiary = false,
+        thisBankId = null,
+        thisAccountId = null,
+        counterPartyId = null,
+        nationalIdentifier = null,
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = None,
+        kind = null,
+        alreadyFoundMetadata = None,
+        name = null,
+        otherBankRoutingScheme = null,
+        otherAccountRoutingScheme = null,
+        otherAccountProvider = null
+      ))
+    }
+  
 }
 
 
