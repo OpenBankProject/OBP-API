@@ -38,8 +38,9 @@ import java.util.Date
 
 import code.accountholder.AccountHolders
 import code.api.util.SessionContext
+import code.bankconnectors.vJune2017.AccountRules
 
-import scala.collection.immutable.Set
+import scala.collection.immutable.{List, Set}
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JArray
@@ -300,8 +301,7 @@ trait BankAccount extends MdcLoggable {
   def branchId: String
   def accountRoutingScheme: String
   def accountRoutingAddress: String
-  def creditLimitValue: Option[BigDecimal]
-  def creditLimitCurrency: String
+  def accountRules: List[AccountRules]
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String

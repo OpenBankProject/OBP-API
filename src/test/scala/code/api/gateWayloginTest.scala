@@ -36,8 +36,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     branchRoutingAddress = " branchRoutingAddress",
     accountRoutingScheme = "accountRoutingScheme",
     accountRoutingAddress = "accountRoutingAddress",
-    creditLimitAmount = "1000",
-    creditLimitCurrency = "EUR"
+    accountRules = Nil
   ) :: InboundAccountJune2017(
     errorCode = "",
     List(InboundStatusMessage("ESB", "Success", "0", "OK")),
@@ -57,8 +56,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     branchRoutingAddress = " branchRoutingAddress",
     accountRoutingScheme = "accountRoutingScheme",
     accountRoutingAddress = "accountRoutingAddress",
-    creditLimitAmount = "1000",
-    creditLimitCurrency = "EUR"
+    accountRules = Nil
   ) ::Nil)
 
 

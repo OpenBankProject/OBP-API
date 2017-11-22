@@ -34,8 +34,10 @@ package code.model.dataAccess
 
 import java.util.Date
 
+import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.{OBPLimit, OBPOffset, OBPOrdering, _}
 import code.model._
+import code.util.Helper
 import com.mongodb.QueryBuilder
 import net.liftweb.common._
 import net.liftweb.mongodb.BsonDSL._
@@ -44,6 +46,8 @@ import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
 import net.liftweb.record.field.{DecimalField, StringField}
 import code.util.Helper.MdcLoggable
+
+import scala.collection.immutable.List
 
 class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with MdcLoggable{
   def meta = Account
@@ -84,8 +88,10 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   object mAccountRoutingAddress extends StringField(this, 255)
   object mBranchId extends StringField(this, 255)
 
-  object mCreditLimitValue extends DecimalField(this, 0)
-  object mCreditLimitCurrency extends StringField(this, 255)
+  object mAccountRuleScheme1 extends StringField(this, 10)
+  object mAccountRuleValue1 extends DecimalField(this, 0)
+  object mAccountRuleScheme2 extends StringField(this, 10)
+  object mAccountRuleValue2 extends DecimalField(this, 0)
   
   
   def transactionsForAccount: QueryBuilder = {
@@ -179,8 +185,17 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def accountRoutingScheme: String = mAccountRoutingScheme.get
   override def accountRoutingAddress: String = mAccountRoutingAddress.get
   override def branchId: String = mBranchId.get
-  override def creditLimitValue: Option[BigDecimal] = if (mCreditLimitValue.get.toString().isEmpty) None else Some(mCreditLimitValue.get)
-  override def creditLimitCurrency: String = mCreditLimitCurrency.get
+  def createAccountRule(scheme: String, value: Long) = {
+    scheme match {
+      case s: String if s.equalsIgnoreCase("") == false =>
+        val v = Helper.smallestCurrencyUnitToBigDecimal(value, accountCurrency.get)
+        List(AccountRules(scheme, v.toString()))
+      case _ =>
+        Nil
+    }
+  }
+  override def accountRules: List[AccountRules] = createAccountRule(mAccountRuleScheme1.get, mAccountRuleValue1.get.toLong) :::
+                                                  createAccountRule(mAccountRuleScheme2.get, mAccountRuleValue2.get.toLong)
 }
 
 object Account extends Account with MongoMetaRecord[Account] {

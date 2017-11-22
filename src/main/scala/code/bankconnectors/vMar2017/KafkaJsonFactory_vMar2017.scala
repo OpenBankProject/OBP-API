@@ -37,6 +37,7 @@ import java.util.{Date, Locale}
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors.InboundUser
+import code.bankconnectors.vJune2017.AccountRules
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -45,6 +46,8 @@ import code.transactionrequests.TransactionRequestTypeCharge
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
+
+import scala.collection.immutable.List
 
 
 
@@ -392,8 +395,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
 
-  def creditLimitValue: Option[BigDecimal] = None
-  def creditLimitCurrency: String = ""
+  def accountRules: List[AccountRules] = List()
   
 }
 
