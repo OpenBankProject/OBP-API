@@ -265,7 +265,8 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."
 
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
-  
+  val EntitlementDoNotBelongsToUser = "OBP-30213: ENTITLEMENT_ID does not belongs to USER_ID"
+
   // General Resource related messages above here
 
 
