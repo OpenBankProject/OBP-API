@@ -160,7 +160,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
 
-  def accountRules: List[AccountRules] = List()
+  def accountRules: List[AccountRules] = r.accountRules
   
 }
 

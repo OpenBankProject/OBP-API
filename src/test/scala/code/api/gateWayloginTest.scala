@@ -121,8 +121,8 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
             println("-----------------------------------------")
             println(response)
             println("-----------------------------------------")
-          Then("We should get a 400 - Bad Request because we miss a proper role")
-          response.code should equal(400)
+          Then("We should get a 403 - Bad Request because we miss a proper role")
+          response.code should equal(403)
           assertResponse(response, UserHasMissingRoles + CanGetAnyUser)
         }
       case false =>

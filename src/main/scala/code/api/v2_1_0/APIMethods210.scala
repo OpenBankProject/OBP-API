@@ -33,6 +33,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.api.util.APIUtil.getCustomers
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
@@ -57,7 +58,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -1041,15 +1042,16 @@ trait APIMethods210 {
 
     lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: Nil JsonGet _ => {
-        user =>
+        _ =>
           for {
-            l <- user ?~ UserNotLoggedIn
-            canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), UserHasMissingRoles +CanGetAnyUser )
-            users <- tryo{AuthUser.getResourceUsers()}
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
+              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+            }
+            users <- Users.users.vend.getAllUsersF()
           } yield {
-            // Format the data as V2.0.0 json
-            val json = JSONFactory200.createUserJSONs(users)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory210.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
           }
       }
     }

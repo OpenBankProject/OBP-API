@@ -27,9 +27,9 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
-      Then("We should get a 400")
+      Then("We should get a 403")
       println(responsePut.body)
-      responsePut.code should equal(400)
+      responsePut.code should equal(403)
 
       val error = (responsePut.body \ "error" ) match {
         case JString(i) => i
