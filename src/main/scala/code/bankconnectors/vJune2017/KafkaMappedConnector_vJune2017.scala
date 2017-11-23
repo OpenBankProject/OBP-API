@@ -702,32 +702,29 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransactions](req)
-      inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InboundGetTransactions extract error"
-      internalTransactionJune2017s <- Full(inboundGetTransactions.data)
+      inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error"
+      internalTransactions <- Full(inboundGetTransactions.data)
     } yield{
-      internalTransactionJune2017s
+      internalTransactions
     }
     logger.debug(s"Kafka getTransactions says: res is: $box")
     
     box match {
-      case Full(list) if (list.head.errorCode=="")  =>
-        // Check does the response data match the requested data
-        val isCorrect = list.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)
-        if (!isCorrect) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetTransactions)
-        // Populate fields and generate result
-        val bankAccount = checkBankAccountExists(BankId(list.head.bankId), AccountId(list.head.accountId), session)
+      case Full(list) if (list.head.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+      case Full(internalTransactions) if (!internalTransactions.forall(x => x.accountId == accountId.value && x.bankId == bankId.value))  =>
+        Failure(InvalidConnectorResponseForGetTransactions)
+      case Full(internalTransactions) if (internalTransactions.head.errorCode=="") =>
+        val bankAccount = checkBankAccountExists(BankId(internalTransactions.head.bankId), AccountId(internalTransactions.head.accountId), session)
         
         val res = for {
-          r: InternalTransaction <- list
+          internalTransaction <- internalTransactions
           thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createNewTransaction(thisBankAccount,r)
+          transaction <- createNewTransaction(thisBankAccount,internalTransaction)
         } yield {
           transaction
         }
         Full(res)
-      //TODO is this needed updateAccountTransactions(bankId, accountId)
-      case Full(list) if (list.head.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -767,21 +764,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     val box = for {
       kafkaMessage <- processToBox[OutboundGetTransaction](req)
-      inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InboundGetTransaction extract error"
-      internalTransactionJune2017 <- Full(inboundGetTransaction.data)
+      inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error"
+      internalTransaction <- Full(inboundGetTransaction.data)
     } yield{
-      internalTransactionJune2017
+      internalTransaction
     }
     logger.debug(s"Kafka getTransaction Res says: is: $box")
     
     box match {
       // Check does the response data match the requested data
-      case Full(x) if (transactionId.value != x.transactionId && x.errorCode=="") =>
-        Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Full(x) if (transactionId.value == x.transactionId && x.errorCode=="") =>
+      case Full(x) if (transactionId.value != x.transactionId) =>
+        Failure(s"$InvalidConnectorResponseForGetTransaction")
+      case Full(x) if (x.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+      case Full(internalTransaction) if (transactionId.value == internalTransaction.transactionId && internalTransaction.errorCode=="") =>
         for {
-          bankAccount <- checkBankAccountExists(BankId(x.bankId), AccountId(x.accountId)) ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createNewTransaction(bankAccount,x)
+          bankAccount <- checkBankAccountExists(BankId(internalTransaction.bankId), AccountId(internalTransaction.accountId)) ?~! ErrorMessages.BankAccountNotFound
+          transaction: Transaction <- createNewTransaction(bankAccount,internalTransaction)
         } yield {
           transaction
         }
