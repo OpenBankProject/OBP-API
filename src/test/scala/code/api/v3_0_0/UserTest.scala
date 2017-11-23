@@ -21,8 +21,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val requestGet = (v3_0Request / "users" / "email" / "some@email.com"/ "terminator").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
-      And("We should get a 400")
-      responseGet.code should equal(400)
+      And("We should get a 403")
+      responseGet.code should equal(403)
       compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
@@ -32,8 +32,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val requestGet = (v3_0Request / "users" / "user_id" / "Arbitrary USER_ID value").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
-      And("We should get a 400")
-      responseGet.code should equal(400)
+      And("We should get a 403")
+      responseGet.code should equal(403)
       compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
@@ -43,8 +43,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val requestGet = (v3_0Request / "users" / "username" / "Arbitrary USERNAE value").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
-      And("We should get a 400")
-      responseGet.code should equal(400)
+      And("We should get a 403")
+      responseGet.code should equal(403)
       compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 

@@ -40,8 +40,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We should get a 40")
+      responseGet.code should equal(403)
       val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
       error should contain (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)

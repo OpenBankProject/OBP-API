@@ -57,8 +57,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_1Request / "banks" / mockBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We should get a 403")
+      responseGet.code should equal(403)
       val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       val requiredEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
         CanGetEntitlementsForAnyUserAtAnyBank::
