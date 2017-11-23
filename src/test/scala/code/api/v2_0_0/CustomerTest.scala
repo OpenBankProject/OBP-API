@@ -46,14 +46,14 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(0)
       val requestPost = (v2_0Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We should get a 400")
-      responsePost.code should equal(400)
+      Then("We should get a 403")
+      responsePost.code should equal(403)
 
       When("We add one required entitlement")
       Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
       val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
-      Then("We should get a 400")
-      responsePost1.code should equal(400)
+      Then("We should get a 403")
+      responsePost1.code should equal(403)
 
       When("We add all required entitlement")
       Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)

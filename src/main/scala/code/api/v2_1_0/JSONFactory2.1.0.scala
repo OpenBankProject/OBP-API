@@ -38,23 +38,27 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddressJsonV140, ChallengeJsonV140, CustomerFaceImageJson, DriveUpStringJson, LicenseJsonV140, LobbyStringJson, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140}
 import code.api.v1_4_0.JSONFactory1_4_0.{transformToAddressFromV140, transformToLocationFromV140, transformToMetaFromV140}
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs, stringOrNull}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.atms.Atms.AtmId
 import code.branches.Branches._
 import code.common._
 import code.customer.Customer
+import code.entitlement.Entitlement
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
 import code.model.{AmountOfMoney, Consumer, Iban}
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.APIMetric
+import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
 import code.users.Users
 
 import scala.None
+import scala.collection.immutable.List
 
 
 
@@ -914,6 +918,27 @@ object JSONFactory210{
     )
   }
 
+  def createUserJSON(user : User, entitlements: List[Entitlement]) : UserJsonV200 = {
+    new UserJsonV200(
+      user_id = user.userId,
+      email = user.emailAddress,
+      username = stringOrNull(user.name),
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(entitlements)
+    )
+  }
+
+  def createUserJSON(user : Box[User], entitlements: Box[List[Entitlement]]) : UserJsonV200 = {
+    (user, entitlements) match {
+      case (Full(u), Full(е)) => createUserJSON(u, е)
+      case _ => null
+    }
+  }
+
+  def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJsonV200 = {
+    UsersJsonV200(users.map(t => createUserJSON(Full(t._1), t._2)))
+  }
 
 
 }
