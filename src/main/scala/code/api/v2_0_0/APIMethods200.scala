@@ -1987,7 +1987,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, "User is not super admin!", "EntitlementId not found", UnknownError),
+      List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
@@ -1997,8 +1997,9 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
-              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ "EntitlementId not found"
+              _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
+              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
+              _ <- entitlement.filter(_.userId == userId) ?~ EntitlementDoesNotBelongsToUser
               _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
             }
             yield noContentJsonResponse

@@ -176,6 +176,8 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
+  val UserNotSuperAdmin = "OBP-20050: User is not super admin!"
+
 
 
 
@@ -261,7 +263,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
   val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."
-  
+
+  val EntitlementNotFound = "OBP-30212: EntitlementId not found"
+  val EntitlementDoesNotBelongsToUser = "OBP-30213: ENTITLEMENT_ID does not belongs to USER_ID"
+
   // General Resource related messages above here
 
 
@@ -1257,7 +1262,12 @@ Returns a string showed to the developer
   }
 
   def isSuperAdmin(user_id: String) : Boolean = {
-    val user_ids = Props.get("super_admin_user_ids", "super_admin_user_ids is not defined").split(",").map(_.trim).toList
+    val user_ids = Props.get("super_admin_user_ids") match {
+      case Full(v) =>
+        v.split(",").map(_.trim).toList
+      case _ =>
+        List()
+    }
     user_ids.filter(_ == user_id).length > 0
   }
 
