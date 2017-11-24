@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.customer.{AmountOfMoney, _}
+import code.customer.{AmountOfMoneyTrait, _}
 import code.model._
 import code.util.Helper.MdcLoggable
 
@@ -52,7 +52,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                         legalName: String,
                         mobileNumber: String,
                         email: String,
-                        faceImage: CustomerFaceImage,
+                        faceImage: CustomerFaceImageTrait,
                         dateOfBirth: Date,
                         relationshipStatus: String,
                         dependents: Int,
@@ -61,8 +61,8 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                         employmentStatus: String,
                         kycStatus: Boolean,
                         lastOkDate: Date,
-                        creditRating: Option[CreditRating],
-                        creditLimit: Option[AmountOfMoney]
+                        creditRating: Option[CreditRatingTrait],
+                        creditLimit: Option[AmountOfMoneyTrait]
                         ) =>
       logger.debug("addCustomer(" + bankId + ", " + number + ")")
       sender ! extractResult(mapper.addCustomer(bankId,

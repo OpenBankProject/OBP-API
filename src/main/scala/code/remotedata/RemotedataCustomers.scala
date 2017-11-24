@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.customer.{AmountOfMoney, CreditRating, Customer, CustomerFaceImage, CustomerProvider, RemotedataCustomerProviderCaseClasses}
+import code.customer.{AmountOfMoneyTrait, CreditRatingTrait, Customer, CustomerFaceImageTrait, CustomerProvider, RemotedataCustomerProviderCaseClasses}
 import code.model._
 import net.liftweb.common.Box
 
@@ -43,7 +43,7 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                   legalName: String,
                   mobileNumber: String,
                   email: String,
-                  faceImage: CustomerFaceImage,
+                  faceImage: CustomerFaceImageTrait,
                   dateOfBirth: Date,
                   relationshipStatus: String,
                   dependents: Int,
@@ -52,8 +52,8 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                   employmentStatus: String,
                   kycStatus: Boolean,
                   lastOkDate: Date,
-                  creditRating: Option[CreditRating],
-                  creditLimit: Option[AmountOfMoney]
+                  creditRating: Option[CreditRatingTrait],
+                  creditLimit: Option[AmountOfMoneyTrait]
                  ) : Box[Customer] =
     extractFutureToBox(actor ? cc.addCustomer(
                                               bankId = bankId,

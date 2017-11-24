@@ -36,7 +36,7 @@ import code.api.v1_3_0.{OBPAPI1_3_0, APIMethods130}
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
-import code.customer.{MockCustomerFaceImage, CustomerMessages, Customer}
+import code.customer.{CustomerFaceImage, CustomerMessages, Customer}
 import code.model._
 import code.products.Products
 import code.api.util.APIUtil._
@@ -697,7 +697,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 postedData.legal_name,
                 postedData.mobile_phone_number,
                 postedData.email,
-                MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+                CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
                 postedData.date_of_birth,
                 postedData.relationship_status,
                 postedData.dependants,

@@ -40,14 +40,13 @@ import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestAccount, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper.MdcLoggable
+import code.api.util.APIUtil.getSecondsCache
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
 import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
-
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -63,19 +62,19 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.toString
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
-  val getBanksTTL = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
-  val getUserTTL  = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
-  val getAccountTTL = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
-  val getAccountsTTL = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
-  val getTransactionTTL = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
-  val getTransactionsTTL = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
-  val getTransactionRequests210TTL = Props.get("connector.cache.ttl.seconds.getTransactionRequests210", "0").toInt * 1000 // Miliseconds
-  val getCounterpartiesTTL = Props.get("connector.cache.ttl.seconds.getCounterparties", "0").toInt * 1000 // Miliseconds
-  val getCounterpartyByCounterpartyIdTTL = Props.get("connector.cache.ttl.seconds.getCounterpartyByCounterpartyId", "0").toInt * 1000 // Miliseconds
-  val getCustomersByUserIdBoxTTL = Props.get("connector.cache.ttl.seconds.getCustomersByUserIdBox", "0").toInt * 1000 // Miliseconds
-  val createMemoryCounterpartyTTL = Props.get("connector.cache.ttl.seconds.createMemoryCounterparty", "0").toInt * 1000 // Miliseconds
-  val createMemoryTransactionTTL = Props.get("connector.cache.ttl.seconds.createMemoryTransaction", "0").toInt * 1000 // Miliseconds
+  val bankTTL = getSecondsCache("getBanks")
+  val banksTTL = getSecondsCache("getBanks")
+  val userTTL = getSecondsCache("getUser")
+  val accountTTL = getSecondsCache("getAccount")
+  val accountsTTL = getSecondsCache("getAccounts")
+  val transactionTTL = getSecondsCache("getTransaction")
+  val transactionsTTL = getSecondsCache("getTransactions")
+  val transactionRequests210TTL = getSecondsCache("getTransactionRequests210")
+  val counterpartiesTTL = getSecondsCache("getCounterparties")
+  val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
+  val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
+  val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
+  val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
   
   
   // "Versioning" of the messages sent by this or similar connector works like this:
@@ -98,7 +97,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
-  val errorCodeExample = "OBP-6001: ..."
+  val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
   
   messageDocs += MessageDoc(
     process = "obp.get.AdapterInfo",
@@ -140,7 +139,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(list) if (list.errorCode=="") =>
         Full(list)
       case Full(list) if (list.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c)  =>
@@ -175,7 +174,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
-    memoizeSync(getUserTTL millisecond) {
+    memoizeSync(userTTL second) {
       
       val req = OutboundGetUserByUsernamePassword(AuthInfo(currentResourceUserId, username, getCbsToken), password = password)
   
@@ -195,7 +194,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.errorCode=="" && username == list.displayName) =>
           Full(new InboundUser(username, password, username))
         case Full(list) if (list.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+          Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -232,7 +231,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
-    memoizeSync(getBanksTTL millisecond){
+    memoizeSync(banksTTL second){
       val req = OutboundGetBanks(AuthInfo(currentResourceUserId, getUsername, getCbsToken))
       logger.info(s"Kafka getBanks Req is: $req")
       
@@ -250,7 +249,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.head.errorCode=="") =>
           Full(list map (new Bank2(_)))
         case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -287,7 +286,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
-    memoizeSync(getBankTTL millisecond){
+    memoizeSync(bankTTL second){
       val req = OutboundGetBank(
         authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
         bankId = bankId.toString
@@ -309,7 +308,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.errorCode=="") =>
           Full(new Bank2(list))
         case Full(list) if (list.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.errorCode+". + CoreBank-Error:"+ list.backendMessages)
+          Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -366,7 +365,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def getBankAccounts(username: String, callMfFlag: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
-    memoizeSync(getAccountsTTL millisecond) {
+    memoizeSync(accountsTTL second) {
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
       
@@ -386,7 +385,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(list) if (list.head.errorCode=="") =>
           Full(list)
         case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -411,7 +410,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         InboundAccountJune2017(
-          errorCode = errorCodeExample,
+          errorCodeExample,
           inboundStatusMessagesExample,
           cbsToken = "cbsToken",
           bankId = "gh.29.uk",
@@ -434,7 +433,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       ))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccountJune2017] = saveConnectorMetric{
-    memoizeSync(getAccountTTL millisecond){
+    memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
         case Some(c) =>
@@ -469,7 +468,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(f) if (f.errorCode=="") =>
           Full(new BankAccountJune2017(f))
         case Full(f) if (f.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
+          Failure("INTERNAL-"+ f.errorCode+". + CoreBank-Status:"+ f.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -494,7 +493,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundCheckBankAccountExists(
         authInfoExample,
         InboundAccountJune2017(
-          errorCode = errorCodeExample,
+          errorCodeExample,
           inboundStatusMessagesExample,
           cbsToken = "cbsToken",
           bankId = "gh.29.uk",
@@ -518,7 +517,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccountJune2017] = saveConnectorMetric{
-    memoizeSync(getAccountTTL millisecond){
+    memoizeSync(accountTTL second){
       val (userName, cbs) = session match {
         case Some(c) =>
           c.gatewayLoginRequestPayload match {
@@ -552,7 +551,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(f) if (f.errorCode=="") =>
           Full(new BankAccountJune2017(f))
         case Full(f) if (f.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.errorCode+". + CoreBank-Error:"+ f.backendMessages)
+          Failure("INTERNAL-"+ f.errorCode+". + CoreBank-Status:"+ f.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -577,7 +576,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         InboundAccountJune2017(
-          errorCode = errorCodeExample,
+          errorCodeExample,
           inboundStatusMessagesExample,
           cbsToken = "cbsToken",
           bankId = "gh.29.uk",
@@ -600,7 +599,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       ))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
-    memoizeSync(getAccountTTL millisecond){
+    memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
         case Some(c) =>
@@ -633,7 +632,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         case Full(f) if (f.head.errorCode=="") =>
           Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
         case Full(f) if (f.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.head.errorCode+". + CoreBank-Error:"+ f.head.backendMessages)
+          Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
         case Failure(msg, e, c) =>
@@ -714,7 +713,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
       
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
-    def getTransactionsCached(req:OutboundGetTransactions): Box[List[Transaction]] = memoizeSync(getTransactionsTTL millisecond){
+    def getTransactionsCached(req:OutboundGetTransactions): Box[List[Transaction]] = memoizeSync(transactionsTTL second){
       logger.debug(s"Kafka getTransactions says: req is: $req")
       val box = for {
         kafkaMessage <- processToBox[OutboundGetTransactions](req)
@@ -727,7 +726,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
       box match {
         case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
         case Full(internalTransactions) if (!internalTransactions.forall(x => x.accountId == accountId.value && x.bankId == bankId.value))  =>
           Failure(InvalidConnectorResponseForGetTransactions)
         case Full(internalTransactions) if (internalTransactions.head.errorCode=="") =>
@@ -790,7 +789,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = saveConnectorMetric{memoizeSync(getTransactionTTL millisecond){
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = saveConnectorMetric{memoizeSync(transactionTTL second){
     val req =  OutboundGetTransaction(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       bankId = bankId.toString,
@@ -812,7 +811,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (transactionId.value != x.transactionId) =>
         Failure(s"$InvalidConnectorResponseForGetTransaction")
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Full(internalTransaction) if (transactionId.value == internalTransaction.transactionId && internalTransaction.errorCode=="") =>
         for {
           bankAccount <- checkBankAccountExists(BankId(internalTransaction.bankId), AccountId(internalTransaction.accountId)) ?~! ErrorMessages.BankAccountNotFound
@@ -821,7 +820,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           transaction
         }
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
       case Failure(msg, e, c) =>
@@ -883,7 +882,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x.answer)
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -926,8 +925,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundCreateCounterparty(
         authInfoExample,
         InternalCounterparty(
-          errorCode= errorCodeExample,
-          backendMessages = inboundStatusMessagesExample,
+          errorCodeExample,
+          inboundStatusMessagesExample,
           createdByUserId= "String",
           name= "String",
           thisBankId= "String",
@@ -1006,7 +1005,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -1078,7 +1077,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = saveConnectorMetric{memoizeSync(getTransactionRequests210TTL millisecond){
+  override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = saveConnectorMetric{memoizeSync(transactionRequests210TTL second){
     val req = OutboundGetTransactionRequests210(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = OutboundTransactionRequests(
@@ -1115,7 +1114,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           adapterTransactionRequests ::: obpTransactionRequests
         }
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -1151,7 +1150,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = saveConnectorMetric{memoizeSync(getCounterpartiesTTL millisecond){
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = saveConnectorMetric{memoizeSync(counterpartiesTTL second){
     val req = OutboundGetCounterparties(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = InternalOutboundGetCounterparties(
@@ -1175,7 +1174,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.head.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+        Failure("INTERNAL-"+ x.head.errorCode+". + CoreBank-Status:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -1225,7 +1224,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(getCounterpartyByCounterpartyIdTTL millisecond){
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(counterpartyByCounterpartyIdTTL second){
     val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById(counterpartyId.value))
     logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
   
@@ -1242,7 +1241,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.errorCode+". + CoreBank-Error:"+ x.backendMessages)
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -1276,22 +1275,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           legalName = "String",
           mobileNumber = "String",
           email = "String",
-          faceImage = MockCustomerFaceImage(date = exampleDate, url = "String"),
+          faceImage = CustomerFaceImage(date = exampleDate, url = "String"),
           dateOfBirth = exampleDate,
           relationshipStatus= "String",
           dependents = 1,
           dobOfDependents = List(exampleDate),
           highestEducationAttained= "String",
           employmentStatus= "String",
-          creditRating = MockCreditRating(rating ="String", source = "String"),
-          creditLimit=  MockCreditLimit(currency ="String", amount= "String"),
+          creditRating = CreditRating(rating ="String", source = "String"),
+          creditLimit=  CreditLimit(currency ="String", amount= "String"),
           kycStatus = false,
           lastOkDate = exampleDate
         )::Nil
       )
     )
   )
-  override def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] = saveConnectorMetric{memoizeSync(getCustomersByUserIdBoxTTL millisecond){
+  override def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] = saveConnectorMetric{memoizeSync(customersByUserIdBoxTTL second){
     
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(
@@ -1318,7 +1317,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(x) if (x.head.errorCode=="")  =>
         Full(x)
       case Full(x) if (x.head.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
+        Failure("INTERNAL-"+ x.head.errorCode+". + CoreBank-Status:"+ x.head.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c) =>
@@ -1332,7 +1331,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(createMemoryTransactionTTL millisecond){
+  def createMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(memoryTransactionTTL second){
     for {
       datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
       dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
@@ -1364,7 +1363,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   // Helper for creating other bank account, this will not create it in database, only in scala code.
   //Note, we have a method called createCounterparty in this connector, so named it here. 
-  def createMemoryCounterparty(counterpartyName: String, bankAccount: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]): Box[Counterparty] =  memoizeSync(createMemoryCounterpartyTTL millisecond){
+  def createMemoryCounterparty(counterpartyName: String, bankAccount: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]): Box[Counterparty] =  memoizeSync(memoryCounterpartyTTL second){
     Full(
       new Counterparty(
         // We can only get following 4 fields from Adapter. 

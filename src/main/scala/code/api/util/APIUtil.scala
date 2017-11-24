@@ -1831,6 +1831,14 @@ Versions are groups of endpoints in a file
         throw new Exception("Only Full Box is allowed at function unboxFull")
     }
   }
-
-
+  
+  /**
+    * This method is used for cache in connector level. 
+    * eg: KafkaMappedConnector_vJune2017.bankTTL
+    * The default cache time unit is second.  
+    */
+  def getSecondsCache(cacheType: String) : Int = {
+    Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
+  }
+  
 }
