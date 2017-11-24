@@ -1262,7 +1262,12 @@ Returns a string showed to the developer
   }
 
   def isSuperAdmin(user_id: String) : Boolean = {
-    val user_ids = Props.get("super_admin_user_ids", "super_admin_user_ids is not defined").split(",").map(_.trim).toList
+    val user_ids = Props.get("super_admin_user_ids") match {
+      case Full(v) =>
+        v.split(",").map(_.trim).toList
+      case _ =>
+        List()
+    }
     user_ids.filter(_ == user_id).length > 0
   }
 
