@@ -241,9 +241,6 @@ class Boot extends MdcLoggable {
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
 
-    // add other apis
-    LiftRules.statelessDispatch.append(BankMockAPI) // Do we still need this?
-
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
