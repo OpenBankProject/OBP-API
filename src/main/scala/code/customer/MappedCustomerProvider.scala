@@ -87,7 +87,7 @@ object MappedCustomerProvider extends CustomerProvider {
                            legalName : String,
                            mobileNumber : String,
                            email : String,
-                           faceImage: CustomerFaceImage,
+                           faceImage: CustomerFaceImageTrait,
                            dateOfBirth: Date,
                            relationshipStatus: String,
                            dependents: Int,
@@ -96,18 +96,18 @@ object MappedCustomerProvider extends CustomerProvider {
                            employmentStatus: String,
                            kycStatus: Boolean,
                            lastOkDate: Date,
-                           creditRating: Option[CreditRating],
-                           creditLimit: Option[AmountOfMoney]
+                           creditRating: Option[CreditRatingTrait],
+                           creditLimit: Option[AmountOfMoneyTrait]
                           ) : Box[Customer] = {
 
     val cr = creditRating match {
-      case Some(c) => MockCreditRating(rating = c.rating, source = c.source)
-      case _       => MockCreditRating(rating = "", source = "")
+      case Some(c) => CreditRating(rating = c.rating, source = c.source)
+      case _       => CreditRating(rating = "", source = "")
     }
 
     val cl = creditLimit match {
-      case Some(c) => MockCreditLimit(currency = c.currency, amount = c.amount)
-      case _       => MockCreditLimit(currency = "", amount = "")
+      case Some(c) => CreditLimit(currency = c.currency, amount = c.amount)
+      case _       => CreditLimit(currency = "", amount = "")
     }
 
     val createdCustomer = MappedCustomer.create
@@ -175,7 +175,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   override def mobileNumber: String = mMobileNumber.get
   override def legalName: String = mLegalName.get
   override def email: String = mEmail.get
-  override def faceImage: CustomerFaceImage = new CustomerFaceImage {
+  override def faceImage: CustomerFaceImageTrait = new CustomerFaceImageTrait {
     override def date: Date = mFaceImageTime.get
     override def url: String = mFaceImageUrl.get
   }
@@ -185,11 +185,11 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   override def dobOfDependents: List[Date] = List(createdAt.get)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
-  override def creditRating: CreditRating = new CreditRating {
+  override def creditRating: CreditRatingTrait = new CreditRatingTrait {
     override def rating: String = mCreditRating.get
     override def source: String = mCreditSource.get
   }
-  override def creditLimit: AmountOfMoney = new AmountOfMoney {
+  override def creditLimit: AmountOfMoneyTrait = new AmountOfMoneyTrait {
     override def currency: String = mCreditLimitCurrency.get
     override def amount: String = mCreditLimitAmount.get
   }

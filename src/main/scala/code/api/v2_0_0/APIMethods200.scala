@@ -39,7 +39,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import code.api.util.ErrorMessages._
-import code.customer.{Customer, MockCustomerFaceImage}
+import code.customer.{Customer, CustomerFaceImage}
 import code.util.Helper._
 import net.liftweb.json.Extraction
 
@@ -1709,7 +1709,7 @@ trait APIMethods200 {
               postedData.legal_name,
               postedData.mobile_phone_number,
               postedData.email,
-              MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
               postedData.date_of_birth,
               postedData.relationship_status,
               postedData.dependants,

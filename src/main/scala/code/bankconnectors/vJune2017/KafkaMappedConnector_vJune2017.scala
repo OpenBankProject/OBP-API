@@ -47,8 +47,6 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
-
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -1277,15 +1275,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           legalName = "String",
           mobileNumber = "String",
           email = "String",
-          faceImage = MockCustomerFaceImage(date = exampleDate, url = "String"),
+          faceImage = CustomerFaceImage(date = exampleDate, url = "String"),
           dateOfBirth = exampleDate,
           relationshipStatus= "String",
           dependents = 1,
           dobOfDependents = List(exampleDate),
           highestEducationAttained= "String",
           employmentStatus= "String",
-          creditRating = MockCreditRating(rating ="String", source = "String"),
-          creditLimit=  MockCreditLimit(currency ="String", amount= "String"),
+          creditRating = CreditRating(rating ="String", source = "String"),
+          creditLimit=  CreditLimit(currency ="String", amount= "String"),
           kycStatus = false,
           lastOkDate = exampleDate
         )::Nil
