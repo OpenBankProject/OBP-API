@@ -4,7 +4,7 @@ This document contains
 
 * Upcoming developments
 * Completed developments (most recent first)
-* Future  
+* The future (as much as anyone can know!) 
 
 Our roadmap is agile and likely to be modified / re-prioritised based on demand from banks and developers. It should be seen as an indication of direction rather than something set in stone. 
 
@@ -16,11 +16,39 @@ If you have a particular requirement or would like to comment or help us specify
 
 ## Upcoming developments
 
-*   Extend Swagger support (add expected responses starting with the PSD2 set of endpoints)
-*   Monitor / improve performance
 *   Web Hooks (on balance change etc.)
 
 ## Completed developments (most recent first)
+
+
+
+### Message Docs
+Message Docs (which define Core Banking System Kafka messages) are now avilalbe independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs) 
+
+### Endpoint config and cleanup
+Endpoints can now be enabled / disabled explicitly using Props file.
+We removed old versions including v1.0, v1.1 and v.1.2.
+
+### API Explorer UI improved
+Left panel of API Explorer is now grouped by API Tags.
+
+### Automated performance tests
+We added automated performance tests driven by Jenkins.
+
+
+### Performance improvements
+We added "new style" endpoints and acheived some significant performance gains by using Futures and purer (no read side effects) functions.
+
+
+### Custom code folders in OBP-API
+We added Custom code folders so that bank specific forks can more easily git merge in updates from OBP-API develop branches. 
+
+
+### API Tester
+API Tester is a Python/Djano App for testing an OBP API instance from the outside. Partiularly useful when using a non-sandbox (e.g. kafka) connector. It supports a variety of authentication methods so you can test outside a gateway. You can configure different data profiles for specifying parameters such as bank_id, account_id etc. See [here](https://github.com/OpenBankProject/API-Tester) for the source code and installation instructions.
+
+### Extend Swagger support 
+We improved the information contained in the Swagger (and Resource Doc) endpoints. They are also available from the API Explorer. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v1_4_0-getResourceDocsSwagger)
 
 
 ### Kafka versioning
