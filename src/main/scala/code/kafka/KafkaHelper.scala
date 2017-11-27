@@ -6,6 +6,8 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
 import net.liftweb.json.JValue
 
+import scala.concurrent.Future
+
 object KafkaHelper extends KafkaHelper
 
 trait KafkaHelper extends ObpActorInit with MdcLoggable {
@@ -39,6 +41,10 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
 
   def processToBox[T](request: T): Box[JValue] = {
     extractFutureToBox(actor ? request)
+  }
+
+  def processToFuture[T](request: T): Future[JValue] = {
+    (actor ? request).mapTo[JValue]
   }
 
 }
