@@ -1154,7 +1154,7 @@ trait APIMethods300 {
           for {
             (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Future {Connector.connector.vend.getCustomersByUserIdBox(u.userId)(sessioContext)} map {
+            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(sessioContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {

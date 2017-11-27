@@ -26,7 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, fullBoxOrException, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
 import code.api.v2_1_0.PostCounterpartyBespoke
@@ -1285,7 +1285,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   
-  override def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] =  {
+  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] =  {
     
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(
@@ -1299,24 +1299,22 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
     logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
     
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
-      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserId]} ?~! s"$InboundGetCustomersByUserId extract error"
-      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    val future = for {
+      kafkaMessage <- processToFuture[OutboundGetCustomersByUserId](req)
+      inboundGetCustomersByUserIdFuture <- Future{kafkaMessage.extract[InboundGetCustomersByUserId]}
+      internalCustomer <- Future(inboundGetCustomersByUserIdFuture.data)
     } yield{
-      internalCustomer
+      Full(internalCustomer)
     }
-    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $box")
+    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $future")
     
-    val res: Box[List[InternalCustomer]] = box match {
-      case Full(x) if (x.head.errorCode=="")  =>
-        Full(x)
-      case Full(x) if (x.head.errorCode!="") =>
-        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ x.head.errorCode+". + CoreBank-Error:"+ x.head.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
+    val res = future map {
+      case Full(f) if (f.head.errorCode=="") =>
+        Full(f)
+      case Full(f) if (f.head.errorCode!="") =>
+        Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.head.errorCode+". + CoreBank-Error:"+ f.head.backendMessages)
+      case Full(List()) =>
+        Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
