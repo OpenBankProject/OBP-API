@@ -27,7 +27,7 @@ import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, fullBoxOrException, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
 import code.api.v2_1_0.PostCounterpartyBespoke
@@ -49,11 +49,13 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -641,7 +643,48 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure(ErrorMessages.UnknownError)
       }
     }}("getBankAccounts")
-  
+
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
+    memoizeSync(accountsTTL millisecond){
+
+      val (userName, cbs) = session match {
+        case Some(c) =>
+          c.gatewayLoginRequestPayload match {
+            case Some(p) =>
+              (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+            case _ =>
+              (getUsername, getCbsToken) // Old Style Endpoints use S object
+          }
+        case _ =>
+          (getUsername, getCbsToken) // Old Style Endpoints use S object
+      }
+
+      val req = OutboundGetCoreBankAccounts(
+        authInfo = AuthInfo(currentResourceUserId, userName, cbs),
+        BankIdAccountIds
+      )
+      logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
+
+      val future = for {
+        kafkaMessage <- processToFuture[OutboundGetCoreBankAccounts](req)
+        inboundGetCoreBankAccounts <- Future{kafkaMessage.extract[InboundGetCoreBankAccounts]}
+        internalInboundCoreAccounts <- Future{inboundGetCoreBankAccounts.data}
+      } yield {
+        Full(internalInboundCoreAccounts)
+      }
+      logger.debug(s"Kafka getCoreBankAccounts says res is $future")
+
+      future map {
+        case Full(f) if (f.head.errorCode=="") =>
+          Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
+        case Full(f) if (f.head.errorCode!="") =>
+          Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
+        case Full(List()) =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }}("getCoreBankAccountsFuture")
   
   messageDocs += MessageDoc(
     process = "obp.get.Transactions",
@@ -1290,7 +1333,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] = saveConnectorMetric{memoizeSync(customersByUserIdBoxTTL second){
+  
+  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] =  saveConnectorMetric{memoizeSync(customersByUserIdBoxTTL second){{
     
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(
@@ -1304,29 +1348,27 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
     logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
     
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetCustomersByUserId](req)
-      inboundGetCustomersByUserIdFuture <- tryo{kafkaMessage.extract[InboundGetCustomersByUserId]} ?~! s"$InboundGetCustomersByUserId extract error"
-      internalCustomer <- Full(inboundGetCustomersByUserIdFuture.data)
+    val future = for {
+      kafkaMessage <- processToFuture[OutboundGetCustomersByUserId](req)
+      inboundGetCustomersByUserIdFuture <- Future{kafkaMessage.extract[InboundGetCustomersByUserId]}
+      internalCustomer <- Future(inboundGetCustomersByUserIdFuture.data)
     } yield{
-      internalCustomer
+      Full(internalCustomer)
     }
-    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $box")
+    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $future")
     
-    val res: Box[List[InternalCustomer]] = box match {
-      case Full(x) if (x.head.errorCode=="")  =>
-        Full(x)
-      case Full(x) if (x.head.errorCode!="") =>
-        Failure("INTERNAL-"+ x.head.errorCode+". + CoreBank-Status:"+ x.head.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
+    val res = future map {
+      case Full(f) if (f.head.errorCode=="") =>
+        Full(f)
+      case Full(f) if (f.head.errorCode!="") =>
+        Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
+      case Full(List()) =>
+        Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
     res
-  }}("getCustomersByUserIdBox")
+  }}}("getCustomersByUserIdBox")
   
   
   /////////////////////////////////////////////////////////////////////////////

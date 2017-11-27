@@ -248,7 +248,8 @@ trait Connector extends MdcLoggable{
   def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
 
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
-  
+  def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
+
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, session: Option[SessionContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   /**
@@ -1266,6 +1267,6 @@ trait Connector extends MdcLoggable{
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
-  def getCustomersByUserIdBox(userId: String)(session: Option[SessionContext]): Box[List[Customer]] = Failure(NotImplemented + "createCounterparty in Connector!")
+  def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + "createCounterparty in Connector!")}
   
 }
