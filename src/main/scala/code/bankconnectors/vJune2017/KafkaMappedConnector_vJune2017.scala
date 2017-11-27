@@ -49,11 +49,13 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -643,7 +645,48 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Failure(ErrorMessages.UnknownError)
       }
     }}("getBankAccounts")
-  
+
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
+    memoizeSync(getAccountTTL millisecond){
+
+      val (userName, cbs) = session match {
+        case Some(c) =>
+          c.gatewayLoginRequestPayload match {
+            case Some(p) =>
+              (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+            case _ =>
+              (getUsername, getCbsToken) // Old Style Endpoints use S object
+          }
+        case _ =>
+          (getUsername, getCbsToken) // Old Style Endpoints use S object
+      }
+
+      val req = OutboundGetCoreBankAccounts(
+        authInfo = AuthInfo(currentResourceUserId, userName, cbs),
+        BankIdAccountIds
+      )
+      logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
+
+      val future = for {
+        kafkaMessage <- processToFuture[OutboundGetCoreBankAccounts](req)
+        inboundGetCoreBankAccounts <- Future{kafkaMessage.extract[InboundGetCoreBankAccounts]}
+        internalInboundCoreAccounts <- Future{inboundGetCoreBankAccounts.data}
+      } yield {
+        Full(internalInboundCoreAccounts)
+      }
+      logger.debug(s"Kafka getCoreBankAccounts says res is $future")
+
+      future map {
+        case Full(f) if (f.head.errorCode=="") =>
+          Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
+        case Full(f) if (f.head.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ f.head.errorCode+". + CoreBank-Error:"+ f.head.backendMessages)
+        case Full(List()) =>
+          Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }}("getCoreBankAccountsFuture")
   
   messageDocs += MessageDoc(
     process = "obp.get.Transactions",

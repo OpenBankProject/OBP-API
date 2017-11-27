@@ -375,19 +375,14 @@ trait APIMethods300 {
       //get private accounts for all banks
       case "my" :: "accounts" :: Nil JsonGet json => {
         _ =>
-          val res: Future[Box[(CoreAccountsJsonV300, CustomResponseHeaders)]] =
-            for {
-              (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
-              u <- unboxFullAndWrapIntoFuture{ user }
-              availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            } yield {
-              for {
-                coreAccounts <- Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext)
-              } yield {
-                (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), getGatewayLoginHeader(sessioContext))
-              }
-            }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+          for {
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext)}
+          } yield {
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), getGatewayLoginHeader(sessioContext))
+          }
       }
     }
 
