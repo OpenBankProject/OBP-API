@@ -4,7 +4,7 @@ This document contains
 
 * Upcoming developments
 * Completed developments (most recent first)
-* Future  
+* The future (as much as anyone can know!) 
 
 Our roadmap is agile and likely to be modified / re-prioritised based on demand from banks and developers. It should be seen as an indication of direction rather than something set in stone. 
 
@@ -16,11 +16,17 @@ If you have a particular requirement or would like to comment or help us specify
 
 ## Upcoming developments
 
-*   Extend Swagger support (add expected responses starting with the PSD2 set of endpoints)
 *   Monitor / improve performance
 *   Web Hooks (on balance change etc.)
 
 ## Completed developments (most recent first)
+
+
+### API Tester
+API Tester is a Python/Djano App for testing an OBP API instance from the outside. It supports a variety of authentication methods. You can configure different profiles for specifying parameters such as bank_id, account_id etc. See [here](https://github.com/OpenBankProject/API-Tester) for the source code and installation instructions.
+
+### Extend Swagger support 
+We improved the information contained in the Swagger (and Resource Doc) endpoints. They are also available from the API Explorer. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v1_4_0-getResourceDocsSwagger)
 
 
 ### Kafka versioning
