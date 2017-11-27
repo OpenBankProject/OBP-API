@@ -1228,7 +1228,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Future { Connector.connector.vend.getCoreBankAccounts(availableAccounts, sessioContext) } map {
+            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
