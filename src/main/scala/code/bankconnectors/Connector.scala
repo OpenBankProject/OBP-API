@@ -267,7 +267,7 @@ trait Connector extends MdcLoggable{
     val list: List[Transaction] = getTransactions(bankId, accountId).toList.flatten
     val x = for {
       l <- list
-      m <- metadata if l.otherAccount.thisAccountId.value == m.getAccountNumber
+      m <- metadata if l.otherAccount.thisAccountId == m.getAccountNumber
     } yield {
       getCounterpartyFromTransaction(bankId, accountId, m, l).toList
     }
@@ -284,7 +284,7 @@ trait Connector extends MdcLoggable{
     val list: List[Transaction] = getTransactions(bankId, accountId).toList.flatten
     val x = for {
       l <- list
-      m <- metadata if l.otherAccount.thisAccountId.value == m.getAccountNumber
+      m <- metadata if l.otherAccount.thisAccountId == m.getAccountNumber
     } yield {
       getCounterpartyFromTransaction(bankId, accountId, m, l).toList
     }
@@ -344,13 +344,13 @@ trait Connector extends MdcLoggable{
             counterPartyId = metadata.metadataId,
             label = metadata.getHolder,
             nationalIdentifier = t.otherAccount.nationalIdentifier,
-            otherBankRoutingAddress = None,
+            otherBankRoutingAddress = null,
             otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-            thisAccountId = AccountId(metadata.getAccountNumber),
+            thisAccountId = metadata.getAccountNumber,
             thisBankId = t.otherAccount.thisBankId,
             kind = t.otherAccount.kind,
-            otherBankId = thisBankId,
-            otherAccountId = thisAccountId,
+            otherBankId = thisBankId.value,
+            otherAccountId = thisAccountId.value,
             alreadyFoundMetadata = Some(metadata),
             name = "",
             otherBankRoutingScheme = "",

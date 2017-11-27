@@ -60,7 +60,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
         By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
         By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
         By(MappedCounterpartyMetadata.holder, otherParty.label),
-        By(MappedCounterpartyMetadata.accountNumber, otherParty.thisAccountId.value))
+        By(MappedCounterpartyMetadata.accountNumber, otherParty.thisAccountId))
     }
 
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
@@ -77,7 +77,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
           .thisAccountId(originalPartyAccountId.value)
           .holder(otherParty.label) // The main human readable identifier for this counter party from the perspective of the account holder
           .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
-          .accountNumber(otherParty.thisAccountId.value)
+          .accountNumber(otherParty.thisAccountId)
           // otherParty.metadata is None at this point
           //.imageUrl("www.example.com/image.jpg")
           //.moreInfo("This is hardcoded moreInfo")
@@ -85,7 +85,83 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       }
     }
   }
-
+  
+  override def getOrCreateMetadataNew(bankId: String, accountId: String, counterpartyName: String, CounterpartyId: String): Box[CounterpartyMetadata] = {
+    
+    /**
+      * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+      * for the account in question
+      */
+    def newPublicAliasName(): String = {
+      val firstAliasAttempt = "ALIAS_" + UUID.randomUUID.toString.toUpperCase.take(6)
+      
+      /**
+        * Returns true if @publicAlias is already the name of a public alias within @account
+        */
+      def isDuplicate(publicAlias: String) : Boolean = {
+        MappedCounterpartyMetadata.find(
+          By(MappedCounterpartyMetadata.thisBankId, bankId),
+          By(MappedCounterpartyMetadata.thisAccountId, accountId),
+          By(MappedCounterpartyMetadata.publicAlias, publicAlias)
+        ).isDefined
+      }
+      
+      /**
+        * Appends things to @publicAlias until it a unique public alias name within @account
+        */
+      def appendUntilUnique(publicAlias: String): String = {
+        val newAlias = publicAlias + UUID.randomUUID.toString.toUpperCase.take(1)
+        // Recursive call.
+        if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
+        else newAlias
+      }
+      
+      if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
+      else firstAliasAttempt
+    }
+    
+    
+    //can't find by MappedCounterpartyMetadata.counterpartyId = otherParty.id because in this implementation
+    //if the metadata doesn't exist, the id field of the OtherBankAccount is not known yet, and will be empty
+    def findMappedCounterpartyMetadata(
+      bankId: String,
+      accountId: String,
+      counterpartyName: String,
+      CounterpartyId: String
+    ) : Box[MappedCounterpartyMetadata] = {
+      MappedCounterpartyMetadata.find(
+        By(MappedCounterpartyMetadata.thisBankId, bankId),
+        By(MappedCounterpartyMetadata.thisAccountId, accountId),
+        By(MappedCounterpartyMetadata.holder, counterpartyName),
+        By(MappedCounterpartyMetadata.accountNumber, CounterpartyId))
+    }
+    
+    val existing = findMappedCounterpartyMetadata(bankId, accountId, counterpartyName,CounterpartyId)
+    
+    existing match {
+      case Full(e) => Full(e)
+      // Create it!
+      case _ => {
+        logger.debug("Before creating MappedCounterpartyMetadata")
+        // Store a record that contains counterparty information from the perspective of an account at a bank
+        Full(MappedCounterpartyMetadata.create
+          // Core info
+          .thisBankId(bankId)
+          .thisAccountId(accountId)
+          .holder(counterpartyName) // The main human readable identifier for this counter party from the perspective of the account holder
+          .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
+          .accountNumber(CounterpartyId)
+          // otherParty.metadata is None at this point
+          //.imageUrl("www.example.com/image.jpg")
+          //.moreInfo("This is hardcoded moreInfo")
+          .saveMe)
+      }
+    }
+  }
+  
+  
+  
+  
   // Get all counterparty metadata for a single OBP account
   override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = {
     MappedCounterpartyMetadata.findAll(

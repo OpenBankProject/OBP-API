@@ -81,11 +81,11 @@ object ImporterAPI extends RestHelper with MdcLoggable {
       JObject(List(
         JField("holder", JString(otherAcc.label)),
         JField("alias", JString("no"))))),
-        JField("number", JString(otherAcc.thisAccountId.value)),
+        JField("number", JString(otherAcc.thisAccountId)),
         JField("kind", JString(otherAcc.kind)),
-        JField("bank", JObject(List( JField("IBAN", JString(otherAcc.otherAccountRoutingAddress.getOrElse(""))),
+        JField("bank", JObject(List( JField("IBAN", JString(otherAcc.otherAccountRoutingAddress)),
         JField("national_identifier", JString(otherAcc.nationalIdentifier)),
-        JField("name", JString(otherAcc.thisBankId.value)))))))
+        JField("name", JString(otherAcc.thisBankId)))))))
 
     val detailsJson = JObject(List( JField("type_en", JString(t.transactionType)),
       JField("type", JString(t.transactionType)),

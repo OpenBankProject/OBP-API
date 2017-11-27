@@ -38,6 +38,7 @@ import java.util.Date
 
 import code.accountholder.AccountHolders
 import code.api.util.SessionContext
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors.vJune2017.AccountRules
 
 import scala.collection.immutable.{List, Set}
@@ -52,7 +53,7 @@ import code.metadata.wheretags.WhereTags
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.views.Views
 import code.metadata.narrative.Narrative
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
@@ -656,11 +657,11 @@ as see from the perspective of the original party.
 
 
 // Note: See also CounterpartyTrait
-class Counterparty(
+case class Counterparty(
 
                     @deprecated("older version, please first consider the V210, account scheme and address") 
                     val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    val alreadyFoundMetadata : Option[CounterpartyMetadata],
+                    override val alreadyFoundMetadata : Option[CounterpartyMetadata],
                     val label : String, // Reference given to the counterparty by the original party.
                     val kind : String, // Type of bank account.
 
@@ -668,25 +669,45 @@ class Counterparty(
                     val counterPartyId: String,
                     val name: String,
                     val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    val otherAccountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
+                    override val otherAccountRoutingAddress : String, // The (IBAN) value e.g. 2349870987820374
                     val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-                    val otherBankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
-                    val thisBankId : BankId, // i.e. the Account that sends/receives money to/from this Counterparty
-                    val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
-                    val otherBankId : BankId, // These 3 fields specify the internal locaiton of the account for the
-                    val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
+  override val otherBankRoutingAddress : String, // The (BIC) value e.g. 67895
+  override val thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
+  override         val thisAccountId: String, // These 2 fields specify the account that uses this Counterparty
+                    val otherBankId : String, // These 3 fields specify the internal locaiton of the account for the
+                    val otherAccountId: String, //counterparty if it is known. It could be at OBP in which case
                     val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
-                    val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
-  )
+  override val isBeneficiary: Boolean, // True if the originAccount can send money to the Counterparty
+  
+  
+                    createdByUserId: String ="",
+//                  name: String,
+//                  thisBankId: String,
+//                  thisAccountId: String,
+                  thisViewId: String="",
+                  counterpartyId: String="",
+//                  otherAccountRoutingScheme: String,
+//                  otherAccountRoutingAddress: String,
+//                  otherBankRoutingScheme: String,
+//                  otherBankRoutingAddress: String,
+                  otherBranchRoutingScheme: String="",
+                  otherBranchRoutingAddress: String="",
+//                  isBeneficiary: Boolean,
+                  description: String="",
+                  otherAccountSecondaryRoutingScheme: String="",
+                  otherAccountSecondaryRoutingAddress: String="",
+                  bespoke: List[PostCounterpartyBespoke] = Nil
+  
+  ) extends CounterpartyTrait
 {
 
-  val metadata : CounterpartyMetadata = {
+ override val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this).openOrThrowException("Can not getOrCreateMetadata !")
+        Counterparties.counterparties.vend.getOrCreateMetadata(BankId(otherBankId), AccountId(otherAccountId), this).openOrThrowException("Can not getOrCreateMetadata !")
     }
   }
 }

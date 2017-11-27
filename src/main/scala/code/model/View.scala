@@ -576,15 +576,15 @@ trait View {
 
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.otherBankRoutingAddress else None
-      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.otherAccountRoutingAddress else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) Some(otherBankAccount.otherBankRoutingAddress) else None
+      val otherAccountIBAN = if(canSeeOtherAccountIBAN)  Some(otherBankAccount.otherAccountRoutingAddress) else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
       val otherBankRoutingScheme = if(canSeeOtherBankRoutingScheme) Some(otherBankAccount.otherBankRoutingScheme) else None
-      val otherBankRoutingAddress = if(canSeeOtherBankRoutingAddress) otherBankAccount.otherBankRoutingAddress else None
+      val otherBankRoutingAddress = if(canSeeOtherBankRoutingAddress)  Some(otherBankAccount.otherBankRoutingAddress) else None
       val otherAccountRoutingScheme = if(canSeeOtherAccountRoutingScheme) Some(otherBankAccount.otherAccountRoutingScheme) else None
-      val otherAccountRoutingAddress = if(canSeeOtherAccountRoutingAddress) otherBankAccount.otherAccountRoutingAddress else None
+      val otherAccountRoutingAddress = if(canSeeOtherAccountRoutingAddress)  Some(otherBankAccount.otherAccountRoutingAddress) else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){
           //other bank account metadata

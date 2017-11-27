@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.remotedata.RemotedataCounterparties
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure}
 import net.liftweb.util.{Props, SimpleInjector}
 
 object Counterparties extends SimpleInjector {
@@ -23,6 +23,8 @@ object Counterparties extends SimpleInjector {
 trait Counterparties {
 
   def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
+  
+  def getOrCreateMetadataNew(bankId: String, accountId: String, counterpartyName: String, CounterpartyId: String) : Box[CounterpartyMetadata] = Failure("No Finished")
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
@@ -99,6 +101,17 @@ trait CounterpartyTrait {
   def otherBranchRoutingAddress: String
   def isBeneficiary : Boolean
   def bespoke: List[PostCounterpartyBespoke]
+  
+  val alreadyFoundMetadata : Option[CounterpartyMetadata] = None
+  val metadata : CounterpartyMetadata = {
+    // If we already have alreadyFoundMetadata, return it, else get or create it.
+    alreadyFoundMetadata match {
+      case Some(meta) =>
+        meta
+      case None =>
+        Counterparties.counterparties.vend.getOrCreateMetadataNew(otherBankRoutingAddress, otherAccountRoutingAddress,name, thisAccountId).openOrThrowException("Can not getOrCreateMetadata !")
+    }
+  }
 }
 
 class RemotedataCounterpartiesCaseClasses {
