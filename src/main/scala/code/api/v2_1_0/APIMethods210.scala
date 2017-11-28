@@ -20,7 +20,7 @@ import code.bankconnectors.{OBPQueryParam, _}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
-import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
+import code.customer.{Customer, CreditLimit, CreditRating, CustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
@@ -1371,7 +1371,7 @@ trait APIMethods210 {
               postedData.legal_name,
               postedData.mobile_phone_number,
               postedData.email,
-              MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
               postedData.date_of_birth,
               postedData.relationship_status,
               postedData.dependants,
@@ -1380,8 +1380,8 @@ trait APIMethods210 {
               postedData.employment_status,
               postedData.kyc_status,
               postedData.last_ok_date,
-              Option(MockCreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
-              Option(MockCreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! CreateConsumerError
+              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! CreateConsumerError
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(customer_user.name)

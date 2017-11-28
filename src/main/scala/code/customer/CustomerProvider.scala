@@ -46,7 +46,7 @@ trait CustomerProvider {
                   mobileNumber: String,
                   email: String,
                   faceImage:
-                  CustomerFaceImage,
+                  CustomerFaceImageTrait,
                   dateOfBirth: Date,
                   relationshipStatus: String,
                   dependents: Int,
@@ -55,8 +55,8 @@ trait CustomerProvider {
                   employmentStatus: String,
                   kycStatus: Boolean,
                   lastOkDate: Date,
-                  creditRating: Option[CreditRating],
-                  creditLimit: Option[AmountOfMoney]
+                  creditRating: Option[CreditRatingTrait],
+                  creditLimit: Option[AmountOfMoneyTrait]
                  ): Box[Customer]
 
   def bulkDeleteCustomers(): Boolean
@@ -77,7 +77,7 @@ class RemotedataCustomerProviderCaseClasses {
                          legalName: String,
                          mobileNumber: String,
                          email: String,
-                         faceImage: CustomerFaceImage,
+                         faceImage: CustomerFaceImageTrait,
                          dateOfBirth: Date,
                          relationshipStatus: String,
                          dependents: Int,
@@ -86,8 +86,8 @@ class RemotedataCustomerProviderCaseClasses {
                          employmentStatus: String,
                          kycStatus: Boolean,
                          lastOkDate: Date,
-                         creditRating: Option[CreditRating],
-                         creditLimit: Option[AmountOfMoney]
+                         creditRating: Option[CreditRatingTrait],
+                         creditLimit: Option[AmountOfMoneyTrait]
                         )
   case class bulkDeleteCustomers()
 
@@ -102,34 +102,34 @@ trait Customer {
   def legalName : String
   def mobileNumber : String
   def email : String
-  def faceImage : CustomerFaceImage
+  def faceImage : CustomerFaceImageTrait
   def dateOfBirth: Date
   def relationshipStatus: String
   def dependents: Integer
   def dobOfDependents: List[Date]
   def highestEducationAttained: String
   def employmentStatus: String
-  def creditRating : CreditRating
-  def creditLimit: AmountOfMoney
+  def creditRating : CreditRatingTrait
+  def creditLimit: AmountOfMoneyTrait
   def kycStatus: lang.Boolean
   def lastOkDate: Date
 }
 
-trait CustomerFaceImage {
+trait CustomerFaceImageTrait {
   def url : String
   def date : Date
 }
 
-trait AmountOfMoney {
+trait AmountOfMoneyTrait {
   def currency: String
   def amount: String
 }
 
-trait CreditRating {
+trait CreditRatingTrait {
   def rating: String
   def source: String
 }
 
-case class MockCustomerFaceImage(date : Date, url : String) extends CustomerFaceImage
-case class MockCreditRating(rating: String, source: String) extends CreditRating
-case class MockCreditLimit(currency: String, amount: String) extends AmountOfMoney
+case class CustomerFaceImage(date : Date, url : String) extends CustomerFaceImageTrait
+case class CreditRating(rating: String, source: String) extends CreditRatingTrait
+case class CreditLimit(currency: String, amount: String) extends AmountOfMoneyTrait

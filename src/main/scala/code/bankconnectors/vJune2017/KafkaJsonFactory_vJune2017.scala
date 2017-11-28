@@ -9,7 +9,7 @@ import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
+import code.customer.{Customer, CreditLimit, CreditRating, CustomerFaceImage}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
@@ -261,15 +261,15 @@ case class InternalCustomer(
   legalName : String,
   mobileNumber : String,
   email : String,
-  faceImage : MockCustomerFaceImage,
+  faceImage : CustomerFaceImage,
   dateOfBirth: Date,
   relationshipStatus: String,
   dependents: Integer,
   dobOfDependents: List[Date],
   highestEducationAttained: String,
   employmentStatus: String,
-  creditRating : MockCreditRating,
-  creditLimit: MockCreditLimit,
+  creditRating : CreditRating,
+  creditLimit: CreditLimit,
   kycStatus: lang.Boolean,
   lastOkDate: Date
 )extends Customer
