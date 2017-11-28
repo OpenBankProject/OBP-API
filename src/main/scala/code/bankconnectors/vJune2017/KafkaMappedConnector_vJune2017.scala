@@ -1386,7 +1386,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         otherBankRoutingAddress = null,
         otherAccountRoutingAddress = null,
         kind = null,
-        name = null,
+        name = counterpartyName,
         otherBankRoutingScheme = null,
         otherAccountRoutingScheme = null,
         otherAccountProvider = null,

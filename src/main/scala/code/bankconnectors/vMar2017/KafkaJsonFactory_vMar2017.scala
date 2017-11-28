@@ -307,6 +307,8 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def otherBankId: String = ""
   def otherAccountId: String = ""
   def otherAccountProvider: String = ""
+  def label: String = ""
+  def kind: String = ""
 }
 
 case class InboundStatusMessage(

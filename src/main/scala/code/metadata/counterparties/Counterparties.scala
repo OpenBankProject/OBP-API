@@ -22,9 +22,12 @@ object Counterparties extends SimpleInjector {
 
 trait Counterparties {
 
-//  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
-  
-  def getOrCreateMetadata(bankId: String, accountId: String, counterpartyName: String, otherAccountRoutingAddress: String) : Box[CounterpartyMetadata] = Failure("No Finished")
+  def getOrCreateMetadata(
+    bankId: String, 
+    accountId: String, 
+    counterpartyName: String, 
+    otherAccountRoutingAddress: String //TODO this is still not so clear for now. Some place use it as ThisAccountID some place used it as AccountNumber??????? Maybe just get rid of it... 
+  ) : Box[CounterpartyMetadata] = Failure("No Finished")
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
@@ -87,6 +90,8 @@ trait CounterpartyTrait {
   //These Counterparty its own data
   def createdByUserId: String
   def name: String
+  def label: String
+  def kind: String
   def description: String
   def isBeneficiary : Boolean
   def bespoke: List[PostCounterpartyBespoke]
@@ -117,7 +122,7 @@ trait CounterpartyTrait {
    // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata.getOrElse(
       Counterparties.counterparties.vend
-        .getOrCreateMetadata(otherBankId, otherAccountId,name, thisAccountId)
+        .getOrCreateMetadata(otherBankId, otherAccountId, label, thisAccountId)
         .openOrThrowException("Can not getOrCreateMetadata !")
     )
   }

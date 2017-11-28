@@ -250,7 +250,9 @@ case class InternalCounterparty(
   bespoke: List[PostCounterpartyBespoke],
   otherBankId: String = "",
   otherAccountId: String = "",
-  otherAccountProvider: String = ""
+  otherAccountProvider: String = "",
+  label: String = "",
+  kind: String = ""
 ) extends CounterpartyTrait
 
 

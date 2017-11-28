@@ -1245,6 +1245,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def otherBankId: String = ""
     def otherAccountId: String = ""
     def otherAccountProvider: String = ""
+    def label: String = ""
+    def kind: String = ""
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{

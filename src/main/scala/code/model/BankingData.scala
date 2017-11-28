@@ -662,15 +662,14 @@ case class Counterparty(
   @deprecated("older version, please first consider the V210, account scheme and address")
   val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
   override val alreadyFoundMetadata: Option[CounterpartyMetadata],
-  val label: String, // Reference given to the counterparty by the original party.
-  val kind: String, // Type of bank account.
-
-  // The following fields started from V210
+  
+  kind: String, // Type of bank account.
+  label: String, // Reference given to the counterparty by the original party.  the same as name??
   name: String,
   counterpartyId: String = "",
   description: String = "",
   createdByUserId: String = "",
-  isBeneficiary: Boolean, // True if the originAccount can send money to the Counterparty
+  isBeneficiary: Boolean,
   bespoke: List[PostCounterpartyBespoke] = Nil,
   
   thisViewId: String = "",
@@ -689,20 +688,7 @@ case class Counterparty(
   otherAccountSecondaryRoutingAddress: String = "",
   otherBranchRoutingScheme: String = "",
   otherBranchRoutingAddress: String = ""
-  
-  ) extends CounterpartyTrait
-{
-  
-  override lazy val metadata : CounterpartyMetadata = {
-    // If we already have alreadyFoundMetadata, return it, else get or create it.
-    alreadyFoundMetadata match {
-      case Some(meta) =>
-        meta
-      case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, name, thisAccountId).openOrThrowException("Can not getOrCreateMetadata !")
-    }
-  }
-}
+) extends CounterpartyTrait
 
 trait TransactionUUID {
   def theTransactionId : TransactionId
