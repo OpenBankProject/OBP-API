@@ -1742,11 +1742,11 @@ Versions are groups of endpoints in a file
               payload match {
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
-                    case Full((u, cbsAuthToken)) => // Authentication is successful
+                    case Full((u, cbsToken)) => // Authentication is successful
                       GatewayLogin.getOrCreateConsumer(payload, u)
                       val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
                       val sessionContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), None)
-                      val jwt = GatewayLogin.createJwt(payload, cbsAuthToken)
+                      val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val sessionContext = ApiSession.updateSessionContext(GatewayLoginResponseHeader(Some(jwt)), sessionContextForRequest)
                       (Full(u), sessionContext)
                     case Failure(msg, t, c) =>
