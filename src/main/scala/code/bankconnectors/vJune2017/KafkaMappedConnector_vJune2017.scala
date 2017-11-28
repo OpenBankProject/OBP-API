@@ -367,12 +367,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         ) :: Nil)
     )
   )
-  override def getBankAccounts(username: String, callMfFlag: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
-      
-      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),callMfFlag,internalCustomers)
+
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
   
       val box = for {
@@ -398,12 +398,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }}("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, callMfFlag: Boolean): Future[Box[List[InboundAccountJune2017]]] = saveConnectorMetric {
+  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = saveConnectorMetric {
     memoizeSync(getAccountsTTL millisecond) {
       val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
-      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),callMfFlag,internalCustomers)
+      val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
 
       val future = for {
