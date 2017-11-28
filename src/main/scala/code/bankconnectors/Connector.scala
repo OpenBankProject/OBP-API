@@ -217,10 +217,20 @@ trait Connector extends MdcLoggable{
   /**
     * 
     * @param username username of the user.
-    * @param callMfFlag call the MainFrame call, or only get the cache data. 
-    * @return all the accounts, get from Main Frame. 
+    * @param forceFresh call the MainFrame call, or only get the cache data.
+    * @return all the accounts, get from Main Frame.
     */
-  def getBankAccounts(username: String, callMfFlag: Boolean) : Box[List[InboundAccountCommon]] = Failure(NotImplemented + currentMethodName)
+  def getBankAccounts(username: String, forceFresh: Boolean) : Box[List[InboundAccountCommon]] = Failure(NotImplemented + currentMethodName)
+
+  /**
+    *
+    * @param username username of the user.
+    * @param forceFresh call the MainFrame call, or only get the cache data.
+    * @return all the accounts, get from Main Frame.
+    */
+  def getBankAccountsFuture(username: String, forceFresh: Boolean) : Future[Box[List[InboundAccountCommon]]] = Future {
+    Failure(NotImplemented + currentMethodName)
+  }
 
   /**
     * This method is for get User from external, eg kafka/obpjvm...

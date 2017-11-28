@@ -8,6 +8,9 @@ import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Full}
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 /**
   * Created by zhanghongwei on 14/07/2017.
   */
@@ -24,7 +27,7 @@ object MockedJune2017Connector extends ServerSetup
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
-  override def getBankAccounts(username: String, callMfFlag: Boolean): Box[List[InboundAccountJune2017]] = {
+  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = {
     Full(
       InboundAccountJune2017(
         errorCode = "OBP-6001: ...",
@@ -68,6 +71,10 @@ object MockedJune2017Connector extends ServerSetup
         accountRules = Nil
       ) :: Nil
     )
+  }
+
+  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = Future {
+    getBankAccounts(username, forceFresh)
   }
 }
 
