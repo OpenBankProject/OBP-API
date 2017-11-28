@@ -661,7 +661,7 @@ case class Counterparty(
 
                     @deprecated("older version, please first consider the V210, account scheme and address") 
                     val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    override val alreadyFoundMetadata : Option[CounterpartyMetadata],
+  override val alreadyFoundMetadata : Option[CounterpartyMetadata],
                     val label : String, // Reference given to the counterparty by the original party.
                     val kind : String, // Type of bank account.
 
@@ -669,15 +669,15 @@ case class Counterparty(
                     val counterPartyId: String,
                     val name: String,
                     val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    override val otherAccountRoutingAddress : String, // The (IBAN) value e.g. 2349870987820374
+  otherAccountRoutingAddress : String, // The (IBAN) value e.g. 2349870987820374
                     val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-  override val otherBankRoutingAddress : String, // The (BIC) value e.g. 67895
-  override val thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
-  override         val thisAccountId: String, // These 2 fields specify the account that uses this Counterparty
+  otherBankRoutingAddress : String, // The (BIC) value e.g. 67895
+  thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
+  thisAccountId: String, // These 2 fields specify the account that uses this Counterparty
                     val otherBankId : String, // These 3 fields specify the internal locaiton of the account for the
                     val otherAccountId: String, //counterparty if it is known. It could be at OBP in which case
                     val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
-  override val isBeneficiary: Boolean, // True if the originAccount can send money to the Counterparty
+  isBeneficiary: Boolean, // True if the originAccount can send money to the Counterparty
   
   
                     createdByUserId: String ="",
@@ -700,8 +700,8 @@ case class Counterparty(
   
   ) extends CounterpartyTrait
 {
-
- override val metadata : CounterpartyMetadata = {
+  
+  override lazy val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>

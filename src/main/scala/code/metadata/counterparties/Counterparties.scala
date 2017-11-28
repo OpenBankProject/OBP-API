@@ -103,8 +103,8 @@ trait CounterpartyTrait {
   def bespoke: List[PostCounterpartyBespoke]
   
   val alreadyFoundMetadata : Option[CounterpartyMetadata] = None
-  val metadata : CounterpartyMetadata = {
-    // If we already have alreadyFoundMetadata, return it, else get or create it.
+  lazy val metadata : CounterpartyMetadata = {
+// If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
         meta

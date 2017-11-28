@@ -338,8 +338,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //a counterparty should exist
     val otherAcc = foundTransaction.otherAccount
     otherAcc.counterPartyId should not be empty
-    otherAcc.otherAccountId should equal(accountId)
-    otherAcc.otherBankId should equal(bankId)
+    otherAcc.otherAccountId should equal(accountId.value)
+    otherAcc.otherBankId should equal(bankId.value)
     val otherAccMeta = otherAcc.metadata
     otherAccMeta.getPublicAlias should not be empty
 
