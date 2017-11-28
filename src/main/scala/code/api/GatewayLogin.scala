@@ -169,6 +169,30 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
+  def refreshBankAccountsFuture(jwtPayload: String) : Future[Box[String]] = {
+    val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
+    val cbsAuthToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
+    val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
+    logger.debug("is_first : " + isFirst)
+    logger.debug("cbs_token : " + cbsAuthToken)
+    if(isFirst.equalsIgnoreCase("true")) // Case is_first="true"
+    { // Call CBS
+      val res = Connector.connector.vend.getBankAccountsFuture(username, true) // Box[List[InboundAccountJune2017]]//
+      res map {
+        case Full(l) =>
+          Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
+        case Empty =>
+          Empty
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+      }
+    } else { // Do not call CBS
+      Future {
+        Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
+      }
+    }
+  }
+
   def getOrCreateResourceUser(jwtPayload: String) : Box[(User, Option[String])] = {
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
     logger.debug("login_user_name: " + username)
@@ -226,7 +250,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def getOrCreateResourceUserFuture(jwtPayload: String) : Future[Box[(User, Option[String])]] = {
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
     logger.debug("login_user_name: " + username)
-    val cbsF = Future { refreshBankAccounts(jwtPayload) }
+    val cbsF = refreshBankAccountsFuture(jwtPayload)
     for {
       cbs <- cbsF
       tuple <- cbs match {
