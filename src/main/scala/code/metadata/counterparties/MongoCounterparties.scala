@@ -37,7 +37,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterPartyId)
+    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterpartyId)
 
     val metadata = existing match {
       case Full(m) => m

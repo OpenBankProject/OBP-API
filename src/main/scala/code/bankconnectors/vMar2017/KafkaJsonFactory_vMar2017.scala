@@ -304,6 +304,9 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def otherAccountSecondaryRoutingScheme: String = ""
   def otherAccountSecondaryRoutingAddress: String = ""
   def bespoke: List[PostCounterpartyBespoke] = Nil
+  def otherBankId: String = ""
+  def otherAccountId: String = ""
+  def otherAccountProvider: String = ""
 }
 
 case class InboundStatusMessage(

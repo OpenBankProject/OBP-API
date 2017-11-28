@@ -341,7 +341,7 @@ trait Connector extends MdcLoggable{
          Full(
            new Counterparty(
             //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-            counterPartyId = metadata.metadataId,
+            counterpartyId = metadata.metadataId,
             label = metadata.getHolder,
             nationalIdentifier = t.otherAccount.nationalIdentifier,
             otherBankRoutingAddress = null,

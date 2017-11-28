@@ -658,45 +658,37 @@ as see from the perspective of the original party.
 
 // Note: See also CounterpartyTrait
 case class Counterparty(
+  
+  @deprecated("older version, please first consider the V210, account scheme and address")
+  val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+  override val alreadyFoundMetadata: Option[CounterpartyMetadata],
+  val label: String, // Reference given to the counterparty by the original party.
+  val kind: String, // Type of bank account.
 
-                    @deprecated("older version, please first consider the V210, account scheme and address") 
-                    val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-  override val alreadyFoundMetadata : Option[CounterpartyMetadata],
-                    val label : String, // Reference given to the counterparty by the original party.
-                    val kind : String, // Type of bank account.
-
-                    // The following fields started from V210
-                    val counterPartyId: String,
-                    val name: String,
-                    val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-  otherAccountRoutingAddress : String, // The (IBAN) value e.g. 2349870987820374
-                    val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-  otherBankRoutingAddress : String, // The (BIC) value e.g. 67895
-  thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
-  thisAccountId: String, // These 2 fields specify the account that uses this Counterparty
-                    val otherBankId : String, // These 3 fields specify the internal locaiton of the account for the
-                    val otherAccountId: String, //counterparty if it is known. It could be at OBP in which case
-                    val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
+  // The following fields started from V210
+  name: String,
+  counterpartyId: String = "",
+  description: String = "",
+  createdByUserId: String = "",
   isBeneficiary: Boolean, // True if the originAccount can send money to the Counterparty
+  bespoke: List[PostCounterpartyBespoke] = Nil,
   
+  thisViewId: String = "",
+  thisBankId: String, 
+  thisAccountId: String, 
   
-                    createdByUserId: String ="",
-//                  name: String,
-//                  thisBankId: String,
-//                  thisAccountId: String,
-                  thisViewId: String="",
-                  counterpartyId: String="",
-//                  otherAccountRoutingScheme: String,
-//                  otherAccountRoutingAddress: String,
-//                  otherBankRoutingScheme: String,
-//                  otherBankRoutingAddress: String,
-                  otherBranchRoutingScheme: String="",
-                  otherBranchRoutingAddress: String="",
-//                  isBeneficiary: Boolean,
-                  description: String="",
-                  otherAccountSecondaryRoutingScheme: String="",
-                  otherAccountSecondaryRoutingAddress: String="",
-                  bespoke: List[PostCounterpartyBespoke] = Nil
+  otherBankId: String, 
+  otherAccountId: String, 
+  otherAccountProvider: String,
+ 
+  otherBankRoutingScheme: String, 
+  otherBankRoutingAddress: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherAccountSecondaryRoutingScheme: String = "",
+  otherAccountSecondaryRoutingAddress: String = "",
+  otherBranchRoutingScheme: String = "",
+  otherBranchRoutingAddress: String = ""
   
   ) extends CounterpartyTrait
 {
@@ -707,7 +699,7 @@ case class Counterparty(
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(BankId(otherBankId), AccountId(otherAccountId), this).openOrThrowException("Can not getOrCreateMetadata !")
+        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, name, thisAccountId).openOrThrowException("Can not getOrCreateMetadata !")
     }
   }
 }

@@ -306,7 +306,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = t.metadataId,
+        counterpartyId = t.metadataId,
         label = t.getHolder,
         nationalIdentifier = "",
         otherBankRoutingAddress = null,

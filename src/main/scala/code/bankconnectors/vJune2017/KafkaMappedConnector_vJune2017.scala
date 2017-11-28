@@ -1379,7 +1379,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         
         //This two will be generated in obp side implicitly
         alreadyFoundMetadata = alreadyFoundMetadata,
-        counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+        counterpartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
         
         thisBankId = null,
         nationalIdentifier = null,

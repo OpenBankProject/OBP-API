@@ -337,7 +337,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     //a counterparty should exist
     val otherAcc = foundTransaction.otherAccount
-    otherAcc.counterPartyId should not be empty
+    otherAcc.counterpartyId should not be empty
     otherAcc.otherAccountId should equal(accountId.value)
     otherAcc.otherBankId should equal(bankId.value)
     val otherAccMeta = otherAcc.metadata
@@ -1396,7 +1396,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
-    counter1.counterPartyId should equal(counter2.counterPartyId)
+    counter1.counterpartyId should equal(counter2.counterpartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
   }
 
@@ -1430,7 +1430,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
+    counter1.counterpartyId should not equal(counter2.counterpartyId)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.thisAccountId should equal(counterAcc1)
     counter2.thisAccountId should equal(counterAcc2)
@@ -1464,7 +1464,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
-    counter1.counterPartyId should equal(counter2.counterPartyId)
+    counter1.counterpartyId should equal(counter2.counterpartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
     counter1.thisAccountId should equal(transactionWithCounterparty.counterparty.get.account_number.get)
     counter2.thisAccountId should equal(transactionWithCounterparty.counterparty.get.account_number.get)
@@ -1504,9 +1504,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
     //transactions should have the same counterparty
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.counterPartyId.isEmpty should equal(false)
-    counter2.counterPartyId.isEmpty should equal(false)
+    counter1.counterpartyId should not equal(counter2.counterpartyId)
+    counter1.counterpartyId.isEmpty should equal(false)
+    counter2.counterpartyId.isEmpty should equal(false)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.thisAccountId should equal(counterpartyAccNumber1)
     counter2.thisAccountId should equal(counterpartyAccNumber2)
@@ -1551,9 +1551,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
     val counter3 = foundTransaction3Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.counterPartyId should not equal(counter3.counterPartyId)
-    counter2.counterPartyId should not equal(counter3.counterPartyId)
+    counter1.counterpartyId should not equal(counter2.counterpartyId)
+    counter1.counterpartyId should not equal(counter3.counterpartyId)
+    counter2.counterpartyId should not equal(counter3.counterpartyId)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
     counter2.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
@@ -1693,7 +1693,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val t2 = getCreatedTransaction(newTransId)
 
     //check the created transactions have the same counterparty id
-    t1.otherAccount.counterPartyId should equal(t2.otherAccount.counterPartyId)
+    t1.otherAccount.counterpartyId should equal(t2.otherAccount.counterpartyId)
   }
 
   it should "create branches ok" in {

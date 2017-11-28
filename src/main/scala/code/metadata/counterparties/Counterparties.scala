@@ -22,9 +22,9 @@ object Counterparties extends SimpleInjector {
 
 trait Counterparties {
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
+//  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
   
-  def getOrCreateMetadataNew(bankId: String, accountId: String, counterpartyName: String, CounterpartyId: String) : Box[CounterpartyMetadata] = Failure("No Finished")
+  def getOrCreateMetadata(bankId: String, accountId: String, counterpartyName: String, otherAccountRoutingAddress: String) : Box[CounterpartyMetadata] = Failure("No Finished")
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
@@ -84,13 +84,24 @@ trait Counterparties {
 }
 
 trait CounterpartyTrait {
+  //These Counterparty its own data
   def createdByUserId: String
   def name: String
   def description: String
+  def isBeneficiary : Boolean
+  def bespoke: List[PostCounterpartyBespoke]
+  def counterpartyId: String
+  
+  //These Counterparty's money sender obp data
   def thisBankId: String
   def thisAccountId: String
   def thisViewId: String
-  def counterpartyId: String
+  //These Counterparty's money reviver obp data
+  def otherBankId: String
+  def otherAccountId: String
+  def otherAccountProvider: String
+  
+  //These Counterparty's money reviver adapter data
   def otherAccountRoutingScheme: String
   def otherAccountRoutingAddress: String
   def otherAccountSecondaryRoutingScheme: String
@@ -99,23 +110,21 @@ trait CounterpartyTrait {
   def otherBankRoutingAddress: String
   def otherBranchRoutingScheme: String
   def otherBranchRoutingAddress: String
-  def isBeneficiary : Boolean
-  def bespoke: List[PostCounterpartyBespoke]
   
+  //This is especially for counterparty-metadata, each Counterparty will contain its own counterparty-metadata
   val alreadyFoundMetadata : Option[CounterpartyMetadata] = None
   lazy val metadata : CounterpartyMetadata = {
-// If we already have alreadyFoundMetadata, return it, else get or create it.
-    alreadyFoundMetadata match {
-      case Some(meta) =>
-        meta
-      case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadataNew(otherBankRoutingAddress, otherAccountRoutingAddress,name, thisAccountId).openOrThrowException("Can not getOrCreateMetadata !")
-    }
+   // If we already have alreadyFoundMetadata, return it, else get or create it.
+    alreadyFoundMetadata.getOrElse(
+      Counterparties.counterparties.vend
+        .getOrCreateMetadata(otherBankId, otherAccountId,name, thisAccountId)
+        .openOrThrowException("Can not getOrCreateMetadata !")
+    )
   }
 }
 
 class RemotedataCounterpartiesCaseClasses {
-  case class getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
+  case class getOrCreateMetadata(bankId: String, accountId: String, counterpartyName: String, CounterpartyId: String)
 
   case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
 

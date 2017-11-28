@@ -247,7 +247,10 @@ case class InternalCounterparty(
   description: String,
   otherAccountSecondaryRoutingScheme: String,
   otherAccountSecondaryRoutingAddress: String,
-  bespoke: List[PostCounterpartyBespoke]
+  bespoke: List[PostCounterpartyBespoke],
+  otherBankId: String = "",
+  otherAccountId: String = "",
+  otherAccountProvider: String = ""
 ) extends CounterpartyTrait
 
 

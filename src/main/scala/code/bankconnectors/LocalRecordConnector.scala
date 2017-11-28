@@ -227,7 +227,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
 
     val otherAccount = new Counterparty(
-      counterPartyId = metadata.metadataId,
+      counterpartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       otherBankRoutingAddress = "", 
@@ -382,7 +382,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
     new Counterparty(
-      counterPartyId = otherAccount.metadataId,
+      counterpartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       otherBankRoutingAddress = "", 

@@ -1134,7 +1134,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   // Helper for creating other bank account
   def createCounterparty(c: ObpJvmInboundTransactionCounterparty, o: ObpJvmBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
-      counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+      counterpartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
       otherBankRoutingAddress = "",
