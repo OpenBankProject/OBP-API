@@ -8,6 +8,9 @@ import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Full}
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 /**
   * Created by zhanghongwei on 14/07/2017.
   */
@@ -68,6 +71,10 @@ object MockedJune2017Connector extends ServerSetup
         accountRules = Nil
       ) :: Nil
     )
+  }
+
+  override def getBankAccountsFuture(username: String, callMfFlag: Boolean): Future[Box[List[InboundAccountJune2017]]] = Future {
+    getBankAccounts(username, callMfFlag)
   }
 }
 
