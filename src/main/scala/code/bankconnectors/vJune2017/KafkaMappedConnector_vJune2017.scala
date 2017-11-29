@@ -1362,9 +1362,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] =  saveConnectorMetric{memoizeSync(customersByUserIdBoxTTL second){{
-    
+
+  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
+
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(
       authInfo =
@@ -1376,28 +1376,29 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
     )
     logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
-    
+
     val future = for {
-      kafkaMessage <- processToFuture[OutboundGetCustomersByUserId](req)
-      inboundGetCustomersByUserIdFuture <- Future{kafkaMessage.extract[InboundGetCustomersByUserId]}
-      internalCustomer <- Future(inboundGetCustomersByUserIdFuture.data)
+      res <- processToFuture[OutboundGetCustomersByUserId](req) map {
+        _.extract[InboundGetCustomersByUserId] } map {
+        _.data
+      }
     } yield{
-      Full(internalCustomer)
+      res
     }
     logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $future")
-    
+
     val res = future map {
-      case Full(f) if (f.head.errorCode=="") =>
-        Full(f)
-      case Full(f) if (f.head.errorCode!="") =>
-        Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
-      case Full(List()) =>
+      case List() =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      case list if (list.head.errorCode=="") =>
+        Full(list)
+      case list if (list.head.errorCode!="") =>
+        Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:" + list.head.backendMessages)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
     res
-  }}}("getCustomersByUserIdBox")
+  }}("getCustomersByUserIdFuture")
   
   
   /////////////////////////////////////////////////////////////////////////////
