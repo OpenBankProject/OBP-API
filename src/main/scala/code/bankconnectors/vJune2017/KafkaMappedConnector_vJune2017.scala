@@ -403,7 +403,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
       val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
-      logger.debug(s"Kafka getBankAccounts says: req is: $req")
+      logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
       val future = for {
         res <- processToFuture[OutboundGetAccounts](req) map {
@@ -1377,7 +1377,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           payloadOfJwt.is_first
         )
     )
-    logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
+    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
 
     val future = for {
       res <- processToFuture[OutboundGetCustomersByUserId](req) map {
@@ -1387,7 +1387,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     } yield{
       res
     }
-    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $future")
+    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
 
     val res = future map {
       case List() =>
