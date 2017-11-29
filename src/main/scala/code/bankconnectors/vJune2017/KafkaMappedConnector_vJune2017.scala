@@ -406,21 +406,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       logger.debug(s"Kafka getBankAccounts says: req is: $req")
 
       val future = for {
-        kafkaMessage <- processToFuture[OutboundGetAccounts](req)
-        inboundGetAccounts <- Future{kafkaMessage.extract[InboundGetAccounts]}
-        inboundAccountJune2017 <- Future{(inboundGetAccounts.data)}
-      } yield{
-        Full(inboundAccountJune2017)
+        res <- processToFuture[OutboundGetAccounts](req) map {
+          _.extract[InboundGetAccounts]
+        } map {
+          _.data
+        }
+      } yield {
+        res
       }
       logger.debug(s"Kafka getBankAccounts says res is $future")
 
       future map {
-        case Full(list) if (list.head.errorCode=="") =>
-          Full(list)
-        case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
-        case Full(List()) =>
+        case List() =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case list if (list.head.errorCode=="") =>
+          Full(list)
+        case list if (list.head.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
