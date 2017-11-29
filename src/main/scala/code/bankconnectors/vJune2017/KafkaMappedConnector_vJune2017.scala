@@ -403,24 +403,26 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
       val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
-      logger.debug(s"Kafka getBankAccounts says: req is: $req")
+      logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
       val future = for {
-        kafkaMessage <- processToFuture[OutboundGetAccounts](req)
-        inboundGetAccounts <- Future{kafkaMessage.extract[InboundGetAccounts]}
-        inboundAccountJune2017 <- Future{(inboundGetAccounts.data)}
-      } yield{
-        Full(inboundAccountJune2017)
+        res <- processToFuture[OutboundGetAccounts](req) map {
+          _.extract[InboundGetAccounts]
+        } map {
+          _.data
+        }
+      } yield {
+        res
       }
       logger.debug(s"Kafka getBankAccounts says res is $future")
 
       future map {
-        case Full(list) if (list.head.errorCode=="") =>
-          Full(list)
-        case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
-        case Full(List()) =>
+        case List() =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case list if (list.head.errorCode=="") =>
+          Full(list)
+        case list if (list.head.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -692,24 +694,26 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         authInfo = AuthInfo(currentResourceUserId, userName, cbs),
         BankIdAccountIds
       )
-      logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
+      logger.debug(s"Kafka getCoreBankAccountsFuture says: req is: $req")
 
       val future = for {
-        kafkaMessage <- processToFuture[OutboundGetCoreBankAccounts](req)
-        inboundGetCoreBankAccounts <- Future{kafkaMessage.extract[InboundGetCoreBankAccounts]}
-        internalInboundCoreAccounts <- Future{inboundGetCoreBankAccounts.data}
+        res <- processToFuture[OutboundGetCoreBankAccounts](req) map {
+          _.extract[InboundGetCoreBankAccounts]
+        } map {
+          _.data
+        }
       } yield {
-        Full(internalInboundCoreAccounts)
+        res
       }
-      logger.debug(s"Kafka getCoreBankAccounts says res is $future")
+      logger.debug(s"Kafka getCoreBankAccountsFuture says res is $future")
 
       future map {
-        case Full(f) if (f.head.errorCode=="") =>
-          Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
-        case Full(f) if (f.head.errorCode!="") =>
-          Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
-        case Full(List()) =>
+        case List() =>
           Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+        case list if (list.head.errorCode=="") =>
+          Full(list.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
+        case list if (list.head.errorCode!="") =>
+          Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
         case _ =>
           Failure(ErrorMessages.UnknownError)
       }
@@ -1362,9 +1366,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] =  saveConnectorMetric{memoizeSync(customersByUserIdBoxTTL second){{
-    
+
+  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
+
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(
       authInfo =
@@ -1375,29 +1379,30 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           payloadOfJwt.is_first
         )
     )
-    logger.debug(s"Kafka getCustomersByUserIdBox Req says: is: $req")
-    
+    logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+
     val future = for {
-      kafkaMessage <- processToFuture[OutboundGetCustomersByUserId](req)
-      inboundGetCustomersByUserIdFuture <- Future{kafkaMessage.extract[InboundGetCustomersByUserId]}
-      internalCustomer <- Future(inboundGetCustomersByUserIdFuture.data)
+      res <- processToFuture[OutboundGetCustomersByUserId](req) map {
+        _.extract[InboundGetCustomersByUserId] } map {
+        _.data
+      }
     } yield{
-      Full(internalCustomer)
+      res
     }
-    logger.debug(s"Kafka getCustomersByUserIdBox Res says: is: $future")
-    
+    logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
+
     val res = future map {
-      case Full(f) if (f.head.errorCode=="") =>
-        Full(f)
-      case Full(f) if (f.head.errorCode!="") =>
-        Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
-      case Full(List()) =>
+      case List() =>
         Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      case list if (list.head.errorCode=="") =>
+        Full(list)
+      case list if (list.head.errorCode!="") =>
+        Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:" + list.head.backendMessages)
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
     res
-  }}}("getCustomersByUserIdBox")
+  }}("getCustomersByUserIdFuture")
   
   
   /////////////////////////////////////////////////////////////////////////////
