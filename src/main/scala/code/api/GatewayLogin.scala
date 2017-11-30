@@ -27,9 +27,9 @@ Berlin 13359, Germany
 package code.api
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.api.JSONFactoryGateway.{PayloadOfJwtJSON}
+import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.ErrorMessages
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, InboundAccountCommon}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
@@ -169,7 +169,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def refreshBankAccountsFuture(jwtPayload: String) : Future[Box[String]] = {
+  def refreshBankAccountsFuture(jwtPayload: String) : Future[Box[(String, List[InboundAccountCommon])]] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
@@ -180,7 +180,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       val res = Connector.connector.vend.getBankAccountsFuture(username, true) // Box[List[InboundAccountJune2017]]//
       res map {
         case Full(l) =>
-          Full(compactRender(Extraction.decompose(l))) // case class --> JValue --> Json string
+          Full(compactRender(Extraction.decompose(l)), l) // case class --> JValue --> Json string
         case Empty =>
           Empty
         case Failure(msg, t, c) =>
@@ -188,7 +188,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       }
     } else { // Do not call CBS
       Future {
-        Full(ErrorMessages.GatewayLoginNoNeedToCallCbs)
+        Full((ErrorMessages.GatewayLoginNoNeedToCallCbs, Nil))
       }
     }
   }
@@ -254,7 +254,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     for {
       cbs <- cbsF
       tuple <- cbs match {
-        case Full(s) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+        case Full((s, _)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
           logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
           Users.users.vend.getUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
             case Full(u) => // Only valid case because we expect to find a user
@@ -266,14 +266,14 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
-        case Full(s) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
+        case Full((s, accounts)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
           logger.debug("CBS returned proper response")
           Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
             case Full(u) =>
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
               if(isFirst.equalsIgnoreCase("true")) {
-                AuthUser.updateUserAccountViews(u)
+                AuthUser.updateUserAccountViews(u, accounts)
               }
               Full((u, Some(getCbsTokens(s).head))) // Return user
             case Empty =>
@@ -284,7 +284,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
 
-        case Full(s) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
+        case Full((s, _)) if getErrors(s).exists(_.equalsIgnoreCase("")==false) => // CBS returned some errors"
           logger.debug("CBS returned some errors")
           Future {
             Failure(getErrors(s).mkString(", "))

@@ -34,10 +34,11 @@ package code.model.dataAccess
 import java.util.UUID
 
 import code.accountholder.AccountHolders
+import code.api.GatewayLogin.gateway
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.{DirectLogin, OAuthHandshake}
-import code.bankconnectors.{Connector, InboundUser}
+import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
+import code.bankconnectors.{Connector, InboundAccountCommon, InboundUser}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -51,6 +52,8 @@ import code.model._
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+
+import scala.collection.immutable.List
 
 
 /**
@@ -294,6 +297,8 @@ import net.liftweb.util.Helpers._
         DirectLogin.getUser
       else if (hasAnOAuthHeader) {
         OAuthHandshake.getUser
+      } else if (hasGatewayHeader()){
+        GatewayLogin.getUser
       } else {
         debug(ErrorMessages.CurrentUserNotFoundException)
         Failure(ErrorMessages.CurrentUserNotFoundException)
@@ -829,11 +834,20 @@ import net.liftweb.util.Helpers._
     //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccounts(user.name, false).openOrThrowException("Attempted to open an empty Box.")
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
-    
+
+    updateUserAccountViews(user, accounts)
+  }
+
+  /**
+    * This is a helper method
+    * update the views, accountHolders for OBP side when sign up new remote user
+    *
+    */
+  def updateUserAccountViews(user: User, accounts: List[InboundAccountCommon]): Unit = {
     for {
       account <- accounts
-      viewId <- account.viewsToGenerate 
-      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId))) 
+      viewId <- account.viewsToGenerate
+      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
     } yield {
       Views.views.vend.getOrCreateViewPrivilege(view,user)
