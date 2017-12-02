@@ -16,8 +16,8 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
 
   val cc = RemotedataCounterpartiesCaseClasses
 
-  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] =
-    extractFutureToBox(actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty))
+  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, otherPartyThisAccountId: String): Box[CounterpartyMetadata] =
+    extractFutureToBox(actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, otherPartyThisAccountId: String))
 
   override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] =
     extractFuture(actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))

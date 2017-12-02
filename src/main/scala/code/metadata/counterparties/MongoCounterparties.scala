@@ -31,17 +31,17 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
     } yield m
   }
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata] = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherPartyLabel:String, otherPartyThisAccountId: String) : Box[CounterpartyMetadata] = {
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterPartyId)
+    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherPartyThisAccountId) //TODO otherPartyThisAccountId need be the CounterpartyID. 
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.thisAccountId.value)
+      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherPartyLabel, otherPartyThisAccountId)
     }
 
     Full(metadata)
