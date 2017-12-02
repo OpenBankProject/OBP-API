@@ -1841,4 +1841,17 @@ Versions are groups of endpoints in a file
     Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
   }
   
+  /**
+    * Normally, we create the AccountId, BankId automatically in database. Because they are the UUIDString in the table.
+    * We also can create the Id manually. 
+    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields. 
+    */
+  def createOrGetOBPId(in:String)= {
+    import net.liftweb.util.SecurityHelpers._
+    import java.security.MessageDigest
+    def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
+    
+    base64EncodedSha256(in)
+  }
+  
 }

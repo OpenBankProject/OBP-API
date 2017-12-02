@@ -53,9 +53,9 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
         bespoke: List[PostCounterpartyBespoke]
       ))
 
-    case cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, otherPartyThisAccountId: String) =>
+    case cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, counterpartyId:String, otherPartyThisAccountId: String) =>
       logger.debug("getOrCreateMetadata(" + originalPartyBankId +", " +originalPartyAccountId+otherPartyLabel+otherPartyThisAccountId+")")
-      sender ! extractResult(mapper.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, otherPartyThisAccountId: String))
+      sender ! extractResult(mapper.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherPartyLabel:String, counterpartyId:String, otherPartyThisAccountId: String))
 
     case cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId) =>
       logger.debug("getOrCreateMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")

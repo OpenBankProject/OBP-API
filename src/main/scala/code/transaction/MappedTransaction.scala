@@ -55,7 +55,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object CPOtherBankId extends MappedString(this, 36)
   object CPOtherAccountId extends AccountIdString(this)
   object CPOtherAccountProvider extends MappedString(this, 36)
-  object CPCounterPartyId extends MappedString(this, 36)
+  object CPCounterPartyId extends UUIDString(this)
   object CPOtherAccountRoutingScheme extends MappedString(this, 255)
   object CPOtherAccountRoutingAddress extends MappedString(this, 255)
   object CPOtherBankRoutingScheme extends MappedString(this, 255)

@@ -31,7 +31,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
     } yield m
   }
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherPartyLabel:String, otherPartyThisAccountId: String) : Box[CounterpartyMetadata] = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherPartyLabel:String, counterpartyId:String, otherPartyThisAccountId: String) : Box[CounterpartyMetadata] = {
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
