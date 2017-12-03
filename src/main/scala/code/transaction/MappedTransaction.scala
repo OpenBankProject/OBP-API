@@ -103,15 +103,15 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       def createCounterparty(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
         new Counterparty(
           counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-          label = counterpartyAccountHolder.get,
+          label = description.get,
           nationalIdentifier = counterpartyNationalId.get,
           otherBankRoutingAddress = None, 
           otherAccountRoutingAddress = getCounterpartyIban(),
-          thisAccountId = AccountId(counterpartyAccountNumber.get),
-          thisBankId = BankId(counterpartyBankName.get),
+          thisAccountId = theAccountId,//AccountId(counterpartyAccountNumber.get), //TODO? explain why map this??
+          thisBankId = theBankId,//BankId(counterpartyBankName.get), //TODO? explain why map this??
           kind = counterpartyAccountKind.get,
-          otherBankId = theBankId,
-          otherAccountId = theAccountId,
+//          otherBankId = theBankId,       //TODO? explain why map this??
+//          otherAccountId = theAccountId, //TODO? explain why map this??
           alreadyFoundMetadata = alreadyFoundMetadata,
           name = "",
           otherBankRoutingScheme = "",

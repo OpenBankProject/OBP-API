@@ -63,7 +63,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
 
     existing match {
       case Full(e) =>
-        logger.debug(s"MappedCounterpartyMetadata counterpartyId($counterpartyId) is existing")
+        logger.debug(s"Getting MappedCounterpartyMetadata counterpartyId($counterpartyId)")
         Full(e)
       // Create it!
       case _ => {
@@ -76,7 +76,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
           .thisAccountId(originalPartyAccountId.value)
           .holder(otherPartyLabel) // The main human readable identifier for this counter party from the perspective of the account holder
           .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
-          .accountNumber(otherPartyThisAccountId)
+//          .accountNumber(otherPartyThisAccountId)
           // otherParty.metadata is None at this point
           //.imageUrl("www.example.com/image.jpg")
           //.moreInfo("This is hardcoded moreInfo")
