@@ -17,6 +17,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
   //which has the counterparty this metadata is associated with
   object originalPartyBankId extends StringField(this, 100)
   object originalPartyAccountId extends StringField(this, 100)
+  object counterpartyId extends StringField(this,100)
 
   object holder extends StringField(this, 255)
   object accountNumber extends  StringField(this, 100)
@@ -70,7 +71,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
       Some(loc)
   }
 
-  override def metadataId = id.get.toString
+  override def metadataId = counterpartyId.get
   override def getHolder = holder.get
   override def getAccountNumber = accountNumber.get
   override def getUrl = url.get

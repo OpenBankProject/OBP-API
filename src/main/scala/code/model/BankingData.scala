@@ -688,7 +688,7 @@ class Counterparty(
       case None =>
         val counterpartyId = APIUtil.createOrGetOBPId(thisBankId.value+thisAccountId.value+label)
         val counterpartyName = label
-        Counterparties.counterparties.vend.getOrCreateMetadata(thisBankId, thisAccountId, counterpartyName, counterpartyId, thisAccountId.value).openOrThrowException("Can not getOrCreateMetadata !")
+        Counterparties.counterparties.vend.getOrCreateMetadata(thisBankId, thisAccountId, counterpartyId, counterpartyName).openOrThrowException("Can not getOrCreateMetadata !")
     }
   }
 }
