@@ -26,15 +26,21 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0
 
+import java.lang
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import code.api.util.APIUtil._
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
+import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
@@ -359,7 +365,25 @@ case class AdapterInfoJsonV300(
                                 git_commit: String,
                                 date: String
                               )
-
+case class CustomerJsonV300(
+                             bank_id: String,
+                             customer_id: String,
+                             customer_number : String,
+                             legal_name : String,
+                             mobile_phone_number : String,
+                             email : String,
+                             face_image : CustomerFaceImageJson,
+                             date_of_birth: String,
+                             relationship_status: String,
+                             dependants: Integer,
+                             dob_of_dependants: List[Date],
+                             credit_rating: Option[CustomerCreditRatingJSON],
+                             credit_limit: Option[AmountOfMoneyJsonV121],
+                             highest_education_attained: String,
+                             employment_status: String,
+                             kyc_status: lang.Boolean,
+                             last_ok_date: Date)
+case class CustomerJSONs(customers: List[CustomerJsonV300])
 
 object JSONFactory300{
   //stated -- Transaction relevant methods /////
@@ -937,6 +961,34 @@ object JSONFactory300{
       git_commit = ai.git_commit,
       date = ai.date
     )
+  }
+
+
+  def createCustomerJson(cInfo : Customer) : CustomerJsonV300 = {
+
+    CustomerJsonV300(
+      bank_id = cInfo.bankId.toString,
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
+        date = cInfo.faceImage.date),
+      date_of_birth = (new SimpleDateFormat("yyyy-MM-dd")).format(cInfo.dateOfBirth),
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
+      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate
+    )
+  }
+  def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
+    CustomerJSONs(customers.map(createCustomerJson))
   }
 
 }

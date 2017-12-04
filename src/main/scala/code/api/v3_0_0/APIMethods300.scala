@@ -1158,7 +1158,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory210.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
           }
         }
       }
