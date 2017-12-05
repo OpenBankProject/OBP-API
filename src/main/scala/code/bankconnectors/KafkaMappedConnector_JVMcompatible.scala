@@ -1384,7 +1384,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       kind = "",
 //      otherBankId = o.bankId,
 //      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
+//      alreadyFoundMetadata = alreadyFoundMetadata,
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",

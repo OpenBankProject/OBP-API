@@ -1454,7 +1454,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 //        otherAccountId = bankAccount.accountId, // This will be used mapping MappedCounterpartyMetadata.thisAccountId
         
         //This two will be generated in obp side implicitly
-        alreadyFoundMetadata = alreadyFoundMetadata,
+//        alreadyFoundMetadata = alreadyFoundMetadata,
         counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
         
         thisBankId = BankId(null),

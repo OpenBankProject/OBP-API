@@ -295,12 +295,39 @@ trait Connector extends MdcLoggable{
     
     val x = for {
       transaction <- transactions
-      counterpartyId <- List(APIUtil.createOrGetOBPId(bankId.value+accountId.value+transaction.description.getOrElse("")))
+      counterpartyName <- List(transaction+transaction.description.getOrElse("")+transaction.otherAccount.otherAccountRoutingAddress.getOrElse("")+transaction.otherAccount.thisAccountId.value)
+      counterpartyId <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName)) 
       counterpartyMetadata <- counterpartyMetadatas if counterpartyId == counterpartyMetadata.metadataId
     } yield {
       getCounterpartyFromTransaction(bankId, accountId, counterpartyMetadata, transaction).toList
     }
     Full(x.flatten)
+  }
+  
+  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata, t: Transaction) : Box[Counterparty] = {
+    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
+    //OtherBankAccountMetadata and a transaction
+    Full(
+      new Counterparty(
+        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+        counterPartyId = metadata.metadataId,
+        label = metadata.getHolder,
+        nationalIdentifier = t.otherAccount.nationalIdentifier,
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
+        thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
+        thisBankId = t.otherAccount.thisBankId,
+        kind = t.otherAccount.kind,
+        //            otherBankId = thisBankId,
+        //            otherAccountId = thisAccountId,
+//        alreadyFoundMetadata = Some(metadata),
+        name = "",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
+      )
+    )
   }
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
@@ -347,31 +374,6 @@ trait Connector extends MdcLoggable{
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard] = Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata, t: Transaction) : Box[Counterparty] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-         Full(
-           new Counterparty(
-            //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-            counterPartyId = metadata.metadataId,
-            label = metadata.getHolder,
-            nationalIdentifier = t.otherAccount.nationalIdentifier,
-            otherBankRoutingAddress = None,
-            otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-            thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
-            thisBankId = t.otherAccount.thisBankId,
-            kind = t.otherAccount.kind,
-//            otherBankId = thisBankId,
-//            otherAccountId = thisAccountId,
-            alreadyFoundMetadata = Some(metadata),
-            name = "",
-            otherBankRoutingScheme = "",
-            otherAccountRoutingScheme="",
-            otherAccountProvider = "",
-            isBeneficiary = true
-          )
-         )
-  }
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
   /**

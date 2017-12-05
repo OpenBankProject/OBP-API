@@ -1180,7 +1180,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       kind = "",
 //      otherBankId = o.bankId,
 //      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
+//      alreadyFoundMetadata = alreadyFoundMetadata,
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",

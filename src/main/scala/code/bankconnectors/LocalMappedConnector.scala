@@ -335,7 +335,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         kind = "",
 //        otherBankId = thisBankId,
 //        otherAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(t),
+//        alreadyFoundMetadata = Some(t),
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",

@@ -1144,7 +1144,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       kind = "",
 //      otherBankId = o.bankId,
 //      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
+//      alreadyFoundMetadata = alreadyFoundMetadata,
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",

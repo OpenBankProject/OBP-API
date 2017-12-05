@@ -1787,7 +1787,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       kind = "1234",
 //      otherBankId = o.bankId,
 //      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
+//      alreadyFoundMetadata = alreadyFoundMetadata,
       name = "sushan",
       otherBankRoutingScheme = "obp",
       otherAccountRoutingScheme="obp",
