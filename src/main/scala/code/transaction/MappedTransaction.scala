@@ -2,7 +2,6 @@ package code.transaction
 
 import java.util.UUID
 
-import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import code.util._
 import net.liftweb.common.Logger
@@ -56,7 +55,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object CPOtherBankId extends MappedString(this, 36)
   object CPOtherAccountId extends AccountIdString(this)
   object CPOtherAccountProvider extends MappedString(this, 36)
-  object CPCounterPartyId extends UUIDString(this)
+  object CPCounterPartyId extends MappedString(this, 36)
   object CPOtherAccountRoutingScheme extends MappedString(this, 255)
   object CPOtherAccountRoutingAddress extends MappedString(this, 255)
   object CPOtherBankRoutingScheme extends MappedString(this, 255)
@@ -101,21 +100,23 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      //TODO This method should be as general as possible, need move to general object, not here.  
-      def createCounterparty(counterpartyId : String) = {
+      def createCounterparty(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
         new Counterparty(
-          counterPartyId = counterpartyId,
-          kind = counterpartyAccountKind.get,
-          nationalIdentifier = counterpartyNationalId.get,
+          counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = counterpartyAccountHolder.get,
-          name = counterpartyAccountHolder.get,
-          thisAccountId = AccountId(counterpartyAccountNumber.get), //TODO? explain why map this?? we need create counterparty for all connectors, can not get it sometimes.
-          thisBankId = BankId(counterpartyBankName.get), //TODO? explain why map this??we need create counterparty for all connectors, can not get it sometimes.
-          otherAccountProvider = "",
-          otherBankRoutingScheme = "",
+          nationalIdentifier = counterpartyNationalId.get,
           otherBankRoutingAddress = None, 
-          otherAccountRoutingScheme="",
           otherAccountRoutingAddress = getCounterpartyIban(),
+          thisAccountId = AccountId(counterpartyAccountNumber.get),
+          thisBankId = BankId(counterpartyBankName.get),
+          kind = counterpartyAccountKind.get,
+          otherBankId = theBankId,
+          otherAccountId = theAccountId,
+          alreadyFoundMetadata = alreadyFoundMetadata,
+          name = "",
+          otherBankRoutingScheme = "",
+          otherAccountRoutingScheme="",
+          otherAccountProvider = "",
           isBeneficiary = true
         )
       }
@@ -124,10 +125,13 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
       //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
       //so that we know what id to give it.
-      //--> now it is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
-      val counterpartyName = description+CPOtherAccountRoutingAddress.get+counterpartyAccountNumber.get
-      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
-      val otherAccount = createCounterparty(counterpartyId)
+
+      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+      val dummyOtherBankAccount = createCounterparty(None)
+
+      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+      val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
 
       Some(new Transaction(
                             transactionUUID.get,
