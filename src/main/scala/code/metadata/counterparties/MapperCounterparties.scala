@@ -308,8 +308,8 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 
   //these define the counterparty
   object holder extends MappedString(this, 255) // Is this the name of the counterparty?
-  @deprecated("old version, security hole, not good to store core banking data in obp")
-  object accountNumber extends MappedAccountNumber(this)
+//  @deprecated("old version, security hole, not good to store core banking data in obp")
+//  object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
   object publicAlias extends MappedString(this, 64)
@@ -366,7 +366,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   }
 
   override def metadataId: String = counterpartyId.get
-  override def getAccountNumber: String = accountNumber.get
+//  override def getAccountNumber: String = accountNumber.get
   override def getHolder: String = holder.get
   override def getPublicAlias: String = publicAlias.get
   override def getCorporateLocation: Option[GeoTag] =

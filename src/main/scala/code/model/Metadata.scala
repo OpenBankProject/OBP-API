@@ -106,7 +106,7 @@ Counterparty metadata
 trait CounterpartyMetadata {
   def metadataId: String
   def getHolder: String
-  def getAccountNumber: String
+//  def getAccountNumber: String
   def getPublicAlias: String
   def getPrivateAlias: String
   def getMoreInfo: String

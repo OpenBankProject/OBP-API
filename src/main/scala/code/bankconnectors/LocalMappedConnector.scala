@@ -330,7 +330,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         nationalIdentifier = "",
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,
-        thisAccountId = AccountId(t.getAccountNumber),
+        thisAccountId = thisAccountId,
         thisBankId = BankId(""),
         kind = "",
 //        otherBankId = thisBankId,

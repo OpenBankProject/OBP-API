@@ -20,7 +20,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
   object counterpartyId extends StringField(this,100)
 
   object holder extends StringField(this, 255)
-  object accountNumber extends  StringField(this, 100)
+//  object accountNumber extends  StringField(this, 100)
   object publicAlias extends StringField(this, 100)
   object privateAlias extends StringField(this, 100)
   object moreInfo extends StringField(this, 100)
@@ -73,7 +73,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
 
   override def metadataId = counterpartyId.get
   override def getHolder = holder.get
-  override def getAccountNumber = accountNumber.get
+//  override def getAccountNumber = accountNumber.get
   override def getUrl = url.get
   override def getCorporateLocation = locationTag(corporateLocation.get)
   override def getPhysicalLocation = locationTag(physicalLocation.get)

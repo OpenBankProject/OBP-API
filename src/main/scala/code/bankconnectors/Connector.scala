@@ -358,7 +358,7 @@ trait Connector extends MdcLoggable{
             nationalIdentifier = t.otherAccount.nationalIdentifier,
             otherBankRoutingAddress = None,
             otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-            thisAccountId = AccountId(metadata.getAccountNumber),
+            thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
             thisBankId = t.otherAccount.thisBankId,
             kind = t.otherAccount.kind,
 //            otherBankId = thisBankId,

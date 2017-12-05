@@ -96,7 +96,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       } yield{
         val query = QueryBuilder
           .start("obp_transaction.other_account.holder").is(otherAccountmetadata.holder.get)
-          .put("obp_transaction.other_account.number").is(otherAccountmetadata.accountNumber.get).get()
+//          .put("obp_transaction.other_account.number").is(otherAccountmetadata.accountNumber.get)
+          .get()
 
         val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
           case Full(envelope) => envelope.obp_transaction.get.other_account.get
@@ -121,7 +122,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
         .start("obp_transaction.other_account.holder").is(meta.getHolder)
-        .put("obp_transaction.other_account.number").is(meta.getAccountNumber).get()
+//        .put("obp_transaction.other_account.number").is(meta.getAccountNumber)
+        .get()
 
       val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
         case Full(envelope) => {
