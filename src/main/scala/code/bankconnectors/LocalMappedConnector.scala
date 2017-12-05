@@ -330,12 +330,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         nationalIdentifier = "",
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,
-        thisAccountId = thisAccountId,
+        thisAccountId = AccountId(t.getAccountNumber),
         thisBankId = BankId(""),
         kind = "",
-//        otherBankId = thisBankId,
-//        otherAccountId = thisAccountId,
-//        alreadyFoundMetadata = Some(t),
+        otherBankId = thisBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(t),
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",
@@ -535,7 +535,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .description(description)
        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
       .counterpartyAccountHolder(toAccount.accountHolder)
-      .counterpartyAccountNumber(toAccount.number)//TODO if there is no number???
+      .counterpartyAccountNumber(toAccount.number)
       .counterpartyAccountKind(toAccount.accountType)
       .counterpartyBankName(toAccount.bankName)
       .counterpartyIban(toAccount.iban.getOrElse(""))
