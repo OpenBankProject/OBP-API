@@ -44,6 +44,7 @@ import code.api.OAuthHandshake._
 import code.api._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.v1_2.ErrorMessage
+import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
@@ -1841,4 +1842,51 @@ Versions are groups of endpoints in a file
     Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
   }
   
+  /**
+    * Normally, we create the AccountId, BankId automatically in database. Because they are the UUIDString in the table.
+    * We also can create the Id manually. 
+    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields. 
+    */
+  def createOBPId(in:String)= {
+    import net.liftweb.util.SecurityHelpers._
+    import java.security.MessageDigest
+    def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
+    
+    base64EncodedSha256(in)
+  }
+  
+  /**
+    *  Create the explicit CounterpartyId, we can get info data from api level. (Used in `Create counterparty for an account` endpoint )
+    */
+  def createExplicitCounterpartyId(
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId : String,
+    thisViewId : String,
+    name: String,
+    otherAccountRoutingScheme : String,
+    otherAccountRoutingAddress : String,
+    otherBankRoutingScheme : String,
+    otherBankRoutingAddress : String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary: Boolean,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    description: String,
+    bespoke: List[PostCounterpartyBespoke]
+  )= createOBPId(s"$thisBankId$thisAccountId$thisViewId$name$otherAccountRoutingScheme" +
+      s"$otherAccountRoutingAddress$otherBankRoutingScheme$otherBankRoutingAddress$otherBranchRoutingScheme" +
+      s"$otherBranchRoutingAddress$isBeneficiary$otherAccountSecondaryRoutingScheme$otherAccountSecondaryRoutingAddress" +
+      s"$description${bespoke.map(_.value)}")
+  
+  /**
+    * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
+    * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can gernerate the `counterpartyName`
+    */
+  def createImplicitCounterpartyId(
+    thisBankId: String,
+    thisAccountId : String,
+    counterpartyName: String
+  )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
 }
