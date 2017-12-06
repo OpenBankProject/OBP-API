@@ -314,14 +314,14 @@ trait Connector extends MdcLoggable{
         counterPartyId = metadata.metadataId,
         name = metadata.getHolder,
         nationalIdentifier = t.otherAccount.nationalIdentifier,
-        otherBankRoutingAddress = None,
+        otherBankRoutingAddress = t.otherAccount.otherBankRoutingAddress,
         otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
         thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
         thisBankId = t.otherAccount.thisBankId,
         kind = t.otherAccount.kind,
-        otherBankRoutingScheme = "",
-        otherAccountRoutingScheme="",
-        otherAccountProvider = "",
+        otherBankRoutingScheme = t.otherAccount.otherBankRoutingScheme,
+        otherAccountRoutingScheme=t.otherAccount.otherAccountRoutingScheme,
+        otherAccountProvider = t.otherAccount.otherAccountProvider,
         isBeneficiary = true
       )
     )
