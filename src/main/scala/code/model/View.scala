@@ -539,7 +539,7 @@ trait View {
       //other account data
       val otherAccountId = otherBankAccount.counterPartyId
       val otherAccountLabel: AccountName = {
-        val realName = otherBankAccount.label
+        val realName = otherBankAccount.name
 
         if (usePublicAliasIfOneExists) {
 

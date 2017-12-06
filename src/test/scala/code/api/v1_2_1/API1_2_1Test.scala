@@ -43,12 +43,12 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import _root_.net.liftweb.util.{Props, _}
 import code.api.ErrorMessage
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2Accounts, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
 import org.scalatest.Tag
 
 import scala.util.Random._
 
-class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
+class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
 
   def v1_2_1Request = baseRequest / "obp" / "v1.2.1"
 

@@ -273,8 +273,9 @@ trait Connector extends MdcLoggable{
   def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] = {
     // Please note that Metadata and Transaction can be at different locations
     // Obtain all necessary data and then intersect they
-    val counterpartyMetadatas = Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).toList
+    //TODO, not good, we just want to get one counterparty, but we need first get all the transactions and than filter them...
     val transactions = getTransactions(bankId, accountId).toList.flatten
+    val counterpartyMetadatas = Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).toList
     val x = for {
       transaction <- transactions
       counterpartyMetadata <- counterpartyMetadatas if counterpartyID == counterpartyMetadata.metadataId
@@ -290,12 +291,12 @@ trait Connector extends MdcLoggable{
   def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): Box[List[Counterparty]] = {
     // Please note that Metadata and Transaction can be at different locations
     // Obtain all necessary data and then intersect they
-    val counterpartyMetadatas= Counterparties.counterparties.vend.getMetadatas(bankId, accountId)
     val transactions= getTransactions(bankId, accountId).toList.flatten
+    val counterpartyMetadatas= Counterparties.counterparties.vend.getMetadatas(bankId, accountId)
     
     val x = for {
       transaction <- transactions
-      counterpartyName <- List(transaction+transaction.description.getOrElse("")+transaction.otherAccount.otherAccountRoutingAddress.getOrElse("")+transaction.otherAccount.thisAccountId.value)
+      counterpartyName <- List(transaction.otherAccount.name)
       counterpartyId <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName)) 
       counterpartyMetadata <- counterpartyMetadatas if counterpartyId == counterpartyMetadata.metadataId
     } yield {
@@ -311,17 +312,13 @@ trait Connector extends MdcLoggable{
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
         counterPartyId = metadata.metadataId,
-        label = metadata.getHolder,
+        name = metadata.getHolder,
         nationalIdentifier = t.otherAccount.nationalIdentifier,
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
         thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
         thisBankId = t.otherAccount.thisBankId,
         kind = t.otherAccount.kind,
-        //            otherBankId = thisBankId,
-        //            otherAccountId = thisAccountId,
-//        alreadyFoundMetadata = Some(metadata),
-        name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",
         otherAccountProvider = "",

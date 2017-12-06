@@ -123,6 +123,12 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .counterpartyBankName(randomString(5))
       .counterpartyIban(randomString(5))
       .counterpartyNationalId(randomString(5))
+      .CPOtherAccountRoutingScheme(randomString(5))
+      .CPOtherAccountRoutingAddress(randomString(5))
+      .CPOtherAccountSecondaryRoutingScheme(randomString(5))
+      .CPOtherAccountSecondaryRoutingAddress(randomString(5))
+      .CPOtherBankRoutingScheme(randomString(5))
+      .CPOtherBankRoutingAddress(randomString(5))
       .saveMe
       .toTransaction.orNull
   }

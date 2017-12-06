@@ -1856,33 +1856,14 @@ Versions are groups of endpoints in a file
   }
   
   /**
-    *  Create the explicit CounterpartyId, we can get info data from api level. (Used in `Create counterparty for an account` endpoint )
+    *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
+    *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
     */
-  def createExplicitCounterpartyId(
-    createdByUserId: String,
-    thisBankId: String,
-    thisAccountId : String,
-    thisViewId : String,
-    name: String,
-    otherAccountRoutingScheme : String,
-    otherAccountRoutingAddress : String,
-    otherBankRoutingScheme : String,
-    otherBankRoutingAddress : String,
-    otherBranchRoutingScheme: String,
-    otherBranchRoutingAddress: String,
-    isBeneficiary: Boolean,
-    otherAccountSecondaryRoutingScheme: String,
-    otherAccountSecondaryRoutingAddress: String,
-    description: String,
-    bespoke: List[PostCounterpartyBespoke]
-  )= createOBPId(s"$thisBankId$thisAccountId$thisViewId$name$otherAccountRoutingScheme" +
-      s"$otherAccountRoutingAddress$otherBankRoutingScheme$otherBankRoutingAddress$otherBranchRoutingScheme" +
-      s"$otherBranchRoutingAddress$isBeneficiary$otherAccountSecondaryRoutingScheme$otherAccountSecondaryRoutingAddress" +
-      s"$description${bespoke.map(_.value)}")
+  def createExplicitCounterpartyId()= UUID.randomUUID().toString
   
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
-    * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can gernerate the `counterpartyName`
+    * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can generate the `counterpartyName`
     */
   def createImplicitCounterpartyId(
     thisBankId: String,

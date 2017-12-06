@@ -149,27 +149,10 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   bespoke: List[PostCounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     
-    val counterpartyId = APIUtil.createExplicitCounterpartyId(
-      createdByUserId: String,
-      thisBankId: String,
-      thisAccountId : String,
-      thisViewId : String,
-      name: String,
-      otherAccountRoutingScheme : String,
-      otherAccountRoutingAddress : String,
-      otherBankRoutingScheme : String,
-      otherBankRoutingAddress : String,
-      otherBranchRoutingScheme: String,
-      otherBranchRoutingAddress: String,
-      isBeneficiary: Boolean,
-      otherAccountSecondaryRoutingScheme: String,
-      otherAccountSecondaryRoutingAddress: String,
-      description: String,
-      bespoke: List[PostCounterpartyBespoke]
-    )
+    val counterpartyId = APIUtil.createExplicitCounterpartyId()
   
     //This is the `EXPLICIT` Counterparty, we also create the metaData for it
-    val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(BankId(thisBankId), AccountId(thisAccountId),  counterpartyId, name).openOrThrowException("Can not getOrCreateMetadata !")
+    val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(BankId(thisBankId), AccountId(thisAccountId), counterpartyId, name).openOrThrowException("Can not getOrCreateMetadata !")
     
     val mappedCounterparty = MappedCounterparty.create
       .mCounterPartyId(metadata.metadataId)

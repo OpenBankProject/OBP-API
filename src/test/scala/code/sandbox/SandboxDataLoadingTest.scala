@@ -347,8 +347,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //counterparty
     if(transaction.counterparty.isDefined) {
       transaction.counterparty.get.name match {
-        case Some(name) => otherAcc.label should equal(name)
-        case None => otherAcc.label.nonEmpty should equal(true) //it should generate a counterparty label
+        case Some(name) => otherAcc.name should equal(name)
+        case None => otherAcc.name.nonEmpty should equal(true) //it should generate a counterparty label
       }
 
       transaction.counterparty.get.account_number match {
@@ -1246,7 +1246,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     createdTransaction.isDefined should equal(true)
     val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
 
-    created.otherAccount.label.nonEmpty should equal(true)
+    created.otherAccount.name.nonEmpty should equal(true)
     created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
@@ -1274,7 +1274,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     createdTransaction.isDefined should equal(true)
     val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
 
-    created.otherAccount.label.nonEmpty should equal(true)
+    created.otherAccount.name.nonEmpty should equal(true)
     created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
@@ -1302,7 +1302,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     createdTransaction.isDefined should equal(true)
     val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
 
-    created.otherAccount.label should equal(t.counterparty.get.name.get)
+    created.otherAccount.name should equal(t.counterparty.get.name.get)
     created.otherAccount.thisAccountId.value should equal("")
   }
 
@@ -1329,7 +1329,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     createdTransaction.isDefined should equal(true)
     val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
 
-    created.otherAccount.label should equal(t.counterparty.get.name.get)
+    created.otherAccount.name should equal(t.counterparty.get.name.get)
     created.otherAccount.thisAccountId.value should equal("")
   }
 
@@ -1512,8 +1512,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     counter2.thisAccountId.value should equal(counterpartyAccNumber2)
   }
 
-  it should "always create a new counterparty if none was specified, rather than having all transactions without specified" +
-    "counterparties share a single one" in {
+  it should "always share a single one counterparty if none was specified (perfermance issue, if each time we create the new one)" in {
 
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
@@ -1551,12 +1550,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
     val counter3 = foundTransaction3Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 
-    counter1.counterPartyId should not equal(counter2.counterPartyId)
-    counter1.counterPartyId should not equal(counter3.counterPartyId)
-    counter2.counterPartyId should not equal(counter3.counterPartyId)
-    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
-    counter2.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
+    counter1.counterPartyId should equal(counter2.counterPartyId)
+    counter1.counterPartyId should equal(counter3.counterPartyId)
+    counter2.counterPartyId should equal(counter3.counterPartyId)
+    counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
+    counter1.metadata.getPublicAlias should equal(counter3.metadata.getPublicAlias)
+    counter2.metadata.getPublicAlias should equal(counter3.metadata.getPublicAlias)
   }
 
   it should "not create any transactions when one has an invalid or missing value" in {

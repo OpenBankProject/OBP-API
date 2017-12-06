@@ -1,15 +1,11 @@
 package code.management
 
-import code.api._
-import code.api.v1_2_1._
-import code.bankconnectors.Connector
-import code.model.{AccountId, BankId}
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2Accounts, User1AllPrivileges}
-import net.liftweb.common.Empty
+import code.api.v1_2_1._
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
 import org.scalatest.Tag
 
-class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
+class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
 
   //define Tags
   object Management extends Tag("Management")
