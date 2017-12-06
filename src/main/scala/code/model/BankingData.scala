@@ -37,7 +37,7 @@ import scala.math.BigDecimal
 import java.util.Date
 
 import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, SessionContext}
+import code.api.util.SessionContext
 import code.bankconnectors.vJune2017.AccountRules
 
 import scala.collection.immutable.{List, Set}

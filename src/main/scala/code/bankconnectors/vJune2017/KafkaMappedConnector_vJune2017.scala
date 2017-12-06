@@ -43,10 +43,11 @@ import code.util.Helper.MdcLoggable
 import code.api.util.APIUtil.getSecondsCache
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
-import net.liftweb.json.Extraction
+import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
+
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -407,7 +408,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
       val future = for {
         res <- processToFuture[OutboundGetAccounts](req) map {
-          _.extract[InboundGetAccounts]
+          f =>
+            try {
+              f.extract[InboundGetAccounts]
+            } catch {
+              case e: Exception => throw new MappingException(s"$InboundGetAccounts extract error", e)
+            }
         } map {
           _.data
         }
@@ -698,7 +704,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
       val future = for {
         res <- processToFuture[OutboundGetCoreBankAccounts](req) map {
-          _.extract[InboundGetCoreBankAccounts]
+          f =>
+            try {
+              f.extract[InboundGetCoreBankAccounts]
+            } catch {
+              case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error", e)
+            }
         } map {
           _.data
         }
@@ -1383,7 +1394,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
     val future = for {
       res <- processToFuture[OutboundGetCustomersByUserId](req) map {
-        _.extract[InboundGetCustomersByUserId] } map {
+        f =>
+          try {
+            f.extract[InboundGetCustomersByUserId]
+          } catch {
+            case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error", e)
+          }
+      } map {
         _.data
       }
     } yield{
