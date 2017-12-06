@@ -22,7 +22,7 @@ object Counterparties extends SimpleInjector {
 
 trait Counterparties {
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
+  def getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)  : Box[CounterpartyMetadata]
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
@@ -102,8 +102,8 @@ trait CounterpartyTrait {
 }
 
 class RemotedataCounterpartiesCaseClasses {
-  case class getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
-
+  case class getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)
+  
   case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
 
   case class getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)

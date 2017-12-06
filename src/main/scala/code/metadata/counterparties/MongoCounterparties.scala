@@ -31,17 +31,17 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
     } yield m
   }
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata] = {
+  def getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)  : Box[CounterpartyMetadata] = {
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterPartyId)
+    val existing = getMetadata(bankId, accountId, counterpartyId)
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.thisAccountId.value)
+      case _ => createMetadata(bankId, accountId, counterpartyName, counterpartyId)
     }
 
     Full(metadata)
@@ -50,25 +50,27 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   /**
    * This only exists for OBPEnvelope. Avoid using it for any other reason outside of this class
    */
-  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String, otherAccountNumber : String) : Metadata = {
+  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String, counterpartyId : String) : Metadata = {
     //create it
     if(otherAccountHolder.isEmpty){
       logger.info("other account holder is Empty. creating a metadata record with private alias")
       //no holder name, nothing to hide, so we don't need to create a public alias
       Metadata
         .createRecord
+        .counterpartyId(counterpartyId)
         .originalPartyBankId(originalPartyBankId.value)
         .originalPartyAccountId(originalPartyAccountId.value)
-        .accountNumber(otherAccountNumber)
+//        .accountNumber(otherAccountNumber)
         .holder("")
         .save(true)
 
     } else {
       Metadata.createRecord.
+        counterpartyId(counterpartyId).
         originalPartyBankId(originalPartyBankId.value).
         originalPartyAccountId(originalPartyAccountId.value).
         holder(otherAccountHolder).
-        accountNumber(otherAccountNumber).
+//        accountNumber(otherAccountNumber).
         publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save(true)
     }
   }

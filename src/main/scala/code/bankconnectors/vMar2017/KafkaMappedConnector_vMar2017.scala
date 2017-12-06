@@ -1778,17 +1778,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount2, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = counterpartyName,
+      name = counterpartyName,
       nationalIdentifier = "1234",
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
       thisAccountId = AccountId(counterpartyId),
       thisBankId = BankId(""),
       kind = "1234",
-      otherBankId = o.bankId,
-      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
-      name = "sushan",
       otherBankRoutingScheme = "obp",
       otherAccountRoutingScheme="obp",
       otherAccountProvider = "obp",

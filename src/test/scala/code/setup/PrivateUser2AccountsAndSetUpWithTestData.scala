@@ -4,7 +4,7 @@ import code.bankconnectors.Connector
 import code.model.{AccountId, User}
 import net.liftweb.util.Helpers._
 
-trait PrivateUser2Accounts {
+trait PrivateUser2AccountsAndSetUpWithTestData {
 
   self: ServerSetupWithTestData with DefaultUsers =>
 

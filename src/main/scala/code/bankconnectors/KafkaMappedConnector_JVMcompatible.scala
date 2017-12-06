@@ -1375,17 +1375,13 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   def createCounterparty(counterpartyId: String, counterpartyName: String, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = counterpartyName,
+      name = counterpartyName,
       nationalIdentifier = "",
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,
       thisAccountId = AccountId(counterpartyId),
       thisBankId = BankId(""),
       kind = "",
-      otherBankId = o.bankId,
-      otherAccountId = o.accountId,
-      alreadyFoundMetadata = alreadyFoundMetadata,
-      name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
       otherAccountProvider = "",

@@ -657,38 +657,29 @@ as see from the perspective of the original party.
 
 // Note: See also CounterpartyTrait
 class Counterparty(
-
-                    @deprecated("older version, please first consider the V210, account scheme and address") 
-                    val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    val alreadyFoundMetadata : Option[CounterpartyMetadata],
-                    val label : String, // Reference given to the counterparty by the original party.
-                    val kind : String, // Type of bank account.
-
-                    // The following fields started from V210
-                    val counterPartyId: String,
-                    val name: String,
-                    val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    val otherAccountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
-                    val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-                    val otherBankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
-                    val thisBankId : BankId, // i.e. the Account that sends/receives money to/from this Counterparty
-                    val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
-                    val otherBankId : BankId, // These 3 fields specify the internal locaiton of the account for the
-                    val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
-                    val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
-                    val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
-  )
-{
-
-  val metadata : CounterpartyMetadata = {
-    // If we already have alreadyFoundMetadata, return it, else get or create it.
-    alreadyFoundMetadata match {
-      case Some(meta) =>
-        meta
-      case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this).openOrThrowException("Can not getOrCreateMetadata !")
-    }
-  }
+  
+  @deprecated("older version, please first consider the V210, account scheme and address","05/05/2017")
+  val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+  val kind: String, // Type of bank account.
+  
+  // The following fields started from V210
+  val counterPartyId: String,
+  val name: String,
+  val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
+  val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
+  val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+  val otherBankRoutingAddress: Option[String], // The (BIC) value e.g. 67895
+  val otherAccountRoutingScheme: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+  val otherAccountRoutingAddress: Option[String], // The (IBAN) value e.g. 2349870987820374
+  val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
+  val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
+) {
+  val metadata: CounterpartyMetadata = Counterparties.counterparties.vend.getOrCreateMetadata(
+    thisBankId, 
+    thisAccountId, 
+    counterPartyId, 
+    name
+  ).openOrThrowException("Can not getOrCreateMetadata !")
 }
 
 trait TransactionUUID {

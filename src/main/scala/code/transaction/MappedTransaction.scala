@@ -2,6 +2,7 @@ package code.transaction
 
 import java.util.UUID
 
+import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import code.util._
 import net.liftweb.common.Logger
@@ -38,26 +39,28 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   object description extends MappedString(this, 2000)
   object chargePolicy extends MappedString(this, 32)
-
-  object counterpartyAccountNumber extends MappedAccountNumber(this)
+  
   object counterpartyAccountHolder extends MappedString(this, 255)
-  //still unclear exactly how what this is defined to mean
-  object counterpartyNationalId extends MappedString(this, 40)
-  //this should eventually be calculated using counterpartyNationalId
-  object counterpartyBankName extends MappedString(this, 100)
-  //this should eventually either generate counterpartyAccountNumber or be generated
-  object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
+  object counterpartyBankName extends MappedString(this, 100)
+  object counterpartyNationalId extends MappedString(this, 40)
+  
+  @deprecated("use CPOtherAccountRoutingAddress instead. ","06/12/2017")
+  object counterpartyAccountNumber extends MappedAccountNumber(this)
+  
+  @deprecated("use CPOtherAccountSecondaryRoutingAddress instead. ","06/12/2017")
+  //this should eventually be calculated using counterpartyNationalId
+  object counterpartyIban extends MappedString(this, 100)
 
   //The following are the fields from CounterpartyTrait, previous just save BankAccount to simulate the counterparty.
   //Now we save the real Counterparty data 
   //CP--> CounterParty
-  object CPOtherBankId extends MappedString(this, 36)
-  object CPOtherAccountId extends AccountIdString(this)
+  object CPCounterPartyId extends UUIDString(this)
   object CPOtherAccountProvider extends MappedString(this, 36)
-  object CPCounterPartyId extends MappedString(this, 36)
   object CPOtherAccountRoutingScheme extends MappedString(this, 255)
   object CPOtherAccountRoutingAddress extends MappedString(this, 255)
+  object CPOtherAccountSecondaryRoutingScheme extends MappedString(this, 255)
+  object CPOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
   object CPOtherBankRoutingScheme extends MappedString(this, 255)
   object CPOtherBankRoutingAddress extends MappedString(this, 255)
   
@@ -82,7 +85,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     val i = counterpartyIban.get
     if(i.isEmpty) None else Some(i)
   }
-
+  
+  //This method have the side affact, it will create the counterparty metaData... 
   def toTransaction(account: BankAccount): Option[Transaction] = {
     val tBankId = theBankId
     val tAccId = theAccountId
@@ -100,23 +104,20 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      def createCounterparty(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+      //TODO This method should be as general as possible, need move to general object, not here.  
+      def createCounterparty(counterpartyId : String) = {
         new Counterparty(
-          counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-          label = counterpartyAccountHolder.get,
-          nationalIdentifier = counterpartyNationalId.get,
-          otherBankRoutingAddress = None, 
-          otherAccountRoutingAddress = getCounterpartyIban(),
-          thisAccountId = AccountId(counterpartyAccountNumber.get),
-          thisBankId = BankId(counterpartyBankName.get),
+          counterPartyId = counterpartyId,
           kind = counterpartyAccountKind.get,
-          otherBankId = theBankId,
-          otherAccountId = theAccountId,
-          alreadyFoundMetadata = alreadyFoundMetadata,
-          name = "",
-          otherBankRoutingScheme = "",
-          otherAccountRoutingScheme="",
-          otherAccountProvider = "",
+          nationalIdentifier = counterpartyNationalId.get,
+          name = counterpartyAccountHolder.get,
+          thisBankId = BankId(theBankId.value), 
+          thisAccountId = AccountId(theAccountId.value), 
+          otherAccountProvider = counterpartyAccountHolder.get,
+          otherBankRoutingAddress = Some(CPOtherBankRoutingAddress.get), 
+          otherBankRoutingScheme = CPOtherBankRoutingScheme.get,
+          otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get,
+          otherAccountRoutingAddress = Some(CPOtherAccountRoutingAddress.get),
           isBeneficiary = true
         )
       }
@@ -125,13 +126,10 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
       //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
       //so that we know what id to give it.
-
-      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      val dummyOtherBankAccount = createCounterparty(None)
-
-      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
+      //--> now it is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
+      val counterpartyName = counterpartyAccountHolder.get
+      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
+      val otherAccount = createCounterparty(counterpartyId)
 
       Some(new Transaction(
                             transactionUUID.get,

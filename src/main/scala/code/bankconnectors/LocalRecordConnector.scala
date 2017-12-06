@@ -96,7 +96,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       } yield{
         val query = QueryBuilder
           .start("obp_transaction.other_account.holder").is(otherAccountmetadata.holder.get)
-          .put("obp_transaction.other_account.number").is(otherAccountmetadata.accountNumber.get).get()
+//          .put("obp_transaction.other_account.number").is(otherAccountmetadata.accountNumber.get)
+          .get()
 
         val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
           case Full(envelope) => envelope.obp_transaction.get.other_account.get
@@ -121,7 +122,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
         .start("obp_transaction.other_account.holder").is(meta.getHolder)
-        .put("obp_transaction.other_account.number").is(meta.getAccountNumber).get()
+//        .put("obp_transaction.other_account.number").is(meta.getAccountNumber)
+        .get()
 
       val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
         case Full(envelope) => {
@@ -228,17 +230,13 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
     val otherAccount = new Counterparty(
       counterPartyId = metadata.metadataId,
-      label = otherAccount_.holder.get,
+      name = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccount_.number.get),
       thisBankId = BankId(otherAccount_.bank.get.name.get),
       kind = otherAccount_.kind.get,
-      otherBankId = theAccount.bankId,
-      otherAccountId = theAccount.accountId,
-      alreadyFoundMetadata = Some(metadata),
-      name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
       otherAccountProvider = "",
@@ -383,17 +381,13 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
     new Counterparty(
       counterPartyId = otherAccount.metadataId,
-      label = otherAccount.getHolder,
+      name = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccountFromTransaction.number.get),
       thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
       kind = "",
-      otherBankId = originalPartyBankId,
-      otherAccountId = originalPartyAccountId,
-      alreadyFoundMetadata = Some(otherAccount),
-      name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
       otherAccountProvider = "",

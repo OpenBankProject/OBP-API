@@ -79,7 +79,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
     val otherAcc = t.otherAccount
     val otherAccJson = JObject(List(JField("holder",
       JObject(List(
-        JField("holder", JString(otherAcc.label)),
+        JField("holder", JString(otherAcc.name)),
         JField("alias", JString("no"))))),
         JField("number", JString(otherAcc.thisAccountId.value)),
         JField("kind", JString(otherAcc.kind)),
