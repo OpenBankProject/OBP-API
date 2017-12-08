@@ -71,8 +71,8 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
       Some(loc)
   }
 
-  override def metadataId = counterpartyId.get
-  override def getHolder = holder.get
+  override def getCounterpartyId = counterpartyId.get
+  override def getCounterpartyName = holder.get
 //  override def getAccountNumber = accountNumber.get
   override def getUrl = url.get
   override def getCorporateLocation = locationTag(corporateLocation.get)

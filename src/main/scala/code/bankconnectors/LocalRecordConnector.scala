@@ -121,7 +121,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
-        .start("obp_transaction.other_account.holder").is(meta.getHolder)
+        .start("obp_transaction.other_account.holder").is(meta.getCounterpartyName)
 //        .put("obp_transaction.other_account.number").is(meta.getAccountNumber)
         .get()
 
@@ -130,7 +130,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
           envelope.obp_transaction.get.other_account.get
         }
         case _ => {
-          logger.warn(s"envelope not found for other account ${meta.metadataId}")
+          logger.warn(s"envelope not found for other account ${meta.getCounterpartyId}")
           OBPAccount.createRecord
         }
       }
@@ -229,8 +229,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
 
     val otherAccount = new Counterparty(
-      counterPartyId = metadata.metadataId,
-      name = otherAccount_.holder.get,
+      counterpartyId = metadata.getCounterpartyId,
+      counterpartyName = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
@@ -380,8 +380,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
     new Counterparty(
-      counterPartyId = otherAccount.metadataId,
-      name = otherAccount.getHolder,
+      counterpartyId = otherAccount.getCounterpartyId,
+      counterpartyName = otherAccount.getCounterpartyName,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),

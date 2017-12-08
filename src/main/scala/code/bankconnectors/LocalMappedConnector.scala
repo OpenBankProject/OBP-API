@@ -209,7 +209,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       updateAccountTransactions(bankId, accountId)
 
       for (account <- getBankAccount(bankId, accountId))
-        yield mappedTransactions.flatMap(_.toTransaction(account))
+        yield mappedTransactions.flatMap(_.toTransaction(account))//each transaction will be modified by account, here we return the `class Transaction` not a trait. 
     }
 
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
@@ -325,8 +325,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = t.metadataId,
-        name = t.getHolder,
+        counterpartyId = t.getCounterpartyId,
+        counterpartyName = t.getCounterpartyName,
         nationalIdentifier = "",
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,

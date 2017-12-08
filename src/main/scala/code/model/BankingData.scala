@@ -663,8 +663,8 @@ class Counterparty(
   val kind: String, // Type of bank account.
   
   // The following fields started from V210
-  val counterPartyId: String,
-  val name: String,
+  val counterpartyId: String,
+  val counterpartyName: String,
   val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
   val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
   val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
@@ -677,8 +677,8 @@ class Counterparty(
   val metadata: CounterpartyMetadata = Counterparties.counterparties.vend.getOrCreateMetadata(
     thisBankId, 
     thisAccountId, 
-    counterPartyId, 
-    name
+    counterpartyId, 
+    counterpartyName
   ).openOrThrowException("Can not getOrCreateMetadata !")
 }
 

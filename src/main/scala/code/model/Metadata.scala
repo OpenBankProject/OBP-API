@@ -104,9 +104,9 @@ trait TransactionImage {
 Counterparty metadata
  */
 trait CounterpartyMetadata {
-  def metadataId: String
-  def getHolder: String
-//  def getAccountNumber: String
+  //metadataId == counterpartyId, so they are the same thing now.
+  def getCounterpartyId: String
+  def getCounterpartyName: String
   def getPublicAlias: String
   def getPrivateAlias: String
   def getMoreInfo: String

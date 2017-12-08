@@ -50,37 +50,23 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       else firstAliasAttempt
     }
 
-
-    //can't find by MappedCounterpartyMetadata.counterpartyId = otherParty.id because in this implementation
-    //if the metadata doesn't exist, the id field of the OtherBankAccount is not known yet, and will be empty
-    def findMappedCounterpartyMetadata(
-      counterpartyId: String
-    ) : Box[MappedCounterpartyMetadata] = {
-      MappedCounterpartyMetadata.find(
-        By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
-    }
-
-    val existing = findMappedCounterpartyMetadata(counterpartyId)
-
-    existing match {
+    def findMappedCounterpartyMetadataById(counterpartyId: String) = MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
+    
+    findMappedCounterpartyMetadataById(counterpartyId) match {
       case Full(e) =>
-        logger.debug(s"Getting MappedCounterpartyMetadata counterpartyId($counterpartyId)")
+        logger.debug(s"getOrCreateMetadata--Get MappedCounterpartyMetadata counterpartyId($counterpartyId)")
         Full(e)
       // Create it!
       case _ => {
-        logger.debug(s"Creating MappedCounterpartyMetadata counterpartyId($counterpartyId)")
+        logger.debug(s"getOrCreateMetadata--Create MappedCounterpartyMetadata counterpartyId($counterpartyId)")
         // Store a record that contains counterparty information from the perspective of an account at a bank
         Full(MappedCounterpartyMetadata.create
           // Core info
           .counterpartyId(counterpartyId)
           .thisBankId(bankId.value)
           .thisAccountId(accountId.value)
-          .holder(counterpartyName) // The main human readable identifier for this counter party from the perspective of the account holder
+          .counterpartyName(counterpartyName) 
           .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
-//          .accountNumber(otherPartyThisAccountId)
-          // otherParty.metadata is None at this point
-          //.imageUrl("www.example.com/image.jpg")
-          //.moreInfo("This is hardcoded moreInfo")
           .saveMe)
       }
     }
@@ -155,7 +141,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(BankId(thisBankId), AccountId(thisAccountId), counterpartyId, name).openOrThrowException("Can not getOrCreateMetadata !")
     
     val mappedCounterparty = MappedCounterparty.create
-      .mCounterPartyId(metadata.metadataId)
+      .mCounterPartyId(metadata.getCounterpartyId)
       .mName(name)
       .mCreatedByUserId(createdByUserId)
       .mThisBankId(thisBankId)
@@ -297,16 +283,14 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
 class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
   override def getSingleton = MappedCounterpartyMetadata
 
+  //these define the counterparty, not metadata
   object counterpartyId extends UUIDString(this)
+  object counterpartyName extends MappedString(this, 255) 
 
   //these define the obp account to which this counterparty belongs
   object thisBankId extends UUIDString(this)
   object thisAccountId extends AccountIdString(this)
 
-  //these define the counterparty
-  object holder extends MappedString(this, 255) // Is this the name of the counterparty?
-//  @deprecated("old version, security hole, not good to store core banking data in obp")
-//  object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
   object publicAlias extends MappedString(this, 64)
@@ -362,9 +346,8 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
     savedWhere.map(location => trySave{physicalLocation(location)}).getOrElse(false)
   }
 
-  override def metadataId: String = counterpartyId.get
-//  override def getAccountNumber: String = accountNumber.get
-  override def getHolder: String = holder.get
+  override def getCounterpartyId: String = counterpartyId.get
+  override def getCounterpartyName: String = counterpartyName.get
   override def getPublicAlias: String = publicAlias.get
   override def getCorporateLocation: Option[GeoTag] =
     corporateLocation.obj

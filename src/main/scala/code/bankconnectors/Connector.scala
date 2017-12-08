@@ -278,7 +278,7 @@ trait Connector extends MdcLoggable{
     val counterpartyMetadatas = Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).toList
     val x = for {
       transaction <- transactions
-      counterpartyMetadata <- counterpartyMetadatas if counterpartyID == counterpartyMetadata.metadataId
+      counterpartyMetadata <- counterpartyMetadatas if counterpartyID == counterpartyMetadata.getCounterpartyId
     } yield {
       getCounterpartyFromTransaction(bankId, accountId, counterpartyMetadata, transaction).toList
     }
@@ -296,9 +296,9 @@ trait Connector extends MdcLoggable{
     
     val x = for {
       transaction <- transactions
-      counterpartyName <- List(transaction.otherAccount.name)
+      counterpartyName <- List(transaction.otherAccount.counterpartyName)
       counterpartyId <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName)) 
-      counterpartyMetadata <- counterpartyMetadatas if counterpartyId == counterpartyMetadata.metadataId
+      counterpartyMetadata <- counterpartyMetadatas if counterpartyId == counterpartyMetadata.getCounterpartyId
     } yield {
       getCounterpartyFromTransaction(bankId, accountId, counterpartyMetadata, transaction).toList
     }
@@ -311,8 +311,8 @@ trait Connector extends MdcLoggable{
     Full(
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = metadata.metadataId,
-        name = metadata.getHolder,
+        counterpartyId = metadata.getCounterpartyId,
+        counterpartyName = metadata.getCounterpartyName,
         nationalIdentifier = t.otherAccount.nationalIdentifier,
         otherBankRoutingAddress = t.otherAccount.otherBankRoutingAddress,
         otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
@@ -343,6 +343,8 @@ trait Connector extends MdcLoggable{
     getTransactions(bankId, accountID, None, queryParams: _*)
   }
 
+  //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
+  // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
   def getTransactions(bankId: BankId, accountID: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction] = Failure(NotImplemented + currentMethodName)
