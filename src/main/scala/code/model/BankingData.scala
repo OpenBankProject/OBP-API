@@ -656,7 +656,7 @@ as see from the perspective of the original party.
 
 
 // Note: See also CounterpartyTrait
-class Counterparty(
+case class Counterparty(
   
   @deprecated("older version, please first consider the V210, account scheme and address","05/05/2017")
   val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
