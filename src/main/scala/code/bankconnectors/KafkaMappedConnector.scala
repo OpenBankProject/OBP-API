@@ -1170,8 +1170,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   // Helper for creating other bank account
   def createCounterparty(counterpartyId: String, counterpartyName: String, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
-      counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      name = counterpartyName,
+      counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
+      counterpartyName = counterpartyName,
       nationalIdentifier = "",
       otherBankRoutingAddress = None,
       otherAccountRoutingAddress = None,

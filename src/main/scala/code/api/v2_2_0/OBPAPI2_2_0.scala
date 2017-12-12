@@ -231,8 +231,6 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createConsumer ::
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.createCounterparty ::
-                          Implementations2_2_0.getCustomersForUser ::
-                          Implementations2_2_0.getCoreTransactionsForBankAccount ::
                           Nil
   
   val allResourceDocs = Implementations2_2_0.resourceDocs ++

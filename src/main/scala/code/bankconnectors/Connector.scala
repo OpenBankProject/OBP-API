@@ -270,61 +270,26 @@ trait Connector extends MdcLoggable{
     */
   def getEmptyBankAccount(): Box[AccountType]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] = {
-    // Please note that Metadata and Transaction can be at different locations
-    // Obtain all necessary data and then intersect they
-    //TODO, not good, we just want to get one counterparty, but we need first get all the transactions and than filter them...
+  def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyId: String): Box[Counterparty] = {
     val transactions = getTransactions(bankId, accountId).toList.flatten
-    val counterpartyMetadatas = Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).toList
-    val x = for {
+    val counterparties = for {
       transaction <- transactions
-      counterpartyMetadata <- counterpartyMetadatas if counterpartyID == counterpartyMetadata.metadataId
+      counterpartyName <- List(transaction.otherAccount.counterpartyName)
+      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName))
+      if counterpartyIdFromTransaction == counterpartyId
     } yield {
-      getCounterpartyFromTransaction(bankId, accountId, counterpartyMetadata, transaction).toList
+      transaction.otherAccount
     }
-    x.flatten match {
+    
+    counterparties match {
       case List() => Empty
-      case x :: xs => Full(x)
+      case x :: xs => Full(x) //Because they have the same counterpartId, so they are actually just one counterparty. 
     }
   }
 
   def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): Box[List[Counterparty]] = {
-    // Please note that Metadata and Transaction can be at different locations
-    // Obtain all necessary data and then intersect they
-    val transactions= getTransactions(bankId, accountId).toList.flatten
-    val counterpartyMetadatas= Counterparties.counterparties.vend.getMetadatas(bankId, accountId)
-    
-    val x = for {
-      transaction <- transactions
-      counterpartyName <- List(transaction.otherAccount.name)
-      counterpartyId <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName)) 
-      counterpartyMetadata <- counterpartyMetadatas if counterpartyId == counterpartyMetadata.metadataId
-    } yield {
-      getCounterpartyFromTransaction(bankId, accountId, counterpartyMetadata, transaction).toList
-    }
-    Full(x.flatten)
-  }
-  
-  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata, t: Transaction) : Box[Counterparty] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    Full(
-      new Counterparty(
-        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = metadata.metadataId,
-        name = metadata.getHolder,
-        nationalIdentifier = t.otherAccount.nationalIdentifier,
-        otherBankRoutingAddress = t.otherAccount.otherBankRoutingAddress,
-        otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
-        thisAccountId = AccountId(t.thisAccount.accountId.value), //tis commit: set the thisAccountId from transaction, not from MetaData
-        thisBankId = t.otherAccount.thisBankId,
-        kind = t.otherAccount.kind,
-        otherBankRoutingScheme = t.otherAccount.otherBankRoutingScheme,
-        otherAccountRoutingScheme=t.otherAccount.otherAccountRoutingScheme,
-        otherAccountProvider = t.otherAccount.otherAccountProvider,
-        isBeneficiary = true
-      )
-    )
+    val counterparties = getTransactions(bankId, accountId).toList.flatten.map(_.otherAccount)
+    Full(counterparties.toSet.toList) //there are many transactions share the same Counterparty, so we need filter the same ones.
   }
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
@@ -343,7 +308,10 @@ trait Connector extends MdcLoggable{
     getTransactions(bankId, accountID, None, queryParams: _*)
   }
 
+  //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
+  // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
   def getTransactions(bankId: BankId, accountID: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
+  def getTransactionsCore(bankId: BankId, accountID: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction] = Failure(NotImplemented + currentMethodName)
 

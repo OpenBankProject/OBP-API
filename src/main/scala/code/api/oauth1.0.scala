@@ -478,10 +478,10 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
     //return true if the authorization header has a duplicated parameter
     def duplicatedParameters(req1: Box[Req]) = {
-      println("duplicatedParameters 1")
+      logger.debug("duplicatedParameters 1")
       var output=false
       val authorizationParameters = req1.openOrThrowException("Attempted to open an empty Box.").header("Authorization").openOrThrowException("Attempted to open an empty Box.").split(",")
-      println("duplicatedParameters 2")
+      logger.debug("duplicatedParameters 2")
       //count the iterations of a parameter in the authorization header
       def countPram(parameterName : String, parametersArray :Array[String] )={
         var i = 0

@@ -86,7 +86,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     if(i.isEmpty) None else Some(i)
   }
   
-  //This method have the side affact, it will create the counterparty metaData... 
+  //This method have the side affect, it will createOrget the counterparty-metaData and ger transaction- metadata in database
+  //It is a expensive method, cause the perfermance issue somehow. 
   def toTransaction(account: BankAccount): Option[Transaction] = {
     val tBankId = theBankId
     val tAccId = theAccountId
@@ -95,24 +96,25 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       logger.warn("Attempted to convert MappedTransaction to Transaction using unrelated existing BankAccount object")
       None
     } else {
-      val label = {
+      val transactionDescription = {
         val d = description.get
         if (d.isEmpty) None else Some(d)
       }
 
       val transactionCurrency = currency.get
-      val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
+      val transactionAmount = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      //TODO This method should be as general as possible, need move to general object, not here.  
+      //TODO This method should be as general as possible, need move to general object, not here.
+      //This method is expensive, it has the side affact, will getOrCreateMetadata 
       def createCounterparty(counterpartyId : String) = {
         new Counterparty(
-          counterPartyId = counterpartyId,
+          counterpartyId = counterpartyId,
           kind = counterpartyAccountKind.get,
           nationalIdentifier = counterpartyNationalId.get,
-          name = counterpartyAccountHolder.get,
-          thisBankId = BankId(theBankId.value), 
-          thisAccountId = AccountId(theAccountId.value), 
+          counterpartyName = counterpartyAccountHolder.get,
+          thisBankId = theBankId,
+          thisAccountId = theAccountId,
           otherAccountProvider = counterpartyAccountHolder.get,
           otherBankRoutingAddress = Some(CPOtherBankRoutingAddress.get), 
           otherBankRoutingScheme = CPOtherBankRoutingScheme.get,
@@ -122,11 +124,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
         )
       }
 
-      //it's a bit confusing what's going on here, as normally metadata should be automatically generated if
-      //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
-      //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
-      //so that we know what id to give it.
-      //--> now it is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
+      //It is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
       val counterpartyName = counterpartyAccountHolder.get
       val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
       val otherAccount = createCounterparty(counterpartyId)
@@ -137,12 +135,66 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
                             account,
                             otherAccount,
                             transactionType.get,
-                            amt,
+                            transactionAmount,
                             transactionCurrency,
-                            label,
+                            transactionDescription,
                             tStartDate.get,
                             tFinishDate.get,
                             newBalance))
+    }
+  }
+  
+  def toTransactionCore(account: BankAccount): Option[TransactionCore] = {
+    val tBankId = theBankId
+    val tAccId = theAccountId
+    
+    if (tBankId != account.bankId || tAccId != account.accountId) {
+      logger.warn("Attempted to convert MappedTransaction to Transaction using unrelated existing BankAccount object")
+      None
+    } else {
+      val transactionDescription = {
+        val d = description.get
+        if (d.isEmpty) None else Some(d)
+      }
+      
+      val transactionCurrency = currency.get
+      val transactionAmount = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
+      val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
+      
+      //TODO This method should be as general as possible, need move to general object, not here.
+      //This method is expensive, it has the side affact, will getOrCreateMetadata 
+      def createCounterpartyCore(counterpartyId : String) = {
+        new CounterpartyCore(
+          counterpartyId = counterpartyId,
+          kind = counterpartyAccountKind.get,
+          counterpartyName = counterpartyAccountHolder.get,
+          thisBankId = theBankId,
+          thisAccountId = theAccountId,
+          otherAccountProvider = counterpartyAccountHolder.get,
+          otherBankRoutingAddress = Some(CPOtherBankRoutingAddress.get),
+          otherBankRoutingScheme = CPOtherBankRoutingScheme.get,
+          otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get,
+          otherAccountRoutingAddress = Some(CPOtherAccountRoutingAddress.get),
+          isBeneficiary = true
+        )
+      }
+      
+      //It is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
+      val counterpartyName = counterpartyAccountHolder.get
+      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
+      val otherAccount = createCounterpartyCore(counterpartyId)
+      
+      Some(TransactionCore(
+        theTransactionId,
+        account,
+        otherAccount,
+        transactionType.get,
+        transactionAmount,
+        transactionCurrency,
+        transactionDescription,
+        tStartDate.get,
+        tFinishDate.get,
+        newBalance))
     }
   }
 

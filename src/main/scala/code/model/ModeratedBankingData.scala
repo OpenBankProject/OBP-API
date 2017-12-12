@@ -96,6 +96,19 @@ class ModeratedTransaction(
   }
 }
 
+case class ModeratedTransactionCore(
+  id: TransactionId,
+  bankAccount: Moderated[ModeratedBankAccount],
+  otherBankAccount: Moderated[ModeratedOtherBankAccountCore],
+  transactionType: Moderated[String],
+  amount: Moderated[BigDecimal],
+  currency: Moderated[String],
+  description: Moderated[String],
+  startDate: Moderated[Date],
+  finishDate: Moderated[Date],
+  balance : String
+)
+
 class ModeratedTransactionMetadata(
   val ownerComment : Moderated[String],
   val addOwnerComment : Moderated[(String => Boolean)],
@@ -282,6 +295,20 @@ class ModeratedOtherBankAccount(
     case _ => false
   }
 }
+
+case class ModeratedOtherBankAccountCore(
+  id : String,
+  label : AccountName,
+  swift_bic : Moderated[String],
+  iban : Moderated[String],
+  bankName : Moderated[String],
+  number : Moderated[String],
+  kind : Moderated[String],
+  bankRoutingScheme : Moderated[String],
+  bankRoutingAddress :Moderated[String],
+  accountRoutingScheme : Moderated[String],
+  accountRoutingAddress :Moderated[String]
+)
 
 object ModeratedOtherBankAccount {
   @deprecated(Helper.deprecatedJsonGenerationMessage)
