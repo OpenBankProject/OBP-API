@@ -29,7 +29,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val MetadataTTL = Props.get(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt // 3600s --> 1h
+  val MetadataTTL = getSecondsCache("getOrCreateMetadata")
   
   override def getOrCreateMetadata(bankId: BankId, accountId: AccountId, counterpartyId: String, counterpartyName:String): Box[CounterpartyMetadata] =  memoizeSync(MetadataTTL second){
 
