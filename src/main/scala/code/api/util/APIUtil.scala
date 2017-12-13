@@ -1846,7 +1846,10 @@ Versions are groups of endpoints in a file
     * The default cache time unit is second.  
     */
   def getSecondsCache(cacheType: String) : Int = {
-    Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
+    if(cacheType =="getOrCreateMetadata")
+      Props.get(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt  // 3600s --> 1h
+    else
+      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
   }
   
   /**

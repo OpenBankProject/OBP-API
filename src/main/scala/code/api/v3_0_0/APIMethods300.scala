@@ -47,26 +47,6 @@ trait APIMethods300 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
-  // helper methods begin here
-
-  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(coreBankAccountList(callerContext, codeContext, bankAccounts, user))
-  }
-
-  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJsonV300] = {
-    val accJson : List[CoreAccountJsonV300] = bankAccounts.map(account => {
-      val views = account.permittedViews(user)
-      val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
-          JSONFactory300.createBasicViewJSON(v)
-        })
-
-      val dataContext = DataContext(user, Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
-
-      JSONFactory300.createCoreAccountJSON(account)
-    })
-    accJson
-  }
   val Implementations3_0_0 = new Object() {
 
     val implementedInApiVersion: String = "3_0_0" // TODO Use ApiVersions enumeration
@@ -440,9 +420,9 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessionContext)
+                transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(sessionContext)
               } yield {
-                (createCoreTransactionsJSON(transactions), getGatewayLoginHeader(sessionContext))
+                (createCoreTransactionsJSON(transactionsCore), getGatewayLoginHeader(sessionContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }

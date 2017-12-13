@@ -209,7 +209,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       updateAccountTransactions(bankId, accountId)
 
       for (account <- getBankAccount(bankId, accountId))
-        yield mappedTransactions.flatMap(_.toTransaction(account))
+        yield mappedTransactions.flatMap(_.toTransaction(account))//each transaction will be modified by account, here we return the `class Transaction` not a trait. 
+    }
+
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
+  }
+  
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = {
+
+    // TODO Refactor this. No need for database lookups etc.
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+    val ordering = queryParams.collect {
+      //we don't care about the intended sort field and only sort on finish date for now
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+        }
+    }
+
+    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+
+    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams : Seq[QueryParam[MappedTransaction]]) : Box[List[TransactionCore]]
+    =  memoizeSync(getTransactionsTTL millisecond){
+
+      //logger.info("Cache miss getTransactionsCached")
+
+      val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+
+      for (account <- getBankAccount(bankId, accountId))
+        yield mappedTransactions.flatMap(_.toTransactionCore(account))//each transaction will be modified by account, here we return the `class Transaction` not a trait. 
     }
 
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
@@ -325,8 +358,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        counterPartyId = t.metadataId,
-        name = t.getHolder,
+        counterpartyId = t.getCounterpartyId,
+        counterpartyName = t.getCounterpartyName,
         nationalIdentifier = "",
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,

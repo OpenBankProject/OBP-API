@@ -1463,10 +1463,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         // Here we only have one bankAccount, but we need a `dummyOtherBankAccount` for metaData. 
         // so we use the same account for both `Counterparty.thisAccountId` and `Counterparty.otherAccountId`. 
         //these define the counterparty
-        name = counterpartyName, // This will be used mapping `MappedCounterpartyMetadata.holder`
+        counterpartyName = counterpartyName, // This will be used mapping `MappedCounterpartyMetadata.holder`
         thisAccountId = bankAccount.accountId,  //This will be used mapping `MappedCounterpartyMetadata.accountNumber`
         
-        counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+        counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
         
         thisBankId = BankId(null),
         nationalIdentifier = null,

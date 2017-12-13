@@ -577,6 +577,17 @@ trait BankAccount extends MdcLoggable {
     }
     else viewNotAllowed(view)
   }
+  
+  // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
+  final def getModeratedTransactionsCore(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[SessionContext]): Box[List[ModeratedTransactionCore]] = {
+    if(authorizedAccess(view, user)) {
+      for {
+        transactions <- Connector.connector.vend.getTransactionsCore(bankId, accountId, session, queryParams: _*)
+        moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! "Server error"
+      } yield moderated
+    }
+    else viewNotAllowed(view)
+  }
 
   final def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
     if(authorizedAccess(view, user))
@@ -656,15 +667,15 @@ as see from the perspective of the original party.
 
 
 // Note: See also CounterpartyTrait
-class Counterparty(
+case class Counterparty(
   
   @deprecated("older version, please first consider the V210, account scheme and address","05/05/2017")
   val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
   val kind: String, // Type of bank account.
   
   // The following fields started from V210
-  val counterPartyId: String,
-  val name: String,
+  val counterpartyId: String,
+  val counterpartyName: String,
   val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
   val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
   val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
@@ -677,11 +688,24 @@ class Counterparty(
   val metadata: CounterpartyMetadata = Counterparties.counterparties.vend.getOrCreateMetadata(
     thisBankId, 
     thisAccountId, 
-    counterPartyId, 
-    name
+    counterpartyId, 
+    counterpartyName
   ).openOrThrowException("Can not getOrCreateMetadata !")
 }
 
+case class CounterpartyCore(
+   kind:String,
+   counterpartyId: String,
+   counterpartyName: String,
+   thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
+   thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
+   otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+   otherBankRoutingAddress: Option[String], // The (BIC) value e.g. 67895
+   otherAccountRoutingScheme: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+   otherAccountRoutingAddress: Option[String], // The (IBAN) value e.g. 2349870987820374
+   otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
+   isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
+)
 trait TransactionUUID {
   def theTransactionId : TransactionId
   def theBankId : BankId
@@ -741,6 +765,19 @@ class Transaction(
       WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
     )
 }
+
+case class TransactionCore(
+  id: TransactionId,
+  thisAccount: BankAccount,
+  otherAccount: CounterpartyCore,
+  transactionType: String,
+  amount: BigDecimal,
+  currency: String,
+  description: Option[String],
+  startDate: Date,
+  finishDate: Date,
+  balance: BigDecimal
+)
 
 case class AmountOfMoney (
   val currency: String,

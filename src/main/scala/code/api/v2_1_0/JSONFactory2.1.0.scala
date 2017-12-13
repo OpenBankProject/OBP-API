@@ -581,7 +581,7 @@ object JSONFactory210{
 
   def createCounterpartyJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartyTrait) : CounterpartyJSON = {
     new CounterpartyJSON(
-      counterparty_id = metadata.metadataId,
+      counterparty_id = metadata.getCounterpartyId,
       display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
       created_by_user_id = couterparty.createdByUserId,
       this_account = UsedByAccountJSON(couterparty.thisBankId, couterparty.thisAccountId),

@@ -57,5 +57,21 @@ trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
   
   }
   
+  /**
+    * Get Transactions for Account (Full)-- V300
+    */
+  def getTransactionsForAccountFull(bankId:String, accountId:String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "owner" / "transactions").GET <@ (user1)
+    makeGetRequest(request)
+  }
+  
+  /**
+    * Get Transactions for Account (Core) -- V300
+    */
+  def getTransactionsForAccountCore(bankId:String, accountId:String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = (v3_0Request / "my"/"banks" / bankId / "accounts" / accountId / "transactions").GET <@ (user1)
+    makeGetRequest(request)
+  }
+  
   
 }
