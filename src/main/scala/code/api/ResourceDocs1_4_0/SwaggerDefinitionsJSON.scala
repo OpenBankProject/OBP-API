@@ -1649,7 +1649,6 @@ object SwaggerDefinitionsJSON {
     value = "englishDescription"
   )
   
-  //CM need to move into V220
   val postCounterpartyJSON = PostCounterpartyJSON(
     name = "CounterpartyName",
     description ="My landlord",

@@ -321,7 +321,7 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      counterpartyJsonV220,
+      counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount)
