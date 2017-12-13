@@ -117,6 +117,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
   val NotImplemented = "OBP-10010: Not Implemented "
+  val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -1475,7 +1476,13 @@ Returns a string showed to the developer
 
   def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-
+  def stringToDate(value: String, dateFormat: String): Date = {
+    import java.text.SimpleDateFormat
+    import java.util.Locale
+    val format = new SimpleDateFormat(dateFormat, Locale.ENGLISH)
+    format.setLenient(false)
+    format.parse(value)
+  }
   def validatePhoneNumber(number: String): Boolean = {
     number.toList match {
       case x :: _ if x != '+' => false // First char has to be +
