@@ -1795,6 +1795,13 @@ object SwaggerDefinitionsJSON {
     other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
     bespoke = postCounterpartyJSON.bespoke
   )
+  
+  val counterpartyMetadataJson = CounterpartyMetadataJson(publicAlias = "String")
+  
+  val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
+    counterparty = counterpartyJsonV220,
+    metadata = counterpartyMetadataJson
+  )
 
   val counterpartiesJsonV220 = CounterpartiesJsonV220(
     counterparties = List(counterpartyJsonV220)

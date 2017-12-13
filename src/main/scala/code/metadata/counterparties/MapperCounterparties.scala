@@ -129,7 +129,8 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       By(MappedCounterparty.mThisViewId, viewId.value)))
   }
 
-  override def createCounterparty(createdByUserId: String,
+  override def createCounterparty(counterpartyId: String,
+                                  createdByUserId: String,
                                   thisBankId: String,
                                   thisAccountId : String,
                                   thisViewId : String,
