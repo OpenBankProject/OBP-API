@@ -46,7 +46,7 @@ import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.{APIMetric, ConnectorMetric}
-import code.model._
+import code.model.{CounterpartyMetadata, _}
 import code.users.Users
 import net.liftweb.common.{Box, Full}
 //import net.liftweb.common.Box
@@ -145,6 +145,10 @@ case class FXRateJsonV220(
                        effective_date: Date
                      )
 
+case class CounterpartyWithMetadataJson(
+  counterparty: CounterpartyJsonV220,
+  metadata: CounterpartyMetadataJson
+)
 case class CounterpartyJsonV220(
                              name: String,
                              description: String,
@@ -165,6 +169,16 @@ case class CounterpartyJsonV220(
                              bespoke:List[PostCounterpartyBespoke]
                            )
 
+case class CounterpartyMetadataJson(
+   publicAlias : String, // Only have this value when we create explict counterparty
+   moreInfo : String  = null,
+   url : String = null,
+   imageURL : String = null,
+   openCorporatesURL : String = null,
+   corporateLocation : GeoTag = null,
+   physicalLocation :  GeoTag = null,
+   privateAlias : String  = null
+)
 case class CounterpartiesJsonV220(
                                   counterparties: List[CounterpartyJsonV220]
                                  )
@@ -439,8 +453,9 @@ object JSONFactory220{
     )
   }
 
-  def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJsonV220 = {
-    CounterpartyJsonV220(
+  def createCounterpartyWithMetadataJSON(counterparty: CounterpartyTrait, counterpartyMetadata: CounterpartyMetadata): CounterpartyWithMetadataJson = {
+    CounterpartyWithMetadataJson(
+      CounterpartyJsonV220(
       name = counterparty.name,
       description = counterparty.description,
       created_by_user_id = counterparty.createdByUserId,
@@ -458,7 +473,33 @@ object JSONFactory220{
       other_branch_routing_address =counterparty.otherBranchRoutingAddress,
       is_beneficiary = counterparty.isBeneficiary,
       bespoke= counterparty.bespoke
+    ),
+      CounterpartyMetadataJson(
+        publicAlias = counterpartyMetadata.getPublicAlias
+      )
     )
+  }
+  
+  def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJsonV220 = {
+      CounterpartyJsonV220(
+        name = counterparty.name,
+        description = counterparty.description,
+        created_by_user_id = counterparty.createdByUserId,
+        this_bank_id = counterparty.thisBankId,
+        this_account_id = counterparty.thisAccountId,
+        this_view_id = counterparty.thisViewId,
+        counterparty_id = counterparty.counterpartyId,
+        other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
+        other_bank_routing_address = counterparty.otherBankRoutingAddress,
+        other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
+        other_account_routing_address = counterparty.otherAccountRoutingAddress,
+        other_account_secondary_routing_scheme = counterparty.otherAccountSecondaryRoutingScheme,
+        other_account_secondary_routing_address = counterparty.otherAccountSecondaryRoutingAddress,
+        other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
+        other_branch_routing_address =counterparty.otherBranchRoutingAddress,
+        is_beneficiary = counterparty.isBeneficiary,
+        bespoke= counterparty.bespoke
+      )
   }
 
   def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJsonV220 = {

@@ -488,6 +488,7 @@ object SwaggerJSONFactory {
         case Some(List(f,_*))              => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
         //Single object
         case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case null                          => "unknown"
         case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case _ => "unknown"
       }

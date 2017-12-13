@@ -1649,7 +1649,6 @@ object SwaggerDefinitionsJSON {
     value = "englishDescription"
   )
   
-  //CM need to move into V220
   val postCounterpartyJSON = PostCounterpartyJSON(
     name = "CounterpartyName",
     description ="My landlord",
@@ -1794,6 +1793,13 @@ object SwaggerDefinitionsJSON {
     other_account_secondary_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
     bespoke = postCounterpartyJSON.bespoke
+  )
+  
+  val counterpartyMetadataJson = CounterpartyMetadataJson(publicAlias = "String")
+  
+  val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
+    counterparty = counterpartyJsonV220,
+    metadata = counterpartyMetadataJson
   )
 
   val counterpartiesJsonV220 = CounterpartiesJsonV220(

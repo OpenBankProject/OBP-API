@@ -35,8 +35,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .saveMe
   }
 
-  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId: String): CounterpartyTrait = {
-    Counterparties.counterparties.vend.createCounterparty(createdByUserId = createdByUserId,
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String, createdByUserId:String): CounterpartyTrait = {
+    Counterparties.counterparties.vend.createCounterparty(
+      counterpartyId= counterpartyId,
+      createdByUserId = createdByUserId,
       thisBankId = bankId,
       thisAccountId = accountId,
       thisViewId = "",

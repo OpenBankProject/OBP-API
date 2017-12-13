@@ -24,6 +24,12 @@ class SwaggerFactoryUnitTest extends FlatSpec
       logger.debug("{"+translateCaseClassToSwaggerFormatString+"}")
       translateCaseClassToSwaggerFormatString should not include("$colon")
     }
+  
+  it should ("Procee `null` in translateEntity function") in{
+    val translateCaseClassToSwaggerFormatString: String = SwaggerJSONFactory.translateEntity(SwaggerDefinitionsJSON.counterpartyMetadataJson)
+    logger.debug("{"+translateCaseClassToSwaggerFormatString+"}")
+    translateCaseClassToSwaggerFormatString should not include("$colon")
+  }
 
   it should ("Test all the case classes in SwaggerDefinitionsJSON") in{
       val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields

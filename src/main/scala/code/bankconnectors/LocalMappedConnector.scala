@@ -1538,6 +1538,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   
   override def createCounterparty(
+    counterpartyId: String,
     name: String,
     description: String,
     createdByUserId: String,
@@ -1556,6 +1557,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bespoke: List[PostCounterpartyBespoke]
   ): Box[CounterpartyTrait] =
     Counterparties.counterparties.vend.createCounterparty(
+      counterpartyId = counterpartyId,
       createdByUserId = createdByUserId,
       thisBankId = thisBankId,
       thisAccountId = thisAccountId,
