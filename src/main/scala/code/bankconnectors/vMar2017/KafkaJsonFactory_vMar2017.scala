@@ -314,13 +314,11 @@ case class InboundStatusMessage(
 )
 
 case class InboundBank(
-  errorCode: String,
-  backendMessages: List[InboundStatusMessage],
   bankId: String,
   name: String,
   logo: String,
   url: String
-)extends InboundMessageBase
+)
 
 case class InboundAdapterInfoInternal(
   errorCode: String,
