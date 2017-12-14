@@ -840,6 +840,78 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
   }("getTransactions")
   
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
+    val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
+    val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
+    val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
+    val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
+    val ordering = queryParams.collect {
+      //we don't care about the intended sort field and only sort on finish date for now
+      case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
+    val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
+    
+    val (userName, cbs) = session match {
+      case Some(c) =>
+        c.gatewayLoginRequestPayload match {
+          case Some(p) =>
+            (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+          case _ =>
+            (getUsername, getCbsToken) // Old Style Endpoints use S object
+        }
+      case _ =>
+        (getUsername, getCbsToken) // Old Style Endpoints use S object
+    }
+    
+    val req = OutboundGetTransactions(
+      authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
+      bankId = bankId.toString,
+      accountId = accountId.value,
+      limit = limit.value,
+      fromDate = fromDate.value.toString,
+      toDate = toDate.value.toString
+    )
+    
+    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
+    def getTransactionsCached(req:OutboundGetTransactions): Box[List[TransactionCore]] = memoizeSync(transactionsTTL second){
+      logger.debug(s"Kafka getTransactions says: req is: $req")
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetTransactions](req)
+        inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error"
+        internalTransactions <- Full(inboundGetTransactions.data)
+      } yield{
+        internalTransactions
+      }
+      logger.debug(s"Kafka getTransactions says: res is: $box")
+      
+      box match {
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
+        case Full(internalTransactions) if (!internalTransactions.forall(x => x.accountId == accountId.value && x.bankId == bankId.value))  =>
+          Failure(InvalidConnectorResponseForGetTransactions)
+        case Full(internalTransactions) if (internalTransactions.head.errorCode=="") =>
+          val bankAccount = checkBankAccountExists(BankId(internalTransactions.head.bankId), AccountId(internalTransactions.head.accountId), session)
+          
+          val res = for {
+            internalTransaction <- internalTransactions
+            thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
+            transaction <- createMemoryTransactionCore(thisBankAccount,internalTransaction)
+          } yield {
+            transaction
+          }
+          Full(res)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }
+    
+    getTransactionsCached(req)
+    
+  }("getTransactions")
+  
   messageDocs += MessageDoc(
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
@@ -1443,6 +1515,40 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         TransactionId(internalTransaction.transactionId), // id:TransactionId
         bankAccount, // thisAccount:BankAccount
         counterparty, // otherAccount:OtherBankAccount
+        internalTransaction.`type`, // transactionType:String
+        BigDecimal(internalTransaction.amount), // val amount:BigDecimal
+        bankAccount.currency, // currency:String
+        Some(internalTransaction.description), // description:Option[String]
+        datePosted, // startDate:Date
+        dateCompleted, // finishDate:Date
+        BigDecimal(internalTransaction.newBalanceAmount) // balance:BigDecimal)
+      )
+    }
+  }
+ 
+  def createMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[TransactionCore] =  memoizeSync(memoryTransactionTTL second){
+    for {
+      datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
+      dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
+      counterpartyCore <- Full(CounterpartyCore(
+        kind = null,
+        counterpartyId = internalTransaction.counterpartyId,
+        counterpartyName = internalTransaction.counterpartyName,
+        thisBankId = BankId(""),
+        thisAccountId = AccountId(""),
+        otherBankRoutingScheme = "",
+        otherBankRoutingAddress = None,
+        otherAccountRoutingScheme =  "",
+        otherAccountRoutingAddress = None,
+        otherAccountProvider = "",
+        isBeneficiary = true
+      ))
+    } yield {
+      // Create new transaction
+       TransactionCore(
+        TransactionId(internalTransaction.transactionId), // id:TransactionId
+        bankAccount, // thisAccount:BankAccount
+        counterpartyCore, // otherAccount:OtherBankAccount
         internalTransaction.`type`, // transactionType:String
         BigDecimal(internalTransaction.amount), // val amount:BigDecimal
         bankAccount.currency, // currency:String
