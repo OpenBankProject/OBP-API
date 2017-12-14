@@ -44,14 +44,14 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       Then("We should get a 200 and check all the fields")
       responsePost.code should equal(200)
 
-      var accountRoutingAddress = (responsePost.body \ "other_account_routing_address" ) match {
+      var accountRoutingAddress = (responsePost.body \ "counterparty" \ "other_account_routing_address" ) match {
         case JString(i) => i
         case _ => ""
       }
       
       accountRoutingAddress should equal(counterpartyPostJSON.other_account_routing_address)
   
-      val counterpartyId = (responsePost.body \ "counterparty_id" ) match {
+      val counterpartyId = (responsePost.body \ "counterparty" \ "counterparty_id" ) match {
         case JString(i) => i
         case _ => ""
       }
@@ -65,7 +65,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       Then("We should get a 200 and check all the fields")
       responsePost.code should equal(200)
   
-      val accountRoutingAddressGet = (responsePost.body \ "other_account_routing_address" ) match {
+      val accountRoutingAddressGet = (responsePost.body \ "counterparty" \ "other_account_routing_address" ) match {
         case JString(i) => i
         case _ => ""
       }
@@ -73,7 +73,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       accountRoutingAddressGet should equal(counterpartyPostJSON.other_account_routing_address)
   
   
-      val counterpartyIdGet = (responsePost.body \ "counterparty_id" ) match {
+      val counterpartyIdGet = (responsePost.body \ "counterparty" \ "counterparty_id" ) match {
         case JString(i) => i
         case _ => ""
       }

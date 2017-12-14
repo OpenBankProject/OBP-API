@@ -229,9 +229,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
 
-
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
+  val CreateOrUpdateCounterpartyMetadataError = "OBP-30036: Could not create or update CounterpartyMetadata"
+  val CounterpartyMetadataNotFound = "OBP-30037: CounterpartyMetadata not found. Please specify valid values for BANK_ID, ACCOUNT_ID and COUNTERPARTY_ID. "
 
 
   // Meetings

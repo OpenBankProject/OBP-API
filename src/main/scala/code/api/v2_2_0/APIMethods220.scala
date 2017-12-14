@@ -5,14 +5,12 @@ import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{emptyObjectJson, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ApiSession.updateSessionContext
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
-import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors._
 import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
@@ -31,8 +29,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 
@@ -325,7 +321,7 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      counterpartyJsonV220,
+      counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount)
@@ -341,9 +337,10 @@ trait APIMethods220 {
             view <- View.fromUrl(viewId, account)?~! ViewNotFound
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
           } yield {
-            val counterpartyJson = JSONFactory220.createCounterpartyJSON(counterparty)
+            val counterpartyJson = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
             successJsonResponse(Extraction.decompose(counterpartyJson))
           }
       }
@@ -1019,7 +1016,7 @@ trait APIMethods220 {
           |${authenticationRequiredMessage(true)}
          |""",
       postCounterpartyJSON,
-      counterpartyJsonV220,
+      counterpartyWithMetadataJson,
       List(
         UserNotLoggedIn,
         InvalidAccountIdFormat,
@@ -1052,7 +1049,13 @@ trait APIMethods220 {
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
+
+            //This is the `EXPLICIT` Counterparty, we also create the metaData for it
+            counterpartyId <- Full(APIUtil.createExplicitCounterpartyId())
+            counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
+
             counterparty <- Connector.connector.vend.createCounterparty(
+              counterpartyId=counterpartyMetadata.getCounterpartyId,
               name=postJson.name,
               description=postJson.description,
               createdByUserId=u.userId,
@@ -1070,13 +1073,8 @@ trait APIMethods220 {
               isBeneficiary=postJson.is_beneficiary,
               bespoke=postJson.bespoke
             )
-          //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
-          //            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~! "Cannot find the metadata"
-          //            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
-            val list = JSONFactory220.createCounterpartyJSON(counterparty)
-            //            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
-            //            val list = createCounterpartJSON(moderated, metadata, couterparty)
+            val list = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
             successJsonResponse(Extraction.decompose(list))
           }
       }
