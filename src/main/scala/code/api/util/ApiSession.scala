@@ -12,7 +12,7 @@ case class GatewayLoginResponseHeader(jwt: Option[String]) extends GatewayLoginP
 
 object ApiSession {
 
-  val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", temenos_id = "", time_stamp = "", cbs_token = None)
+  val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None)
 
   def updateSessionContext(jwt: GatewayLoginParam, cnt: Option[SessionContext]): Option[SessionContext] = {
     jwt match {
