@@ -256,8 +256,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
-        errorCode = "OBP-6001: ...",
-        List(InboundStatusMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
@@ -512,8 +510,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     ),
     exampleInboundMessage = Extraction.decompose(
       InboundBank(
-        errorCode = "OBP-6001: ...",
-        List(InboundStatusMessage("ESB","Success", "0", "OK")),
         bankId = "gh.29.uk",
         name = "sushan",
         logo = "TESOBE",
