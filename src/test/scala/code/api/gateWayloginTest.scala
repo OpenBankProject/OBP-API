@@ -69,10 +69,10 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
       "app_name":"myapp4",
       "time_stamp":"19-06-2017:22:27:11:100",
       "cbs_token":"",
-      "temenos_id":""
+      "cbs_id":""
     }
     */
-  val invalidSecretJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6dHJ1ZSwiYXBwX2lkIjoiNTkzNDUwNzM0NTg3MzQ1IiwiYXBwX25hbWUiOiJteWFwcDQiLCJ0aW1lX3N0YW1wIjoiMTktMDYtMjAxNzoyMjoyNzoxMToxMDAiLCJjYnNfdG9rZW4iOiIiLCJ0ZW1lbm9zX2lkIjoiIn0.XwpHG0XupGlOfIlPrYGgM2duJQNH_sxrkKqnhtIVxLU"
+  val invalidSecretJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwiY2JzX2lkIjoiIn0.hUfxAU3FRSLObgRk2CGbJaYfWnLOkVoqGVOo6AUhmZ4"
   /* Payload data. verified by secret "Cannot get the secret"
   {
     "login_user_name":"simonr",
@@ -81,10 +81,10 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     "app_name":"myapp4",
     "time_stamp":"19-06-2017:22:27:11:100",
     "cbs_token":"",
-    "temenos_id":""
+    "cbs_id":""
   }
   */
-  val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwidGVtZW5vc19pZCI6IiJ9.SH0SXU_IQ0jD6i2HexyKoV7DBMm8Ox1_ADXt-WQjJJw"
+  val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwiY2JzX2lkIjoiIn0.yTg9LfSdzPXamC9EApd1zcXWU0cVPbWBjcn9y4FLq9U"
 
   val invalidJwt = ("Authorization", ("GatewayLogin token=%s").format(invalidSecretJwt))
   val validJwt = ("Authorization", ("GatewayLogin token=%s").format(jwt))
