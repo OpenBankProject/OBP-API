@@ -989,7 +989,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       OutboundCreateCounterparty(
         authInfoExample,
         OutboundCounterparty(
-          counterpartyId= "String",
           name = "name",
           description = "description",
           createdByUserId = "createdByUserId",
@@ -1040,7 +1039,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def createCounterparty(
-    counterpartyId: String,
     name: String,
     description: String,
     createdByUserId: String,
@@ -1061,7 +1059,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val req = OutboundCreateCounterparty(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = OutboundCounterparty(
-        counterpartyId: String,
         name: String,
         description: String,
         createdByUserId: String,

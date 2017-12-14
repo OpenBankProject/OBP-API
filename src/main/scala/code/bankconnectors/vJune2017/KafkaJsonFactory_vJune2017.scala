@@ -187,7 +187,6 @@ case class InternalGetTransactionRequests(
 )
 
 case class OutboundCounterparty(
-  counterpartyId: String,
   name: String,
   description: String,
   createdByUserId: String,

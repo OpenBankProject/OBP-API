@@ -302,6 +302,9 @@ trait APIMethods220 {
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
+            //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
+            //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
+            _ <- tryo {for{counterparty <-counterparties}Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name)} ?~! CreateOrUpdateCounterpartyMetadataError 
           } yield {
             val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
             successJsonResponse(Extraction.decompose(counterpartiesJson))
@@ -1050,12 +1053,7 @@ trait APIMethods220 {
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
 
-            //This is the `EXPLICIT` Counterparty, we also create the metaData for it
-            counterpartyId <- Full(APIUtil.createExplicitCounterpartyId())
-            counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
-
             counterparty <- Connector.connector.vend.createCounterparty(
-              counterpartyId=counterpartyMetadata.getCounterpartyId,
               name=postJson.name,
               description=postJson.description,
               createdByUserId=u.userId,
@@ -1073,6 +1071,9 @@ trait APIMethods220 {
               isBeneficiary=postJson.is_beneficiary,
               bespoke=postJson.bespoke
             )
+          
+            counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
+  
           } yield {
             val list = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
             successJsonResponse(Extraction.decompose(list))

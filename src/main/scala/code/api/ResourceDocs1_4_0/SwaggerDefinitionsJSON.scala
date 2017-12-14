@@ -1798,7 +1798,23 @@ object SwaggerDefinitionsJSON {
   val counterpartyMetadataJson = CounterpartyMetadataJson(publicAlias = "String")
   
   val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
-    counterparty = counterpartyJsonV220,
+    name = postCounterpartyJSON.name,
+    description = postCounterpartyJSON.description,
+    created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
+    this_bank_id = "gh.29.uk",
+    this_account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    this_view_id = "owner",
+    counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
+    other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
+    bespoke = postCounterpartyJSON.bespoke,
     metadata = counterpartyMetadataJson
   )
 

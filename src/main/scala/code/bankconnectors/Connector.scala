@@ -1227,7 +1227,6 @@ trait Connector extends MdcLoggable{
   }
   
   def createCounterparty(
-    counterpartyId: String,
     name: String,
     description: String,
     createdByUserId: String,

@@ -112,7 +112,6 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   override def getCounterpartyByIban(counterPartyId : String): Box[CounterpartyTrait] = Empty
 
   override def createCounterparty(
-                                   counterpartyId: String,
                                    createdByUserId: String,
                                    thisBankId: String,
                                    thisAccountId: String,

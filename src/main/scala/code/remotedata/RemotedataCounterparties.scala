@@ -34,7 +34,7 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] =
     extractFutureToBox(actor ? cc.getCounterparties(thisBankId, thisAccountId, viewId))
   
-  override def createCounterparty(counterpartyId: String,
+  override def createCounterparty(
                                   createdByUserId: String,
                                   thisBankId: String,
                                   thisAccountId: String,
@@ -51,7 +51,7 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
                                   bespoke: List[PostCounterpartyBespoke]): Box[CounterpartyTrait] =
-    extractFutureToBox(actor ? cc.createCounterparty( counterpartyId, createdByUserId, thisBankId,
+    extractFutureToBox(actor ? cc.createCounterparty(createdByUserId, thisBankId,
                                                       thisAccountId, thisViewId, name,
                                                       otherAccountRoutingScheme,
                                                       otherAccountRoutingAddress,

@@ -21,7 +21,7 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("checkCounterpartyAvailable(" + name +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +")")
       sender ! extractResult(mapper.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
 
-    case cc.createCounterparty(counterpartyId, createdByUserId, thisBankId, thisAccountId, thisViewId,
+    case cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
                                name, otherAccountRoutingScheme,
                                otherAccountRoutingAddress, otherBankRoutingScheme,
                                otherBranchRoutingScheme, otherBranchRoutingAddress,
@@ -31,11 +31,10 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
                                description: String,
                                bespoke: List[PostCounterpartyBespoke]
     ) =>
-      logger.debug("createCounterparty(" +counterpartyId +createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
+      logger.debug("createCounterparty(" +createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
                     + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ otherBranchRoutingScheme+
                     ", "+ otherBranchRoutingAddress+ ", "+ isBeneficiary+", "+ otherAccountSecondaryRoutingScheme+", "+ otherAccountSecondaryRoutingAddress+", "+ description+", "+ bespoke+")")
       sender ! extractResult(mapper.createCounterparty(
-        counterpartyId:String,
         createdByUserId: String,
         thisBankId: String,
         thisAccountId : String,

@@ -146,7 +146,23 @@ case class FXRateJsonV220(
                      )
 
 case class CounterpartyWithMetadataJson(
-  counterparty: CounterpartyJsonV220,
+  name: String,
+  description: String,
+  created_by_user_id: String,
+  this_bank_id: String,
+  this_account_id: String,
+  this_view_id: String,
+  counterparty_id: String,
+  other_bank_routing_scheme: String,
+  other_bank_routing_address: String,
+  other_branch_routing_scheme: String,
+  other_branch_routing_address: String,
+  other_account_routing_scheme: String,
+  other_account_routing_address: String,
+  other_account_secondary_routing_scheme: String,
+  other_account_secondary_routing_address: String,
+  is_beneficiary: Boolean,
+  bespoke:List[PostCounterpartyBespoke],
   metadata: CounterpartyMetadataJson
 )
 case class CounterpartyJsonV220(
@@ -455,7 +471,6 @@ object JSONFactory220{
 
   def createCounterpartyWithMetadataJSON(counterparty: CounterpartyTrait, counterpartyMetadata: CounterpartyMetadata): CounterpartyWithMetadataJson = {
     CounterpartyWithMetadataJson(
-      CounterpartyJsonV220(
       name = counterparty.name,
       description = counterparty.description,
       created_by_user_id = counterparty.createdByUserId,
@@ -472,9 +487,8 @@ object JSONFactory220{
       other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
       other_branch_routing_address =counterparty.otherBranchRoutingAddress,
       is_beneficiary = counterparty.isBeneficiary,
-      bespoke= counterparty.bespoke
-    ),
-      CounterpartyMetadataJson(
+      bespoke= counterparty.bespoke,
+      metadata=CounterpartyMetadataJson(
         publicAlias = counterpartyMetadata.getPublicAlias
       )
     )
