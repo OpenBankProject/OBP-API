@@ -45,7 +45,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.{List, Nil, Seq}
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -768,14 +768,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric{
-    val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
-    val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
-    val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
-    val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
-    val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
+    val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
 
     val (userName, cbs) = session match {
       case Some(c) =>
@@ -793,9 +788,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
       bankId = bankId.toString,
       accountId = accountId.value,
-      limit = limit.value,
-      fromDate = fromDate.value.toString,
-      toDate = toDate.value.toString
+      limit = limit,
+      fromDate = fromDate,
+      toDate = toDate
     )
       
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
@@ -821,7 +816,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           val res = for {
             internalTransaction <- internalTransactions
             thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
-            transaction <- createMemoryTransaction(thisBankAccount,internalTransaction)
+            transaction <- createInMemoryTransaction(thisBankAccount,internalTransaction)
           } yield {
             transaction
           }
@@ -840,15 +835,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getTransactions")
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
-    val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
-    val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
-    val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
-    val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
-    val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
-    
+    val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
+  
     val (userName, cbs) = session match {
       case Some(c) =>
         c.gatewayLoginRequestPayload match {
@@ -865,9 +855,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
       bankId = bankId.toString,
       accountId = accountId.value,
-      limit = limit.value,
-      fromDate = fromDate.value.toString,
-      toDate = toDate.value.toString
+      limit = limit,
+      fromDate = fromDate,
+      toDate = toDate
     )
     
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
@@ -893,7 +883,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           val res = for {
             internalTransaction <- internalTransactions
             thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
-            transaction <- createMemoryTransactionCore(thisBankAccount,internalTransaction)
+            transaction <- createInMemoryTransactionCore(thisBankAccount,internalTransaction)
           } yield {
             transaction
           }
@@ -973,7 +963,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(internalTransaction) if (transactionId.value == internalTransaction.transactionId && internalTransaction.errorCode=="") =>
         for {
           bankAccount <- checkBankAccountExists(BankId(internalTransaction.bankId), AccountId(internalTransaction.accountId)) ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createMemoryTransaction(bankAccount,internalTransaction)
+          transaction: Transaction <- createInMemoryTransaction(bankAccount,internalTransaction)
         } yield {
           transaction
         }
@@ -1495,18 +1485,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(memoryTransactionTTL second){
+  def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(memoryTransactionTTL second){
     for {
       datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
       dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
+      
       counterpartyName <- tryo {internalTransaction.counterpartyName}?~!s"$InvalidConnectorResponseForGetTransaction. Can not get counterpartyName from Adapter. "
-
-      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      dummyOtherBankAccount <- createMemoryCounterparty(counterpartyName, bankAccount, None)
-    
-      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      counterparty <- createMemoryCounterparty(counterpartyName, bankAccount, Some(dummyOtherBankAccount.metadata))
+      counterpartyId <- Full(APIUtil.createImplicitCounterpartyId(bankAccount.bankId.value, bankAccount.accountId.value, counterpartyName))
+      counterparty <- createInMemoryCounterparty(bankAccount, counterpartyName, counterpartyId)
+      
     } yield {
       // Create new transaction
       new Transaction(
@@ -1525,14 +1512,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }
  
-  def createMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[TransactionCore] =  memoizeSync(memoryTransactionTTL second){
+  def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[TransactionCore] =  memoizeSync(memoryTransactionTTL second){
     for {
       datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
       dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
       counterpartyCore <- Full(CounterpartyCore(
-        kind = null,
-        counterpartyId = internalTransaction.counterpartyId,
+        counterpartyId = APIUtil.createImplicitCounterpartyId(bankAccount.bankId.value, bankAccount.accountId.value, internalTransaction.counterpartyName),
         counterpartyName = internalTransaction.counterpartyName,
+        kind = null,
         thisBankId = BankId(""),
         thisAccountId = AccountId(""),
         otherBankRoutingScheme = "",
@@ -1561,27 +1548,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   // Helper for creating other bank account, this will not create it in database, only in scala code.
   //Note, we have a method called createCounterparty in this connector, so named it here. 
-  def createMemoryCounterparty(counterpartyName: String, bankAccount: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]): Box[Counterparty] =  memoizeSync(memoryCounterpartyTTL second){
+  def createInMemoryCounterparty(bankAccount: BankAccount, counterpartyName: String, counterpartyId: String): Box[Counterparty] =  memoizeSync(memoryCounterpartyTTL second){
     Full(
-      new Counterparty(
-        // We can only get following 4 fields from Adapter. 
-        // Here we only have one bankAccount, but we need a `dummyOtherBankAccount` for metaData. 
-        // so we use the same account for both `Counterparty.thisAccountId` and `Counterparty.otherAccountId`. 
-        //these define the counterparty
-        counterpartyName = counterpartyName, // This will be used mapping `MappedCounterpartyMetadata.holder`
-        thisAccountId = bankAccount.accountId,  //This will be used mapping `MappedCounterpartyMetadata.accountNumber`
+      Counterparty(
+        thisBankId = BankId(bankAccount.bankId.value),
+        thisAccountId = bankAccount.accountId,
+        counterpartyId = counterpartyId,
+        counterpartyName = counterpartyName, 
         
-        counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
-        
-        thisBankId = BankId(null),
-        nationalIdentifier = null,
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,
-        kind = null,
         otherBankRoutingScheme = null,
         otherAccountRoutingScheme = null,
         otherAccountProvider = null,
-        isBeneficiary = true
+        isBeneficiary = true,
+          
+        kind = null,
+        nationalIdentifier = null
       )
     )
   }
