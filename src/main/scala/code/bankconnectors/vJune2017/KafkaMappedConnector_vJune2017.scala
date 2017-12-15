@@ -221,9 +221,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundGetBanks(
         authInfoExample,
-        InboundBank(
+        Status(
           errorCode = errorCodeExample,
-          inboundStatusMessagesExample,
+          inboundStatusMessagesExample),
+        InboundBank(
           bankId = "gh.29.uk",
           name = "sushan",
           logo = "TESOBE",
@@ -238,21 +239,21 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       val req = OutboundGetBanks(AuthInfo(currentResourceUserId, getUsername, getCbsToken))
       logger.info(s"Kafka getBanks Req is: $req")
       
-      val box = for {
+      val box: Box[(List[InboundBank], Status)] = for {
         kafkaMessage <- processToBox[OutboundGetBanks](req)
         inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error"
-        inboundBanks <- Full(inboundGetBanks.data)
+        (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
       } yield{
-        inboundBanks
+        (inboundBanks, status)
       }
       
       
       logger.debug(s"Kafka getBanks Res says:  is: $Box")
       val res = box match {
-        case Full(list) if (list.head.errorCode=="") =>
-          Full(list map (new Bank2(_)))
-        case Full(list) if (list.head.errorCode!="") =>
-          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
+        case Full((banks, status)) if (status.errorCode=="") =>
+          Full(banks map (new Bank2(_)))
+        case Full((banks, status)) if (status.errorCode!="") =>
+          Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
@@ -276,9 +277,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundGetBank(
         authInfoExample,
-        InboundBank(
+        Status(
           errorCodeExample,
-          inboundStatusMessagesExample,
+          inboundStatusMessagesExample),
+        InboundBank(
           bankId = "gh.29.uk",
           name = "sushan",
           logo = "TESOBE",
@@ -299,19 +301,19 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       val box = for {
         kafkaMessage <- processToBox[OutboundGetBank](req)
         inboundGetBank <- tryo{kafkaMessage.extract[InboundGetBank]} ?~! s"$InboundGetBank extract error"
-        inboundBank <- Full(inboundGetBank.data)
-      } yield{
-        inboundBank
+        (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
+      } yield {
+        (inboundBank, status)
       }
       
       
       logger.debug(s"Kafka getBank Res says:  is: $Box") 
       
       box match {
-        case Full(list) if (list.errorCode=="") =>
-          Full(new Bank2(list))
-        case Full(list) if (list.errorCode!="") =>
-          Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
+        case Full((bank, status)) if (status.errorCode=="") =>
+          Full((new Bank2(bank)))
+        case Full((_, status)) if (status.errorCode!="") =>
+          Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
         case Empty =>
           Failure(ErrorMessages.ConnectorEmptyResponse)
         case Failure(msg, e, c) =>
