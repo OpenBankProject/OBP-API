@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
@@ -1069,7 +1069,7 @@ trait APIMethods220 {
               otherBranchRoutingScheme=postJson.other_branch_routing_scheme,
               otherBranchRoutingAddress=postJson.other_branch_routing_address,
               isBeneficiary=postJson.is_beneficiary,
-              bespoke=postJson.bespoke
+              bespoke=postJson.bespoke.map(bespoke =>CounterpartyBespoke(bespoke.key,bespoke.value))
             )
           
             counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError

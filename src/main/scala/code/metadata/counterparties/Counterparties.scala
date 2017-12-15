@@ -2,7 +2,6 @@ package code.metadata.counterparties
 
 import java.util.Date
 
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.remotedata.RemotedataCounterparties
 import net.liftweb.common.Box
@@ -51,7 +50,7 @@ trait Counterparties {
                           otherAccountSecondaryRoutingScheme: String,
                           otherAccountSecondaryRoutingAddress: String,
                           description: String,
-                          bespoke: List[PostCounterpartyBespoke]
+                          bespoke: List[CounterpartyBespoke]
                         ): Box[CounterpartyTrait]
 
   def checkCounterpartyAvailable(
@@ -98,7 +97,7 @@ trait CounterpartyTrait {
   def otherBranchRoutingScheme: String
   def otherBranchRoutingAddress: String
   def isBeneficiary : Boolean
-  def bespoke: List[PostCounterpartyBespoke]
+  def bespoke: List[CounterpartyBespoke]
 }
 
 class RemotedataCounterpartiesCaseClasses {
@@ -124,7 +123,7 @@ class RemotedataCounterpartiesCaseClasses {
                                  otherAccountSecondaryRoutingScheme: String,
                                  otherAccountSecondaryRoutingAddress: String,
                                  description: String,
-                                 bespoke: List[PostCounterpartyBespoke]
+                                 bespoke: List[CounterpartyBespoke]
   )
 
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)

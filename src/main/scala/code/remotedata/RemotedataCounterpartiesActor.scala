@@ -4,7 +4,6 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.metadata.counterparties.{MapperCounterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
@@ -29,7 +28,7 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
                                otherAccountSecondaryRoutingScheme: String,
                                otherAccountSecondaryRoutingAddress: String,
                                description: String,
-                               bespoke: List[PostCounterpartyBespoke]
+                               bespoke: List[CounterpartyBespoke]
     ) =>
       logger.debug("createCounterparty(" +createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
                     + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ otherBranchRoutingScheme+
@@ -50,7 +49,7 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
         otherAccountSecondaryRoutingScheme: String,
         otherAccountSecondaryRoutingAddress: String,
         description: String,
-        bespoke: List[PostCounterpartyBespoke]
+        bespoke: List[CounterpartyBespoke]
       ))
 
     case cc.getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)  =>

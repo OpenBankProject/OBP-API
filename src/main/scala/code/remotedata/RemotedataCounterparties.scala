@@ -4,7 +4,6 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import net.liftweb.common.Box
@@ -50,7 +49,7 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
-                                  bespoke: List[PostCounterpartyBespoke]): Box[CounterpartyTrait] =
+                                  bespoke: List[CounterpartyBespoke]): Box[CounterpartyTrait] =
     extractFutureToBox(actor ? cc.createCounterparty(createdByUserId, thisBankId,
                                                       thisAccountId, thisViewId, name,
                                                       otherAccountRoutingScheme,

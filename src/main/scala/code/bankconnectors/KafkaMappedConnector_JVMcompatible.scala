@@ -31,9 +31,9 @@ import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
-import code.api.util.{ErrorMessages, SessionContext}
 import code.api.util.ErrorMessages._
-import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
+import code.api.util.{ErrorMessages, SessionContext}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vJune2017.AccountRules
@@ -72,7 +72,7 @@ import scala.collection.immutable.{List, Seq}
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scalacache.{ScalaCache, _}
+import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization._
 
@@ -1441,7 +1441,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def description: String = ""
     def otherAccountSecondaryRoutingScheme: String = ""
     def otherAccountSecondaryRoutingAddress: String = ""
-    def bespoke: List[PostCounterpartyBespoke] = Nil
+    def bespoke: List[CounterpartyBespoke] = Nil
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{

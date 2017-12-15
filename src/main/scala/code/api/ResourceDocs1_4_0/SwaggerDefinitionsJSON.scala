@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
-import code.api.v3_0_0.{AdapterInfoJsonV300, LobbyJsonV330, _}
+import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -1640,13 +1640,9 @@ object SwaggerDefinitionsJSON {
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
   
   
-  val postCounterpartyBespoke1 = PostCounterpartyBespoke(
+  val postCounterpartyBespokeJson = PostCounterpartyBespokeJson(
     key = "englishName",
     value = "english Name"
-  )
-  val postCounterpartyBespoke2 = PostCounterpartyBespoke(
-    key = "englishDescription",
-    value = "englishDescription"
   )
   
   val postCounterpartyJSON = PostCounterpartyJSON(
@@ -1661,7 +1657,7 @@ object SwaggerDefinitionsJSON {
     other_branch_routing_scheme = "branchNumber",
     other_branch_routing_address = "10010", 
     is_beneficiary = true,
-    bespoke =  List(postCounterpartyBespoke1,postCounterpartyBespoke2)
+    bespoke =  List(postCounterpartyBespokeJson)
   )
 
   val metricsJson = MetricsJson(

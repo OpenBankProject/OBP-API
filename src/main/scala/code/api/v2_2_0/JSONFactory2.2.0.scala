@@ -36,17 +36,17 @@ import java.util.Date
 
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_1_0.{MetricJson, MetricsJson, PostCounterpartyBespoke, ResourceUserJSON}
+import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
 import code.customer.Customer
-import code.model.dataAccess.{AuthUser, ResourceUser}
-import code.products.Products.Product
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
-import code.metrics.{APIMetric, ConnectorMetric}
+import code.metrics.ConnectorMetric
+import code.model.dataAccess.ResourceUser
 import code.model.{CounterpartyMetadata, _}
+import code.products.Products.Product
 import code.users.Users
 import net.liftweb.common.{Box, Full}
 //import net.liftweb.common.Box
@@ -162,7 +162,7 @@ case class CounterpartyWithMetadataJson(
   other_account_secondary_routing_scheme: String,
   other_account_secondary_routing_address: String,
   is_beneficiary: Boolean,
-  bespoke:List[PostCounterpartyBespoke],
+  bespoke:List[PostCounterpartyBespokeJson],
   metadata: CounterpartyMetadataJson
 )
 case class CounterpartyJsonV220(
@@ -182,7 +182,7 @@ case class CounterpartyJsonV220(
                              other_account_secondary_routing_scheme: String,
                              other_account_secondary_routing_address: String,
                              is_beneficiary: Boolean,
-                             bespoke:List[PostCounterpartyBespoke]
+                             bespoke:List[PostCounterpartyBespokeJson]
                            )
 
 case class CounterpartyMetadataJson(
@@ -487,7 +487,7 @@ object JSONFactory220{
       other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
       other_branch_routing_address =counterparty.otherBranchRoutingAddress,
       is_beneficiary = counterparty.isBeneficiary,
-      bespoke= counterparty.bespoke,
+      bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value)),
       metadata=CounterpartyMetadataJson(
         publicAlias = counterpartyMetadata.getPublicAlias
       )
@@ -512,7 +512,7 @@ object JSONFactory220{
         other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
         other_branch_routing_address =counterparty.otherBranchRoutingAddress,
         is_beneficiary = counterparty.isBeneficiary,
-        bespoke= counterparty.bespoke
+        bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value))
       )
   }
 

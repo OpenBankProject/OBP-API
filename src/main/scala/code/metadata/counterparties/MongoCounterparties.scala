@@ -2,13 +2,11 @@ package code.metadata.counterparties
 
 import java.util.Date
 
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
-import net.liftweb.common.{Box, Empty}
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.common.Full
 import org.bson.types.ObjectId
 
 object MongoCounterparties extends Counterparties with MdcLoggable {
@@ -127,7 +125,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
                                    otherAccountSecondaryRoutingScheme: String,
                                    otherAccountSecondaryRoutingAddress: String,
                                    description: String,
-                                   bespoke: List[PostCounterpartyBespoke]
+                                   bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = Empty
 
   override def checkCounterpartyAvailable(

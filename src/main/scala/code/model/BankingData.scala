@@ -31,31 +31,29 @@ Berlin 13359, Germany
  */
 package code.model
 
-import code.util.Helper
-
-import scala.math.BigDecimal
 import java.util.Date
 
 import code.accountholder.AccountHolders
 import code.api.util.SessionContext
 import code.bankconnectors.vJune2017.AccountRules
-
-import scala.collection.immutable.{List, Set}
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.common._
+import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
+import code.metadata.counterparties.Counterparties
+import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
-import code.bankconnectors.{Connector, OBPQueryParam}
-import code.views.Views
-import code.metadata.narrative.Narrative
-import code.metadata.counterparties.Counterparties
+import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.views.Views
+import net.liftweb.common._
+import net.liftweb.json.JObject
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonDSL._
 
+import scala.collection.immutable.{List, Set}
 import scala.concurrent.Future
+import scala.math.BigDecimal
 
 /**
  * Uniquely identifies a view
@@ -798,4 +796,9 @@ case class CoreAccount(
   label: String,
   bank_id: String,
   account_routing: AccountRouting
+)
+
+case class CounterpartyBespoke(
+  key: String,
+  value: String
 )

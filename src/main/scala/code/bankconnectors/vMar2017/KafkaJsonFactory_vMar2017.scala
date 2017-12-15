@@ -35,7 +35,6 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors.InboundUser
 import code.bankconnectors.vJune2017.AccountRules
 import code.fx.FXRate
@@ -303,7 +302,7 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def description: String = ""
   def otherAccountSecondaryRoutingScheme: String = ""
   def otherAccountSecondaryRoutingAddress: String = ""
-  def bespoke: List[PostCounterpartyBespoke] = Nil
+  def bespoke: List[CounterpartyBespoke] = Nil
 }
 
 case class InboundStatusMessage(

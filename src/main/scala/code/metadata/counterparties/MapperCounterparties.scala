@@ -4,22 +4,20 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getSecondsCache
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util._
-import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
+import code.util._
 import com.google.common.cache.CacheBuilder
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
 
+import scala.concurrent.duration._
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import scala.concurrent.duration._
 
 // For now, there are two Counterparties: one is used for CreateCounterParty.Counterparty, the other is for getTransactions.Counterparty.
 // 1st is created by app explicitly, when use `CreateCounterParty` endpoint. This will be stored in database .
@@ -145,7 +143,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
-                                  bespoke: List[PostCounterpartyBespoke]
+                                  bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     
     val mappedCounterparty = MappedCounterparty.create
@@ -457,7 +455,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def description: String = mDescription.get
   override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
   override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
-  override def bespoke: List[PostCounterpartyBespoke] = mBespoke.map(a=>PostCounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
+  override def bespoke: List[CounterpartyBespoke] = mBespoke.map(a=>CounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
 }
 
 object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {

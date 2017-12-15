@@ -23,14 +23,12 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.{MessageDoc, fullBoxOrException, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer._
@@ -38,25 +36,24 @@ import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestAccount, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import code.api.util.APIUtil.getSecondsCache
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
-import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -1078,7 +1075,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingScheme = "otherBranchRoutingScheme",
           otherBranchRoutingAddress = "otherBranchRoutingAddress",
           isBeneficiary = true,
-          bespoke = PostCounterpartyBespoke("key","value") ::Nil
+          bespoke = CounterpartyBespoke("key","value") ::Nil
         )
       )
     ),
@@ -1104,7 +1101,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           description= "String",
           otherAccountSecondaryRoutingScheme= "String",
           otherAccountSecondaryRoutingAddress= "String",
-          bespoke =  List(PostCounterpartyBespoke(
+          bespoke =  List(CounterpartyBespoke(
             key = "String",
             value = "String"
           ))
@@ -1128,7 +1125,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[PostCounterpartyBespoke]
+    bespoke: List[CounterpartyBespoke]
   ): Box[CounterpartyTrait] = {
     val req = OutboundCreateCounterparty(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
@@ -1148,7 +1145,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         otherBranchRoutingScheme: String,
         otherBranchRoutingAddress: String,
         isBeneficiary:Boolean,
-        bespoke: List[PostCounterpartyBespoke]
+        bespoke: List[CounterpartyBespoke]
       )
     )
     logger.debug(s"Kafka createCounterparty Req says: is: $req")

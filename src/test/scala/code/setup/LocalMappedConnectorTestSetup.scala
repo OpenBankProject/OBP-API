@@ -4,7 +4,6 @@ import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
