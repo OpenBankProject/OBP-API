@@ -2,22 +2,22 @@ package code.api.v2_1_0
 
 import java.util.UUID
 
-import code.api.util.ApiRole.CanCreateAnyTransactionRequest
+import code.api.ChargePolicy
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
-import code.api.ChargePolicy
 import code.bankconnectors.Connector
 import code.fx.fx
-import code.model.{AccountId, AccountRoutingAddress, BankAccount, TransactionRequestId}
-import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
+import code.model.{AccountId, BankAccount, TransactionRequestId}
+import code.setup.{APIResponse, DefaultUsers}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
@@ -95,13 +95,13 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
-      val counterPartySEPA = createCounterparty(bankId.value, accountId2.value, "IBAN", "IBAN", true, UUID.randomUUID.toString);
+      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, "IBAN", "IBAN", true, UUID.randomUUID.toString);
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
-      val counterPartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
+      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
 
-      var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterPartySEPA.otherAccountRoutingAddress), discription, sharedChargePolicy)
+      var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountRoutingAddress), discription, sharedChargePolicy)
 
-      var transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(CounterpartyIdJson(counterPartyCounterparty.counterpartyId), bodyValue, discription, sharedChargePolicy)
+      var transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(CounterpartyIdJson(counterpartyCounterparty.counterpartyId), bodyValue, discription, sharedChargePolicy)
 
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
         this.challengeId = challengeId

@@ -1332,8 +1332,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'", Locale.ENGLISH).parse(r.completedDate)
 
     for {
-        counterpartyId <- tryo{r.counterPartyId}
-        counterpartyName <- tryo{r.counterPartyName}
+        counterpartyId <- tryo{r.counterpartyId}
+        counterpartyName <- tryo{r.counterpartyName}
         thisAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
         dummyOtherBankAccount <- tryo{createCounterparty(counterpartyId, counterpartyName, thisAccount, None)}
@@ -1549,8 +1549,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                       amount: String,
                                       bankId : String,
                                       completedDate: String,
-                                      counterPartyId: String,
-                                      counterPartyName: String,
+                                      counterpartyId: String,
+                                      counterpartyName: String,
                                       currency: String,
                                       description: String,
                                       newBalanceAmount: String,

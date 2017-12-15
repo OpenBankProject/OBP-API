@@ -28,7 +28,7 @@ trait Counterparties {
 
   def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[CounterpartyMetadata]
 
-  def getCounterparty(counterPartyId : String): Box[CounterpartyTrait]
+  def getCounterparty(counterpartyId : String): Box[CounterpartyTrait]
 
   def getCounterpartyByIban(iban : String): Box[CounterpartyTrait]
 
@@ -60,24 +60,24 @@ trait Counterparties {
                                   thisViewId: String
                                 ): Boolean
 
-  def addPublicAlias(counterPartyId: String, alias: String): Box[Boolean]
-  def addPrivateAlias(counterPartyId: String, alias: String): Box[Boolean]
-  def addURL(counterPartyId: String, url: String): Box[Boolean]
-  def addImageURL(counterPartyId : String, imageUrl: String): Box[Boolean]
-  def addOpenCorporatesURL(counterPartyId : String, imageUrl: String): Box[Boolean]
-  def addMoreInfo(counterPartyId : String, moreInfo: String): Box[Boolean]
-  def addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
-  def addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
-  def deletePhysicalLocation(counterPartyId : String): Box[Boolean]
-  def deleteCorporateLocation(counterPartyId : String): Box[Boolean]
-  def getCorporateLocation(counterPartyId : String): Box[GeoTag]
-  def getPhysicalLocation(counterPartyId : String): Box[GeoTag]
-  def getOpenCorporatesURL(counterPartyId : String): Box[String]
-  def getImageURL(counterPartyId : String): Box[String]
-  def getUrl(counterPartyId : String): Box[String]
-  def getMoreInfo(counterPartyId : String): Box[String]
-  def getPublicAlias(counterPartyId : String): Box[String]
-  def getPrivateAlias(counterPartyId : String): Box[String]
+  def addPublicAlias(counterpartyId: String, alias: String): Box[Boolean]
+  def addPrivateAlias(counterpartyId: String, alias: String): Box[Boolean]
+  def addURL(counterpartyId: String, url: String): Box[Boolean]
+  def addImageURL(counterpartyId : String, imageUrl: String): Box[Boolean]
+  def addOpenCorporatesURL(counterpartyId : String, imageUrl: String): Box[Boolean]
+  def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean]
+  def addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
+  def addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
+  def deletePhysicalLocation(counterpartyId : String): Box[Boolean]
+  def deleteCorporateLocation(counterpartyId : String): Box[Boolean]
+  def getCorporateLocation(counterpartyId : String): Box[GeoTag]
+  def getPhysicalLocation(counterpartyId : String): Box[GeoTag]
+  def getOpenCorporatesURL(counterpartyId : String): Box[String]
+  def getImageURL(counterpartyId : String): Box[String]
+  def getUrl(counterpartyId : String): Box[String]
+  def getMoreInfo(counterpartyId : String): Box[String]
+  def getPublicAlias(counterpartyId : String): Box[String]
+  def getPrivateAlias(counterpartyId : String): Box[String]
 }
 
 trait CounterpartyTrait {
@@ -107,7 +107,7 @@ class RemotedataCounterpartiesCaseClasses {
 
   case class getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
 
-  case class getCounterparty(counterPartyId: String)
+  case class getCounterparty(counterpartyId: String)
 
   case class getCounterpartyByIban(iban: String)
 
@@ -128,41 +128,41 @@ class RemotedataCounterpartiesCaseClasses {
 
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 
-  case class addPublicAlias(counterPartyId: String, alias: String)
+  case class addPublicAlias(counterpartyId: String, alias: String)
 
-  case class addPrivateAlias(counterPartyId: String, alias: String)
+  case class addPrivateAlias(counterpartyId: String, alias: String)
 
-  case class addURL(counterPartyId: String, url: String)
+  case class addURL(counterpartyId: String, url: String)
 
-  case class addImageURL(counterPartyId : String, imageUrl: String)
+  case class addImageURL(counterpartyId : String, imageUrl: String)
 
-  case class addOpenCorporatesURL(counterPartyId : String, imageUrl: String)
+  case class addOpenCorporatesURL(counterpartyId : String, imageUrl: String)
 
-  case class addMoreInfo(counterPartyId : String, moreInfo: String)
+  case class addMoreInfo(counterpartyId : String, moreInfo: String)
 
-  case class addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double)
+  case class addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double)
 
-  case class addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double)
+  case class addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double)
 
-  case class deletePhysicalLocation(counterPartyId : String)
+  case class deletePhysicalLocation(counterpartyId : String)
 
-  case class deleteCorporateLocation(counterPartyId : String)
+  case class deleteCorporateLocation(counterpartyId : String)
 
-  case class getCorporateLocation(counterPartyId : String)
+  case class getCorporateLocation(counterpartyId : String)
 
-  case class getPhysicalLocation(counterPartyId : String)
+  case class getPhysicalLocation(counterpartyId : String)
 
-  case class getOpenCorporatesURL(counterPartyId : String)
+  case class getOpenCorporatesURL(counterpartyId : String)
 
-  case class getImageURL(counterPartyId : String)
+  case class getImageURL(counterpartyId : String)
 
-  case class getUrl(counterPartyId : String)
+  case class getUrl(counterpartyId : String)
 
-  case class getMoreInfo(counterPartyId : String)
+  case class getMoreInfo(counterpartyId : String)
 
-  case class getPublicAlias(counterPartyId : String)
+  case class getPublicAlias(counterpartyId : String)
 
-  case class getPrivateAlias(counterPartyId : String)
+  case class getPrivateAlias(counterpartyId : String)
 }
 
 object RemotedataCounterpartiesCaseClasses extends RemotedataCounterpartiesCaseClasses

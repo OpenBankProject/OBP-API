@@ -64,9 +64,9 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("getMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")
       sender ! extractResult(mapper.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String))
 
-    case cc.getCounterparty(counterPartyId: String) =>
-      logger.debug("getCounterparty(" + counterPartyId +")")
-      sender ! extractResult(mapper.getCounterparty(counterPartyId: String))
+    case cc.getCounterparty(counterpartyId: String) =>
+      logger.debug("getCounterparty(" + counterpartyId +")")
+      sender ! extractResult(mapper.getCounterparty(counterpartyId: String))
 
     case cc.getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId) =>
       logger.debug("getCounterparties(" + thisBankId +")")
@@ -76,77 +76,77 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("getOrCreateMetadata(" + iban +")")
       sender ! extractResult(mapper.getCounterpartyByIban(iban: String))
 
-    case cc.getPublicAlias(counterPartyId: String) =>
-      logger.debug("getPublicAlias(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getPublicAlias(counterPartyId))
+    case cc.getPublicAlias(counterpartyId: String) =>
+      logger.debug("getPublicAlias(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getPublicAlias(counterpartyId))
 
-    case cc.getPrivateAlias(counterPartyId: String) =>
-      logger.debug("getPrivateAlias(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getPrivateAlias(counterPartyId))
+    case cc.getPrivateAlias(counterpartyId: String) =>
+      logger.debug("getPrivateAlias(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getPrivateAlias(counterpartyId))
 
-    case cc.getCorporateLocation(counterPartyId: String) =>
-      logger.debug("getCorporateLocation(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getCorporateLocation(counterPartyId))
+    case cc.getCorporateLocation(counterpartyId: String) =>
+      logger.debug("getCorporateLocation(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getCorporateLocation(counterpartyId))
 
-    case cc.getPhysicalLocation(counterPartyId: String) =>
-      logger.debug("getPhysicalLocation(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getPhysicalLocation(counterPartyId))
+    case cc.getPhysicalLocation(counterpartyId: String) =>
+      logger.debug("getPhysicalLocation(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getPhysicalLocation(counterpartyId))
 
-    case cc.getOpenCorporatesURL(counterPartyId: String) =>
-      logger.debug("getOpenCorporatesURL(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getOpenCorporatesURL(counterPartyId))
+    case cc.getOpenCorporatesURL(counterpartyId: String) =>
+      logger.debug("getOpenCorporatesURL(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getOpenCorporatesURL(counterpartyId))
 
-    case cc.getImageURL(counterPartyId: String) =>
-      logger.debug("getImageURL(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getImageURL(counterPartyId))
+    case cc.getImageURL(counterpartyId: String) =>
+      logger.debug("getImageURL(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getImageURL(counterpartyId))
 
-    case cc.getUrl(counterPartyId: String) =>
-      logger.debug("getUrl(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getUrl(counterPartyId))
+    case cc.getUrl(counterpartyId: String) =>
+      logger.debug("getUrl(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getUrl(counterpartyId))
 
-    case cc.getMoreInfo(counterPartyId: String) =>
-      logger.debug("getMoreInfo(" + counterPartyId + ")")
-      sender ! extractResult(mapper.getMoreInfo(counterPartyId))
+    case cc.getMoreInfo(counterpartyId: String) =>
+      logger.debug("getMoreInfo(" + counterpartyId + ")")
+      sender ! extractResult(mapper.getMoreInfo(counterpartyId))
 
-    case cc.addPrivateAlias(counterPartyId: String, alias: String) =>
-      logger.debug("addPrivateAlias(" + counterPartyId + ", " + alias +")")
-      sender ! extractResult(mapper.addPrivateAlias(counterPartyId, alias))
+    case cc.addPrivateAlias(counterpartyId: String, alias: String) =>
+      logger.debug("addPrivateAlias(" + counterpartyId + ", " + alias +")")
+      sender ! extractResult(mapper.addPrivateAlias(counterpartyId, alias))
 
-    case cc.addPublicAlias(counterPartyId: String, alias: String) =>
-      logger.debug("addPublicAlias(" + counterPartyId + ", " + alias +")")
-      sender ! extractResult(mapper.addPublicAlias(counterPartyId, alias))
+    case cc.addPublicAlias(counterpartyId: String, alias: String) =>
+      logger.debug("addPublicAlias(" + counterpartyId + ", " + alias +")")
+      sender ! extractResult(mapper.addPublicAlias(counterpartyId, alias))
 
-    case cc.addURL(counterPartyId: String, url: String) =>
-      logger.debug("addURL(" + counterPartyId + ", " + url +")")
-      sender ! extractResult(mapper.addURL(counterPartyId, url))
+    case cc.addURL(counterpartyId: String, url: String) =>
+      logger.debug("addURL(" + counterpartyId + ", " + url +")")
+      sender ! extractResult(mapper.addURL(counterpartyId, url))
 
-    case cc.addImageURL(counterPartyId: String, url: String) =>
-      logger.debug("addImageURL(" + counterPartyId + ", " + url +")")
-      sender ! extractResult(mapper.addImageURL(counterPartyId, url))
+    case cc.addImageURL(counterpartyId: String, url: String) =>
+      logger.debug("addImageURL(" + counterpartyId + ", " + url +")")
+      sender ! extractResult(mapper.addImageURL(counterpartyId, url))
 
-    case cc.addOpenCorporatesURL(counterPartyId: String, url: String) =>
-      logger.debug("addOpenCorporatesURL(" + counterPartyId + ", " + url +")")
-      sender ! extractResult(mapper.addOpenCorporatesURL(counterPartyId, url))
+    case cc.addOpenCorporatesURL(counterpartyId: String, url: String) =>
+      logger.debug("addOpenCorporatesURL(" + counterpartyId + ", " + url +")")
+      sender ! extractResult(mapper.addOpenCorporatesURL(counterpartyId, url))
 
-    case cc.addMoreInfo(counterPartyId : String, moreInfo: String) =>
-      logger.debug("addMoreInfo(" + counterPartyId + ", " + moreInfo +")")
-      sender ! extractResult(mapper.addMoreInfo(counterPartyId, moreInfo))
+    case cc.addMoreInfo(counterpartyId : String, moreInfo: String) =>
+      logger.debug("addMoreInfo(" + counterpartyId + ", " + moreInfo +")")
+      sender ! extractResult(mapper.addMoreInfo(counterpartyId, moreInfo))
 
-    case cc.addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
-      logger.debug("addPhysicalLocation(" + counterPartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
-      sender ! extractResult(mapper.addPhysicalLocation(counterPartyId, userId, datePosted, longitude, latitude))
+    case cc.addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
+      logger.debug("addPhysicalLocation(" + counterpartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
+      sender ! extractResult(mapper.addPhysicalLocation(counterpartyId, userId, datePosted, longitude, latitude))
 
-    case cc.addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
-      logger.debug("addCorporateLocation(" + counterPartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
-      sender ! extractResult(mapper.addCorporateLocation(counterPartyId, userId, datePosted, longitude, latitude))
+    case cc.addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
+      logger.debug("addCorporateLocation(" + counterpartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
+      sender ! extractResult(mapper.addCorporateLocation(counterpartyId, userId, datePosted, longitude, latitude))
 
-    case cc.deleteCorporateLocation(counterPartyId: String) =>
-      logger.debug("deleteCorporateLocation(" + counterPartyId + ")")
-      sender ! extractResult(mapper.deleteCorporateLocation(counterPartyId))
+    case cc.deleteCorporateLocation(counterpartyId: String) =>
+      logger.debug("deleteCorporateLocation(" + counterpartyId + ")")
+      sender ! extractResult(mapper.deleteCorporateLocation(counterpartyId))
 
-    case cc.deletePhysicalLocation(counterPartyId: String) =>
-      logger.debug("deletePhysicalLocation(" + counterPartyId + ")")
-      sender ! extractResult(mapper.deletePhysicalLocation(counterPartyId))
+    case cc.deletePhysicalLocation(counterpartyId: String) =>
+      logger.debug("deletePhysicalLocation(" + counterpartyId + ")")
+      sender ! extractResult(mapper.deletePhysicalLocation(counterpartyId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
