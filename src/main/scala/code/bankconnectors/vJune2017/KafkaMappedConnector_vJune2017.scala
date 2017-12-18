@@ -1400,8 +1400,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     res
   }}("getCounterpartyByCounterpartyId")
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(0 second){
-    val req = OutboundGetCounterparty(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), thisBankId.value, thisAccountId.value, couterpartyId)
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(0 second){
+    val req = OutboundGetCounterparty(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, accountId.value, couterpartyId)
     logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
 
     val box = for {

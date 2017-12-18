@@ -292,7 +292,7 @@ trait Connector extends MdcLoggable{
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[CounterpartyTrait]= getCounterpartyByCounterpartyId(CounterpartyId(couterpartyId))
+  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String): Box[CounterpartyTrait]= getCounterpartyByCounterpartyId(CounterpartyId(couterpartyId))
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait]= Failure(NotImplemented + currentMethodName)
 
