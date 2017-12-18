@@ -38,20 +38,17 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.api.Constant._
-import code.api.DirectLogin
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
-import code.api._
+import code.api.{DirectLogin, _}
 import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.v1_2.ErrorMessage
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
-import code.model.dataAccess.ResourceUserCaseClass
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
@@ -70,9 +67,9 @@ import net.liftweb.util.{Props, StringHelpers}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.xml.{Elem, XML}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 object ErrorMessages {
@@ -1859,8 +1856,9 @@ Versions are groups of endpoints in a file
     * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields. 
     */
   def createOBPId(in:String)= {
-    import net.liftweb.util.SecurityHelpers._
     import java.security.MessageDigest
+
+    import net.liftweb.util.SecurityHelpers._
     def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
     
     base64EncodedSha256(in)

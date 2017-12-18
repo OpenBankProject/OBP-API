@@ -36,28 +36,23 @@ import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddressJsonV140, ChallengeJsonV140, CustomerFaceImageJson, DriveUpStringJson, LicenseJsonV140, LobbyStringJson, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140}
-import code.api.v1_4_0.JSONFactory1_4_0.{transformToAddressFromV140, transformToLocationFromV140, transformToMetaFromV140}
-import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs, stringOrNull}
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.atms.Atms.AtmId
 import code.branches.Branches._
 import code.common._
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metadata.counterparties.CounterpartyTrait
-import code.model._
-import code.transactionrequests.TransactionRequests._
-import code.model.{AmountOfMoney, Consumer, Iban}
-import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.APIMetric
+import code.model.{Consumer, _}
 import code.model.dataAccess.ResourceUser
+import code.products.Products.Product
+import code.transactionrequests.TransactionRequests._
+import code.users.Users
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
-import code.products.Products.Product
-import code.users.Users
 
-import scala.None
 import scala.collection.immutable.List
 
 
@@ -216,7 +211,7 @@ case class ConsumerPostJSON(app_name: String,
 
 case class ConsumersJson(list: List[ConsumerJSON])
 
-case class PostCounterpartyBespoke(
+case class PostCounterpartyBespokeJson(
   key: String,
   value: String
 )
@@ -233,7 +228,7 @@ case class PostCounterpartyJSON(
   other_branch_routing_scheme: String,
   other_branch_routing_address: String,
   is_beneficiary: Boolean,
-  bespoke: List[PostCounterpartyBespoke]
+  bespoke: List[PostCounterpartyBespokeJson]
 )
 
 

@@ -28,7 +28,7 @@ import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
 import code.api.util.{ErrorMessages, SessionContext}
-import code.api.v2_1_0.{PostCounterpartyBespoke, TransactionRequestCommonBodyJSON}
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.AtmId
 import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.AccountRules
@@ -1237,7 +1237,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def description: String = ""
     def otherAccountSecondaryRoutingScheme: String = ""
     def otherAccountSecondaryRoutingAddress: String = ""
-    def bespoke: List[PostCounterpartyBespoke] = Nil
+    def bespoke: List[CounterpartyBespoke] = Nil
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{

@@ -4,22 +4,20 @@ import java.util.{Date, UUID}
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getSecondsCache
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util._
-import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
+import code.util._
 import com.google.common.cache.CacheBuilder
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
 
+import scala.concurrent.duration._
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import scala.concurrent.duration._
 
 // For now, there are two Counterparties: one is used for CreateCounterParty.Counterparty, the other is for getTransactions.Counterparty.
 // 1st is created by app explicitly, when use `CreateCounterParty` endpoint. This will be stored in database .
@@ -113,8 +111,8 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   }
 
 
-  override def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = {
-    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterPartyId))
+  override def getCounterparty(counterpartyId : String): Box[CounterpartyTrait] = {
+    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId))
   }
   override def getCounterpartyByIban(iban : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(
@@ -129,7 +127,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       By(MappedCounterparty.mThisViewId, viewId.value)))
   }
 
-  override def createCounterparty(counterpartyId: String,
+  override def createCounterparty(
                                   createdByUserId: String,
                                   thisBankId: String,
                                   thisAccountId : String,
@@ -145,16 +143,11 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
-                                  bespoke: List[PostCounterpartyBespoke]
+                                  bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     
-    val counterpartyId = APIUtil.createExplicitCounterpartyId()
-  
-    //This is the `EXPLICIT` Counterparty, we also create the metaData for it
-    val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(BankId(thisBankId), AccountId(thisAccountId), counterpartyId, name).openOrThrowException("Can not getOrCreateMetadata !")
-    
     val mappedCounterparty = MappedCounterparty.create
-      .mCounterPartyId(metadata.getCounterpartyId)
+      .mCounterPartyId(APIUtil.createExplicitCounterpartyId) //We create the Counterparty_Id here, it means, it will be create in each connnector.
       .mName(name)
       .mCreatedByUserId(createdByUserId)
       .mThisBankId(thisBankId)
@@ -210,80 +203,80 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   }
 
 
-  private def getCounterpartyMetadata(counterPartyId : String) : Box[MappedCounterpartyMetadata] = {
-    MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterPartyId))
+  private def getCounterpartyMetadata(counterpartyId : String) : Box[MappedCounterpartyMetadata] = {
+    MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
   }
 
-  override def getPublicAlias(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.publicAlias.get)
+  override def getPublicAlias(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.publicAlias.get)
   }
 
-  override def getPrivateAlias(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.privateAlias.get)
+  override def getPrivateAlias(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.privateAlias.get)
   }
 
-  override def getPhysicalLocation(counterPartyId : String): Box[GeoTag] = {
-    getCounterpartyMetadata(counterPartyId).flatMap(_.physicalLocation.obj)
+  override def getPhysicalLocation(counterpartyId : String): Box[GeoTag] = {
+    getCounterpartyMetadata(counterpartyId).flatMap(_.physicalLocation.obj)
   }
 
-  override def getOpenCorporatesURL(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.getOpenCorporatesURL)
+  override def getOpenCorporatesURL(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.getOpenCorporatesURL)
   }
 
-  override def getImageURL(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.getImageURL)
+  override def getImageURL(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.getImageURL)
   }
 
-  override def getUrl(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.getUrl)
+  override def getUrl(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.getUrl)
   }
 
-  override def getMoreInfo(counterPartyId : String): Box[String] = {
-    getCounterpartyMetadata(counterPartyId).map(_.getMoreInfo)
+  override def getMoreInfo(counterpartyId : String): Box[String] = {
+    getCounterpartyMetadata(counterpartyId).map(_.getMoreInfo)
   }
 
-  override def getCorporateLocation(counterPartyId : String): Box[GeoTag] = {
-    getCounterpartyMetadata(counterPartyId).flatMap(_.corporateLocation.obj)
+  override def getCorporateLocation(counterpartyId : String): Box[GeoTag] = {
+    getCounterpartyMetadata(counterpartyId).flatMap(_.corporateLocation.obj)
   }
 
-  override def addPublicAlias(counterPartyId : String, alias: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.publicAlias(alias).save())
+  override def addPublicAlias(counterpartyId : String, alias: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.publicAlias(alias).save())
   }
 
-  override def addPrivateAlias(counterPartyId : String, alias: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.privateAlias(alias).save())
+  override def addPrivateAlias(counterpartyId : String, alias: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.privateAlias(alias).save())
   }
 
-  override def addURL(counterPartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.url(url).save())
+  override def addURL(counterpartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.url(url).save())
   }
 
-  override def addImageURL(counterPartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.imageUrl(url).save())
+  override def addImageURL(counterpartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.imageUrl(url).save())
   }
 
-  override def addOpenCorporatesURL(counterPartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.openCorporatesUrl(url).save())
+  override def addOpenCorporatesURL(counterpartyId : String, url: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.openCorporatesUrl(url).save())
   }
 
-  override def addMoreInfo(counterPartyId : String, moreInfo: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.moreInfo(moreInfo).save())
+  override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.moreInfo(moreInfo).save())
   }
 
-  override def addPhysicalLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.setPhysicalLocation(userId, datePosted, longitude, latitude))
+  override def addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.setPhysicalLocation(userId, datePosted, longitude, latitude))
   }
 
-  override def addCorporateLocation(counterPartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).map(_.setCorporateLocation(userId, datePosted, longitude, latitude))
+  override def addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).map(_.setCorporateLocation(userId, datePosted, longitude, latitude))
   }
 
-  override def deletePhysicalLocation(counterPartyId : String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).flatMap(_.physicalLocation.obj).map(_.delete_!)
+  override def deletePhysicalLocation(counterpartyId : String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).flatMap(_.physicalLocation.obj).map(_.delete_!)
   }
 
-  override def deleteCorporateLocation(counterPartyId : String): Box[Boolean] = {
-    getCounterpartyMetadata(counterPartyId).flatMap(_.corporateLocation.obj).map(_.delete_!)
+  override def deleteCorporateLocation(counterpartyId : String): Box[Boolean] = {
+    getCounterpartyMetadata(counterpartyId).flatMap(_.corporateLocation.obj).map(_.delete_!)
   }
 }
 
@@ -462,7 +455,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def description: String = mDescription.get
   override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
   override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
-  override def bespoke: List[PostCounterpartyBespoke] = mBespoke.map(a=>PostCounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
+  override def bespoke: List[CounterpartyBespoke] = mBespoke.map(a=>CounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
 }
 
 object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {

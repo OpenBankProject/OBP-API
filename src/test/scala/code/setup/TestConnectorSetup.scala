@@ -15,7 +15,7 @@ trait TestConnectorSetup {
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
-  protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String, createdByUserId:String): CounterpartyTrait
+  protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait
   
   /**
     * This method, will do three things:

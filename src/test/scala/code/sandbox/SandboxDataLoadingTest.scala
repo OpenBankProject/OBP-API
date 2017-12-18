@@ -37,34 +37,30 @@ import java.util.Date
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.accountholder.AccountHolders
-import code.api.v1_2_1.APIMethods121
+import code.api.util.APIUtil._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}
+import code.bankconnectors.{Connector, OBPLimit}
 import code.branches.Branches
-import code.branches.Branches.{Branch, BranchId, BranchT, countOfBranches}
-import code.crm.CrmEvent
+import code.branches.Branches.{BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
+import code.model._
+import code.model.dataAccess._
 import code.products.Products
 import code.products.Products.{Product, ProductCode, countOfProducts}
-import code.model.dataAccess._
-import code.model._
-import code.products.Products.ProductCode
+import code.setup.{APIResponse, SendServerRequests}
 import code.users.Users
 import code.views.Views
 import dispatch._
+import net.liftweb.common.{Empty, ParamFailure}
 import net.liftweb.json.JsonAST.{JObject, JValue}
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.Serialization.write
+import net.liftweb.json.{JField, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JField, _}
-import net.liftweb.json.Serialization.write
-import code.bankconnectors.{Connector, OBPLimit}
-import net.liftweb.common.{Empty, Full, ParamFailure}
-import code.api.util.APIUtil._
-import code.setup.{APIResponse, SendServerRequests}
-import net.liftweb.json
 
 /*
 This tests:
@@ -1430,7 +1426,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 //    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 //    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
 //
-//    counter1.counterPartyId should not equal(counter2.counterPartyId)
+//    counter1.counterpartyId should not equal(counter2.counterpartyId)
 //    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
 //    counter1.thisAccountId.value should equal(counterAcc1)
 //    counter2.thisAccountId.value should equal(counterAcc2)

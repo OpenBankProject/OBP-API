@@ -4,7 +4,6 @@ import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
@@ -35,9 +34,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .saveMe
   }
 
-  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String, createdByUserId:String): CounterpartyTrait = {
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait = {
     Counterparties.counterparties.vend.createCounterparty(
-      counterpartyId= counterpartyId,
       createdByUserId = createdByUserId,
       thisBankId = bankId,
       thisAccountId = accountId,

@@ -5,10 +5,9 @@ import java.util.{Date, UUID}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v2_1_0._
-import code.api.v3_0_0.CoreAccountJsonV300
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -17,7 +16,7 @@ import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
@@ -35,11 +34,10 @@ import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 
 /*
@@ -1227,7 +1225,6 @@ trait Connector extends MdcLoggable{
   }
   
   def createCounterparty(
-    counterpartyId: String,
     name: String,
     description: String,
     createdByUserId: String,
@@ -1243,7 +1240,7 @@ trait Connector extends MdcLoggable{
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[PostCounterpartyBespoke]
+    bespoke: List[CounterpartyBespoke]
   ): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
