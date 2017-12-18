@@ -32,20 +32,17 @@
 package code.api.v3_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil
 import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, dottedApiVersion, getAllowedEndpoints}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
-import code.api.v2_2_0.OBPAPI2_2_0.{Implementations2_2_0, _}
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.model.User
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
@@ -100,8 +97,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.deleteWhereTagForViewOnTransaction ::
                           Implementations1_2_1.getBanks ::
                           Implementations1_2_1.getCommentsForViewOnTransaction ::
-                          Implementations1_2_1.getOtherAccountsForBankAccount ::
-                          Implementations1_2_1.getOtherAccountByIdForBankAccount ::
+//                          Implementations1_2_1.getOtherAccountsForBankAccount ::
+//                          Implementations1_2_1.getOtherAccountByIdForBankAccount ::
                           Implementations1_2_1.getOtherAccountForTransaction ::
                           Implementations1_2_1.getOtherAccountMetadata ::
                           Implementations1_2_1.getOtherAccountPrivateAlias ::
@@ -257,6 +254,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getCurrentUser ::
                           Implementations3_0_0.privateAccountsAtOneBank ::
                           Implementations3_0_0.getPrivateAccountIdsbyBankId ::
+                          Implementations3_0_0.getOtherAccountsForBankAccount ::
+                          Implementations3_0_0.getOtherAccountByIdForBankAccount ::
                           Nil
 
 

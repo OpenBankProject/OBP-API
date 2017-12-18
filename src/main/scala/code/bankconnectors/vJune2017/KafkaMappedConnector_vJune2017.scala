@@ -23,14 +23,12 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import code.api.util.APIUtil.{MessageDoc, fullBoxOrException, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
-import code.api.v2_1_0.PostCounterpartyBespoke
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer._
@@ -38,25 +36,24 @@ import code.kafka.KafkaHelper
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestAccount, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import code.api.util.APIUtil.getSecondsCache
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Box, _}
-import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.{List, Nil, Seq}
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import scalacache.memoization.memoizeSync
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -771,14 +768,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric{
-    val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
-    val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
-    val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
-    val toDate = queryParams.collect { case OBPToDate(date) => OBPToDate(date)}.headOption.get
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
-    val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
+    val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
 
     val (userName, cbs) = session match {
       case Some(c) =>
@@ -796,9 +788,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
       bankId = bankId.toString,
       accountId = accountId.value,
-      limit = limit.value,
-      fromDate = fromDate.value.toString,
-      toDate = toDate.value.toString
+      limit = limit,
+      fromDate = fromDate,
+      toDate = toDate
     )
       
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
@@ -824,7 +816,74 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           val res = for {
             internalTransaction <- internalTransactions
             thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
-            transaction <- createMemoryTransaction(thisBankAccount,internalTransaction)
+            transaction <- createInMemoryTransaction(thisBankAccount,internalTransaction)
+          } yield {
+            transaction
+          }
+          Full(res)
+        case Empty =>
+          Failure(ErrorMessages.ConnectorEmptyResponse)
+        case Failure(msg, e, c) =>
+          Failure(msg, e, c)
+        case _ =>
+          Failure(ErrorMessages.UnknownError)
+      }
+    }
+    
+    getTransactionsCached(req)
+    
+  }("getTransactions")
+  
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
+    val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
+  
+    val (userName, cbs) = session match {
+      case Some(c) =>
+        c.gatewayLoginRequestPayload match {
+          case Some(p) =>
+            (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
+          case _ =>
+            (getUsername, getCbsToken) // Old Style Endpoints use S object
+        }
+      case _ =>
+        (getUsername, getCbsToken) // Old Style Endpoints use S object
+    }
+    
+    val req = OutboundGetTransactions(
+      authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
+      bankId = bankId.toString,
+      accountId = accountId.value,
+      limit = limit,
+      fromDate = fromDate,
+      toDate = toDate
+    )
+    
+    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
+    def getTransactionsCached(req:OutboundGetTransactions): Box[List[TransactionCore]] = memoizeSync(transactionsTTL second){
+      logger.debug(s"Kafka getTransactions says: req is: $req")
+      val box = for {
+        kafkaMessage <- processToBox[OutboundGetTransactions](req)
+        inboundGetTransactions <- tryo{kafkaMessage.extract[InboundGetTransactions]} ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error"
+        internalTransactions <- Full(inboundGetTransactions.data)
+      } yield{
+        internalTransactions
+      }
+      logger.debug(s"Kafka getTransactions says: res is: $box")
+      
+      box match {
+        case Full(list) if (list.head.errorCode!="") =>
+          Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
+        case Full(internalTransactions) if (!internalTransactions.forall(x => x.accountId == accountId.value && x.bankId == bankId.value))  =>
+          Failure(InvalidConnectorResponseForGetTransactions)
+        case Full(internalTransactions) if (internalTransactions.head.errorCode=="") =>
+          val bankAccount = checkBankAccountExists(BankId(internalTransactions.head.bankId), AccountId(internalTransactions.head.accountId), session)
+          
+          val res = for {
+            internalTransaction <- internalTransactions
+            thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
+            transaction <- createInMemoryTransactionCore(thisBankAccount,internalTransaction)
           } yield {
             transaction
           }
@@ -904,7 +963,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full(internalTransaction) if (transactionId.value == internalTransaction.transactionId && internalTransaction.errorCode=="") =>
         for {
           bankAccount <- checkBankAccountExists(BankId(internalTransaction.bankId), AccountId(internalTransaction.accountId)) ?~! ErrorMessages.BankAccountNotFound
-          transaction: Transaction <- createMemoryTransaction(bankAccount,internalTransaction)
+          transaction: Transaction <- createInMemoryTransaction(bankAccount,internalTransaction)
         } yield {
           transaction
         }
@@ -991,7 +1050,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       OutboundCreateCounterparty(
         authInfoExample,
         OutboundCounterparty(
-          counterpartyId= "String",
           name = "name",
           description = "description",
           createdByUserId = "createdByUserId",
@@ -1007,7 +1065,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingScheme = "otherBranchRoutingScheme",
           otherBranchRoutingAddress = "otherBranchRoutingAddress",
           isBeneficiary = true,
-          bespoke = PostCounterpartyBespoke("key","value") ::Nil
+          bespoke = CounterpartyBespoke("key","value") ::Nil
         )
       )
     ),
@@ -1033,7 +1091,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           description= "String",
           otherAccountSecondaryRoutingScheme= "String",
           otherAccountSecondaryRoutingAddress= "String",
-          bespoke =  List(PostCounterpartyBespoke(
+          bespoke =  List(CounterpartyBespoke(
             key = "String",
             value = "String"
           ))
@@ -1042,7 +1100,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
   override def createCounterparty(
-    counterpartyId: String,
     name: String,
     description: String,
     createdByUserId: String,
@@ -1058,12 +1115,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[PostCounterpartyBespoke]
+    bespoke: List[CounterpartyBespoke]
   ): Box[CounterpartyTrait] = {
     val req = OutboundCreateCounterparty(
       authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
       counterparty = OutboundCounterparty(
-        counterpartyId: String,
         name: String,
         description: String,
         createdByUserId: String,
@@ -1079,7 +1135,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         otherBranchRoutingScheme: String,
         otherBranchRoutingAddress: String,
         isBeneficiary:Boolean,
-        bespoke: List[PostCounterpartyBespoke]
+        bespoke: List[CounterpartyBespoke]
       )
     )
     logger.debug(s"Kafka createCounterparty Req says: is: $req")
@@ -1429,18 +1485,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(memoryTransactionTTL second){
+  def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[Transaction] =  memoizeSync(memoryTransactionTTL second){
     for {
       datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
       dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
+      
       counterpartyName <- tryo {internalTransaction.counterpartyName}?~!s"$InvalidConnectorResponseForGetTransaction. Can not get counterpartyName from Adapter. "
-
-      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      dummyOtherBankAccount <- createMemoryCounterparty(counterpartyName, bankAccount, None)
-    
-      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      counterparty <- createMemoryCounterparty(counterpartyName, bankAccount, Some(dummyOtherBankAccount.metadata))
+      counterpartyId <- Full(APIUtil.createImplicitCounterpartyId(bankAccount.bankId.value, bankAccount.accountId.value, counterpartyName))
+      counterparty <- createInMemoryCounterparty(bankAccount, counterpartyName, counterpartyId)
+      
     } yield {
       // Create new transaction
       new Transaction(
@@ -1458,30 +1511,60 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     }
   }
+ 
+  def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction): Box[TransactionCore] =  memoizeSync(memoryTransactionTTL second){
+    for {
+      datePosted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
+      dateCompleted <- tryo {new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)} ?~!s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
+      counterpartyCore <- Full(CounterpartyCore(
+        counterpartyId = APIUtil.createImplicitCounterpartyId(bankAccount.bankId.value, bankAccount.accountId.value, internalTransaction.counterpartyName),
+        counterpartyName = internalTransaction.counterpartyName,
+        kind = null,
+        thisBankId = BankId(""),
+        thisAccountId = AccountId(""),
+        otherBankRoutingScheme = "",
+        otherBankRoutingAddress = None,
+        otherAccountRoutingScheme =  "",
+        otherAccountRoutingAddress = None,
+        otherAccountProvider = "",
+        isBeneficiary = true
+      ))
+    } yield {
+      // Create new transaction
+       TransactionCore(
+        TransactionId(internalTransaction.transactionId), // id:TransactionId
+        bankAccount, // thisAccount:BankAccount
+        counterpartyCore, // otherAccount:OtherBankAccount
+        internalTransaction.`type`, // transactionType:String
+        BigDecimal(internalTransaction.amount), // val amount:BigDecimal
+        bankAccount.currency, // currency:String
+        Some(internalTransaction.description), // description:Option[String]
+        datePosted, // startDate:Date
+        dateCompleted, // finishDate:Date
+        BigDecimal(internalTransaction.newBalanceAmount) // balance:BigDecimal)
+      )
+    }
+  }
 
   // Helper for creating other bank account, this will not create it in database, only in scala code.
   //Note, we have a method called createCounterparty in this connector, so named it here. 
-  def createMemoryCounterparty(counterpartyName: String, bankAccount: BankAccount, alreadyFoundMetadata: Option[CounterpartyMetadata]): Box[Counterparty] =  memoizeSync(memoryCounterpartyTTL second){
+  def createInMemoryCounterparty(bankAccount: BankAccount, counterpartyName: String, counterpartyId: String): Box[Counterparty] =  memoizeSync(memoryCounterpartyTTL second){
     Full(
-      new Counterparty(
-        // We can only get following 4 fields from Adapter. 
-        // Here we only have one bankAccount, but we need a `dummyOtherBankAccount` for metaData. 
-        // so we use the same account for both `Counterparty.thisAccountId` and `Counterparty.otherAccountId`. 
-        //these define the counterparty
-        counterpartyName = counterpartyName, // This will be used mapping `MappedCounterpartyMetadata.holder`
-        thisAccountId = bankAccount.accountId,  //This will be used mapping `MappedCounterpartyMetadata.accountNumber`
+      Counterparty(
+        thisBankId = BankId(bankAccount.bankId.value),
+        thisAccountId = bankAccount.accountId,
+        counterpartyId = counterpartyId,
+        counterpartyName = counterpartyName, 
         
-        counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
-        
-        thisBankId = BankId(null),
-        nationalIdentifier = null,
         otherBankRoutingAddress = None,
         otherAccountRoutingAddress = None,
-        kind = null,
         otherBankRoutingScheme = null,
         otherAccountRoutingScheme = null,
         otherAccountProvider = null,
-        isBeneficiary = true
+        isBeneficiary = true,
+          
+        kind = null,
+        nationalIdentifier = null
       )
     )
   }

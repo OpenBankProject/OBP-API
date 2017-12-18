@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
-import code.api.v3_0_0.{AdapterInfoJsonV300, LobbyJsonV330, _}
+import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -1640,13 +1640,9 @@ object SwaggerDefinitionsJSON {
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
   
   
-  val postCounterpartyBespoke1 = PostCounterpartyBespoke(
+  val postCounterpartyBespokeJson = PostCounterpartyBespokeJson(
     key = "englishName",
     value = "english Name"
-  )
-  val postCounterpartyBespoke2 = PostCounterpartyBespoke(
-    key = "englishDescription",
-    value = "englishDescription"
   )
   
   val postCounterpartyJSON = PostCounterpartyJSON(
@@ -1661,7 +1657,7 @@ object SwaggerDefinitionsJSON {
     other_branch_routing_scheme = "branchNumber",
     other_branch_routing_address = "10010", 
     is_beneficiary = true,
-    bespoke =  List(postCounterpartyBespoke1,postCounterpartyBespoke2)
+    bespoke =  List(postCounterpartyBespokeJson)
   )
 
   val metricsJson = MetricsJson(
@@ -1798,7 +1794,23 @@ object SwaggerDefinitionsJSON {
   val counterpartyMetadataJson = CounterpartyMetadataJson(publicAlias = "String")
   
   val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
-    counterparty = counterpartyJsonV220,
+    name = postCounterpartyJSON.name,
+    description = postCounterpartyJSON.description,
+    created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
+    this_bank_id = "gh.29.uk",
+    this_account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    this_view_id = "owner",
+    counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
+    other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_branch_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_routing_address = postCounterpartyJSON.other_bank_routing_scheme,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
+    other_account_secondary_routing_address= postCounterpartyJSON.other_bank_routing_scheme,
+    bespoke = postCounterpartyJSON.bespoke,
     metadata = counterpartyMetadataJson
   )
 
@@ -2045,15 +2057,14 @@ object SwaggerDefinitionsJSON {
     id ="String",
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
-    holders =  List(accountHolderJSON),
-    kind ="String"
+    holders =  List(accountHolderJSON)
   )
   
   val otherAccountJsonV300 = OtherAccountJsonV300(
     id = "String",
+    holder = accountHolderJSON,
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
-    kind = "String",
     metadata = otherAccountMetadataJSON
   )
   
@@ -2075,15 +2086,15 @@ object SwaggerDefinitionsJSON {
   
   val coreCounterpartyJsonV300 = CoreCounterpartyJsonV300(
     id = "String",
+    holder = accountHolderJSON,
     bank_routing = bankRoutingJsonV121,
-    account_routing = accountRoutingJsonV121,
-    kind= "String"
+    account_routing = accountRoutingJsonV121
   )
   
   val coreTransactionJsonV300 = CoreTransactionJsonV300(
     id = "String",
-    account = thisAccountJsonV300,
-    counterparty = coreCounterpartyJsonV300,
+    this_account = thisAccountJsonV300,
+    other_account = coreCounterpartyJsonV300,
     details = coreTransactionDetailsJSON
   )
   

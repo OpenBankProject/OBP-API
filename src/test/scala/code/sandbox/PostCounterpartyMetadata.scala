@@ -40,9 +40,8 @@ TESOBE (http://www.tesobe.com/)
 * into your props file.
 * */
 
-import code.util.ObpJson.{BarebonesAccountsJson, _}
-import code.api._
 import code.setup.SendServerRequests
+import code.util.ObpJson.{BarebonesAccountsJson, _}
 import code.util.{Header, OAuthClient, ObpGet, ObpPost}
 import net.liftweb.common.Full
 import net.liftweb.json.JsonDSL._
@@ -168,7 +167,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
         // In the counterparty json, counterparties have a region which refers to the physical location area (for the purposes of local shops etc.)
 
-        // In sandboxes expect the format of bankId = s"$sandboxGroupName.$sandboxGroupInstance.$bankCode.$counterPartyCode"
+        // In sandboxes expect the format of bankId = s"$sandboxGroupName.$sandboxGroupInstance.$bankCode.$counterpartyCode"
         // This is rather turning the bankId into a composite surrogate key but only for sandbox creation.
 
         // Split by dot (.) except split can take a reg expression so must escape the .

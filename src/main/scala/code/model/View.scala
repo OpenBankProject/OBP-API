@@ -742,31 +742,12 @@ trait View {
       None
   }
   
-  def moderateCore(otherBankAccount : CounterpartyCore) : Option[ModeratedOtherBankAccountCore] = {
+  def moderateCore(counterpartyCore : CounterpartyCore) : Option[ModeratedOtherBankAccountCore] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
-      val otherAccountId = otherBankAccount.counterpartyId
-      val otherAccountLabel: AccountName = {
-        val realName = otherBankAccount.counterpartyName
-        
-        if (usePublicAliasIfOneExists) {
-          
-          val publicAlias = Counterparties.counterparties.vend.getPublicAlias(otherBankAccount.counterpartyId).getOrElse("Unknown")
-          
-          if (! publicAlias.isEmpty ) AccountName(publicAlias, PublicAlias)
-          else AccountName(realName, NoAlias)
-          
-        } else if (usePrivateAliasIfOneExists) {
-          
-          // Note: this assumes that the id in Counterparty and otherBankAccount match!
-          val privateAlias = Counterparties.counterparties.vend.getPrivateAlias(otherBankAccount.counterpartyId).getOrElse("Unknown")
-          
-          if (! privateAlias.isEmpty) AccountName(privateAlias, PrivateAlias)
-          else AccountName(realName, PrivateAlias)
-        } else
-          AccountName(realName, NoAlias)
-      }
+      val otherAccountId = counterpartyCore.counterpartyId
+      val otherAccountLabel: AccountName = AccountName(counterpartyCore.counterpartyName, NoAlias)
       
       def isAlias = otherAccountLabel.aliasType match {
         case NoAlias => false
@@ -774,9 +755,6 @@ trait View {
       }
       
       def moderateField[T](canSeeField: Boolean, field: T) : Option[T] = {
-        if(isAlias & hideOtherAccountMetadataIfAlias)
-          None
-        else
         if(canSeeField)
           Some(field)
         else
@@ -784,18 +762,18 @@ trait View {
       }
       
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
-      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.otherBankRoutingAddress else None
-      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.otherAccountRoutingAddress else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
-      val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
-      val otherBankRoutingScheme = if(canSeeOtherBankRoutingScheme) Some(otherBankAccount.otherBankRoutingScheme) else None
-      val otherBankRoutingAddress = if(canSeeOtherBankRoutingAddress) otherBankAccount.otherBankRoutingAddress else None
-      val otherAccountRoutingScheme = if(canSeeOtherAccountRoutingScheme) Some(otherBankAccount.otherAccountRoutingScheme) else None
-      val otherAccountRoutingAddress = if(canSeeOtherAccountRoutingAddress) otherBankAccount.otherAccountRoutingAddress else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) counterpartyCore.otherBankRoutingAddress else None
+      val otherAccountIBAN = if(canSeeOtherAccountIBAN) counterpartyCore.otherAccountRoutingAddress else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(counterpartyCore.thisBankId.value) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(counterpartyCore.thisAccountId.value) else None
+      val otherAccountKind = if(canSeeOtherAccountKind) Some(counterpartyCore.kind) else None
+      val otherBankRoutingScheme = if(canSeeOtherBankRoutingScheme) Some(counterpartyCore.otherBankRoutingScheme) else None
+      val otherBankRoutingAddress = if(canSeeOtherBankRoutingAddress) counterpartyCore.otherBankRoutingAddress else None
+      val otherAccountRoutingScheme = if(canSeeOtherAccountRoutingScheme) Some(counterpartyCore.otherAccountRoutingScheme) else None
+      val otherAccountRoutingAddress = if(canSeeOtherAccountRoutingAddress) counterpartyCore.otherAccountRoutingAddress else None
       Some(
         new ModeratedOtherBankAccountCore(
-          id = otherAccountId,
+          id = counterpartyCore.counterpartyId,
           label = otherAccountLabel,
           swift_bic = otherAccountSWIFT_BIC,
           iban = otherAccountIBAN,
