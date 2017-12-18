@@ -939,14 +939,14 @@ trait APIMethods300 {
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
-
-
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId,OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
+            branches: List[Branches.BranchT] <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
+            slice: List[Branches.BranchT] <- tryo {
+              branches.sortWith(_.branchId.value < _.branchId.value) // Before we slice we need to sort in order to keep consistent results
+                .slice(offset, offset + limit) // Slice the result in next way: from=offset and until=offset + limit
+            }
           } yield {
             // Format the data as json
-            val json = JSONFactory300.createBranchesJson(branches)
-
-            // val x = print("\n getBranches json is: " + json)
+            val json = JSONFactory300.createBranchesJson(slice)
             successJsonResponse(Extraction.decompose(json))
           }
         }
