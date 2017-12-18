@@ -33,18 +33,12 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
+import code.bankconnectors.vJune2017.AccountRules
 import code.model.Moderation.Moderated
 import code.util.Helper
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json._
+import net.liftweb.common.{Box, Failure}
+import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.JsonDSL._
-import java.net.URL
-
-import code.bankconnectors.vJune2017.AccountRules
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
 
 import scala.collection.immutable.List
 
@@ -308,7 +302,13 @@ case class ModeratedOtherBankAccountCore(
   bankRoutingAddress :Moderated[String],
   accountRoutingScheme : Moderated[String],
   accountRoutingAddress :Moderated[String]
-)
+){
+  
+  def isAlias : Boolean = label.aliasType match{
+    case PublicAlias | PrivateAlias => true
+    case _ => false
+  }
+}
 
 object ModeratedOtherBankAccount {
   @deprecated(Helper.deprecatedJsonGenerationMessage)

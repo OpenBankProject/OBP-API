@@ -1,9 +1,8 @@
 package code.api.v3_0_0
 
-import code.api.util.APIUtil.OAuth.{Consumer, Token}
-import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.{AccountsJSON, BanksJSON}
-import code.api.v2_0_0.{BasicAccountJSON, BasicAccountsJSON}
+import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
+import code.api.v1_2_1.BanksJSON
+import code.api.v2_0_0.BasicAccountsJSON
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
 import dispatch.Req
 
@@ -73,5 +72,23 @@ trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
     makeGetRequest(request)
   }
   
+  
+  //"getOtherAccountsForBankAccount",
+  //"GET",
+  //"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
+  //"Get Other Accounts of one Account.",
+  def getOtherAccountsForBankAccount(bankId:String, accountId:String, viewId:String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = v3_0Request / "banks" /bankId/"accounts"/accountId/viewId/"other_accounts" <@ (consumerAndToken)
+    makeGetRequest(request)
+  }
+  
+  //"getOtherAccountByIdForBankAccount",
+  //"GET",
+  //"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
+  //"Get Other Account by Id.",
+  def getOtherAccountByIdForBankAccount(bankId:String, accountId:String, viewId:String, otherAccountId:String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = v3_0Request / "banks" /bankId/"accounts"/accountId/viewId/"other_accounts"/otherAccountId <@ (consumerAndToken)
+    makeGetRequest(request)
+  }
   
 }

@@ -2057,15 +2057,14 @@ object SwaggerDefinitionsJSON {
     id ="String",
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
-    holders =  List(accountHolderJSON),
-    kind ="String"
+    holders =  List(accountHolderJSON)
   )
   
   val otherAccountJsonV300 = OtherAccountJsonV300(
     id = "String",
+    holder = accountHolderJSON,
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
-    kind = "String",
     metadata = otherAccountMetadataJSON
   )
   
@@ -2087,15 +2086,15 @@ object SwaggerDefinitionsJSON {
   
   val coreCounterpartyJsonV300 = CoreCounterpartyJsonV300(
     id = "String",
+    holder = accountHolderJSON,
     bank_routing = bankRoutingJsonV121,
-    account_routing = accountRoutingJsonV121,
-    kind= "String"
+    account_routing = accountRoutingJsonV121
   )
   
   val coreTransactionJsonV300 = CoreTransactionJsonV300(
     id = "String",
-    account = thisAccountJsonV300,
-    counterparty = coreCounterpartyJsonV300,
+    this_account = thisAccountJsonV300,
+    other_account = coreCounterpartyJsonV300,
     details = coreTransactionDetailsJSON
   )
   
