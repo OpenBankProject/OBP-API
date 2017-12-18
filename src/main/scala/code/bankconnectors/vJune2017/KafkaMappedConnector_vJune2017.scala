@@ -1399,6 +1399,34 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
     res
   }}("getCounterpartyByCounterpartyId")
+
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(0 second){
+    val req = OutboundGetCounterparty(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, accountId.value, couterpartyId)
+    logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
+
+    val box = for {
+      kafkaMessage <- processToBox[OutboundGetCounterparty](req)
+      inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error"
+      data <- Full(inboundGetCounterparty.data)
+    } yield{
+      data
+    }
+    logger.debug(s"Kafka getCounterpartyTrait Res says: is: $box")
+
+    val res = box match {
+      case Full(x) if (x.errorCode=="")  =>
+        Full(x)
+      case Full(x) if (x.errorCode!="") =>
+        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
+      case Empty =>
+        Failure(ErrorMessages.ConnectorEmptyResponse)
+      case Failure(msg, e, c) =>
+        Failure(msg, e, c)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    res
+  }}("getCounterpartyTrait")
   
   
   messageDocs += MessageDoc(

@@ -355,7 +355,7 @@ case class AtmJsonV300 (
                  has_deposit_capability : String
                )
 
-case class AtmsJsonV300(branches : List[AtmJsonV300])
+case class AtmsJsonV300(atms : List[AtmJsonV300])
 
 
 case class AdapterInfoJsonV300(
