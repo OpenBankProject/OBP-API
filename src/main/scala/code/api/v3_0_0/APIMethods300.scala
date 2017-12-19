@@ -850,27 +850,21 @@ trait APIMethods300 {
     // TODO Rewrite as New Style Endpoint
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
-        user => {
+        _ => {
           for {
-            u <- if (getBranchesIsPublic)
-              Box(Some(1))
-            else
-              user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
-
-            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
-
-
-//            branches <- { Branches.branchesProvider.vend.getBranches(bankId) match {
-//              case Some(l) => Full(l)
-//              case _ => Empty
-//            }} ?~!  s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
-//            branch <- Box(branches.filter(_.branchId.value==branchId.value)) ?~!
-//              s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and eta.license.name can not be empty"
+            (user, sessioContext) <- extractCallContext()
+            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
+              canGetBranch(getBranchesIsPublic, user)
+            }
+            _ <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ?~! BankNotFound)
+            }
+            branch <- Connector.connector.vend.getBranchFuture(bankId, branchId) map {
+              val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+              x => fullBoxOrException(x ?~! msg)
+            } map { unboxFull(_) }
           } yield {
-            // Format the data as json
-            val json = JSONFactory300.createBranchJsonV300(branch)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createBranchJsonV300(branch), getGatewayLoginHeader(sessioContext))
           }
         }
       }

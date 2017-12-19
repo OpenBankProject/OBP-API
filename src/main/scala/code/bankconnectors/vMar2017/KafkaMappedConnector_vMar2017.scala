@@ -1704,7 +1704,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     bankRoutingAddress: String
   ): Box[Bank] = Empty
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(

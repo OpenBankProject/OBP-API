@@ -1259,6 +1259,10 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getBranch(bankId, branchId)
   }
 
+  override def getBranchFuture(bankId : BankId, branchId: BranchId) : Future[Box[BranchT]]= {
+    LocalMappedConnector.getBranchFuture(bankId, branchId)
+  }
+
   override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
     LocalMappedConnector.createOrUpdateAtm(atm)
   }
