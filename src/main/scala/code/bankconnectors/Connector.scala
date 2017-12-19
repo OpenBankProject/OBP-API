@@ -1110,6 +1110,9 @@ trait Connector extends MdcLoggable{
   def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT] = Failure(NotImplemented + currentMethodName)
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT] = Failure(NotImplemented + currentMethodName)
+  def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[AtmT]] = Future {
+    Failure(NotImplemented + currentMethodName)
+  }
 
   //This method is only existing in mapper
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Box[Boolean]= {

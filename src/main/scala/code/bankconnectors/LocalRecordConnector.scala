@@ -625,8 +625,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
-
-  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
   
   override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   

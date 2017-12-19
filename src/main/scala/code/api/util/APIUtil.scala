@@ -1463,6 +1463,19 @@ Returns a string showed to the developer
   }
 
 
+  def canGetAtm(atmsIsPublic: Boolean, user: Box[User]): Boolean = {
+    atmsIsPublic match {
+      case true =>
+        true
+      case false =>
+        user match {
+          case Full(_) =>
+            true
+          case _ =>
+            false
+        }
+    }
+  }
 
   def getDisabledVersions() : List[String] = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
@@ -1790,6 +1803,12 @@ Versions are groups of endpoints in a file
     getUserFromAuthorizationHeaderFuture() map {
       x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
     }
+  }
+  /**
+    * This function is used to factor out common code at endpoints regarding Authorized access
+    */
+  def extractCallContext(): Future[(Box[User], Option[SessionContext])] = {
+    getUserFromAuthorizationHeaderFuture()
   }
 
   /**

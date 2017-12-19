@@ -1431,7 +1431,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedAtm.mBankId, bankId.value),
         By(MappedAtm.mAtmId, atmId.value))
   }
-
+  override def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[MappedAtm]]= {
+    Future {
+      getAtm(bankId, atmId)
+    }
+  }
 
 
 

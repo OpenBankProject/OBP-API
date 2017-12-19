@@ -69,7 +69,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Seq}
-import scala.concurrent.TimeoutException
+import scala.concurrent.{Future, TimeoutException}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
@@ -1265,6 +1265,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = {
     LocalMappedConnector.getAtm(bankId, atmId)
+  }
+  override def getAtmFuture(bankId: BankId, atmId: AtmId): Future[Box[MappedAtm]] = {
+    LocalMappedConnector.getAtmFuture(bankId, atmId)
   }
 
   override def getCurrentFxRate(bankId : BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty

@@ -1706,8 +1706,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = Empty // TODO Return Not Implemented
-
   override def getEmptyBankAccount(): Box[AccountType] = {
     Full(new BankAccount2(
       InboundAccount(
