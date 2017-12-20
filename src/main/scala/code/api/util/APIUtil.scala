@@ -42,6 +42,7 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.{DirectLogin, _}
 import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.APIUtil.canGet
 import code.api.v1_2.ErrorMessage
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -1463,8 +1464,8 @@ Returns a string showed to the developer
   }
 
 
-  def canGetAtm(atmsIsPublic: Boolean, user: Box[User]): Boolean = {
-    atmsIsPublic match {
+  def canGet(condition: Boolean, user: Box[User]): Boolean = {
+    condition match {
       case true =>
         true
       case false =>
@@ -1476,6 +1477,15 @@ Returns a string showed to the developer
         }
     }
   }
+
+  def canGetBranch(branchesIsPublic: Boolean, user: Box[User]): Boolean = {
+    canGet(branchesIsPublic, user)
+  }
+
+  def canGetAtm(atmsIsPublic: Boolean, user: Box[User]): Boolean = {
+    canGet(atmsIsPublic, user)
+  }
+
 
   def getDisabledVersions() : List[String] = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 

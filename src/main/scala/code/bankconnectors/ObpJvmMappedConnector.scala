@@ -1399,7 +1399,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     bankRoutingAddress: String
   ): Box[Bank] = Empty
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
   override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 

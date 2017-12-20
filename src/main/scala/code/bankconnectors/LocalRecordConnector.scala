@@ -623,8 +623,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
   override def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
-
-  override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
   
   override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   

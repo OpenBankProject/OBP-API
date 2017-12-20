@@ -172,7 +172,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     (nameOf(Implementations3_0_0.privateAccountsAtOneBank), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCoreAccountById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.accountById), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAtm), ApiVersion.v3_0_0.toString)
+    (nameOf(Implementations3_0_0.getAtm), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getBranch), ApiVersion.v3_0_0.toString)
   )
   /**
     * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result

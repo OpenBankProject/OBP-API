@@ -1044,7 +1044,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     bankRoutingAddress: String
   ): Box[Bank] = Empty
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
     // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
   override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
