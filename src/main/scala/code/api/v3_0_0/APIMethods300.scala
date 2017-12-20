@@ -847,7 +847,6 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank)
     )
-    // TODO Rewrite as New Style Endpoint
     lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
         _ => {
