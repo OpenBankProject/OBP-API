@@ -6,7 +6,7 @@ import java.util.Date
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
-import code.remotedata.{RemotedataTransactionRequests}
+import code.remotedata.RemotedataTransactionRequests
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
@@ -16,6 +16,12 @@ import org.elasticsearch.common.inject.Inject
 object TransactionRequests extends SimpleInjector {
 
   //TODO: change these to some kind of case class / type thingy (so we can match {} on them)
+  
+  object TransactionRequestStatus extends Enumeration {
+    type TransactionRequestTypes = Value
+    val INITIATED, PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+  }
+  
   val STATUS_INITIATED = "INITIATED"
   val STATUS_PENDING = "PENDING"
   val STATUS_FAILED = "FAILED"
