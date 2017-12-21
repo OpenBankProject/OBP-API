@@ -38,8 +38,8 @@ trait TestConnectorSetup {
   }
 
   final protected def createBanks() : Traversable[Bank] = {
-    for{i <- 0 until 3} yield {
-      createBank("testBank"+i)
+    for{i <- 0 until 4} yield {
+      if (i==3) createBank("testBankWithoutBranches") else createBank("testBank"+i)
     }
   }
 

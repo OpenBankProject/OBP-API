@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson, BranchesJsonV300}
 import code.bankconnectors.OBPQueryParam
 import code.branches.Branches._
@@ -8,6 +9,7 @@ import code.branches.{Branches, BranchesProvider}
 import code.common._
 import code.model.BankId
 import code.setup.DefaultUsers
+import net.liftweb.json
 
 /*
 Note This does not test retrieval from a backend.
@@ -17,6 +19,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("testBank1")
   val BankWithoutLicense = BankId("testBank2")
+  val BankWithoutBranches = BankId("testBankWithoutBranches")
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(
@@ -251,12 +254,12 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     scenario("We try to get bank branches for a bank without a data license for branch information") {
 
       When("We make a request v3.0.0")
-      val request300 = (v3_0Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
+      val request300 = (v3_0Request / "banks" / BankWithoutBranches.value / "branches").GET <@(user1)
       val response300 = makeGetRequest(request300)
-
-      Then("We should get a 200 and correct response jons format")
-      response300.code should equal(200)
+      Then("We should get a 400 and correct response jons format")
+      response300.code should equal(400)
       response300.body.extract[BranchesJsonV300]
+      json.compactRender(response300.body \ "error").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
     }
    
   }
