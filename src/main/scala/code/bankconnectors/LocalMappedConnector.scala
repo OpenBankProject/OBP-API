@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
+import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
@@ -505,26 +506,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                description: String,
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
-
-    // Note: These are guards. Values are calculated in makePaymentv200
-    val rate = tryo {
-      fx.exchangeRate(fromAccount.currency, toAccount.currency)
-    } ?~! {
-      s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+    for{
+       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+       fromTransAmt = -amount//from fromAccount balance should decrease
+       toTransAmt = fx.convert(amount, rate)
+       sentTransactionId <- saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
+       recievedTransactionId <-saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
+    } yield{
+      sentTransactionId
     }
-
-    // Is it better to pass these into this function ?
-    val fromTransAmt = -amount//from fromAccount balance should decrease
-    val toTransAmt = fx.convert(amount, rate.openOrThrowException("Attempted to open an empty Box."))
-
-    // From
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
-
-    // To
-    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
-
-    // Return the sent transaction id
-    sentTransactionId
   }
 
   /**
@@ -538,21 +528,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
-    //Note: read the latest data from database
+    for{
+      //Note: read the latest data from database
     //For FREE_FORM, we need make sure always use the latest data
-    val fromAccountUpdate: Box[MappedBankAccount] = getBankAccount(fromAccount.bankId, fromAccount.accountId)
-    val transactionTime = now
-    val currency = fromAccount.currency
-
+     fromAccountUpdate <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~! s"$AccountNotFound account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+     transactionTime = now
+     currency = fromAccount.currency
 
     //update the balance of the fromAccount for which a transaction is being created
-    val newAccountBalance: Long = fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").currency)
-    fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountBalance(newAccountBalance).save()
+     newAccountBalance = fromAccountUpdate.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.currency)
+     _ <- tryo(fromAccountUpdate.accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
 
-    val mappedTransaction = MappedTransaction.create
+    mappedTransaction <- tryo(MappedTransaction.create
       //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-      .bank(fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").bankId.value)
-      .account(fromAccountUpdate.openOrThrowException("Attempted to open an empty Box.").accountId.value)
+      .bank(fromAccount.bankId.value)
+      .account(fromAccount.accountId.value)
       .transactionType(transactionRequestType.value)
       .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
@@ -574,9 +564,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
       .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
       .chargePolicy(chargePolicy)
-      .saveMe
-
-    Full(mappedTransaction.theTransactionId)
+      .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
+    } yield{
+      mappedTransaction.theTransactionId
+    }
   }
 
   /*

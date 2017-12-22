@@ -393,12 +393,12 @@ trait Connector extends MdcLoggable{
                       chargePolicy: String): Box[TransactionId] = {
     for {
       // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
-      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~ s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
+      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~! s"$AccountNotFound fromAccount ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
 
-      toAccount <-  getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
+      toAccount <-  getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~! s"$AccountNotFound toAccount ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
 
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~
-        "code.bankconnectors.Connector.makePatmentV200.makePaymentImpl return Empty!" //The error is for debugging not for showing to browser
+      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePaymentImpl
+      
     } yield transactionId
   }
 
@@ -605,36 +605,30 @@ trait Connector extends MdcLoggable{
 
     for{
      // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
-      challengeThreshold <- getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name) //TODO need error handling ,throw the error to API level
-      challengeThresholdAmount <- tryo(BigDecimal(challengeThreshold.amount)) ?~! s"challengeThreshold amount ${challengeThreshold.amount} not convertible to number"
-      transactionRequestCommonBodyAmount <- tryo(BigDecimal(transactionRequestCommonBody.value.amount)) ?~! s"transactionRequestCommonBody amount ${transactionRequestCommonBody.value.amount} not convertible to number"
-      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount) ?~! s"createTransactionRequestv300.getStatus exception !"
-      chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency) ?~! s"OBP-40xxx : createTransactionRequestv300.getChargeLevel exception !"
-      chargeLevelAmount <- tryo(BigDecimal(chargeLevel.amount)) ?~! s"chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !"
-      chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount)
-      charge <- Full(TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue)))
+      challengeThreshold <- getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name) ?~! InvalidConnectorResponseForGetChallengeThreshold
+      challengeThresholdAmount <- tryo(BigDecimal(challengeThreshold.amount)) ?~! s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number"
+      transactionRequestCommonBodyAmount <- tryo(BigDecimal(transactionRequestCommonBody.value.amount)) ?~! s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number"
+      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount) ?~! s"$GetStatusException"
+      chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency) ?~! InvalidConnectorResponseForGetChargeLevel
+      chargeLevelAmount <- tryo(BigDecimal(chargeLevel.amount)) ?~! s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !"
+      chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount) ?~! GetChargeValueException
+      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, toCounterparty, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy) ?~! 
-        "OBP-40xxx : createTransactionRequestv300.createTransactionRequestImpl210, Exception: Couldn't create transactionRequest"
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, toCounterparty, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy) ?~! InvalidConnectorResponseForCreateTransactionRequestImpl210
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
       newTransactionRequest <- status match {
         case TransactionRequestStatus.COMPLETED =>
           for {
             createdTransactionId <- Connector.connector.vend.makePaymentv200(
-              initiator,
-              BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
-              BankIdAccountId(toAccount.bankId, toAccount.accountId),
-              toCounterparty,
-              BigDecimal(transactionRequestCommonBody.value.amount),
-              transactionRequestCommonBody.description, transactionRequestType,
-              chargePolicy
-            )
+              initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), BankIdAccountId(toAccount.bankId, toAccount.accountId), toCounterparty,
+              BigDecimal(transactionRequestCommonBody.value.amount), transactionRequestCommonBody.description, transactionRequestType, chargePolicy
+            ) ?~! InvalidConnectorResponseForMakePaymentv200
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
             transactionRequest <- Full(transactionRequest.copy(challenge = null))
 
             //save transaction_id into database
-            _ <- Full(saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId))
+            _ <- saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
             //update transaction_id filed for varibale 'transactionRequest'
             transactionRequest <- Full(transactionRequest.copy(transaction_ids = createdTransactionId.value))
   
