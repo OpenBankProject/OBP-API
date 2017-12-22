@@ -1024,34 +1024,44 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagATM)
     )
-    // TODO Rewrite as New Style Endpoint
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
-        user => {
+        _ => {
+          val limit = S.param("limit")
+          val offset = S.param("offset")
           for {
-          // Get atms from the active provider
-
-            u <- if(getAtmsIsPublic)
-              Box(Some(1))
-            else
-              user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 50
+            (user, sessioContext) <- extractCallContext()
+            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
+              canGetBranch(getBranchesIsPublic, user)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
               }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+              offset match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ?~! BankNotFound) }
+            atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
+              case Full(List()) | Empty =>
+                fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full(list) =>
+                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
+                else Full(branchesWithLicense)
+            } map { unboxFull(_) } map {
+              // Before we slice we need to sort in order to keep consistent results
+              _.sortWith(_.atmId.value < _.atmId.value)
+                // Slice the result in next way: from=offset and until=offset + limit
+                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+            }
           } yield {
-            // Format the data as json
-            val json = JSONFactory300.createAtmsJsonV300(atms)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createAtmsJsonV300(atms), getGatewayLoginHeader(sessioContext))
           }
         }
       }

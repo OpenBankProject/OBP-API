@@ -272,6 +272,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."
 
+  // ATM related messages
+  val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
+  val atmsNotFound = "OBP-33002: No ATMs available."
+
   // General Resource related messages above here
 
 

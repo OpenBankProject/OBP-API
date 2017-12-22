@@ -1447,7 +1447,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-
+  override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[MappedAtm]]] = {
+    Future {
+      Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)))
+    }
+  }
 
 
   /**
