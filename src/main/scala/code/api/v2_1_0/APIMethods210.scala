@@ -4,35 +4,31 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
+import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.TransactionDisabled
-import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
-import code.api.v2_2_0.JSONFactory220
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.{OBPQueryParam, _}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
-import code.customer.{Customer, CreditLimit, CreditRating, CustomerFaceImage}
+import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metadata.counterparties.Counterparties
 import code.metrics.{APIMetric, APIMetrics}
-import code.model.dataAccess.{AuthUser, MappedBankAccount, ResourceUser}
+import code.model.dataAccess.MappedBankAccount
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
-import code.transactionrequests.TransactionRequests
-import code.usercustomerlinks.UserCustomerLink
-import code.api.util.APIUtil.getCustomers
 import code.transactionChallenge.ExpectedChallengeAnswer
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
+import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import net.liftweb.http.{Req, S}
@@ -49,6 +45,7 @@ import code.api.util.ErrorMessages._
 import code.api.{APIFailure, ChargePolicy}
 import code.metadata.counterparties._
 import code.sandbox.{OBPDataImport, SandboxDataImport}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}
@@ -57,7 +54,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait APIMethods210 {
@@ -652,7 +649,7 @@ trait APIMethods210 {
               allowedAttemptOK <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN),AllowedAttemptsUsedUp)
+              challengeTypeOK <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString),AllowedAttemptsUsedUp)
             
               challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
               challengeAnswerOBPOK <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)

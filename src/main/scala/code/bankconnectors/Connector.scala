@@ -417,10 +417,10 @@ trait Connector extends MdcLoggable{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 100) {
-        TransactionRequests.STATUS_COMPLETED
+      if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 100) {
+        TransactionRequestStatus.COMPLETED
       } else {
-        TransactionRequests.STATUS_INITIATED
+        TransactionRequestStatus.INITIATED
       }
 
 
@@ -439,14 +439,14 @@ trait Connector extends MdcLoggable{
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
       // Version 200 below has more support for charge
       charge = TransactionRequestCharge("Charge for completed transaction", AmountOfMoney(body.value.currency, "0.00"))
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
     var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
-    if (status == TransactionRequests.STATUS_COMPLETED) {
+    if (status == TransactionRequestStatus.COMPLETED) {
       val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
         BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
@@ -465,7 +465,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -478,10 +478,10 @@ trait Connector extends MdcLoggable{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 1000) {
-        TransactionRequests.STATUS_COMPLETED
+      if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 1000) {
+        TransactionRequestStatus.COMPLETED
       } else {
-        TransactionRequests.STATUS_INITIATED
+        TransactionRequestStatus.INITIATED
       }
 
 
@@ -500,14 +500,14 @@ trait Connector extends MdcLoggable{
       chargeValue <- tryo {(BigDecimal(body.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${body.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(body.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
     var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     // If no challenge necessary, create Transaction immediately and put in data store and object to return
-    if (status == TransactionRequests.STATUS_COMPLETED) {
+    if (status == TransactionRequestStatus.COMPLETED) {
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
@@ -536,7 +536,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -657,7 +657,7 @@ trait Connector extends MdcLoggable{
             _ <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
       
             // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
             _ <- Full(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Full(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -816,7 +816,7 @@ trait Connector extends MdcLoggable{
     tr match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN) {
+          if (tr.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
@@ -844,7 +844,7 @@ trait Connector extends MdcLoggable{
       transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
           BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
       tr <- getTransactionRequestImpl(transReqId)
     } yield {
@@ -866,7 +866,7 @@ trait Connector extends MdcLoggable{
                                  "" //Note chargePolicy only support in V210
       ) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
       tr <- getTransactionRequestImpl(transReqId)
     } yield {
@@ -917,13 +917,13 @@ trait Connector extends MdcLoggable{
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
 
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
 
     } yield {
       var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
       //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.
       tr=tr.copy(transaction_ids =transId.value)
-      tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
+      tr=tr.copy(status =TransactionRequestStatus.COMPLETED.toString)
       tr
     }
   }

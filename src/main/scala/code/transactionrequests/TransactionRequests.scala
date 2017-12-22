@@ -15,21 +15,15 @@ import org.elasticsearch.common.inject.Inject
 
 object TransactionRequests extends SimpleInjector {
 
-  //TODO: change these to some kind of case class / type thingy (so we can match {} on them)
-  
   object TransactionRequestStatus extends Enumeration {
-    type TransactionRequestTypes = Value
+    type TransactionRequestStatus = Value
     val INITIATED, PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
   }
   
-  val STATUS_INITIATED = "INITIATED"
-  val STATUS_PENDING = "PENDING"
-  val STATUS_FAILED = "FAILED"
-  val STATUS_COMPLETED = "COMPLETED"
-  val STATUS_FORWARDED = "FORWARDED"
-  val STATUS_REJECTED = "REJECTED"
-
-  val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
+  object TransactionChallengeTypes extends Enumeration {
+    type TransactionChallengeTypes = Value
+    val SANDBOX_TAN = Value
+  }
   
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
