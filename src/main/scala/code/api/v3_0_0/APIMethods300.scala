@@ -921,6 +921,12 @@ trait APIMethods300 {
                 case _ => true
               }
             }
+            _ <- Helper.booleanToFuture(failMsg = InvalidMaximumValue) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
             _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
               offset match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
@@ -1037,6 +1043,12 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
               limit match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = InvalidMaximumValue) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
                 case _ => true
               }
             }
