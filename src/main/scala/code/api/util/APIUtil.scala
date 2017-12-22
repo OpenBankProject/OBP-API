@@ -116,7 +116,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
   val NotImplemented = "OBP-10010: Not Implemented "
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
-  val InvalidMaximumValue = "OBP-10012: Invalid value. Maximum number is 10000."
+  val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

@@ -921,7 +921,7 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = InvalidMaximumValue) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
               limit match {
                 case Full(i) if i.toInt > 10000 => false
                 case _ => true
@@ -1046,7 +1046,7 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = InvalidMaximumValue) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
               limit match {
                 case Full(i) if i.toInt > 10000 => false
                 case _ => true
