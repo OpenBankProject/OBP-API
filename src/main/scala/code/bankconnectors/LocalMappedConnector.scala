@@ -50,8 +50,8 @@ import scalacache.memoization._
 
 
 object LocalMappedConnector extends Connector with MdcLoggable {
-
-  type AccountType = MappedBankAccount
+  
+//  override type AccountType = MappedBankAccount
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
@@ -262,7 +262,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     for {
       bank <- getMappedBank(bankId)
-      account <- getBankAccount(bankId, accountId)
+      account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } {
       Future{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -277,7 +277,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[MappedBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value),
         By(MappedBankAccount.theAccountId, accountId.value))
@@ -289,7 +289,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
   }
   
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[MappedBankAccount] = {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = {
     getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
@@ -341,7 +341,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     */
   def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
 
-    val mappedBankAccount = getBankAccount(bankId, accountId) match {
+    val mappedBankAccount = getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount]) match {
       case Full(f) =>
         f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
       case _ =>
@@ -499,8 +499,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
    */
-  override def makePaymentImpl(fromAccount: MappedBankAccount,
-                               toAccount: MappedBankAccount,
+  override def makePaymentImpl(fromAccount: AccountType,
+                               toAccount: AccountType,
                                toCounterparty: CounterpartyTrait,
                                amount: BigDecimal,
                                description: String,
@@ -521,25 +521,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>
     */
-  private def saveTransaction(fromAccount: MappedBankAccount,
-                              toAccount: MappedBankAccount,
+  private def saveTransaction(fromAccount: AccountType,
+                              toAccount: AccountType,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
     for{
-      //Note: read the latest data from database
-    //For FREE_FORM, we need make sure always use the latest data
-     fromAccountUpdate <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~! s"$AccountNotFound account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-     transactionTime = now
-     currency = fromAccount.currency
+      currency <- Full(fromAccount.currency)
 
     //update the balance of the fromAccount for which a transaction is being created
-     newAccountBalance = fromAccountUpdate.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.currency)
-     _ <- tryo(fromAccountUpdate.accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
-
-    mappedTransaction <- tryo(MappedTransaction.create
+      newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
+      
+      //Here is the `LocalMappedConnector`, once get this point, fromAccount must be a mappedBankAccount. So can use asInstanceOf.... 
+      _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
+  
+      mappedTransaction <- tryo(MappedTransaction.create
       //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
       .bank(fromAccount.bankId.value)
       .account(fromAccount.accountId.value)
@@ -547,8 +545,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
       .currency(currency)
-      .tStartDate(transactionTime)
-      .tFinishDate(transactionTime)
+      .tStartDate(now)
+      .tFinishDate(now)
       .description(description)
        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
       .counterpartyAccountHolder(toAccount.accountHolder)
@@ -821,14 +819,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //used by the transaction import api
   override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
-
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
       bank <- getMappedBank(bankId)
+      account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } yield {
-      acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
+      account.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, account.currency)).save
+      setBankAccountLastUpdated(bank.nationalIdentifier, account.number, now).openOrThrowException("Attempted to open an empty Box.")
     }
 
     Full(result.getOrElse(false))
@@ -941,7 +938,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
       bank <- getMappedBank(bankId)
     } yield {
         acc.accountLabel(label).save

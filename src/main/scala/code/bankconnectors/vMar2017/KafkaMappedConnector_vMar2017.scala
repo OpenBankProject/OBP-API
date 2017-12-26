@@ -30,11 +30,8 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0._
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
 import code.bankconnectors._
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -66,8 +63,6 @@ import scala.collection.mutable.ArrayBuffer
 
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
-
-  type AccountType = BankAccount2
 
   implicit override val nameOfConnector = KafkaMappedConnector_vMar2017.getClass.getSimpleName
 
@@ -695,7 +690,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     )
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount2] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
       action = "obp.get.Account",
@@ -767,7 +762,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       ) :: Nil
     )
   )
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount2] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[InboundAccount] = accts.flatMap { a => {
@@ -1017,8 +1012,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: BankAccount2,
-                              toAccount: BankAccount2,
+  private def saveTransaction(fromAccount: AccountType,
+                              toAccount: AccountType,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
@@ -1304,8 +1299,9 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   
-  protected override def makePaymentImpl(fromAccount: BankAccount2,
-    toAccount: BankAccount2,
+  protected override def makePaymentImpl(
+    fromAccount: AccountType,
+    toAccount: AccountType,
     toCounterparty: CounterpartyTrait,
     amt: BigDecimal,
     description: String,
@@ -1768,7 +1764,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount2, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
       counterpartyName = counterpartyName,

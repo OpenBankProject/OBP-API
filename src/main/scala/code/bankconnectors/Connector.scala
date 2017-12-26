@@ -17,7 +17,7 @@ import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -137,7 +137,9 @@ trait Connector extends MdcLoggable{
   //We have the Connector define its BankAccount implementation here so that it can
   //have access to the implementation details (e.g. the ability to set the balance) in
   //the implementation of makePaymentImpl
-  type AccountType <: BankAccount
+  //new commit from (2017-12-25) : not use <: any more, the details should be in low level connector, not here.
+  // We need keep it as general as possible in this level.
+  type AccountType = BankAccount
 
 
   val messageDocs = ArrayBuffer[MessageDoc]()
@@ -375,30 +377,22 @@ trait Connector extends MdcLoggable{
   /**
     * \
     *
-    * @param initiator The user attempting to make the payment
-    * @param fromAccountUID The unique identifier of the account sending money
-    * @param toAccountUID The unique identifier of the account receiving money
+    * @param fromAccount The unique identifier of the account sending money
+    * @param toAccount The unique identifier of the account receiving money
     * @param toCounterparty The unique identifier of the acounterparty receiving money
     * @param amount The amount of money to send ( > 0 )
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
     */
-  def makePaymentv200(initiator: User,
-                      fromAccountUID: BankIdAccountId,
-                      toAccountUID: BankIdAccountId,
+  def makePaymentv200(fromAccount: AccountType,
+                      toAccount: AccountType,
                       toCounterparty: CounterpartyTrait,
                       amount: BigDecimal,
                       description: String,
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String): Box[TransactionId] = {
     for {
-      // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
-      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~! s"$AccountNotFound fromAccount ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-
-      toAccount <-  getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~! s"$AccountNotFound toAccount ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
-
       transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePaymentImpl
-      
     } yield transactionId
   }
 
@@ -511,9 +505,8 @@ trait Connector extends MdcLoggable{
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                          BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
-                                                                          BankIdAccountId(toAccount.bankId, toAccount.accountId),
+      val createdTransactionId = Connector.connector.vend.makePaymentv200(fromAccount,
+                                                                          toAccount,
                                                                           new MappedCounterparty(),
                                                                           BigDecimal(body.value.amount),
                                                                           body.description,
@@ -562,8 +555,8 @@ trait Connector extends MdcLoggable{
   // TODO Add challengeType as a parameter to this function
   def createTransactionRequestv210(initiator: User,
                                    viewId: ViewId,
-                                   fromAccount: BankAccount,
-                                   toAccount: BankAccount,
+                                   fromAccount: AccountType,
+                                   toAccount: AccountType,
                                    toCounterparty: CounterpartyTrait,
                                    transactionRequestType: TransactionRequestType,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
@@ -621,7 +614,7 @@ trait Connector extends MdcLoggable{
         case TransactionRequestStatus.COMPLETED =>
           for {
             createdTransactionId <- Connector.connector.vend.makePaymentv200(
-              initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), BankIdAccountId(toAccount.bankId, toAccount.accountId), toCounterparty,
+              fromAccount, toAccount, toCounterparty,
               BigDecimal(transactionRequestCommonBody.value.amount), transactionRequestCommonBody.description, transactionRequestType, chargePolicy
             ) ?~! InvalidConnectorResponseForMakePaymentv200
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
@@ -686,8 +679,8 @@ trait Connector extends MdcLoggable{
     */
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                 transactionRequestType: TransactionRequestType,
-                                                fromAccount: BankAccount,
-                                                toAccount: BankAccount,
+                                                fromAccount: AccountType,
+                                                toAccount: AccountType,
                                                 toCounterparty: CounterpartyTrait,
                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                                 details: String,
@@ -846,79 +839,84 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev200(fromAccount: AccountType, toAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-      // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
-                                 new MappedCounterparty(),  //Note MappedCounterparty only support in V210
-                                 BigDecimal (tr.body.value.amount),
-                                 tr.body.description, transactionRequestType,
-                                 "" //Note chargePolicy only support in V210
+      transRequestId <- Full(transactionRequest.id)
+      transactionId <- makePaymentv200(
+        fromAccount,
+        toAccount,
+        new MappedCounterparty(), //Note MappedCounterparty only support in V210
+        BigDecimal(transactionRequest.body.value.amount),
+        transactionRequest.body.description,
+        TransactionRequestType(transactionRequest.`type`),
+        "" //Note chargePolicy only support in V210
       ) ?~ "Couldn't create Transaction"
-      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
-      //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)
+      didSaveTransId <- saveTransactionRequestTransaction(transRequestId, transactionId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transRequestId, TransactionRequestStatus.COMPLETED.toString)
+
+      transactionRequestUpdated <- Full(transactionRequest.copy(transaction_ids = transactionId.value,status=TransactionRequestStatus.COMPLETED.toString))
     } yield {
-      tr
+      transactionRequestUpdated
     }
   }
 
-  def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev210(fromAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-
-      details = tr.details
-
+      
+      details <- Full(transactionRequest.details)
+    
+      transactionRequestType = transactionRequest.`type`
+      transactionRequestId=transactionRequest.id
       //Note, it should be four different type of details in mappedtransactionrequest.
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
       detailsJsonExtract <- tryo{details.extract[TransactionRequestDetailsMapperJSON]} ?~! s"create transaction detail body, can not extract to $TransactionRequestDetailsMapperJSON "
 
-      toBankId = detailsJsonExtract.to.bank_id
+      toBankId = BankId(detailsJsonExtract.to.bank_id)
 
-      toAccountId = detailsJsonExtract.to.account_id
+      toAccountId = AccountId(detailsJsonExtract.to.account_id)
 
       valueAmount = detailsJsonExtract.value.amount
 
-      valueCurrency = detailsJsonExtract.value.currency
-
       description = detailsJsonExtract.description
 
+
+      toAccount  <- TransactionRequestTypes.withName(transactionRequestType) match {
+        case SANDBOX_TAN|COUNTERPARTY | SEPA   =>
+          Connector.connector.vend.checkBankAccountExists(toBankId, toAccountId) ?~! s"$BankAccountNotFound,BankId($toBankId) and AccountId($toAccountId) is invalid."
+        case FREE_FORM =>
+          Full(fromAccount)
+        case _ =>
+          Full(new MappedBankAccount())
+      }
+    
       // Note for 'toCounterparty' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // And it only used for COUNTERPARTY.toString and  SEPA.toString ,other types keep it empty now.
-      toCounterparty  <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+      toCounterparty  <- TransactionRequestTypes.withName(transactionRequestType) match {
         case COUNTERPARTY | SEPA  =>
-          val counterpartyId = tr.counterparty_id
+          val counterpartyId = transactionRequest.counterparty_id
           val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
           toCounterparty
         case _ =>
           Full(new MappedCounterparty())
       }
 
-      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankIdAccountId(BankId(toBankId), AccountId(toAccountId)),
-                                 toCounterparty,
-                                 BigDecimal(valueAmount), description,
-                                 transactionRequestType,
-                                 tr.charge_policy
-                                 ) ?~ "Couldn't create Transaction"
+      transactionId <- makePaymentv200(
+        fromAccount,
+        toAccount,
+        toCounterparty,
+        BigDecimal(valueAmount), 
+        description,
+        TransactionRequestType(transactionRequestType),
+        transactionRequest.charge_policy
+      ) ?~ "Couldn't create Transaction"
 
-      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
+      didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
 
     } yield {
-      var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
-      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.
-      tr=tr.copy(transaction_ids =transId.value)
-      tr=tr.copy(status =TransactionRequestStatus.COMPLETED.toString)
-      tr
+      transactionRequest.copy(transaction_ids =transactionId.value,status =TransactionRequestStatus.COMPLETED.toString)
     }
   }
 

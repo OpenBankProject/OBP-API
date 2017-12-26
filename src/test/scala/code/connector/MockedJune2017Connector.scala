@@ -8,8 +8,8 @@ import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Full}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * Created by zhanghongwei on 14/07/2017.
@@ -17,8 +17,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MockedJune2017Connector extends ServerSetup  
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
-  
-  type AccountType = BankAccount
   
   implicit override val nameOfConnector = "MockedCardConnector"
   

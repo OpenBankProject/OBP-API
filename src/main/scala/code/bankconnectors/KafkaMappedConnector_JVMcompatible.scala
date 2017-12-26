@@ -69,8 +69,8 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Seq}
-import scala.concurrent.{Future, TimeoutException}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, TimeoutException}
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -78,8 +78,6 @@ import scalacache.memoization._
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
-  type AccountType = KafkaBankAccount
-  
   implicit override val nameOfConnector = KafkaMappedConnector_JVMcompatible.getClass.getSimpleName
   
   // Maybe we should read the date format from props?
@@ -470,7 +468,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     completedDate: String = "ascending"
   )
   
-  //CM 4 checked the cache, is it in the method or in the lower level
   override def getTransactions(
                                 bankId: BankId,
                                 accountId: AccountId,
@@ -552,7 +549,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     bankId: BankId, 
     accountId: AccountId,
     session: Option[SessionContext]
-  ): Box[KafkaBankAccount] = saveConnectorMetric{
+  ): Box[AccountType] = saveConnectorMetric{
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
       
@@ -561,7 +558,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         accountId: AccountId, 
         userId : String, 
         loginUser: String // added the login user here ,is just for cache 
-      ): Box[KafkaBankAccount] = memoizeSync(getAccountTTL millisecond) {
+      ): Box[AccountType] = memoizeSync(getAccountTTL millisecond) {
 
         // Generate random uuid to be used as request-response match id
         val req = Map(
@@ -597,7 +594,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getBankAccount")
 
   //TODO not used yet
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = List()
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = List()
   // memoizeSync(getAccountsTTL millisecond) {
 //    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 //
@@ -718,8 +715,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 
-  protected override def makePaymentImpl(fromAccount: KafkaBankAccount,
-                                         toAccount: KafkaBankAccount,
+  protected override def makePaymentImpl(fromAccount: AccountType,
+                                         toAccount: AccountType,
                                          toCounterparty: CounterpartyTrait,
                                          amt: BigDecimal,
                                          description: String,
@@ -772,8 +769,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: KafkaBankAccount,
-                              toAccount: KafkaBankAccount,
+  private def saveTransaction(fromAccount: AccountType,
+                              toAccount: AccountType,
                               toCounterparty: CounterpartyTrait,
                               amount: BigDecimal,
                               description: String,
@@ -1379,7 +1376,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
       counterpartyName = counterpartyName,

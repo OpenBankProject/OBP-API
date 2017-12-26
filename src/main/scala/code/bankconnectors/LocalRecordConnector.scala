@@ -36,8 +36,6 @@ import scala.concurrent._
 
 private object LocalRecordConnector extends Connector with MdcLoggable {
 
-  type AccountType = Account
-
   implicit override val nameOfConnector = LocalRecordConnector.getClass.getSimpleName
 
   override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
@@ -68,7 +66,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getBanks(): Box[List[Bank]] =
     Full(HostedBank.findAll)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[Account] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[AccountType] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -185,7 +183,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
 
-  override protected def makePaymentImpl(fromAccount: Account, toAccount: Account, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -264,18 +262,19 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
                      balance)
   }
 
-  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
+  private def saveNewTransaction(account : AccountType, otherAccount : AccountType, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
-    def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : Account) : Box[OBPEnvelope] = {
+    def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : AccountType) : Box[OBPEnvelope] = {
 
       val envelope: Box[OBPEnvelope] = OBPEnvelope.envelopesFromJValue(transactionJS)
 
+      val account = thisAccount.asInstanceOf[Account]
       if(envelope.isDefined) {
         val e : OBPEnvelope = envelope.openOrThrowException("Attempted to open an empty Box.")
-        logger.debug(s"Updating current balance for ${thisAccount.bankName} / ${thisAccount.accountNumber} / ${thisAccount.accountType}")
-        thisAccount.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save(true)
+        logger.debug(s"Updating current balance for ${account.bankName} / ${account.accountNumber} / ${account.accountType}")
+        account.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save(true)
         logger.debug("Saving new transaction")
         Full(e.save(true))
       } else {
@@ -522,7 +521,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): Box[BankAccount] = {
+  ): Box[AccountType] = {
     HostedBank.find(bankId) match {
       case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))
       case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
@@ -589,7 +588,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   //used by the transaction import api
   override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccount(bankId, accountId).map(_.asInstanceOf[Account]) match {
       case Full(acc) =>
         acc.accountBalance(newBalance).saveTheRecord().isDefined
         Full(true)
@@ -609,7 +608,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccount(bankId, accountId).map(_.asInstanceOf[Account])  match {
       case Full(acc) =>
         acc.accountLabel(label).saveTheRecord().isDefined
         Full(true)

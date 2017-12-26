@@ -662,7 +662,7 @@ trait APIMethods210 {
                 case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
                   Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType)
                 case _ =>
-                  Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
+                  Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest)
               } 
             } yield {
               // Format explicitly as v2.0.0 json

@@ -57,7 +57,7 @@ import scalacache.memoization.memoizeSync
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
-  type AccountType = BankAccountJune2017
+//  override type AccountType = BankAccountJune2017
   
   implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.toString
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
@@ -470,7 +470,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccountJune2017] = saveConnectorMetric{
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = saveConnectorMetric{
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -554,7 +554,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccountJune2017] = saveConnectorMetric{
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = saveConnectorMetric{
     memoizeSync(accountTTL second){
       val (userName, cbs) = session match {
         case Some(c) =>

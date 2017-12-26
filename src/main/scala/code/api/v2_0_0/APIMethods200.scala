@@ -23,7 +23,7 @@ import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meeting
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.model.{BankId, _}
+import code.model.{BankAccount, BankId, _}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
@@ -1310,7 +1310,7 @@ trait APIMethods200 {
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               fromBank <- Bank(bankId) ?~! BankNotFound
-              fromAccount <- BankAccount(bankId, accountId) ?~! BankNotFound
+              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
 
 
@@ -1331,8 +1331,12 @@ trait APIMethods200 {
               //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
 
+              toBankId  = BankId(existingTransactionRequest.body.to.bank_id)
+              toAccountId  = AccountId(existingTransactionRequest.body.to.account_id)
+              toAccount <- BankAccount(toBankId, toAccountId) ?~! s"$AccountNotFound,toBankId($toBankId) and toAccountId($toAccountId) is invalid ."
+            
               //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId, transactionRequestType)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(fromAccount, toAccount, existingTransactionRequest)
             } yield {
 
               // Format explicitly as v2.0.0 json
