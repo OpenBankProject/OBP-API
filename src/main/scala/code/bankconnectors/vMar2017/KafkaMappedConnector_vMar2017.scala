@@ -30,13 +30,14 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0._
+import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -1014,83 +1015,47 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
    */
   private def saveTransaction(fromAccount: AccountType,
                               toAccount: AccountType,
-                              toCounterparty: CounterpartyTrait,
+                              transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
-
+  
     val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
     val transactionId = UUID.randomUUID().toString
 
-    val req =
-      if (toAccount != null && toCounterparty == null) {
-        OutboundSaveTransactionBase(
-          messageFormat = messageFormat,
-          action = "obp.put.Transaction",
-          userId = currentResourceUserId,
-          username = AuthUser.getCurrentUserUsername,
+    val req = OutboundSaveTransactionBase(
+      messageFormat = messageFormat,
+      action = "obp.put.Transaction",
+      userId = currentResourceUserId,
+      username = AuthUser.getCurrentUserUsername,
+  
+      // fromAccount
+      fromAccountName = fromAccount.name,
+      fromAccountId = fromAccount.accountId.value,
+      fromAccountBankId = fromAccount.bankId.value,
+  
+      // transaction details
+      transactionId = transactionId,
+      transactionRequestType = transactionRequestType.value,
+      transactionAmount = amount.bigDecimal.toString,
+      transactionCurrency = fromAccount.currency,
+      transactionChargePolicy = chargePolicy,
+      transactionChargeAmount = "0.0", // TODO get correct charge amount
+      transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency
+      transactionDescription = description,
+      transactionPostedDate = postedDate,
+  
+      // toCounterparty
+      toCounterpartyId = toAccount.accountId.value,
+      toCounterpartyName = toAccount.name,
+      toCounterpartyCurrency = fromAccount.currency, // TODO toCounterparty.currency
+      toCounterpartyRoutingAddress = toAccount.accountRoutingAddress,
+      toCounterpartyRoutingScheme = toAccount.accountRoutingScheme,
+      toCounterpartyBankRoutingAddress = toAccount.bankRoutingAddress,
+      toCounterpartyBankRoutingScheme = toAccount.bankRoutingScheme
+    )
 
-          // fromAccount
-          fromAccountName = fromAccount.name,
-          fromAccountId = fromAccount.accountId.value,
-          fromAccountBankId = fromAccount.bankId.value,
-
-          // transaction details
-          transactionId = transactionId,
-          transactionRequestType = transactionRequestType.value,
-          transactionAmount = amount.bigDecimal.toString,
-          transactionCurrency = fromAccount.currency,
-          transactionChargePolicy = chargePolicy,
-          transactionChargeAmount = "0.0", // TODO get correct charge amount
-          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency
-          transactionDescription = description,
-          transactionPostedDate = postedDate,
-
-          // toAccount or toCounterparty
-          toCounterpartyId = toAccount.accountId.value,
-          toCounterpartyName = toAccount.name,
-          toCounterpartyCurrency = toAccount.currency,
-          toCounterpartyRoutingAddress = toAccount.accountId.value,
-          toCounterpartyRoutingScheme = "OBP",
-          toCounterpartyBankRoutingAddress = toAccount.bankId.value,
-          toCounterpartyBankRoutingScheme = "OBP")
-      } else {
-        OutboundSaveTransactionBase(
-          messageFormat = messageFormat,
-          action = "obp.put.Transaction",
-          userId = currentResourceUserId,
-          username = AuthUser.getCurrentUserUsername,
-
-          // fromAccount
-          fromAccountName = fromAccount.name,
-          fromAccountId = fromAccount.accountId.value,
-          fromAccountBankId = fromAccount.bankId.value,
-
-          // transaction details
-          transactionId = transactionId,
-          transactionRequestType = transactionRequestType.value,
-          transactionAmount = amount.bigDecimal.toString,
-          transactionCurrency = fromAccount.currency,
-          transactionChargePolicy = chargePolicy,
-          transactionChargeAmount = "0.0", // TODO get correct charge amount
-          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency
-          transactionDescription = description,
-          transactionPostedDate = postedDate,
-          // toAccount or toCounterparty
-          toCounterpartyId = toCounterparty.counterpartyId,
-          toCounterpartyName = toCounterparty.name,
-          toCounterpartyCurrency = fromAccount.currency, // TODO toCounterparty.currency
-          toCounterpartyRoutingAddress = toCounterparty.otherAccountRoutingAddress,
-          toCounterpartyRoutingScheme = toCounterparty.otherAccountRoutingScheme,
-          toCounterpartyBankRoutingAddress = toCounterparty.otherBankRoutingAddress,
-          toCounterpartyBankRoutingScheme = toCounterparty.otherBankRoutingScheme)
-      }
-
-    if ( toAccount == null && toCounterparty == null ) {
-        logger.error(s"error calling saveTransaction: toAccount=${toAccount} toCounterparty=${toCounterparty}")
-        return Empty
-    }
 
     // Since result is single account, we need only first list entry
     val r = process(req)
@@ -1302,7 +1267,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   protected override def makePaymentImpl(
     fromAccount: AccountType,
     toAccount: AccountType,
-    toCounterparty: CounterpartyTrait,
+    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     amt: BigDecimal,
     description: String,
     transactionRequestType: TransactionRequestType,
@@ -1310,7 +1275,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     
     val sentTransactionId = saveTransaction(fromAccount,
                                             toAccount,
-                                            toCounterparty,
+                                            transactionRequestCommonBody,
                                             amt,
                                             description,
                                             transactionRequestType,
@@ -1332,28 +1297,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       charge)
   }
 
-
-  //Note: now call the local mapper to store data
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                         transactionRequestType: TransactionRequestType,
-                                                         fromAccount: BankAccount,
-                                                         toAccount: BankAccount,
-                                                         toCounterparty: CounterpartyTrait,
-                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                         details: String, status: String,
-                                                         charge: TransactionRequestCharge,
-                                                         chargePolicy: String): Box[TransactionRequest] = {
-
-    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                         transactionRequestType: TransactionRequestType,
-                                                         fromAccount: BankAccount, toAccount: BankAccount,
-                                                         toCounterparty: CounterpartyTrait,
-                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                         details: String,
-                                                         status: String,
-                                                         charge: TransactionRequestCharge,
-                                                         chargePolicy: String)
-  }
   //Note: now call the local mapper to store data
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)

@@ -100,6 +100,26 @@ trait CounterpartyTrait {
   def bespoke: List[CounterpartyBespoke]
 }
 
+case class CounterpartyInMemory(
+   createdByUserId: String,
+   name: String,
+   description: String,
+   thisBankId: String,
+   thisAccountId: String,
+   thisViewId: String,
+   counterpartyId: String,
+   otherAccountRoutingScheme: String,
+   otherAccountRoutingAddress: String,
+   otherAccountSecondaryRoutingScheme: String,
+   otherAccountSecondaryRoutingAddress: String,
+   otherBankRoutingScheme: String,
+   otherBankRoutingAddress: String,
+   otherBranchRoutingScheme: String,
+   otherBranchRoutingAddress: String,
+   isBeneficiary : Boolean,
+   bespoke: List[CounterpartyBespoke]
+)
+
 class RemotedataCounterpartiesCaseClasses {
   case class getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)
   

@@ -441,7 +441,6 @@ trait APIMethods210 {
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
-                                                                                                     new MappedCounterparty(), //in SANDBOX_TAN, toCounterparty is empty
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodySandboxTan,
                                                                                                      transDetailsSerialized,
@@ -455,31 +454,13 @@ trait APIMethods210 {
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                   // Get the Counterparty by id
                   toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
-
+                  toAccount <- BankAccount(toCounterparty) //CM 2 change Counterparty to OBO bankAccount.
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-
-                  // Get the Routing information from the Counterparty for the payment backend
-                  toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                  toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
-
-                  // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
-                  // i.e. Only validate toBankId and toAccountId if they are both OBP
-                  // i.e. if it is OBP we can expect the account to exist locally.
-                  // This is so developers can follow the COUNTERPARTY flow in the sandbox
-
-                  //if it is OBP, we call the local database, just for sandbox test case
-                  toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
-                    LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                  //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
-                  else
-                    Full(new MappedBankAccount())
-
-                  // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
+                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy)))) ?~! InvalidChargePolicy
-                  transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString,
+                  transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(transactionRequestBodyCounterparty.to.counterparty_id,
                                                                                                                 transactionRequestAccountJSON,
                                                                                                                 amountOfMoneyJSON,
                                                                                                                 transactionRequestBodyCounterparty.description,
@@ -489,7 +470,6 @@ trait APIMethods210 {
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
-                                                                                                     toCounterparty,
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodyCounterparty,
                                                                                                      transDetailsSerialized,
@@ -503,20 +483,11 @@ trait APIMethods210 {
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
                   toIban <- Full(transDetailsSEPAJson.to.iban)
                   toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
+                  toAccount <- BankAccount(toCounterparty) //CM 2 change Counterparty to OBO bankAccount.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-                  toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                  toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
-
-                  //if the connector is mapped, we get the data from local mapper
-                  toAccount <- if(isMapped)
-                    // TODO should not create bank account here!!
-                    LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                  else
-                  //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
-                    Full(new MappedBankAccount())
 
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
+                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress) //CM 8 can delete 
                   chargePolicy = transDetailsSEPAJson.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transactionRequestDetailsSEPARMapperJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString,
@@ -529,7 +500,6 @@ trait APIMethods210 {
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
-                                                                                                     toCounterparty,
                                                                                                      transactionRequestType,
                                                                                                      transDetailsSEPAJson,
                                                                                                      transDetailsSerialized,
@@ -540,7 +510,7 @@ trait APIMethods210 {
                 for {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value))
+                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)) //CM 7 can delete 
                   transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
                                                                                                         amountOfMoneyJSON,
                                                                                                         transactionRequestBodyFreeForm.description)
@@ -548,8 +518,7 @@ trait APIMethods210 {
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
-                                                                                                     fromAccount,//in FREE_FORM, we only use toAccount == fromAccount
-                                                                                                     new MappedCounterparty(), //in FREE_FORM, we only use toAccount, toCounterparty is empty
+                                                                                                     fromAccount,
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodyFreeForm,
                                                                                                      transDetailsSerialized,

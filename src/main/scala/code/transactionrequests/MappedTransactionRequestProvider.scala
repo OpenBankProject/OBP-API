@@ -3,7 +3,7 @@ package code.transactionrequests
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.Connector
-import code.metadata.counterparties.CounterpartyTrait
+import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model._
 import code.transactionrequests.TransactionRequests._
 import code.util.{AccountIdString, UUIDString}
@@ -72,13 +72,15 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                transactionRequestType: TransactionRequestType,
                                                fromAccount: BankAccount,
                                                toAccount: BankAccount,
-                                               toCounterparty: CounterpartyTrait,
                                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                                details: String,
                                                status: String,
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String): Box[TransactionRequest] = {
 
+    
+    //CM 8 We should get to here, than decided the toAccount or toCounterparty?? This is in Mapped table, it is similar in bank, not the OBP side, we can not know it before, only back can check it .
+    
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -103,16 +105,16 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mTo_AccountId(toAccount.accountId.value)
 
       //toCounterparty fields
-      .mName(toCounterparty.name)
-      .mThisBankId(toCounterparty.thisBankId)
-      .mThisAccountId(toCounterparty.thisAccountId)
-      .mThisViewId(toCounterparty.thisViewId)
-      .mCounterpartyId(toCounterparty.counterpartyId)
-      .mOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
-      .mOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
-      .mOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .mOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
-      .mIsBeneficiary(toCounterparty.isBeneficiary)
+      .mName(toAccount.name)
+      .mThisBankId(toAccount.bankId.value)
+      .mThisAccountId(toAccount.accountId.value)
+//      .mThisViewId(toAccount.viewId) //CM 6
+//      .mCounterpartyId(toAccount.counterpartyId) //CM 6
+      .mOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
+      .mOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+      .mOtherBankRoutingScheme(toAccount.bankRoutingScheme)
+      .mOtherBankRoutingAddress(toAccount.bankRoutingAddress)
+//      .mIsBeneficiary(toAccount.isBeneficiary)//CM 7
 
       //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
       .mBody_Value_Currency(transactionRequestCommonBody.value.currency)
@@ -194,7 +196,9 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mFrom_AccountId extends AccountIdString(this)
 
   //toAccount fields
+  @deprecated("use mOtherBankRoutingAddress instead","2017-12-25")
   object mTo_BankId extends UUIDString(this)
+  @deprecated("use mOtherAccountRoutingAddress instead","2017-12-25")
   object mTo_AccountId extends AccountIdString(this)
 
   //toCounterparty fields

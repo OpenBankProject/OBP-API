@@ -129,7 +129,6 @@ trait TransactionRequestProvider {
                                       transactionRequestType: TransactionRequestType,
                                       fromAccount: BankAccount,
                                       toAccount: BankAccount,
-                                      toCounterparty: CounterpartyTrait,
                                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                       details: String,
                                       status: String,
@@ -155,9 +154,8 @@ class RemotedataTransactionRequestsCaseClasses {
                                           charge: TransactionRequestCharge)
   case class createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                              transactionRequestType: TransactionRequestType,
-                                             fromAccount: BankAccount,
+                                             fromAccount: BankAccount, 
                                              toAccount: BankAccount,
-                                             toCounterparty: CounterpartyTrait,
                                              transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                              details: String,
                                              status: String,

@@ -8,6 +8,7 @@ import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
+import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
@@ -16,7 +17,7 @@ import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -501,17 +502,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def makePaymentImpl(fromAccount: AccountType,
                                toAccount: AccountType,
-                               toCounterparty: CounterpartyTrait,
+                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                amount: BigDecimal,
                                description: String,
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
-    for{
-       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+    for{//CM 2, toAccount.currency
+       rate <- tryo {fx.exchangeRate(fromAccount.currency, fromAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
-       sentTransactionId <- saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
-       recievedTransactionId <-saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
+       sentTransactionId <- saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+       recievedTransactionId <- saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
     } yield{
       sentTransactionId
     }
@@ -523,14 +524,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     */
   private def saveTransaction(fromAccount: AccountType,
                               toAccount: AccountType,
-                              toCounterparty: CounterpartyTrait,
+                              transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
     for{
+      
       currency <- Full(fromAccount.currency)
-
     //update the balance of the fromAccount for which a transaction is being created
       newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
       
@@ -547,20 +548,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .currency(currency)
       .tStartDate(now)
       .tFinishDate(now)
-      .description(description)
-       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
-      .counterpartyAccountHolder(toAccount.accountHolder)
-      .counterpartyAccountNumber(toAccount.number)//TODO if there is no number???
-      .counterpartyAccountKind(toAccount.accountType)
-      .counterpartyBankName(toAccount.bankName)
-      .counterpartyIban(toAccount.iban.getOrElse(""))
-      .counterpartyNationalId(toAccount.nationalIdentifier)
+      .description(description) //CM 6
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty //CM 1 
+//      .counterpartyAccountHolder(toCounterparty.name)
+//      .counterpartyAccountNumber(toAccount.number)//TODO if there is no number???
+//      .counterpartyAccountKind(toAccount.accountType)
+//      .counterpartyBankName(toAccount.bankName)
+//      .counterpartyIban(toAccount.iban.getOrElse(""))
+//      .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
-      .CPCounterPartyId(toCounterparty.counterpartyId)
-      .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
-      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
-      .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .CPCounterPartyId(toAccount.accountId.value)
+      .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
+      .CPOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+      .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
+      .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
       .chargePolicy(chargePolicy)
       .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
     } yield{
@@ -593,7 +594,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                transactionRequestType: TransactionRequestType,
                                                fromAccount: BankAccount,
                                                toAccount: BankAccount,
-                                               toCounterparty: CounterpartyTrait,
                                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                                details: String,
                                                status: String,
@@ -604,7 +604,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionRequestType,
       fromAccount,
       toAccount,
-      toCounterparty,
       transactionRequestCommonBody,
       details,
       status,

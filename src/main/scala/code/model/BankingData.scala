@@ -38,7 +38,7 @@ import code.api.util.SessionContext
 import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -638,7 +638,15 @@ object BankAccount {
   def apply(bankId: BankId, accountId: AccountId, sessionContext: Option[SessionContext]) : Box[BankAccount] = {
     Connector.connector.vend.getBankAccount(bankId, accountId, sessionContext)
   }
-
+  
+  def apply(counterpartyTrait: CounterpartyTrait) : Box[BankAccount] = {
+    Full(
+      BankAccountInMemory(
+        
+      )
+    )
+  }
+  
   def publicAccounts : List[BankAccount] = {
     Views.views.vend.getAllPublicAccounts.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
@@ -657,6 +665,26 @@ object BankAccount {
     }
   }
 }
+
+//This class is used for propagate the BankAccount as the parameters over different methods.
+case class BankAccountInMemory(
+  bankId: BankId = null,
+  accountId: AccountId= null,
+  accountType: String= null,
+  balance: BigDecimal= null,
+  currency: String= null,
+  name: String= null,
+  lastUpdate: Date= null,
+  accountHolder: String= null,
+  label: String= null,
+  accountRoutingScheme: String= null,
+  accountRoutingAddress: String= null,
+  branchId: String= null,
+  swift_bic: Option[String] = None,
+  iban: Option[String] = None,
+  number: String = null,
+  accountRules: List[AccountRules] = Nil
+) extends BankAccount
 
 /*
 The other bank account or counterparty in a transaction

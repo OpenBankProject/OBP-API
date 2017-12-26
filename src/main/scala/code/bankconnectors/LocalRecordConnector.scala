@@ -183,15 +183,15 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
 
-  override protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount: AccountType,  toAccount: AccountType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
     //this is the transaction that gets attached to the account of the person making the payment
-    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt, description)
+    val createdFromTrans = saveNewTransaction(fromAccount, fromTransAmt, description)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
-    saveNewTransaction(toAccount, fromAccount, toTransAmt, description)
+//    saveNewTransaction(toAccount, fromAccount, toTransAmt, description)
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
@@ -262,7 +262,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
                      balance)
   }
 
-  private def saveNewTransaction(account : AccountType, otherAccount : AccountType, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
+  private def saveNewTransaction(account : AccountType, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
@@ -283,8 +283,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
 
     for {
-      otherBank <- Connector.connector.vend.getBank(otherAccount.bankId) ?~! "no other bank found"
-      transTime = now
+//      otherBank <- Connector.connector.vend.getBank(otherAccount.bankId) ?~! "no other bank found"
+      transTime <- Full(now) 
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -295,21 +295,21 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       envJson =
       "obp_transaction" ->
         ("this_account" ->
-          ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
+//          ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
             ("number" -> account.number) ~
             ("kind" -> account.accountType) ~
             ("bank" ->
               ("IBAN" -> account.iban.getOrElse("")) ~
                 ("national_identifier" -> account.nationalIdentifier) ~
                 ("name" -> account.bankId.value))) ~
-          ("other_account" ->
-            ("holder" -> otherAccount.accountHolder) ~
-              ("number" -> otherAccount.number) ~
-              ("kind" -> otherAccount.accountType) ~
-              ("bank" ->
-                ("IBAN" -> "") ~
-                  ("national_identifier" -> otherBank.nationalIdentifier) ~
-                  ("name" -> otherBank.fullName))) ~
+//          ("other_account" ->
+////            ("holder" -> otherAccount.accountHolder) ~
+////              ("number" -> otherAccount.number) ~
+////              ("kind" -> otherAccount.accountType) ~
+//              ("bank" ->
+//                ("IBAN" -> "") ~
+////                  ("national_identifier" -> otherBank.nationalIdentifier) ~
+////                  ("name" -> otherBank.fullName))) ~
           ("details" ->
             ("type_en" -> "") ~
               ("type_de" -> "") ~
@@ -359,13 +359,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                         transactionRequestType: TransactionRequestType,
-                                                         account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait,
-                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                         details: String, status: String,
-                                                         charge: TransactionRequestCharge,
-                                                         chargePolicy: String): Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
