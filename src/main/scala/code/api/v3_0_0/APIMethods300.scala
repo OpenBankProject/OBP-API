@@ -369,9 +369,9 @@ trait APIMethods300 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
-      """Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+      s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
         |
-        |Authentication is required.
+        |${authenticationRequiredMessage(true)}
         |
         |Possible custom headers for pagination:
         |
@@ -432,9 +432,11 @@ trait APIMethods300 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
-      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
         |
-        |Authentication via OAuth is required if the view is not public.
+        |${authenticationRequiredMessage(false)}
+        |
+        |Authentication is required if the view is not public.
         |
         |Possible custom headers for pagination:
         |
@@ -496,10 +498,10 @@ trait APIMethods300 {
       "POST",
       "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
-      """
+      s"""
         |Search warehouse data via Elastic Search.
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
         |CanSearchWarehouse entitlement is required to search warehouse data!
         |
@@ -567,9 +569,9 @@ trait APIMethods300 {
       "GET",
       "/users/email/EMAIL/terminator",
       "Get Users by Email Address",
-      """Get users by email address
+      s"""Get users by email address
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -603,9 +605,9 @@ trait APIMethods300 {
       "GET",
       "/users/user_id/USER_ID",
       "Get User by USER_ID",
-      """Get user by USER_ID
+      s"""Get user by USER_ID
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -642,9 +644,10 @@ trait APIMethods300 {
       "GET",
       "/users/username/USERNAME",
       "Get User by USERNAME",
-      """Get user by USERNAME
+      s"""Get user by USERNAME
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
+        |
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -681,10 +684,10 @@ trait APIMethods300 {
       "getAdapter",
       "GET",
       "/banks/BANK_ID/adapter",
-      "Get Info Of Adapter",
-      """Get a basic Adapter info
+      "Get Adapter Info",
+      s"""Get basic information about the Adapter listening on behalf of this bank.
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -998,13 +1001,11 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under
          |
-         |Pagination:|
+         |Pagination:
+          |
           |By default, 100 records are returned.
           |
           |You can use the url query parameters *limit* and *offset* for pagination
-         |
-         |
-         |
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
@@ -1057,9 +1058,10 @@ trait APIMethods300 {
       "GET",
       "/users",
       "Get all Users",
-      """Get all users
+      s"""Get all users
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
+        |
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -1098,9 +1100,12 @@ trait APIMethods300 {
       "GET",
       "/users/current/customers",
       "Get Customers for Current User",
-      """Gets all Customers that are linked to a User.
+      s"""Gets all Customers that are linked to a User.
         |
-        |Authentication via OAuth is required.""",
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
       emptyObjectJson,
       customerJsonV210,
       List(
@@ -1137,9 +1142,9 @@ trait APIMethods300 {
       "GET",
       "/users/current",
       "Get User (Current)",
-      """Get the logged in user
+      s"""Get the logged in user
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
       userJsonV200,
@@ -1250,6 +1255,7 @@ trait APIMethods300 {
       "Get Other Accounts of one Account.",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
+         |
          |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       otherAccountsJsonV300,
@@ -1283,6 +1289,7 @@ trait APIMethods300 {
       "Get Other Account by Id.",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
+         |
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       otherAccountJsonV300,
