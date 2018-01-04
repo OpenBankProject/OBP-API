@@ -8,7 +8,7 @@ import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -22,8 +22,8 @@ import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meeting
-import code.model.{BankId, _}
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.model.{BankAccount, BankId, _}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
@@ -1310,7 +1310,7 @@ trait APIMethods200 {
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               fromBank <- Bank(bankId) ?~! BankNotFound
-              fromAccount <- BankAccount(bankId, accountId) ?~! BankNotFound
+              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
 
 
@@ -1331,8 +1331,12 @@ trait APIMethods200 {
               //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
 
+              toBankId  = BankId(existingTransactionRequest.body.to.bank_id)
+              toAccountId  = AccountId(existingTransactionRequest.body.to.account_id)
+              toAccount <- BankAccount(toBankId, toAccountId) ?~! s"$AccountNotFound,toBankId($toBankId) and toAccountId($toAccountId) is invalid ."
+            
               //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId, transactionRequestType)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(fromAccount, toAccount, existingTransactionRequest)
             } yield {
 
               // Format explicitly as v2.0.0 json
@@ -1888,8 +1892,8 @@ trait APIMethods200 {
       entitlementJSON,
       List(
         UserNotLoggedIn,
-        UserNotFoundById, 
-        InvalidInputJsonFormat,
+        UserNotFoundById,
+        InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementIsBankRole, 
         EntitlementIsSystemRole, 
@@ -1906,7 +1910,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! InvalidInputJsonFormat
+            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
             role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
             _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
               {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}

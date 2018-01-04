@@ -17,7 +17,7 @@ import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -137,7 +137,9 @@ trait Connector extends MdcLoggable{
   //We have the Connector define its BankAccount implementation here so that it can
   //have access to the implementation details (e.g. the ability to set the balance) in
   //the implementation of makePaymentImpl
-  type AccountType <: BankAccount
+  //new commit from (2017-12-25) : not use <: any more, the details should be in low level connector, not here.
+  // We need keep it as general as possible in this level.
+  type AccountType = BankAccount
 
 
   val messageDocs = ArrayBuffer[MessageDoc]()
@@ -366,7 +368,11 @@ trait Connector extends MdcLoggable{
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transactionId <- makePaymentImpl(fromAccount, toAccount, new MappedCounterparty(), amt, description,
+      transactionId <- makePaymentImpl(fromAccount,
+                                       toAccount,
+                                       transactionRequestCommonBody = null,//Note chargePolicy only support in V210
+                                       amt, 
+                                       description,
                                        TransactionRequestType(""), //Note TransactionRequestType only support in V210
                                        "") //Note chargePolicy only support in V210
     } yield transactionId
@@ -375,40 +381,27 @@ trait Connector extends MdcLoggable{
   /**
     * \
     *
-    * @param initiator The user attempting to make the payment
-    * @param fromAccountUID The unique identifier of the account sending money
-    * @param toAccountUID The unique identifier of the account receiving money
+    * @param fromAccount The unique identifier of the account sending money
+    * @param toAccount The unique identifier of the account receiving money
     * @param toCounterparty The unique identifier of the acounterparty receiving money
     * @param amount The amount of money to send ( > 0 )
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
     */
-  def makePaymentv200(initiator: User,
-                      fromAccountUID: BankIdAccountId,
-                      toAccountUID: BankIdAccountId,
-                      toCounterparty: CounterpartyTrait,
+  def makePaymentv200(fromAccount: AccountType,
+                      toAccount: AccountType,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                       amount: BigDecimal,
                       description: String,
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String): Box[TransactionId] = {
     for {
-      // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
-      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
-        s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isMapped: Boolean <- tryo{Props.get("connector", "").equalsIgnoreCase("mapped")}
-      toAccount <-if(isMapped || transactionRequestType.value.equals(SANDBOX_TAN.toString)){
-        getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
-      }else{
-        getEmptyBankAccount()
-      } ?~ "code.bankconnectors.Connector.makePatmentV200 method toAccount is Empty!" //The error is for debugging not for showing to browser
-
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy) ?~
-        "code.bankconnectors.Connector.makePatmentV200.makePaymentImpl return Empty!" //The error is for debugging not for showing to browser
+      transactionId <- makePaymentImpl(fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePaymentImpl
     } yield transactionId
   }
 
 
-  protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
+  protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
 
 
 
@@ -422,10 +415,10 @@ trait Connector extends MdcLoggable{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 100) {
-        TransactionRequests.STATUS_COMPLETED
+      if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 100) {
+        TransactionRequestStatus.COMPLETED
       } else {
-        TransactionRequests.STATUS_INITIATED
+        TransactionRequestStatus.INITIATED
       }
 
 
@@ -444,14 +437,14 @@ trait Connector extends MdcLoggable{
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
       // Version 200 below has more support for charge
       charge = TransactionRequestCharge("Charge for completed transaction", AmountOfMoney(body.value.currency, "0.00"))
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
     var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
-    if (status == TransactionRequests.STATUS_COMPLETED) {
+    if (status == TransactionRequestStatus.COMPLETED) {
       val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
         BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
@@ -470,7 +463,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -483,10 +476,10 @@ trait Connector extends MdcLoggable{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 1000) {
-        TransactionRequests.STATUS_COMPLETED
+      if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 1000) {
+        TransactionRequestStatus.COMPLETED
       } else {
-        TransactionRequests.STATUS_INITIATED
+        TransactionRequestStatus.INITIATED
       }
 
 
@@ -505,21 +498,20 @@ trait Connector extends MdcLoggable{
       chargeValue <- tryo {(BigDecimal(body.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${body.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(body.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
     var result = request.openOrThrowException("Exception: Couldn't create transactionRequest")
 
     // If no challenge necessary, create Transaction immediately and put in data store and object to return
-    if (status == TransactionRequests.STATUS_COMPLETED) {
+    if (status == TransactionRequestStatus.COMPLETED) {
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                          BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
-                                                                          BankIdAccountId(toAccount.bankId, toAccount.accountId),
-                                                                          new MappedCounterparty(),
+      val createdTransactionId = Connector.connector.vend.makePaymentv200(fromAccount,
+                                                                          toAccount,
+                                                                          transactionRequestCommonBody=null,//Note chargePolicy only support in V210
                                                                           BigDecimal(body.value.amount),
                                                                           body.description,
                                                                           transactionRequestType,
@@ -541,7 +533,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -567,113 +559,111 @@ trait Connector extends MdcLoggable{
   // TODO Add challengeType as a parameter to this function
   def createTransactionRequestv210(initiator: User,
                                    viewId: ViewId,
-                                   fromAccount: BankAccount,
-                                   toAccount: BankAccount,
-                                   toCounterparty: CounterpartyTrait,
+                                   fromAccount: AccountType,
+                                   toAccount: AccountType,
                                    transactionRequestType: TransactionRequestType,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    detailsPlain: String,
                                    chargePolicy: String): Box[TransactionRequest] = {
-
-    // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
-    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value,
-                                                   fromAccount.accountId.value,
-                                                   viewId.value,
-                                                   transactionRequestType.value,
-                                                   transactionRequestCommonBody.value.currency,
-                                                   initiator.userId,
-                                                   initiator.name).openOrThrowException("Attempted to open an empty Box.") //TODO need error handling ,throw the error to API level
-
+  
     // Set initial status
-    val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.amount)) {
-
-      // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
-      // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
-
-      // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
-      // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
-      // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-
-        if ( Props.getLong("transaction_status_scheduler_delay").isEmpty )
-          TransactionRequests.STATUS_COMPLETED
-        else
-          TransactionRequests.STATUS_PENDING
-      } else {
-        TransactionRequests.STATUS_INITIATED
-      }
-
-    // Always create a new Transaction Request
-    val transactionReq = for {
-      chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId,
-                                    initiator.name, transactionRequestType.value, fromAccount.currency)
-
-      chargeValue <- tryo {
-                            BigDecimal(transactionRequestCommonBody.value.amount) * BigDecimal(chargeLevel.amount) match {
-                              //Set the mininal cost (2 euros)for transaction request
-                              case value if (value < 2) => BigDecimal("2.0")
-                              //Set the largest cost (50 euros)for transaction request
-                              case value if (value > 50) => BigDecimal("50")
-                              //Set the cost according to the charge level
-                              case value => value.setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble
-                            }
-                          } ?~! s"The value transactionRequestCommonBody.value.amount: ${transactionRequestCommonBody.value.amount } or chargeLevel.amount: ${chargeLevel.amount } can not be transfered to decimal "
-
-      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue.toString()))
-
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString),
-                                                            transactionRequestType,
-                                                            fromAccount,
-                                                            toAccount,
-                                                            toCounterparty,
-                                                            transactionRequestCommonBody,
-                                                            detailsPlain,
-                                                            status,
-                                                            charge,
-                                                            chargePolicy)
-    } yield transactionRequest
-
-    //make sure we get something back
-    var transactionRequest = transactionReq.openOrThrowException("Exception: Couldn't create transactionRequest")
-
-    // If no challenge necessary, create Transaction immediately and put in data store and object to return
-    status match {
-      case TransactionRequests.STATUS_COMPLETED =>
-        val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
-                                                                            BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
-                                                                            BankIdAccountId(toAccount.bankId, toAccount.accountId),
-                                                                            toCounterparty,
-                                                                            BigDecimal(transactionRequestCommonBody.value.amount),
-                                                                            transactionRequestCommonBody.description,
-                                                                            transactionRequestType,
-                                                                            chargePolicy)
-        //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
-        transactionRequest = transactionRequest.copy(challenge = null)
-        //save transaction_id into database
-        saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
-        //update transaction_id filed for varibale 'transactionRequest'
-        transactionRequest = transactionRequest.copy(transaction_ids = createdTransactionId.openOrThrowException("Attempted to open an empty Box.").value)
-
-      case TransactionRequests.STATUS_PENDING =>
-        transactionRequest = transactionRequest
-
-      case TransactionRequests.STATUS_INITIATED =>
-        //if challenge necessary, create a new one
-        val challengeAnswer = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
-  
-        val challengeId = UUID.randomUUID().toString
-        val salt = BCrypt.gensalt()
-        val expectedAnswer = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-  
-        //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
-        ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, expectedAnswer)
-
-        // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv210
-        val challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
-        saveTransactionRequestChallenge(transactionRequest.id, challenge)
-        transactionRequest = transactionRequest.copy(challenge = challenge)
+    def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Box[TransactionRequestStatus.Value] ={
+      Full(
+        if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
+          // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
+          // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
+          // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
+          // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
+          // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
+          if (Props.getLong("transaction_status_scheduler_delay").isEmpty )
+          TransactionRequestStatus.COMPLETED
+          else
+            TransactionRequestStatus.PENDING
+        } else {
+          TransactionRequestStatus.INITIATED
+        }
+      )
+    }
+    
+    // Get the charge level value
+    def getChargeValue(chargeLevelAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Box[String] = {
+      Full(
+        transactionRequestCommonBodyAmount* chargeLevelAmount match {
+          //Set the mininal cost (2 euros)for transaction request
+          case value if (value < 2) => "2.0"
+          //Set the largest cost (50 euros)for transaction request
+          case value if (value > 50) => "50"
+          //Set the cost according to the charge level
+          case value => value.setScale(10, BigDecimal.RoundingMode.HALF_UP).toString()
+        }
+      )
     }
 
-    Full(transactionRequest)
+    for{
+     // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
+      challengeThreshold <- getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name) ?~! InvalidConnectorResponseForGetChallengeThreshold
+      challengeThresholdAmount <- tryo(BigDecimal(challengeThreshold.amount)) ?~! s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number"
+      transactionRequestCommonBodyAmount <- tryo(BigDecimal(transactionRequestCommonBody.value.amount)) ?~! s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number"
+      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount) ?~! s"$GetStatusException"
+      chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency) ?~! InvalidConnectorResponseForGetChargeLevel
+      chargeLevelAmount <- tryo(BigDecimal(chargeLevel.amount)) ?~! s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !"
+      chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount) ?~! GetChargeValueException
+      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
+      // Always create a new Transaction Request
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy) ?~! InvalidConnectorResponseForCreateTransactionRequestImpl210
+
+      // If no challenge necessary, create Transaction immediately and put in data store and object to return
+      newTransactionRequest <- status match {
+        case TransactionRequestStatus.COMPLETED =>
+          for {
+            createdTransactionId <- Connector.connector.vend.makePaymentv200(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody,
+              BigDecimal(transactionRequestCommonBody.value.amount), 
+              transactionRequestCommonBody.description, 
+              transactionRequestType, 
+              chargePolicy
+            ) ?~! InvalidConnectorResponseForMakePaymentv200
+            //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
+            transactionRequest <- Full(transactionRequest.copy(challenge = null))
+
+            //save transaction_id into database
+            _ <- saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
+            //update transaction_id filed for varibale 'transactionRequest'
+            transactionRequest <- Full(transactionRequest.copy(transaction_ids = createdTransactionId.value))
+  
+          } yield {
+            logger.debug(s"createTransactionRequestv300.createdTransactionId return: $transactionRequest")
+            transactionRequest
+          }
+        case TransactionRequestStatus.INITIATED =>
+          for {
+          //if challenge necessary, create a new one
+            challengeAnswer <- createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value
+            ) ?~! "OBP-40xxx : createTransactionRequestv300.createChallenge exception !"
+      
+            challengeId = UUID.randomUUID().toString
+            salt = BCrypt.gensalt()
+            challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt
+            ).substring(0, 44)
+      
+            //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
+            _ <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+      
+            // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+            _ <- Full(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
+            transactionRequest <- Full(transactionRequest.copy(challenge = newChallenge))
+          } yield {
+            transactionRequest
+          }
+        case _ => Full(transactionRequest)
+      }
+    }yield{
+      logger.debug(newTransactionRequest)
+      newTransactionRequest
+    }
   }
 
   //place holder for various connector methods that overwrite methods like these, does the actual data access
@@ -697,9 +687,8 @@ trait Connector extends MdcLoggable{
     */
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                 transactionRequestType: TransactionRequestType,
-                                                fromAccount: BankAccount,
-                                                toAccount: BankAccount,
-                                                toCounterparty: CounterpartyTrait,
+                                                fromAccount: AccountType,
+                                                toAccount: AccountType,
                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                                 details: String,
                                                 status: String,
@@ -708,8 +697,8 @@ trait Connector extends MdcLoggable{
     LocalMappedConnector.createTransactionRequestImpl210(
       transactionRequestId: TransactionRequestId,
       transactionRequestType: TransactionRequestType,
-      fromAccount: BankAccount, toAccount: BankAccount,
-      toCounterparty: CounterpartyTrait,
+      fromAccount: BankAccount,
+      toAccount: AccountType,
       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
       details: String,
       status: String,
@@ -821,7 +810,7 @@ trait Connector extends MdcLoggable{
     tr match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN) {
+          if (tr.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
@@ -849,7 +838,7 @@ trait Connector extends MdcLoggable{
       transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
           BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
       tr <- getTransactionRequestImpl(transReqId)
     } yield {
@@ -857,79 +846,83 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev200(fromAccount: AccountType, toAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-      // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
-                                 new MappedCounterparty(),  //Note MappedCounterparty only support in V210
-                                 BigDecimal (tr.body.value.amount),
-                                 tr.body.description, transactionRequestType,
-                                 "" //Note chargePolicy only support in V210
+      transRequestId <- Full(transactionRequest.id)
+      transactionId <- makePaymentv200(
+        fromAccount,
+        toAccount,
+        transactionRequestCommonBody = null,//Note chargePolicy only support in V210
+        BigDecimal(transactionRequest.body.value.amount),
+        transactionRequest.body.description,
+        TransactionRequestType(transactionRequest.`type`),
+        "" //Note chargePolicy only support in V210
       ) ?~ "Couldn't create Transaction"
-      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
-      //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)
+      didSaveTransId <- saveTransactionRequestTransaction(transRequestId, transactionId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transRequestId, TransactionRequestStatus.COMPLETED.toString)
+
+      transactionRequestUpdated <- Full(transactionRequest.copy(transaction_ids = transactionId.value,status=TransactionRequestStatus.COMPLETED.toString))
     } yield {
-      tr
+      transactionRequestUpdated
     }
   }
 
-  def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev210(fromAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-
-      details = tr.details
-
+      
+      details <- Full(transactionRequest.details)
+    
+      transactionRequestType = transactionRequest.`type`
+      transactionRequestId=transactionRequest.id
       //Note, it should be four different type of details in mappedtransactionrequest.
       //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
       // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
       detailsJsonExtract <- tryo{details.extract[TransactionRequestDetailsMapperJSON]} ?~! s"create transaction detail body, can not extract to $TransactionRequestDetailsMapperJSON "
 
-      toBankId = detailsJsonExtract.to.bank_id
-
-      toAccountId = detailsJsonExtract.to.account_id
+     
 
       valueAmount = detailsJsonExtract.value.amount
 
-      valueCurrency = detailsJsonExtract.value.currency
-
       description = detailsJsonExtract.description
 
+    
       // Note for 'toCounterparty' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // And it only used for COUNTERPARTY.toString and  SEPA.toString ,other types keep it empty now.
-      toCounterparty  <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+      toAccount  <- TransactionRequestTypes.withName(transactionRequestType) match {
         case COUNTERPARTY | SEPA  =>
-          val counterpartyId = tr.counterparty_id
-          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-          toCounterparty
+          for{
+           counterpartyId <- Full(transactionRequest.counterparty_id)
+           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           toAccount <- BankAccount(toCounterparty)
+          }yield{
+            toAccount
+          }
         case _ =>
-          Full(new MappedCounterparty())
+          for{
+            toBankId <- Full(BankId(detailsJsonExtract.to.bank_id))
+            toAccountId = AccountId(detailsJsonExtract.to.account_id)
+            toAccount <- Connector.connector.vend.getBankAccount(toBankId,toAccountId)
+          }yield{
+            toAccount
+          }
       }
 
-      transId <- makePaymentv200(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                 BankIdAccountId(BankId(toBankId), AccountId(toAccountId)),
-                                 toCounterparty,
-                                 BigDecimal(valueAmount), description,
-                                 transactionRequestType,
-                                 tr.charge_policy
-                                 ) ?~ "Couldn't create Transaction"
+      transactionId <- makePaymentv200(
+        fromAccount,
+        toAccount,
+        transactionRequestCommonBody=null,//Note chargePolicy only support in V210
+        BigDecimal(valueAmount), 
+        description,
+        TransactionRequestType(transactionRequestType),
+        transactionRequest.charge_policy
+      ) ?~ "Couldn't create Transaction"
 
-      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
-
-      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
 
     } yield {
-      var tr = getTransactionRequestImpl(transReqId).openOrThrowException("Exception: Couldn't create transaction")
-      //update the return value, getTransactionRequestImpl is not in real-time. need update the data manually.
-      tr=tr.copy(transaction_ids =transId.value)
-      tr=tr.copy(status =TransactionRequests.STATUS_COMPLETED)
-      tr
+      transactionRequest.copy(transaction_ids =transactionId.value,status =TransactionRequestStatus.COMPLETED.toString)
     }
   }
 

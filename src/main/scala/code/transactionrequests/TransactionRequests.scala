@@ -6,7 +6,7 @@ import java.util.Date
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
-import code.remotedata.{RemotedataTransactionRequests}
+import code.remotedata.RemotedataTransactionRequests
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
@@ -15,15 +15,15 @@ import org.elasticsearch.common.inject.Inject
 
 object TransactionRequests extends SimpleInjector {
 
-  //TODO: change these to some kind of case class / type thingy (so we can match {} on them)
-  val STATUS_INITIATED = "INITIATED"
-  val STATUS_PENDING = "PENDING"
-  val STATUS_FAILED = "FAILED"
-  val STATUS_COMPLETED = "COMPLETED"
-  val STATUS_FORWARDED = "FORWARDED"
-  val STATUS_REJECTED = "REJECTED"
-
-  val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
+  object TransactionRequestStatus extends Enumeration {
+    type TransactionRequestStatus = Value
+    val INITIATED, PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+  }
+  
+  object TransactionChallengeTypes extends Enumeration {
+    type TransactionChallengeTypes = Value
+    val SANDBOX_TAN = Value
+  }
   
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
@@ -129,7 +129,6 @@ trait TransactionRequestProvider {
                                       transactionRequestType: TransactionRequestType,
                                       fromAccount: BankAccount,
                                       toAccount: BankAccount,
-                                      toCounterparty: CounterpartyTrait,
                                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                       details: String,
                                       status: String,
@@ -155,9 +154,8 @@ class RemotedataTransactionRequestsCaseClasses {
                                           charge: TransactionRequestCharge)
   case class createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                              transactionRequestType: TransactionRequestType,
-                                             fromAccount: BankAccount,
+                                             fromAccount: BankAccount, 
                                              toAccount: BankAccount,
-                                             toCounterparty: CounterpartyTrait,
                                              transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                              details: String,
                                              status: String,
