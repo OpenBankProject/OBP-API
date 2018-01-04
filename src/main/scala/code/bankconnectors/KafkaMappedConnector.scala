@@ -29,17 +29,15 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
+import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -62,8 +60,6 @@ import net.liftweb.util.Props
 import scala.collection.immutable.{List, Seq}
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
-
-  type AccountType = KafkaBankAccount
 
   implicit override val nameOfConnector = KafkaMappedConnector.getClass.getSimpleName
 
@@ -381,7 +377,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[KafkaBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",
@@ -408,7 +404,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(new KafkaBankAccount(r))
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[KafkaInboundAccount] = accts.flatMap { a => {
@@ -581,9 +577,9 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
 
-  protected override def makePaymentImpl(fromAccount: KafkaBankAccount,
-                                         toAccount: KafkaBankAccount,
-                                         toCounterparty: CounterpartyTrait,
+  protected override def makePaymentImpl(fromAccount: AccountType,
+                                         toAccount: AccountType,
+                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                          amt: BigDecimal,
                                          description: String,
                                          transactionRequestType: TransactionRequestType,
@@ -591,7 +587,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
     val sentTransactionId = saveTransaction(fromAccount,
                                             toAccount,
-                                            toCounterparty,
+                                            transactionRequestCommonBody,
                                             amt,
                                             description,
                                             transactionRequestType,
@@ -605,14 +601,14 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: KafkaBankAccount,
-                              toAccount: KafkaBankAccount,
-                              toCounterparty: CounterpartyTrait,
+  private def saveTransaction(fromAccount: AccountType,
+                              toAccount: AccountType,
+                              transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String) = {
-
+  
     val transactionTime = now
     val currency = fromAccount.currency
 
@@ -639,11 +635,11 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                                        "toBankId" -> toAccount.bankId.value,
                                        "toAccountId" -> toAccount.accountId.value,
                                        //toCounterty
-                                       "toCounterpartyId" -> toCounterparty.counterpartyId,
-                                       "toCounterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                       "toCounterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
+                                       "toCounterpartyId" -> toAccount.accountId.value,
+                                       "toCounterpartyOtherBankRoutingAddress" -> toAccount.bankRoutingAddress,
+                                       "toCounterpartyOtherAccountRoutingAddress" -> toAccount.accountRoutingAddress,
+                                       "toCounterpartyOtherAccountRoutingScheme" -> toAccount.accountRoutingScheme,
+                                       "toCounterpartyOtherBankRoutingScheme" -> toAccount.bankRoutingScheme,
                                        "type" -> "AC")
 
 
@@ -677,28 +673,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       charge)
   }
 
-
-  //Note: now call the local mapper to store data
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                         transactionRequestType: TransactionRequestType,
-                                                         fromAccount: BankAccount,
-                                                         toAccount: BankAccount,
-                                                         toCounterparty: CounterpartyTrait,
-                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                         details: String, status: String,
-                                                         charge: TransactionRequestCharge,
-                                                         chargePolicy: String): Box[TransactionRequest] = {
-
-    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                         transactionRequestType: TransactionRequestType,
-                                                         fromAccount: BankAccount, toAccount: BankAccount,
-                                                         toCounterparty: CounterpartyTrait,
-                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                         details: String,
-                                                         status: String,
-                                                         charge: TransactionRequestCharge,
-                                                         chargePolicy: String)
-  }
   //Note: now call the local mapper to store data
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
@@ -1165,7 +1139,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Helper for creating other bank account
-  def createCounterparty(counterpartyId: String, counterpartyName: String, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(counterpartyId: String, counterpartyName: String, o: BankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterpartyId = alreadyFoundMetadata.map(_.getCounterpartyId).getOrElse(""),
       counterpartyName = counterpartyName,

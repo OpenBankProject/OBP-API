@@ -13,6 +13,7 @@ import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, BankAccount, TransactionRequestId}
 import code.setup.{APIResponse, DefaultUsers}
+import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
@@ -139,7 +140,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         if (withChallenge) {
           Then("We should have the INITIATED status in response body")
-          (createTransactionRequestResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
+          (createTransactionRequestResponse.body \ "status").values.toString should equal(TransactionRequestStatus.INITIATED.toString)
           Then("The transaction_ids filed should be empty")
           (createTransactionRequestResponse.body \ "transaction_ids").values.toString should equal("List()")
           Then("Challenge should have body, this is the with challenge scenario")
@@ -148,7 +149,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
           challengeId should not equal ("")
         } else {
           Then("We should have the COMPLETED status in response body")
-          (createTransactionRequestResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+          (createTransactionRequestResponse.body \ "status").values.toString should equal(TransactionRequestStatus.COMPLETED.toString)
           Then("The transaction_ids filed should be not empty")
           (createTransactionRequestResponse.body \ "transaction_ids").values.toString should not equal ("List()")
           Then("Challenge should be null, this is the no challenge scenario")
@@ -177,7 +178,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         if (withChellenge) {
           And("We should have the INITIATED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.INITIATED.toString)
 
           And("Challenge should be not null, this is the no challenge scenario")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should not equal (0)
@@ -186,7 +187,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should equal("List()")
         } else {
           And("We should have the COMPLETED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.COMPLETED.toString)
 
           And("Challenge should be null, this is the no challenge scenario")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should equal(0)
@@ -285,7 +286,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         (ansTransReqResponse.body \ "transaction_ids").values.toString should not equal ("")
 
         Then("We should have the COMPLETED status in response body")
-        (ansTransReqResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        (ansTransReqResponse.body \ "status").values.toString should equal(TransactionRequestStatus.COMPLETED.toString)
       }
     }
 

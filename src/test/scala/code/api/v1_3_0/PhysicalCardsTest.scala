@@ -52,8 +52,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
   object MockedCardConnector extends Connector with MdcLoggable {
 
-    type AccountType = BankAccount
-
     implicit override val nameOfConnector = "MockedCardConnector"
 
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)

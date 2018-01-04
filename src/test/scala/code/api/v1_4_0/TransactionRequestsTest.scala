@@ -5,13 +5,13 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankAccount, TransactionRequestId}
-import code.setup.{DefaultUsers}
-import code.transactionrequests.TransactionRequests
+import code.setup.DefaultUsers
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus}
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 
 class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
 
@@ -87,7 +87,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        status should equal (TransactionRequestStatus.COMPLETED.toString)
 
         var challenge = (response.body \ "challenge").children
         challenge.size should equal(0)
@@ -196,7 +196,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //amount over 100 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionRequests.CHALLENGE_SANDBOX_TAN)
+        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionChallengeTypes.SANDBOX_TAN.toString)
 
         //call createTransactionRequest API method
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -216,7 +216,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           case JString(i) => i
           case _ => ""
         }
-        status should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
+        status should equal(TransactionRequestStatus.INITIATED.toString)
 
         var transaction_id = (response.body \ "transaction_ids") match {
           case JString(i) => i
@@ -276,7 +276,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
           case JString(i) => i
           case _ => ""
         }
-        status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        status should equal(TransactionRequestStatus.COMPLETED.toString)
 
         transaction_id = (response.body \ "transaction_ids") match {
           case JString(i) => i

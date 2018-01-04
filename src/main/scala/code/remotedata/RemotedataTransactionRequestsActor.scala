@@ -60,7 +60,6 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
                                             transactionRequestType: TransactionRequestType,
                                             fromAccount: BankAccount,
                                             toAccount: BankAccount,
-                                            toCounterparty: CounterpartyTrait,
                                             transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                             details: String,
                                             status: String,
@@ -70,7 +69,6 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
                                                         transactionRequestType + ", " +
                                                         fromAccount + ", " +
                                                         toAccount + ", " +
-                                                        toCounterparty + ", " +
                                                         transactionRequestCommonBody + ", " +
                                                         details + ", " +
                                                         status + ", " +
@@ -81,7 +79,6 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
                                                                     transactionRequestType,
                                                                     fromAccount,
                                                                     toAccount,
-                                                                    toCounterparty,
                                                                     transactionRequestCommonBody,
                                                                     details,
                                                                     status,
