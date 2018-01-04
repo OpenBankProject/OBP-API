@@ -115,6 +115,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
   val NotImplemented = "OBP-10010: Not Implemented "
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
+  val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -266,6 +267,14 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val EntitlementDoesNotBelongsToUser = "OBP-30213: ENTITLEMENT_ID does not belongs to USER_ID"
+
+  // Branch related messages
+  val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
+  val BranchesNotFound = "OBP-32002: No branches available."
+
+  // ATM related messages
+  val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
+  val atmsNotFound = "OBP-33002: No ATMs available."
 
   // General Resource related messages above here
 

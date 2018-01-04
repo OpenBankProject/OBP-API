@@ -11,7 +11,7 @@ import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
-import code.branches.MappedBranch
+import code.branches.{Branches, MappedBranch}
 import code.cards.MappedPhysicalCard
 import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -1410,6 +1410,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[MappedBranch]]] = {
+    Future {
+      Full(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))
+    }
+  }
+
   override def getBranchFuture(bankId : BankId, branchId: BranchId) : Future[Box[MappedBranch]]= {
     Future {
       getBranch(bankId, branchId)
@@ -1428,7 +1434,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-
+  override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[MappedAtm]]] = {
+    Future {
+      Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)))
+    }
+  }
 
 
   /**
