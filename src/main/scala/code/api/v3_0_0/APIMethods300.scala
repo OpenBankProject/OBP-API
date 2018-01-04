@@ -942,7 +942,7 @@ trait APIMethods300 {
                 fullBoxOrException(Empty ?~! BranchesNotFound)
               case Full(list) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! BranchesNotFoundLicense)
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
             } map { unboxFull(_) } map {
               // Before we slice we need to sort in order to keep consistent results
