@@ -353,7 +353,7 @@ trait Connector extends MdcLoggable{
    * @return The id of the sender's new transaction,
    */
   def makePayment(initiator : User, fromAccountUID : BankIdAccountId, toAccountUID : BankIdAccountId,
-                  amt : BigDecimal, description : String) : Box[TransactionId] = {
+                  amt : BigDecimal, description : String, transactionRequestType: TransactionRequestType) : Box[TransactionId] = {
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
@@ -373,7 +373,7 @@ trait Connector extends MdcLoggable{
                                        transactionRequestCommonBody = null,//Note chargePolicy only support in V210
                                        amt, 
                                        description,
-                                       TransactionRequestType(""), //Note TransactionRequestType only support in V210
+                                       transactionRequestType, //Note TransactionRequestType only support in V210
                                        "") //Note chargePolicy only support in V210
     } yield transactionId
   }
@@ -446,7 +446,7 @@ trait Connector extends MdcLoggable{
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequestStatus.COMPLETED) {
       val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankIdAccountId(fromAccount.bankId, fromAccount.accountId),
-        BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
+        BankIdAccountId(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description, transactionRequestType)
 
       //set challenge to null
       result = result.copy(challenge = null)
@@ -485,11 +485,9 @@ trait Connector extends MdcLoggable{
 
     // Always create a new Transaction Request
     val request = for {
-      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
-        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~
-        s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
        // isValidTransactionRequestType is checked at API layer. Maybe here too.
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
@@ -645,8 +643,7 @@ trait Connector extends MdcLoggable{
       
             challengeId = UUID.randomUUID().toString
             salt = BCrypt.gensalt()
-            challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt
-            ).substring(0, 44)
+            challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       
             //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
             _ <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
@@ -836,7 +833,7 @@ trait Connector extends MdcLoggable{
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
       transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
+          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description, TransactionRequestType(tr.`type`)) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
@@ -898,6 +895,7 @@ trait Connector extends MdcLoggable{
           }yield{
             toAccount
           }
+        case FREE_FORM => Full(fromAccount)
         case _ =>
           for{
             toBankId <- Full(BankId(detailsJsonExtract.to.bank_id))
@@ -920,9 +918,11 @@ trait Connector extends MdcLoggable{
 
       didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
+      //After `makePaymentv200` and update data for request, we get the new requqest from database again.
+      transactionReques <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId)  ?~! s"get new Transaction problem..."
 
     } yield {
-      transactionRequest.copy(transaction_ids =transactionId.value,status =TransactionRequestStatus.COMPLETED.toString)
+      transactionReques
     }
   }
 

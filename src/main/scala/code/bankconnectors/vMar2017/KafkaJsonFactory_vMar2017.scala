@@ -329,7 +329,7 @@ case class InboundAdapterInfoInternal(
 ) extends InboundMessageBase
 
 
-case class Bank2(r: InboundBank) extends Bank { //CM maybe kafka message
+case class Bank2(r: InboundBank) extends Bank {
   
   def fullName = r.name
   def shortName = r.name

@@ -507,12 +507,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                description: String,
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
-    for{//CM 2, toAccount.currency
-       rate <- tryo {fx.exchangeRate(fromAccount.currency, fromAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+    for{
+       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
        sentTransactionId <- saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-       recievedTransactionId <- saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+       //Only when it is FREE_FORM and SANDBOX_TAN we can save transaction for toAccount, other types, we can not know the toAccount. It is not a mapped account
+       _ <- if("SANDBOX_TAN"==transactionRequestType.value || "FREE_FORM"==transactionRequestType.value) 
+        saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+      else
+         Full("NoAction!")
     } yield{
       sentTransactionId
     }
@@ -548,14 +552,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .currency(currency)
       .tStartDate(now)
       .tFinishDate(now)
-      .description(description) //CM 6
-       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty //CM 1 
-//      .counterpartyAccountHolder(toCounterparty.name)
-//      .counterpartyAccountNumber(toAccount.number)//TODO if there is no number???
-//      .counterpartyAccountKind(toAccount.accountType)
-//      .counterpartyBankName(toAccount.bankName)
-//      .counterpartyIban(toAccount.iban.getOrElse(""))
-//      .counterpartyNationalId(toAccount.nationalIdentifier)
+      .description(description) 
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+      .counterpartyAccountHolder(toAccount.accountHolder)
+      .counterpartyAccountNumber(toAccount.number)
+      .counterpartyAccountKind(toAccount.accountType)
+      .counterpartyBankName(toAccount.bankName)
+      .counterpartyIban(toAccount.iban.getOrElse(""))
+      .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
       .CPCounterPartyId(toAccount.accountId.value)
       .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
