@@ -22,7 +22,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Full, Empty}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
@@ -369,9 +369,9 @@ trait APIMethods300 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
-      """Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+      s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
         |
-        |Authentication is required.
+        |${authenticationRequiredMessage(true)}
         |
         |Possible custom headers for pagination:
         |
@@ -432,9 +432,11 @@ trait APIMethods300 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
-      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
         |
-        |Authentication via OAuth is required if the view is not public.
+        |${authenticationRequiredMessage(false)}
+        |
+        |Authentication is required if the view is not public.
         |
         |Possible custom headers for pagination:
         |
@@ -496,10 +498,10 @@ trait APIMethods300 {
       "POST",
       "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
-      """
+      s"""
         |Search warehouse data via Elastic Search.
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
         |CanSearchWarehouse entitlement is required to search warehouse data!
         |
@@ -567,9 +569,9 @@ trait APIMethods300 {
       "GET",
       "/users/email/EMAIL/terminator",
       "Get Users by Email Address",
-      """Get users by email address
+      s"""Get users by email address
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -603,9 +605,9 @@ trait APIMethods300 {
       "GET",
       "/users/user_id/USER_ID",
       "Get User by USER_ID",
-      """Get user by USER_ID
+      s"""Get user by USER_ID
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -642,9 +644,10 @@ trait APIMethods300 {
       "GET",
       "/users/username/USERNAME",
       "Get User by USERNAME",
-      """Get user by USERNAME
+      s"""Get user by USERNAME
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
+        |
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -681,10 +684,10 @@ trait APIMethods300 {
       "getAdapter",
       "GET",
       "/banks/BANK_ID/adapter",
-      "Get Info Of Adapter",
-      """Get a basic Adapter info
+      "Get Adapter Info",
+      s"""Get basic information about the Adapter listening on behalf of this bank.
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -905,37 +908,50 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank)
     )
-    // TODO Rewrite as New Style Endpoint
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
-        user => {
+        _ => {
+          val limit = S.param("limit")
+          val offset = S.param("offset")
           for {
-            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            u <- if(getBranchesIsPublic)
-              Box(Some(1))
-            else
-              user ?~! UserNotLoggedIn
-            // Get branches from the active provider
-
-          limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 100
+            (user, sessioContext) <- extractCallContext()
+            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
+              canGetBranch(getBranchesIsPublic, user)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
               }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-            branches: List[Branches.BranchT] <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
-            slice: List[Branches.BranchT] <- tryo {
-              branches.sortWith(_.branchId.value < _.branchId.value) // Before we slice we need to sort in order to keep consistent results
-                .slice(offset, offset + limit) // Slice the result in next way: from=offset and until=offset + limit
+            }
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+              offset match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ?~! BankNotFound) }
+            branches <- Connector.connector.vend.getBranchesFuture(bankId) map {
+              case Full(List()) | Empty =>
+                fullBoxOrException(Empty ?~! BranchesNotFound)
+              case Full(list) =>
+                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
+                else Full(branchesWithLicense)
+            } map { unboxFull(_) } map {
+              // Before we slice we need to sort in order to keep consistent results
+              _.sortWith(_.branchId.value < _.branchId.value)
+              // Slice the result in next way: from=offset and until=offset + limit
+               .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            // Format the data as json
-            val json = JSONFactory300.createBranchesJson(slice)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createBranchesJson(branches), getGatewayLoginHeader(sessioContext))
           }
         }
       }
@@ -998,13 +1014,11 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under
          |
-         |Pagination:|
+         |Pagination:
+          |
           |By default, 100 records are returned.
           |
           |You can use the url query parameters *limit* and *offset* for pagination
-         |
-         |
-         |
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
@@ -1017,34 +1031,50 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagATM)
     )
-    // TODO Rewrite as New Style Endpoint
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
-        user => {
+        _ => {
+          val limit = S.param("limit")
+          val offset = S.param("offset")
           for {
-          // Get atms from the active provider
-
-            u <- if(getAtmsIsPublic)
-              Box(Some(1))
-            else
-              user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 50
+            (user, sessioContext) <- extractCallContext()
+            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
+              canGetBranch(getBranchesIsPublic, user)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
               }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            }
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+              offset match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ?~! BankNotFound) }
+            atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
+              case Full(List()) | Empty =>
+                fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full(list) =>
+                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
+                else Full(branchesWithLicense)
+            } map { unboxFull(_) } map {
+              // Before we slice we need to sort in order to keep consistent results
+              _.sortWith(_.atmId.value < _.atmId.value)
+                // Slice the result in next way: from=offset and until=offset + limit
+                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+            }
           } yield {
-            // Format the data as json
-            val json = JSONFactory300.createAtmsJsonV300(atms)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory300.createAtmsJsonV300(atms), getGatewayLoginHeader(sessioContext))
           }
         }
       }
@@ -1057,9 +1087,10 @@ trait APIMethods300 {
       "GET",
       "/users",
       "Get all Users",
-      """Get all users
+      s"""Get all users
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
+        |
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
@@ -1098,9 +1129,12 @@ trait APIMethods300 {
       "GET",
       "/users/current/customers",
       "Get Customers for Current User",
-      """Gets all Customers that are linked to a User.
+      s"""Gets all Customers that are linked to a User.
         |
-        |Authentication via OAuth is required.""",
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
       emptyObjectJson,
       customerJsonV210,
       List(
@@ -1137,9 +1171,9 @@ trait APIMethods300 {
       "GET",
       "/users/current",
       "Get User (Current)",
-      """Get the logged in user
+      s"""Get the logged in user
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
       userJsonV200,
@@ -1250,6 +1284,7 @@ trait APIMethods300 {
       "Get Other Accounts of one Account.",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
+         |
          |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       otherAccountsJsonV300,
@@ -1283,6 +1318,7 @@ trait APIMethods300 {
       "Get Other Account by Id.",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
+         |
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       otherAccountJsonV300,
