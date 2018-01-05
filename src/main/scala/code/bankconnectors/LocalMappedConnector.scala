@@ -8,16 +8,15 @@ import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
-import code.branches.{Branches, MappedBranch}
+import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -331,7 +330,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
 
-  override def getEmptyBankAccount(): Box[AccountType] = {
+  override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new MappedBankAccount())
   }
 
@@ -500,8 +499,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
    */
-  override def makePaymentImpl(fromAccount: AccountType,
-                               toAccount: AccountType,
+  override def makePaymentImpl(fromAccount: BankAccount,
+                               toAccount: BankAccount,
                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                amount: BigDecimal,
                                description: String,
@@ -526,8 +525,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>
     */
-  private def saveTransaction(fromAccount: AccountType,
-                              toAccount: AccountType,
+  private def saveTransaction(fromAccount: BankAccount,
+                              toAccount: BankAccount,
                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
@@ -841,7 +840,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     MappedBank.find(By(MappedBank.national_identifier, nationalIdentifier))
   }
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.accountNumber, number))

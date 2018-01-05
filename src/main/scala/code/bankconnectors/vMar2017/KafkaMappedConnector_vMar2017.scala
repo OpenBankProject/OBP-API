@@ -30,14 +30,13 @@ import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0._
-import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -691,7 +690,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     )
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
       action = "obp.get.Account",
@@ -763,7 +762,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       ) :: Nil
     )
   )
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[InboundAccount] = accts.flatMap { a => {
@@ -831,7 +830,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = {
     // Generate random uuid to be used as request-respose match id
     val req = OutboundAccountByNumberBase(
       messageFormat = messageFormat,
@@ -1013,8 +1012,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: AccountType,
-                              toAccount: AccountType,
+  private def saveTransaction(fromAccount: BankAccount,
+                              toAccount: BankAccount,
                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
@@ -1265,8 +1264,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   
   
   protected override def makePaymentImpl(
-    fromAccount: AccountType,
-    toAccount: AccountType,
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     amt: BigDecimal,
     description: String,
@@ -1644,7 +1643,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   ): Box[Bank] = Empty
 
 
-  override def getEmptyBankAccount(): Box[AccountType] = {
+  override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new BankAccount2(
       InboundAccount(
         errorCode = "OBP-6001: ...",

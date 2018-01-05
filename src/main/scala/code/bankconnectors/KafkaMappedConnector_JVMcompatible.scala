@@ -43,7 +43,7 @@ import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.CounterpartyTrait
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -549,7 +549,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     bankId: BankId, 
     accountId: AccountId,
     session: Option[SessionContext]
-  ): Box[AccountType] = saveConnectorMetric{
+  ): Box[BankAccount] = saveConnectorMetric {
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
       
@@ -558,7 +558,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         accountId: AccountId, 
         userId : String, 
         loginUser: String // added the login user here ,is just for cache 
-      ): Box[AccountType] = memoizeSync(getAccountTTL millisecond) {
+      ): Box[BankAccount] = memoizeSync(getAccountTTL millisecond) {
 
         // Generate random uuid to be used as request-response match id
         val req = Map(
@@ -594,7 +594,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getBankAccount")
 
   //TODO not used yet
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = List()
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = List()
   // memoizeSync(getAccountsTTL millisecond) {
 //    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 //
@@ -629,7 +629,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //      new KafkaBankAccount(t) }
 //  }
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = Empty
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = Empty
   // memoizeSync(getAccountTTL millisecond) {
 //    val accountHolder = getAccountHolderCached(bankId,accountId)
 //    val req = Map(
@@ -715,8 +715,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 
-  protected override def makePaymentImpl(fromAccount: AccountType,
-                                         toAccount: AccountType,
+  protected override def makePaymentImpl(fromAccount: BankAccount,
+                                         toAccount: BankAccount,
                                          transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                          amt: BigDecimal,
                                          description: String,
@@ -769,7 +769,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: AccountType,toAccount: AccountType,
+  private def saveTransaction(fromAccount: BankAccount,toAccount: BankAccount,
                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
@@ -1281,7 +1281,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] =
     LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
   
-  override def getEmptyBankAccount(): Box[AccountType] = {
+  override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(
       new KafkaBankAccount(
         KafkaInboundAccount(

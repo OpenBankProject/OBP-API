@@ -330,13 +330,13 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   // Adapter Exceptions (OBP-6XXXX)
   // Reserved for adapter (south of Kafka) messages
   // Also used for connector == mapped, and show it as the Internal errors. 
-  val GetStatusException = "INTERNAL-OBP-60001: Save Transaction throw exception. " 
-  val GetChargeValueException = "INTERNAL-OBP-60002: Get ChargeValue throw exception. " 
-  val CreateTransactionsException = "INTERNAL-OBP-60003: Create transaction throw exception. " 
-  val UpdateBankAccountException = "INTERNAL-OBP-60004: Update bank account throw exception. " 
-  val SaveTransactionRequestTransactionImplException = "INTERNAL-OBP-60005: Save Transaction Request Transaction throw exception. " 
-  val SaveTransactionRequestChallengeImplException = "INTERNAL-OBP-60006: Save Transaction Request Challenge throw exception. " 
-  val SaveTransactionRequestStatusImplException = "INTERNAL-OBP-60007: Save Transaction Request Status throw exception. " 
+  val GetStatusException = "INTERNAL-OBP-60001: Save Transaction Exception. " 
+  val GetChargeValueException = "INTERNAL-OBP-60002: Get ChargeValue Exception. " 
+  val CreateTransactionsException = "INTERNAL-OBP-60003: Create transaction Exception. " 
+  val UpdateBankAccountException = "INTERNAL-OBP-60004: Update bank account Exception. " 
+  val SaveTransactionRequestTransactionException = "INTERNAL-OBP-60005: Save Transaction Request Transaction Exception. " 
+  val SaveTransactionRequestChallengeException = "INTERNAL-OBP-60006: Save Transaction Request Challenge Exception. " 
+  val SaveTransactionRequestStatusException = "INTERNAL-OBP-60007: Save Transaction Request Status Exception. " 
 
 
   ///////////

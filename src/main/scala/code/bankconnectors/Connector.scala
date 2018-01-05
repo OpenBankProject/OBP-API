@@ -16,8 +16,8 @@ import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.customer.Customer
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.dataAccess.{MappedBankAccount, ResourceUser}
+import code.metadata.counterparties.CounterpartyTrait
+import code.model.dataAccess.ResourceUser
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -134,14 +134,6 @@ trait InboundAccountCommon{
 
 trait Connector extends MdcLoggable{
 
-  //We have the Connector define its BankAccount implementation here so that it can
-  //have access to the implementation details (e.g. the ability to set the balance) in
-  //the implementation of makePaymentImpl
-  //new commit from (2017-12-25) : not use <: any more, the details should be in low level connector, not here.
-  // We need keep it as general as possible in this level.
-  type AccountType = BankAccount
-
-
   val messageDocs = ArrayBuffer[MessageDoc]()
 
   implicit val nameOfConnector = Connector.getClass.getSimpleName
@@ -251,11 +243,11 @@ trait Connector extends MdcLoggable{
   @deprecated("Now move it to AuthUser.updateUserAccountViews","17-07-2017")
   def updateUserAccountViewsOld(user: ResourceUser) = {}
 
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]= {
+  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]= {
     getBankAccount(bankId, accountId, None)
   }
 
-  def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[AccountType]= Failure(NotImplemented + currentMethodName)
+  def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
   def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
@@ -268,7 +260,7 @@ trait Connector extends MdcLoggable{
     *
     * @return empty bankAccount
     */
-  def getEmptyBankAccount(): Box[AccountType]= Failure(NotImplemented + currentMethodName)
+  def getEmptyBankAccount(): Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyId: String): Box[Counterparty] = {
     val transactions = getTransactions(bankId, accountId).toList.flatten
@@ -356,25 +348,25 @@ trait Connector extends MdcLoggable{
                   amt : BigDecimal, description : String, transactionRequestType: TransactionRequestType) : Box[TransactionId] = {
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
-        s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
+        s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
       toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
-        s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
+        s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
-        s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+        s"$InvalidTransactionRequestCurrency, Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
       })
-      isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
+      isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"$NotPositiveAmount Can't send a payment with a value of 0 or less. ($amt)")
       //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       transactionId <- makePaymentImpl(fromAccount,
                                        toAccount,
-                                       transactionRequestCommonBody = null,//Note chargePolicy only support in V210
+                                       transactionRequestCommonBody = null,//Note transactionRequestCommonBody started to use  in V210
                                        amt, 
                                        description,
-                                       transactionRequestType, //Note TransactionRequestType only support in V210
-                                       "") //Note chargePolicy only support in V210
+                                       transactionRequestType,
+                                       "") //Note chargePolicy started to use  in V210
     } yield transactionId
   }
 
@@ -388,8 +380,8 @@ trait Connector extends MdcLoggable{
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
     */
-  def makePaymentv200(fromAccount: AccountType,
-                      toAccount: AccountType,
+  def makePaymentv200(fromAccount: BankAccount,
+                      toAccount: BankAccount,
                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                       amount: BigDecimal,
                       description: String,
@@ -401,7 +393,7 @@ trait Connector extends MdcLoggable{
   }
 
 
-  protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
+  protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
 
 
 
@@ -557,8 +549,8 @@ trait Connector extends MdcLoggable{
   // TODO Add challengeType as a parameter to this function
   def createTransactionRequestv210(initiator: User,
                                    viewId: ViewId,
-                                   fromAccount: AccountType,
-                                   toAccount: AccountType,
+                                   fromAccount: BankAccount,
+                                   toAccount: BankAccount,
                                    transactionRequestType: TransactionRequestType,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    detailsPlain: String,
@@ -684,8 +676,8 @@ trait Connector extends MdcLoggable{
     */
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                 transactionRequestType: TransactionRequestType,
-                                                fromAccount: AccountType,
-                                                toAccount: AccountType,
+                                                fromAccount: BankAccount,
+                                                toAccount: BankAccount,
                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                                 details: String,
                                                 status: String,
@@ -695,7 +687,7 @@ trait Connector extends MdcLoggable{
       transactionRequestId: TransactionRequestId,
       transactionRequestType: TransactionRequestType,
       fromAccount: BankAccount,
-      toAccount: AccountType,
+      toAccount: BankAccount,
       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
       details: String,
       status: String,
@@ -843,17 +835,17 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev200(fromAccount: AccountType, toAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev200(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
       transRequestId <- Full(transactionRequest.id)
       transactionId <- makePaymentv200(
         fromAccount,
         toAccount,
-        transactionRequestCommonBody = null,//Note chargePolicy only support in V210
+        transactionRequestCommonBody = null,//Note transactionRequestCommonBody started to use from V210
         BigDecimal(transactionRequest.body.value.amount),
         transactionRequest.body.description,
         TransactionRequestType(transactionRequest.`type`),
-        "" //Note chargePolicy only support in V210
+        "" //Note chargePolicy  started to use from V210
       ) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transRequestId, TransactionRequestStatus.COMPLETED.toString)
@@ -864,7 +856,7 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev210(fromAccount: AccountType, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
+  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
       
       details <- Full(transactionRequest.details)

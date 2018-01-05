@@ -129,7 +129,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-      case _ => Failure(s"$SaveTransactionRequestTransactionImplException Couldn't find transaction request ${transactionRequestId}")
+      case _ => Failure(s"$SaveTransactionRequestTransactionException Couldn't find transaction request ${transactionRequestId}")
     }
   }
 
@@ -142,7 +142,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
         tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
         tr.mChallenge_ChallengeType(challenge.challenge_type).save
       }
-      case _ => Failure(s"$SaveTransactionRequestChallengeImplException Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      case _ => Failure(s"$SaveTransactionRequestChallengeException Couldn't find transaction request ${transactionRequestId} to set transactionId")
     }
   }
 
@@ -151,7 +151,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"$SaveTransactionRequestStatusImplException Couldn't find transaction request ${transactionRequestId} to set status")
+      case _ => Failure(s"$SaveTransactionRequestStatusException Couldn't find transaction request ${transactionRequestId} to set status")
     }
   }
 
