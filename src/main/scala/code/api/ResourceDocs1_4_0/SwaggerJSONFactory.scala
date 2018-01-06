@@ -187,7 +187,7 @@ object SwaggerJSONFactory {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     val infoTitle = "Open Bank Project API"
-    val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2016. Licensed under the AGPL and commercial licences."
+    val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
     val infoContact = InfoContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
