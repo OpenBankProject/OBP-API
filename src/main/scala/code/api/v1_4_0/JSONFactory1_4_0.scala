@@ -311,7 +311,9 @@ object JSONFactory1_4_0 {
                          is_core: Boolean,
                          is_psd2: Boolean,
                          is_obwg: Boolean,
-                         tags: List[String])
+                         tags: List[String],
+                         typed_request_body: scala.Product,
+                         typed_success_reponse_body: scala.Product)
 
 
 
@@ -342,8 +344,10 @@ object JSONFactory1_4_0 {
       implemented_by = ImplementedByJson(rd.implementedInApiVersion, rd.partialFunctionName),
       is_core = rd.catalogs.core,
       is_psd2 = rd.catalogs.psd2,
-      is_obwg = rd.catalogs.obwg,// No longer tracking isCore
-      tags = rd.tags.map(i => i.tag)
+      is_obwg = rd.catalogs.obwg,
+      tags = rd.tags.map(i => i.tag),
+      typed_request_body = rd.exampleRequestBody, // Needs converting to types
+      typed_success_reponse_body = rd.successResponseBody // Needs converting to types
       )
   }
 

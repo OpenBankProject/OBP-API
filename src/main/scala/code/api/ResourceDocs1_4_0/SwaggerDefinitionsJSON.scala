@@ -1080,7 +1080,9 @@ object SwaggerDefinitionsJSON {
     is_core = true,
     is_psd2 = true,
     is_obwg = true,
-    tags = List("String")
+    tags = List("String"),
+    typed_request_body = successMessage,
+    typed_success_reponse_body = successMessage // each field value would need to be replaced with type
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))
