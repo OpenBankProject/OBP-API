@@ -5,11 +5,8 @@ import java.util.{Date, TimeZone, UUID}
 
 import code.api.util.SessionContext
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.atms.Atms.AtmId
-import code.atms.MappedAtm
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.branches.MappedBranch
+import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
@@ -17,7 +14,6 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.{Product, ProductCode}
 import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -66,7 +62,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getBanks(): Box[List[Bank]] =
     Full(HostedBank.findAll)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[AccountType] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[SessionContext]) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -183,7 +179,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
 
-  override protected def makePaymentImpl(fromAccount: AccountType,  toAccount: AccountType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount: BankAccount,  toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -262,11 +258,11 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
                      balance)
   }
 
-  private def saveNewTransaction(account : AccountType, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
+  private def saveNewTransaction(account : BankAccount, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
-    def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : AccountType) : Box[OBPEnvelope] = {
+    def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : BankAccount) : Box[OBPEnvelope] = {
 
       val envelope: Box[OBPEnvelope] = OBPEnvelope.envelopesFromJValue(transactionJS)
 
@@ -514,7 +510,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     branchId: String,
     accountRoutingScheme: String,
     accountRoutingAddress: String
-  ): Box[AccountType] = {
+  ): Box[BankAccount] = {
     HostedBank.find(bankId) match {
       case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))
       case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
@@ -622,7 +618,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
 
-  override def getEmptyBankAccount(): Box[AccountType] = Empty
+  override def getEmptyBankAccount(): Box[BankAccount] = Empty
   
   override def createOrUpdateBank(
     bankId: String,

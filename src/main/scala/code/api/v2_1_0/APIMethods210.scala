@@ -454,7 +454,7 @@ trait APIMethods210 {
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                   // Get the Counterparty by id
                   toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
-                  toAccount <- BankAccount(toCounterparty) //CM 2 change Counterparty to OBO bankAccount.
+                  toAccount <- BankAccount(toCounterparty)
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
                   transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
@@ -483,11 +483,11 @@ trait APIMethods210 {
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
                   toIban <- Full(transDetailsSEPAJson.to.iban)
                   toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
-                  toAccount <- BankAccount(toCounterparty) //CM 2 change Counterparty to OBO bankAccount.
+                  toAccount <- BankAccount(toCounterparty)
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
 
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress) //CM 8 can delete 
+                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
                   chargePolicy = transDetailsSEPAJson.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
                   transactionRequestDetailsSEPARMapperJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString,
@@ -510,7 +510,7 @@ trait APIMethods210 {
                 for {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)) //CM 7 can delete 
+                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)) 
                   transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
                                                                                                         amountOfMoneyJSON,
                                                                                                         transactionRequestBodyFreeForm.description)

@@ -470,7 +470,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = saveConnectorMetric{
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -554,7 +554,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = saveConnectorMetric{
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
       val (userName, cbs) = session match {
         case Some(c) =>

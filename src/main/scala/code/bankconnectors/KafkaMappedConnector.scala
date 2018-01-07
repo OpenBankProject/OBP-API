@@ -29,7 +29,6 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vJune2017.AccountRules
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchT}
@@ -37,7 +36,7 @@ import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -377,7 +376,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[AccountType] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",
@@ -404,7 +403,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(new KafkaBankAccount(r))
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[AccountType] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[KafkaInboundAccount] = accts.flatMap { a => {
@@ -441,7 +440,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       new KafkaBankAccount(t) }
   }
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = {
     // Generate random uuid to be used as request-respose match id
     val req = Map(
       "north" -> "getBankAccount",
@@ -577,8 +576,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
 
-  protected override def makePaymentImpl(fromAccount: AccountType,
-                                         toAccount: AccountType,
+  protected override def makePaymentImpl(fromAccount: BankAccount,
+                                         toAccount: BankAccount,
                                          transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                          amt: BigDecimal,
                                          description: String,
@@ -601,8 +600,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
    * Saves a transaction with amount @amount and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: AccountType,
-                              toAccount: AccountType,
+  private def saveTransaction(fromAccount: BankAccount,
+                              toAccount: BankAccount,
                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
@@ -1069,7 +1068,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     result
   }
 
-  override def getEmptyBankAccount(): Box[AccountType] = {
+  override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new KafkaBankAccount(KafkaInboundAccount(accountId = "",
                                                   bankId = "",
                                                   label = "",

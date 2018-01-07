@@ -8,16 +8,15 @@ import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.KafkaMappedConnector_JVMcompatible.AccountType
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
-import code.branches.{Branches, MappedBranch}
+import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -331,7 +330,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
 
-  override def getEmptyBankAccount(): Box[AccountType] = {
+  override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new MappedBankAccount())
   }
 
@@ -500,19 +499,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
    */
-  override def makePaymentImpl(fromAccount: AccountType,
-                               toAccount: AccountType,
+  override def makePaymentImpl(fromAccount: BankAccount,
+                               toAccount: BankAccount,
                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                amount: BigDecimal,
                                description: String,
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
-    for{//CM 2, toAccount.currency
-       rate <- tryo {fx.exchangeRate(fromAccount.currency, fromAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+    for{
+       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
        sentTransactionId <- saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-       recievedTransactionId <- saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+       //Only when it is FREE_FORM and SANDBOX_TAN we can save transaction for toAccount, other types, we can not know the toAccount. It is not a mapped account
+       _ <- if("SANDBOX_TAN"==transactionRequestType.value || "FREE_FORM"==transactionRequestType.value) 
+        saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+      else
+         Full("NoAction!")
     } yield{
       sentTransactionId
     }
@@ -522,8 +525,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>
     */
-  private def saveTransaction(fromAccount: AccountType,
-                              toAccount: AccountType,
+  private def saveTransaction(fromAccount: BankAccount,
+                              toAccount: BankAccount,
                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                               amount: BigDecimal,
                               description: String,
@@ -548,14 +551,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .currency(currency)
       .tStartDate(now)
       .tFinishDate(now)
-      .description(description) //CM 6
-       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty //CM 1 
-//      .counterpartyAccountHolder(toCounterparty.name)
-//      .counterpartyAccountNumber(toAccount.number)//TODO if there is no number???
-//      .counterpartyAccountKind(toAccount.accountType)
-//      .counterpartyBankName(toAccount.bankName)
-//      .counterpartyIban(toAccount.iban.getOrElse(""))
-//      .counterpartyNationalId(toAccount.nationalIdentifier)
+      .description(description) 
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+      .counterpartyAccountHolder(toAccount.accountHolder)
+      .counterpartyAccountNumber(toAccount.number)
+      .counterpartyAccountKind(toAccount.accountType)
+      .counterpartyBankName(toAccount.bankName)
+      .counterpartyIban(toAccount.iban.getOrElse(""))
+      .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
       .CPCounterPartyId(toAccount.accountId.value)
       .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
@@ -837,7 +840,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     MappedBank.find(By(MappedBank.national_identifier, nationalIdentifier))
   }
 
-  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.accountNumber, number))

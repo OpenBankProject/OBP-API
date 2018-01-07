@@ -642,7 +642,41 @@ object BankAccount {
   def apply(counterpartyTrait: CounterpartyTrait) : Box[BankAccount] = {
     Full(
       BankAccountInMemory(
+        //BankAccount Trait
+        bankId = BankId(counterpartyTrait.otherBankRoutingAddress),
+        accountId = AccountId(counterpartyTrait.otherAccountRoutingAddress),
+        accountType = null,
+        balance = 0, //TODO double check, we can not get balance from CounterpartyTrait, so just use default 0.
+        currency = "EUR", //TODO, this need get from CounterpartyTrait, should add crrency there.
+        lastUpdate = null,
+        accountHolder = counterpartyTrait.name,
+        label = counterpartyTrait.name,
+        accountRoutingScheme = counterpartyTrait.otherAccountRoutingScheme,
+        accountRoutingAddress = counterpartyTrait.otherAccountRoutingAddress,
+        branchId = counterpartyTrait.counterpartyId,
+        swift_bic = Option(counterpartyTrait.otherAccountRoutingAddress),
+        iban = Option(counterpartyTrait.otherAccountSecondaryRoutingAddress),
+        number = counterpartyTrait.otherAccountRoutingAddress,
+        accountRules = Nil,
         
+        //Counterparty Trait
+        createdByUserId= counterpartyTrait.createdByUserId,
+        description = counterpartyTrait.description ,
+        name=counterpartyTrait.name,
+        thisBankId=counterpartyTrait.thisBankId,
+        thisAccountId = counterpartyTrait.thisAccountId,
+        thisViewId = counterpartyTrait.thisViewId,
+        counterpartyId=counterpartyTrait.counterpartyId,
+        otherAccountRoutingScheme = counterpartyTrait.otherAccountRoutingScheme,
+        otherAccountRoutingAddress = counterpartyTrait.otherAccountRoutingAddress,
+        otherAccountSecondaryRoutingScheme = counterpartyTrait.otherAccountSecondaryRoutingScheme,
+        otherAccountSecondaryRoutingAddress = counterpartyTrait.otherAccountSecondaryRoutingAddress,
+        otherBankRoutingScheme = counterpartyTrait.otherBankRoutingScheme,
+        otherBankRoutingAddress = counterpartyTrait.otherBankRoutingAddress,
+        otherBranchRoutingScheme = counterpartyTrait.otherBranchRoutingScheme,
+        otherBranchRoutingAddress = counterpartyTrait.otherBranchRoutingAddress,
+        isBeneficiary=counterpartyTrait.isBeneficiary,
+        bespoke=counterpartyTrait.bespoke
       )
     )
   }
@@ -668,23 +702,43 @@ object BankAccount {
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
 case class BankAccountInMemory(
-  bankId: BankId = null,
-  accountId: AccountId= null,
-  accountType: String= null,
-  balance: BigDecimal= null,
-  currency: String= null,
-  name: String= null,
-  lastUpdate: Date= null,
-  accountHolder: String= null,
-  label: String= null,
-  accountRoutingScheme: String= null,
-  accountRoutingAddress: String= null,
-  branchId: String= null,
-  swift_bic: Option[String] = None,
-  iban: Option[String] = None,
-  number: String = null,
-  accountRules: List[AccountRules] = Nil
-) extends BankAccount
+  //BankAccount Trait
+  bankId: BankId ,
+  accountId: AccountId,
+  accountType: String,
+  balance: BigDecimal,
+  currency: String,
+  name: String,
+  lastUpdate: Date,
+  accountHolder: String,
+  label: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String,
+  branchId: String,
+  swift_bic: Option[String],
+  iban: Option[String],
+  number: String,
+  accountRules: List[AccountRules],
+
+  //Counterparty Trait
+  createdByUserId: String, 
+  description: String , 
+  thisBankId: String , 
+  thisAccountId: String , 
+  thisViewId: String , 
+  counterpartyId: String, 
+  otherAccountRoutingScheme: String , 
+  otherAccountRoutingAddress: String , 
+  otherAccountSecondaryRoutingScheme: String , 
+  otherAccountSecondaryRoutingAddress: String , 
+  otherBankRoutingScheme: String, 
+  otherBankRoutingAddress: String, 
+  otherBranchRoutingScheme: String , 
+  otherBranchRoutingAddress: String , 
+  isBeneficiary : Boolean , 
+  bespoke: List[CounterpartyBespoke] 
+  
+) extends BankAccount with CounterpartyTrait
 
 /*
 The other bank account or counterparty in a transaction

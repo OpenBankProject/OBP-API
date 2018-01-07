@@ -78,9 +78,6 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String): Box[TransactionRequest] = {
 
-    
-    //CM 8 We should get to here, than decided the toAccount or toCounterparty?? This is in Mapped table, it is similar in bank, not the OBP side, we can not know it before, only back can check it .
-    
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -108,13 +105,13 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mName(toAccount.name)
       .mThisBankId(toAccount.bankId.value)
       .mThisAccountId(toAccount.accountId.value)
-//      .mThisViewId(toAccount.viewId) //CM 6
-//      .mCounterpartyId(toAccount.counterpartyId) //CM 6
+//      .mThisViewId(toAccount.v) //TODO, now it is an account, not useful viewId
+      .mCounterpartyId(toAccount.branchId)//TODO, this mapping is wrong, we need get counterpartyId here.
       .mOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
       .mOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
       .mOtherBankRoutingScheme(toAccount.bankRoutingScheme)
       .mOtherBankRoutingAddress(toAccount.bankRoutingAddress)
-//      .mIsBeneficiary(toAccount.isBeneficiary)//CM 7
+//      .mIsBeneficiary(toAccount.isBeneficiary)//TODO, now it is an account, not useful isBeneficiary
 
       //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
       .mBody_Value_Currency(transactionRequestCommonBody.value.currency)
@@ -132,7 +129,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-      case _ => Failure(s"$SaveTransactionRequestTransactionImplException Couldn't find transaction request ${transactionRequestId}")
+      case _ => Failure(s"$SaveTransactionRequestTransactionException Couldn't find transaction request ${transactionRequestId}")
     }
   }
 
@@ -145,7 +142,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
         tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
         tr.mChallenge_ChallengeType(challenge.challenge_type).save
       }
-      case _ => Failure(s"$SaveTransactionRequestChallengeImplException Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      case _ => Failure(s"$SaveTransactionRequestChallengeException Couldn't find transaction request ${transactionRequestId} to set transactionId")
     }
   }
 
@@ -154,7 +151,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
-      case _ => Failure(s"$SaveTransactionRequestStatusImplException Couldn't find transaction request ${transactionRequestId} to set status")
+      case _ => Failure(s"$SaveTransactionRequestStatusException Couldn't find transaction request ${transactionRequestId} to set status")
     }
   }
 
