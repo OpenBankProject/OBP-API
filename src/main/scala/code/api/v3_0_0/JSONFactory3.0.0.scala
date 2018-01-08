@@ -240,15 +240,15 @@ case class AccountsIdsJsonV300(accounts: List[AccountIdJson])
 case class AccountRuleJsonV300(scheme: String, value: String)
 
 case class ModeratedCoreAccountJsonV300(
-  id: String,
-  bank_id: String,
-  label: String,
-  number: String,
-  owners: List[UserJSONV121],
-  `type`: String,
-  balance: AmountOfMoneyJsonV121,
-  account_routing: List[AccountRoutingJsonV121],
-  account_rules: List[AccountRuleJsonV300]
+                                         id: String,
+                                         bank_id: String,
+                                         label: String,
+                                         number: String,
+                                         owners: List[UserJSONV121],
+                                         `type`: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         account_rules: List[AccountRuleJsonV300]
 )
 
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
