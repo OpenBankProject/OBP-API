@@ -299,6 +299,7 @@ trait BankAccount extends MdcLoggable {
   def branchId: String
   def accountRoutingScheme: String
   def accountRoutingAddress: String
+  def accountRoutings: List[AccountRouting] // Introduced in v3.0.0
   def accountRules: List[AccountRule]
 
   @deprecated("Get the account holder(s) via owners")
@@ -657,6 +658,10 @@ object BankAccount {
         swift_bic = Option(counterpartyTrait.otherAccountRoutingAddress),
         iban = Option(counterpartyTrait.otherAccountSecondaryRoutingAddress),
         number = counterpartyTrait.otherAccountRoutingAddress,
+        accountRoutings = List(
+          AccountRouting(counterpartyTrait.otherAccountRoutingScheme, counterpartyTrait.otherAccountRoutingAddress),
+          AccountRouting(counterpartyTrait.otherAccountSecondaryRoutingScheme, counterpartyTrait.otherAccountSecondaryRoutingAddress)
+        ),
         accountRules = Nil,
         
         //Counterparty Trait
@@ -718,6 +723,7 @@ case class BankAccountInMemory(
                                 swift_bic: Option[String],
                                 iban: Option[String],
                                 number: String,
+                                accountRoutings: List[AccountRouting],
                                 accountRules: List[AccountRule],
 
                                 //Counterparty Trait

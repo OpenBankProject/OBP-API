@@ -1121,6 +1121,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def accountHolder : String      = r.owners.head
     def accountRoutingScheme: String = r.account_routing_scheme
     def accountRoutingAddress: String = r.account_routing_address
+    def accountRoutings: List[AccountRouting] = List()
     def branchId: String = r.branchId
     def accountRules: List[AccountRule] = List()
 

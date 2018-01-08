@@ -210,6 +210,7 @@ class ModeratedBankAccount(
                             val bankRoutingAddress :Moderated[String],
                             val accountRoutingScheme : Moderated[String],
                             val accountRoutingAddress :Moderated[String],
+                            val accountRoutings: List[AccountRouting],
                             val accountRules: List[AccountRule]
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)

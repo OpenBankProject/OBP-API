@@ -390,6 +390,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   
   def accountRoutingScheme: String = r.accountRoutingScheme
   def accountRoutingAddress: String = r.accountRoutingAddress
+  def accountRoutings: List[AccountRouting] = List()
   def branchId: String = r.branchId
 
   def accountRules: List[AccountRule] = List()

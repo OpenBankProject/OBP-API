@@ -194,6 +194,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
         Nil
     }
   }
+  override def accountRoutings: List[AccountRouting] = List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
   override def accountRules: List[AccountRule] = createAccountRule(mAccountRuleScheme1.get, mAccountRuleValue1.get.toLong) :::
                                                   createAccountRule(mAccountRuleScheme2.get, mAccountRuleValue2.get.toLong)
 }

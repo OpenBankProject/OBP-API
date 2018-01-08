@@ -247,7 +247,7 @@ case class ModeratedCoreAccountJsonV300(
   owners: List[UserJSONV121],
   `type`: String,
   balance: AmountOfMoneyJsonV121,
-  account_routing: AccountRoutingJsonV121,
+  account_routing: List[AccountRoutingJsonV121],
   account_rules: List[AccountRuleJsonV300]
 )
 
@@ -636,6 +636,9 @@ object JSONFactory300{
   def createAccountRulesJSON(rules: List[AccountRule]): List[AccountRuleJsonV300] = {
     rules.map(i => AccountRuleJsonV300(scheme = i.scheme, value = i.value))
   }
+  def createAccountRoutingsJSON(routings: List[AccountRouting]): List[AccountRoutingJsonV121] = {
+    routings.map(i => AccountRoutingJsonV121(scheme = i.scheme, address = i.address))
+  }
 
   def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
@@ -647,7 +650,7 @@ object JSONFactory300{
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
     )
   }

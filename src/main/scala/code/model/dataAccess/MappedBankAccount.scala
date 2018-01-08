@@ -78,6 +78,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
         Nil
     }
   }
+  override def accountRoutings: List[AccountRouting] = List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
   override def accountRules: List[AccountRule] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::
                                                   createAccountRule(accountRuleScheme2.get, accountRuleValue2.get)
 

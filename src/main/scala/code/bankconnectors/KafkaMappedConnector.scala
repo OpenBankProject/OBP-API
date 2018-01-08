@@ -1169,6 +1169,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def accountRoutingScheme: String = r.accountRoutingScheme
     def accountRoutingAddress: String = r.accountRoutingAddress
     def branchId: String              = r.branchId
+    def accountRoutings: List[AccountRouting] = List()
     def accountRules: List[AccountRule] = List()
 
     // Fields modifiable from OBP are stored in mapper

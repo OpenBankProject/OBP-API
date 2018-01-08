@@ -2132,7 +2132,7 @@ object SwaggerDefinitionsJSON {
     owners =  List(userJSONV121),
     `type`= "String",
     balance = amountOfMoneyJsonV121,
-    account_routing = accountRoutingJsonV121,
+    account_routing = List(accountRoutingJsonV121),
     account_rules = List(accountRuleJsonV300)
   )
   

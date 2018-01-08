@@ -1383,6 +1383,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def accountHolder : String      = "NONE" //TODO
     def accountRoutingScheme: String = "NONE" //TODO
     def accountRoutingAddress: String = "NONE" //TODO
+    def accountRoutings: List[AccountRouting] = List()
     def branchId: String = "NONE" //TODO
     def accountRules: List[AccountRule] = List() //TODO
 
