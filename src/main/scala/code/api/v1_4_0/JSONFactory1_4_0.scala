@@ -2,6 +2,7 @@ package code.api.v1_4_0
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.BranchJsonV300
@@ -14,8 +15,12 @@ import code.model._
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests._
+import net.liftweb.json
+import net.liftweb.json.JValue
 import org.pegdown.PegDownProcessor
 
+import scala.reflect.runtime.currentMirror
+import scala.reflect.runtime.universe._
 
 object JSONFactory1_4_0 {
 
@@ -312,8 +317,8 @@ object JSONFactory1_4_0 {
                          is_psd2: Boolean,
                          is_obwg: Boolean,
                          tags: List[String],
-                         typed_request_body: scala.Product,
-                         typed_success_reponse_body: scala.Product)
+                         typed_request_body: JValue,
+                         typed_success_reponse_body: JValue)
 
 
 
@@ -346,15 +351,112 @@ object JSONFactory1_4_0 {
       is_psd2 = rd.catalogs.psd2,
       is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
-      typed_request_body = rd.exampleRequestBody, // Needs converting to types
-      typed_success_reponse_body = rd.successResponseBody // Needs converting to types
+      typed_request_body = createTypedBody(rd.exampleRequestBody),
+      typed_success_reponse_body = createTypedBody(rd.successResponseBody)
       )
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
     ResourceDocsJson(resourceDocList.map(createResourceDocJson))
   }
+  
+  //please check issue first: https://github.com/OpenBankProject/OBP-API/issues/877
+  //change: 
+  // { "first_name": "George"} -->  {"type": "object","properties": {"first_name": {"type": "string" }
+  /**
+    * 
+    * @param entity can be any entity, primitive or any references 
+    * @param isArray is a Array or not. If it is Array the output format is different .
+    * @return
+    *         the OBP type format. 
+    */
+  def translateEntity(entity: Any, isArray:Boolean): String = {
+    
+    val r = currentMirror.reflect(entity)
+    val mapOfFields = r.symbol.typeSignature.members.toStream
+      .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
+      .map(r => r.symbol.name.toString.trim -> r.get)
+      .toMap
+  
+    val properties = for {
+      (key, value) <- mapOfFields
+    } yield {
+      value match {
+        //Date -- should be the first
+        case i: Date                       => "\""  + key + """": {"type":"date-time"}"""
+        case Some(i: Date)                 => "\""  + key + """": {"type":"date-time"}"""
+        case List(i: Date, _*)             => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}""" 
+        case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
 
+        //Boolean - 4 kinds
+        case i: Boolean                    => "\""  + key + """": {"type":"boolean"}""" 
+        case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean"}"""
+        case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array", "properties": {"type": "boolean"}}"""
+        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array", "properties": {"type": "boolean"}}"""
+          
+        //String   
+        case i: String if(key.contains("date"))  => "\""  + key + """": {"type":"date-time"}"""
+        case Some(i: String) if(key.contains("date"))  => "\""  + key + """": {"type":"date-time"}"""
+        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
+        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
+          
+        case i: String                     => "\""  + key + """": {"type":"string"}"""
+        case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
+        case List(i: String, _*)           => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}""" 
+        case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}"""
+        //Int 
+        case i: Int                        => "\""  + key + """": {"type":"int"}"""
+        case Some(i: Int)                  => "\""  + key + """": {"type":"int"}"""
+        case List(i: Int, _*)              => "\""  + key + """": {"type": "array", "properties": {"type": "int"}}"""
+        case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array", "properties": {"type": "int"}}"""
+        //Long
+        case i: Long                       => "\""  + key + """": {"type":"long"}"""
+        case Some(i: Long)                 => "\""  + key + """": {"type":"long"}"""
+        case List(i: Long, _*)             => "\""  + key + """": {"type": "array", "properties": {"type": "long"}}"""
+        case Some(List(i: Long, _*))       => "\""  + key + """": {"type": "array", "properties": {"type": "long"}}"""
+        //Float
+        case i: Float                      => "\""  + key + """": {"type":"float"}"""
+        case Some(i: Float)                => "\""  + key + """": {"type":"float"}"""
+        case List(i: Float, _*)            => "\""  + key + """": {"type": "array", "properties": {"type": "float"}}"""
+        case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array", "properties": {"type": "float"}}"""
+        //Double
+        case i: Double                     => "\""  + key + """": {"type":"double"}"""
+        case Some(i: Double)               => "\""  + key + """": {"type":"double"}"""
+        case List(i: Double, _*)           => "\""  + key + """": {"type": "array", "properties": {"type": "double"}}"""
+        case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array", "properties": {"type": "double"}}"""
+        
+        case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string"}"""
+        case List(APIUtil.defaultJValue,_*)         => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}"""
+        //List case classes.  
+        case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
+        case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
+        case List(Some(f))                 => "\""  + key + """":""" +translateEntity(f,true)
+        case List(Some(f),_*)              => "\""  + key + """":""" +translateEntity(f,true)
+        case Some(List(f))                 => "\""  + key + """":""" +translateEntity(f,true)
+        case Some(List(f,_*))              => "\""  + key + """":""" +translateEntity(f,true)
+        //Single object
+        case Some(f)                       => "\""  + key + """":""" +translateEntity(f,false)
+        case null                          => "\""  + key + """":{"type":"null"}"""
+        case f                             => "\""  + key + """":""" +translateEntity(f,false)
+        case _ => "unknown"
+      }
+    }
+    //Exclude all unrecognised fields and make part of fields definition
+    // add comment and filter unknow
+    // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
+    val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
+    //val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
+    val definition = if (isArray)
+        """{ "type": "array", "properties" : {""" + fields + """}}""" 
+      else 
+        """{ "type": "object", "properties" : {""" + fields + """}}"""
+    definition
+  }
+  
+  def createTypedBody(exampleRequestBody: scala.Product): JValue = {
+    val res = translateEntity(exampleRequestBody,false)
+    json.parse(res)
+  }
 
   //transaction requests
   def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJsonV140) : TransactionRequestBody = {
