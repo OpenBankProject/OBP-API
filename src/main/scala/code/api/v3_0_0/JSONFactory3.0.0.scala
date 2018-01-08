@@ -37,7 +37,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.customer.Customer
@@ -633,7 +633,7 @@ object JSONFactory300{
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
-  def createAccountRulesJSON(rules: List[AccountRules]): List[AccountRuleJsonV300] = {
+  def createAccountRulesJSON(rules: List[AccountRule]): List[AccountRuleJsonV300] = {
     rules.map(i => AccountRuleJsonV300(scheme = i.scheme, value = i.value))
   }
 

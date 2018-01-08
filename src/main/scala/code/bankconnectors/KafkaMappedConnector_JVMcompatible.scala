@@ -36,7 +36,7 @@ import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.{FXRate, fx}
@@ -1384,7 +1384,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def accountRoutingScheme: String = "NONE" //TODO
     def accountRoutingAddress: String = "NONE" //TODO
     def branchId: String = "NONE" //TODO
-    def accountRules: List[AccountRules] = List() //TODO
+    def accountRules: List[AccountRule] = List() //TODO
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

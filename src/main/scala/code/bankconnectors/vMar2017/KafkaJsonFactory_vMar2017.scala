@@ -36,7 +36,7 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
 import code.bankconnectors.InboundUser
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -392,7 +392,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def accountRoutingAddress: String = r.accountRoutingAddress
   def branchId: String = r.branchId
 
-  def accountRules: List[AccountRules] = List()
+  def accountRules: List[AccountRule] = List()
   
 }
 

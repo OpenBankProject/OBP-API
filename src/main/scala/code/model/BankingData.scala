@@ -35,7 +35,7 @@ import java.util.Date
 
 import code.accountholder.AccountHolders
 import code.api.util.SessionContext
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -299,7 +299,7 @@ trait BankAccount extends MdcLoggable {
   def branchId: String
   def accountRoutingScheme: String
   def accountRoutingAddress: String
-  def accountRules: List[AccountRules]
+  def accountRules: List[AccountRule]
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String
@@ -702,41 +702,41 @@ object BankAccount {
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
 case class BankAccountInMemory(
-  //BankAccount Trait
-  bankId: BankId ,
-  accountId: AccountId,
-  accountType: String,
-  balance: BigDecimal,
-  currency: String,
-  name: String,
-  lastUpdate: Date,
-  accountHolder: String,
-  label: String,
-  accountRoutingScheme: String,
-  accountRoutingAddress: String,
-  branchId: String,
-  swift_bic: Option[String],
-  iban: Option[String],
-  number: String,
-  accountRules: List[AccountRules],
+                                //BankAccount Trait
+                                bankId: BankId,
+                                accountId: AccountId,
+                                accountType: String,
+                                balance: BigDecimal,
+                                currency: String,
+                                name: String,
+                                lastUpdate: Date,
+                                accountHolder: String,
+                                label: String,
+                                accountRoutingScheme: String,
+                                accountRoutingAddress: String,
+                                branchId: String,
+                                swift_bic: Option[String],
+                                iban: Option[String],
+                                number: String,
+                                accountRules: List[AccountRule],
 
-  //Counterparty Trait
-  createdByUserId: String, 
-  description: String , 
-  thisBankId: String , 
-  thisAccountId: String , 
-  thisViewId: String , 
-  counterpartyId: String, 
-  otherAccountRoutingScheme: String , 
-  otherAccountRoutingAddress: String , 
-  otherAccountSecondaryRoutingScheme: String , 
-  otherAccountSecondaryRoutingAddress: String , 
-  otherBankRoutingScheme: String, 
-  otherBankRoutingAddress: String, 
-  otherBranchRoutingScheme: String , 
-  otherBranchRoutingAddress: String , 
-  isBeneficiary : Boolean , 
-  bespoke: List[CounterpartyBespoke] 
+                                //Counterparty Trait
+                                createdByUserId: String,
+                                description: String,
+                                thisBankId: String,
+                                thisAccountId: String,
+                                thisViewId: String,
+                                counterpartyId: String,
+                                otherAccountRoutingScheme: String,
+                                otherAccountRoutingAddress: String,
+                                otherAccountSecondaryRoutingScheme: String,
+                                otherAccountSecondaryRoutingAddress: String,
+                                otherBankRoutingScheme: String,
+                                otherBankRoutingAddress: String,
+                                otherBranchRoutingScheme: String,
+                                otherBranchRoutingAddress: String,
+                                isBeneficiary : Boolean,
+                                bespoke: List[CounterpartyBespoke]
   
 ) extends BankAccount with CounterpartyTrait
 
