@@ -9,7 +9,7 @@ import java.util.{Date, Locale, Optional, UUID}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
@@ -1121,8 +1121,9 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def accountHolder : String      = r.owners.head
     def accountRoutingScheme: String = r.account_routing_scheme
     def accountRoutingAddress: String = r.account_routing_address
+    def accountRoutings: List[AccountRouting] = List()
     def branchId: String = r.branchId
-    def accountRules: List[AccountRules] = List()
+    def accountRules: List[AccountRule] = List()
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {

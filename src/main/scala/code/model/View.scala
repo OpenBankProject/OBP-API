@@ -590,7 +590,8 @@ trait View {
       val bankRoutingScheme = if(canSeeBankRoutingScheme) Some(bankAccount.bankRoutingScheme) else None 
       val bankRoutingAddress = if(canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None 
       val accountRoutingScheme = if(canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None 
-      val accountRoutingAddress = if(canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None 
+      val accountRoutingAddress = if(canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
+      val accountRutings = if(canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
       val accountRules = if(canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
 
       Some(
@@ -611,6 +612,7 @@ trait View {
           bankRoutingAddress = bankRoutingAddress,
           accountRoutingScheme = accountRoutingScheme,
           accountRoutingAddress = accountRoutingAddress,
+          accountRoutings = accountRutings,
           accountRules = accountRules
         )
       )

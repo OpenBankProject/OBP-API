@@ -37,7 +37,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.customer.Customer
@@ -240,15 +240,15 @@ case class AccountsIdsJsonV300(accounts: List[AccountIdJson])
 case class AccountRuleJsonV300(scheme: String, value: String)
 
 case class ModeratedCoreAccountJsonV300(
-  id: String,
-  bank_id: String,
-  label: String,
-  number: String,
-  owners: List[UserJSONV121],
-  `type`: String,
-  balance: AmountOfMoneyJsonV121,
-  account_routing: AccountRoutingJsonV121,
-  account_rules: List[AccountRuleJsonV300]
+                                         id: String,
+                                         bank_id: String,
+                                         label: String,
+                                         number: String,
+                                         owners: List[UserJSONV121],
+                                         `type`: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         account_rules: List[AccountRuleJsonV300]
 )
 
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
@@ -633,8 +633,11 @@ object JSONFactory300{
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )
   }
-  def createAccountRulesJSON(rules: List[AccountRules]): List[AccountRuleJsonV300] = {
+  def createAccountRulesJSON(rules: List[AccountRule]): List[AccountRuleJsonV300] = {
     rules.map(i => AccountRuleJsonV300(scheme = i.scheme, value = i.value))
+  }
+  def createAccountRoutingsJSON(routings: List[AccountRouting]): List[AccountRoutingJsonV121] = {
+    routings.map(i => AccountRoutingJsonV121(scheme = i.scheme, address = i.address))
   }
 
   def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJsonV300 =  {
@@ -647,7 +650,7 @@ object JSONFactory300{
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
     )
   }

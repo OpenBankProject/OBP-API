@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.model.Moderation.Moderated
 import code.util.Helper
 import net.liftweb.common.{Box, Failure}
@@ -210,7 +210,8 @@ class ModeratedBankAccount(
                             val bankRoutingAddress :Moderated[String],
                             val accountRoutingScheme : Moderated[String],
                             val accountRoutingAddress :Moderated[String],
-                            val accountRules: List[AccountRules]
+                            val accountRoutings: List[AccountRouting],
+                            val accountRules: List[AccountRule]
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson = {

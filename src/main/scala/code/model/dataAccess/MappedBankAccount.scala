@@ -2,7 +2,7 @@ package code.model.dataAccess
 
 import java.util.Date
 
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.model._
 import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
 import net.liftweb.mapper._
@@ -73,12 +73,13 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
     scheme match {
       case s: String if s.equalsIgnoreCase("") == false =>
         val v = Helper.smallestCurrencyUnitToBigDecimal(value, accountCurrency.get)
-        List(AccountRules(scheme, v.toString()))
+        List(AccountRule(scheme, v.toString()))
       case _ =>
         Nil
     }
   }
-  override def accountRules: List[AccountRules] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::
+  override def accountRoutings: List[AccountRouting] = List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
+  override def accountRules: List[AccountRule] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::
                                                   createAccountRule(accountRuleScheme2.get, accountRuleValue2.get)
 
 }

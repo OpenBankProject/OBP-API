@@ -29,7 +29,7 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.util.{ErrorMessages, SessionContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.vJune2017.AccountRules
+import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
@@ -1169,7 +1169,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def accountRoutingScheme: String = r.accountRoutingScheme
     def accountRoutingAddress: String = r.accountRoutingAddress
     def branchId: String              = r.branchId
-    def accountRules: List[AccountRules] = List()
+    def accountRoutings: List[AccountRouting] = List()
+    def accountRules: List[AccountRule] = List()
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
