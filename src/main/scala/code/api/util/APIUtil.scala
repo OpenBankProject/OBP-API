@@ -552,8 +552,10 @@ object APIUtil extends MdcLoggable {
   def createdJsonResponse(json: JsExp, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
-  def successJsonResponseFromCaseClass(cc: Any, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(snakify(Extraction.decompose(cc)), getHeaders() ::: headers.list, Nil, httpCode)
+  def successJsonResponseFromCaseClass(cc: Any, sc: Option[SessionContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+    val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), sc)
+    JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
+  }
 
   def acceptedJsonResponse(json: JsExp, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
@@ -1724,7 +1726,7 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[SessionContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1753,7 +1755,7 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[SessionContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1797,6 +1799,9 @@ Versions are groups of endpoints in a file
     * @return An User wrapped into a Future
     */
   def getUserFromAuthorizationHeaderFuture(): Future[(Box[User], Option[SessionContext])] = {
+    val s = S
+    val format = s.param("format")
+    val res =
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
@@ -1804,7 +1809,6 @@ Versions are groups of endpoints in a file
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
-          val s = S
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
             case 200 =>
@@ -1843,6 +1847,9 @@ Versions are groups of endpoints in a file
       }
     } else {
       Future { (Empty, None) }
+    }
+    res map {
+      x => (x._1, ApiSession.updateSessionContext(FormatOfSpelling(format), x._2))
     }
   }
 

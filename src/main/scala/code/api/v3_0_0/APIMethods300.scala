@@ -705,7 +705,7 @@ trait APIMethods300 {
             ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
           yield {
-            successJsonResponseFromCaseClass(createAdapterInfoJson(ai))
+            successJsonResponseFromCaseClass(createAdapterInfoJson(ai), None)
           }
       }
     }
