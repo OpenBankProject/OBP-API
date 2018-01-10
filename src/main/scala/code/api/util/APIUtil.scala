@@ -1482,6 +1482,28 @@ Returns a string showed to the developer
     case JField(name, x) => JField(StringHelpers.camelifyMethod(name), x)
   }
 
+  /**
+    * Turn a string which is in OBP format into ISO20022 formatting
+    *
+    * @param json the JValue
+    *
+    * @return the JValue
+    */
+  def useISO20022Spelling(json: JValue): JValue = json transformField {
+    case JField("currency", x) => JField("ccy", x)
+  }
+
+  /**
+    * Turn a string which is in ISO20022 format into OBP formatting
+    *
+    * @param json the JValue
+    *
+    * @return the JValue
+    */
+  def useOBPSpelling(json: JValue): JValue = json transformField {
+    case JField("ccy", x) => JField("currency", x)
+  }
+
 
   def canGet(condition: Boolean, user: Box[User]): Boolean = {
     condition match {
