@@ -1683,7 +1683,7 @@ Versions are groups of endpoints in a file
   }
 
   /**
-    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
     * @return value of type JsonResponse
     *
     * Process a request asynchronously. The thread will not
@@ -1700,9 +1700,9 @@ Versions are groups of endpoints in a file
     * body will be executed in the scope of the current request (the
     * current session and the current Req object).
     */
-  def futureToResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): JsonResponse = {
+  def futureToResponse[T](in: LAFuture[(T, Option[SessionContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(t._2)))
+      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(t._1)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1712,7 +1712,7 @@ Versions are groups of endpoints in a file
 
 
   /**
-    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Custom Response Header)
+    * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
     * @return value of type Box[JsonResponse]
     *
     * Process a request asynchronously. The thread will not
@@ -1729,9 +1729,9 @@ Versions are groups of endpoints in a file
     * body will be executed in the scope of the current request (the
     * current session and the current Req object).
     */
-  def futureToBoxedResponse[T](in: LAFuture[(T, CustomResponseHeaders)]): Box[JsonResponse] = {
+  def futureToBoxedResponse[T](in: LAFuture[(T, Option[SessionContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(t._2))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1739,7 +1739,7 @@ Versions are groups of endpoints in a file
     })
   }
 
-  implicit def scalaFutureToJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): JsonResponse = {
+  implicit def scalaFutureToJsonResponse[T](scf: Future[(T, Option[SessionContext])])(implicit m: Manifest[T]): JsonResponse = {
     futureToResponse(scalaFutureToLaFuture(scf))
   }
 
@@ -1763,7 +1763,7 @@ Versions are groups of endpoints in a file
     * @tparam T
     * @return
     */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[(T, CustomResponseHeaders)])(implicit m: Manifest[T]): Box[JsonResponse] = {
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: Future[(T, Option[SessionContext])])(implicit m: Manifest[T]): Box[JsonResponse] = {
     futureToBoxedResponse(scalaFutureToLaFuture(scf))
   }
 
