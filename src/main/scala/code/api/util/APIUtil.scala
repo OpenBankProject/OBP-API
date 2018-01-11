@@ -536,6 +536,14 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+  /** This function provide a name of parameter used to define different spelling of some words
+    * E.g. if we provide an URL obp/v2.1.0/users/current/customers?format=ISO20022
+    * JSON response is changed from "currency":"EUR" to "ccy":"EUR"
+    *
+    * @return A name of the parameter
+    */
+  def nameOfFormatSpellingParam(): String = "format"
+
   def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
@@ -547,13 +555,13 @@ object APIUtil extends MdcLoggable {
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param("format")), None)
+    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param("format")), None)
+    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -564,7 +572,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param("format")), None)
+    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -1809,7 +1817,7 @@ Versions are groups of endpoints in a file
     */
   def getUseAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
-    val format = s.param("format")
+    val format = s.param(nameOfFormatSpellingParam())
     val res =
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
