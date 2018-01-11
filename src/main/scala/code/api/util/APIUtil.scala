@@ -323,20 +323,21 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InvalidConnectorResponseForGetChallengeThreshold = "OBP-50206: Connector did not return the set of challenge threshold we requested." 
   val InvalidConnectorResponseForGetChargeLevel = "OBP-50207: Connector did not return the set of challenge level we requested." 
   val InvalidConnectorResponseForCreateTransactionRequestImpl210 = "OBP-50208: Connector did not return the set of transactions requests we requested." 
-  val InvalidConnectorResponseForMakePaymentImpl = "OBP-50209: Connector did not return the set of transactions we requested." 
+  val InvalidConnectorResponseForMakePayment = "OBP-50209: Connector did not return the set of transactions we requested." 
   val InvalidConnectorResponseForMakePaymentv200 = "OBP-50210: Connector did not return the set of transaction id we requested." 
 
 
   // Adapter Exceptions (OBP-6XXXX)
   // Reserved for adapter (south of Kafka) messages
   // Also used for connector == mapped, and show it as the Internal errors. 
-  val GetStatusException = "INTERNAL-OBP-60001: Save Transaction Exception. " 
-  val GetChargeValueException = "INTERNAL-OBP-60002: Get ChargeValue Exception. " 
-  val CreateTransactionsException = "INTERNAL-OBP-60003: Create transaction Exception. " 
-  val UpdateBankAccountException = "INTERNAL-OBP-60004: Update bank account Exception. " 
-  val SaveTransactionRequestTransactionException = "INTERNAL-OBP-60005: Save Transaction Request Transaction Exception. " 
-  val SaveTransactionRequestChallengeException = "INTERNAL-OBP-60006: Save Transaction Request Challenge Exception. " 
-  val SaveTransactionRequestStatusException = "INTERNAL-OBP-60007: Save Transaction Request Status Exception. " 
+  val GetStatusException = "OBP-60001: Save Transaction Exception. " 
+  val GetChargeValueException = "OBP-60002: Get ChargeValue Exception. " 
+  val CreateTransactionsException = "OBP-60003: Create transaction Exception. " 
+  val UpdateBankAccountException = "OBP-60004: Update bank account Exception. " 
+  val SaveTransactionRequestTransactionException = "OBP-60005: Save Transaction Request Transaction Exception. " 
+  val SaveTransactionRequestChallengeException = "OBP-60006: Save Transaction Request Challenge Exception. " 
+  val SaveTransactionRequestStatusException = "OBP-60007: Save Transaction Request Status Exception. " 
+  val TransactionRequestDetailsExtractException = "OBP-60008: Transaction detail body extract exception. " 
 
 
   ///////////

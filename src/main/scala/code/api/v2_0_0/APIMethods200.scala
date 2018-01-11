@@ -1319,7 +1319,7 @@ trait APIMethods200 {
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //check the transReqId validation.
-              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
+              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
               //check the input transactionRequestType is same as when the user create the existingTransactionRequest
               existingTransactionRequestType <- Full(existingTransactionRequest.`type`)

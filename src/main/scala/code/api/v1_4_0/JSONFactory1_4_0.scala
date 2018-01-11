@@ -318,7 +318,7 @@ object JSONFactory1_4_0 {
                          is_obwg: Boolean,
                          tags: List[String],
                          typed_request_body: JValue,
-                         typed_success_reponse_body: JValue)
+                         typed_success_response_body: JValue)
 
 
 
@@ -352,7 +352,7 @@ object JSONFactory1_4_0 {
       is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
-      typed_success_reponse_body = createTypedBody(rd.successResponseBody)
+      typed_success_response_body = createTypedBody(rd.successResponseBody)
       )
   }
 
