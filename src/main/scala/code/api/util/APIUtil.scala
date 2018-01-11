@@ -60,7 +60,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, MappingException, parse}
+import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, StringHelpers}
 
@@ -546,10 +546,10 @@ object APIUtil extends MdcLoggable {
   def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
-  def successJsonResponse(json: JsExp, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
-  def createdJsonResponse(json: JsExp, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
   def successJsonResponseFromCaseClass(cc: Any, sc: Option[SessionContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
@@ -557,7 +557,7 @@ object APIUtil extends MdcLoggable {
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
+  def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(json, getHeaders() ::: headers.list, Nil, httpCode)
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
