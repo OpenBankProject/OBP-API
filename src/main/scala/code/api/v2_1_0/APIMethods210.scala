@@ -1017,7 +1017,7 @@ trait APIMethods210 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            (JSONFactory210.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
+            (JSONFactory210.createUserJSONs (users), sessioContext)
           }
       }
     }

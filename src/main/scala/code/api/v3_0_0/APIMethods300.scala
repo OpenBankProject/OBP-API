@@ -106,7 +106,7 @@ trait APIMethods300 {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                (createViewsJSON(views), getGatewayLoginHeader(sessionContext))
+                (createViewsJSON(views), sessionContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -262,7 +262,7 @@ trait APIMethods300 {
                 moderatedAccount <- account.moderatedBankAccount(view, user)
               } yield {
                 val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
-                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), getGatewayLoginHeader(sessionContext))
+                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), sessionContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -314,7 +314,7 @@ trait APIMethods300 {
               moderatedAccount <- account.moderatedBankAccount(view, user)
             } yield {
               val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON)
-              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), getGatewayLoginHeader(sessionContext))
+              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), sessionContext)
             }
           }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -356,7 +356,7 @@ trait APIMethods300 {
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext)}
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), sessioContext)
           }
       }
     }
@@ -417,7 +417,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(sessionContext)
               } yield {
-                (createCoreTransactionsJSON(transactionsCore), getGatewayLoginHeader(sessionContext))
+                (createCoreTransactionsJSON(transactionsCore), sessionContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -482,7 +482,7 @@ trait APIMethods300 {
                 params <- getTransactionParams(json)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessionContext)
               } yield {
-                (createTransactionsJson(transactions), getGatewayLoginHeader(sessionContext))
+                (createTransactionsJson(transactions), sessionContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -593,7 +593,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createUserJSONs (users), sessioContext)
           }
       }
     }
@@ -632,7 +632,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), sessioContext)
           }
       }
     }
@@ -672,7 +672,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), sessioContext)
           }
       }
     }
@@ -705,7 +705,7 @@ trait APIMethods300 {
             ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
           yield {
-            successJsonResponseFromCaseClass(createAdapterInfoJson(ai))
+            successJsonResponseFromCaseClass(createAdapterInfoJson(ai), None)
           }
       }
     }
@@ -866,7 +866,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! msg)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createBranchJsonV300(branch), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createBranchJsonV300(branch), sessioContext)
           }
         }
       }
@@ -951,7 +951,7 @@ trait APIMethods300 {
                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createBranchesJson(branches), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createBranchesJson(branches), sessioContext)
           }
         }
       }
@@ -996,7 +996,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! AtmNotFoundByAtmId)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createAtmJsonV300(atm), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createAtmJsonV300(atm), sessioContext)
           }
       }
     }
@@ -1074,7 +1074,7 @@ trait APIMethods300 {
                 .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createAtmsJsonV300(atms), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createAtmsJsonV300(atms), sessioContext)
           }
         }
       }
@@ -1116,7 +1116,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            (JSONFactory300.createUserJSONs (users), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createUserJSONs (users), sessioContext)
           }
       }
     }
@@ -1158,7 +1158,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createCustomersJson(customers), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createCustomersJson(customers), sessioContext)
           }
         }
       }
@@ -1189,7 +1189,7 @@ trait APIMethods300 {
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            (JSONFactory300.createUserJSON (user, entitlements), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createUserJSON (user, entitlements), sessioContext)
           }
         }
       }
@@ -1232,7 +1232,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), sessioContext)
           }
       }
     }
@@ -1270,7 +1270,7 @@ trait APIMethods300 {
             }
             bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
           } yield {
-            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), getGatewayLoginHeader(sessioContext))
+            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), sessioContext)
           }
       }
     }
