@@ -1815,7 +1815,7 @@ Versions are groups of endpoints in a file
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
     * @return A Tuple of an User wrapped into a Future and optional session context data
     */
-  def getUseAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
+  def getUserAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
     val format = s.param(nameOfSpellingParam())
     val res =
@@ -1875,7 +1875,7 @@ Versions are groups of endpoints in a file
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def extractCallContext(emptyUserErrorMsg: String): Future[(Box[User], Option[SessionContext])] = {
-    getUseAndSessionContextFuture() map {
+    getUserAndSessionContextFuture() map {
       x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
     }
   }
@@ -1883,7 +1883,7 @@ Versions are groups of endpoints in a file
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
   def extractCallContext(): Future[(Box[User], Option[SessionContext])] = {
-    getUseAndSessionContextFuture()
+    getUserAndSessionContextFuture()
   }
 
   /**
