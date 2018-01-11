@@ -542,7 +542,7 @@ object APIUtil extends MdcLoggable {
     *
     * @return A name of the parameter
     */
-  def nameOfFormatSpellingParam(): String = "format"
+  def nameOfSpellingParam(): String = "spelling"
 
   def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
 
@@ -555,13 +555,13 @@ object APIUtil extends MdcLoggable {
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -572,7 +572,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(FormatOfSpelling(S.param(nameOfFormatSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -1691,7 +1691,7 @@ Versions are groups of endpoints in a file
       yield item.partialFunction
     routes.toList
     }
-  
+
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
     implicit val formats = net.liftweb.json.DefaultFormats
     try {
@@ -1817,7 +1817,7 @@ Versions are groups of endpoints in a file
     */
   def getUseAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
-    val format = s.param(nameOfFormatSpellingParam())
+    val format = s.param(nameOfSpellingParam())
     val res =
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
@@ -1866,7 +1866,7 @@ Versions are groups of endpoints in a file
       Future { (Empty, None) }
     }
     res map {
-      x => (x._1, ApiSession.updateSessionContext(FormatOfSpelling(format), x._2))
+      x => (x._1, ApiSession.updateSessionContext(Spelling(format), x._2))
     }
   }
 

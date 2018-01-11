@@ -8,24 +8,24 @@ import net.liftweb.json.JsonAST.JValue
 case class SessionContext(
                            gatewayLoginRequestPayload: Option[PayloadOfJwtJSON],
                            gatewayLoginResponseHeader: Option[String],
-                           formatOfSpelling: Option[String]
+                           spelling: Option[String]
                          )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam
 case class GatewayLoginResponseHeader(jwt: Option[String]) extends GatewayLoginParam
 
-case class FormatOfSpelling(formatOfSpelling: Box[String])
+case class Spelling(spelling: Box[String])
 
 object ApiSession {
 
   val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None)
 
-  def updateSessionContext(fos: FormatOfSpelling, cnt: Option[SessionContext]): Option[SessionContext] = {
+  def updateSessionContext(s: Spelling, cnt: Option[SessionContext]): Option[SessionContext] = {
     cnt match {
       case None =>
-        Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = None, formatOfSpelling = fos.formatOfSpelling))
+        Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = None, spelling = s.spelling))
       case Some(v) =>
-        Some(v.copy(formatOfSpelling = fos.formatOfSpelling))
+        Some(v.copy(spelling = s.spelling))
     }
   }
 
@@ -40,14 +40,14 @@ object ApiSession {
           case Some(v) =>
             Some(v.copy(Some(jwtPayload)))
           case None =>
-            Some(SessionContext(gatewayLoginRequestPayload = Some(jwtPayload), gatewayLoginResponseHeader = None, formatOfSpelling = None))
+            Some(SessionContext(gatewayLoginRequestPayload = Some(jwtPayload), gatewayLoginResponseHeader = None, spelling = None))
         }
       case GatewayLoginResponseHeader(Some(j)) =>
         cnt match {
           case Some(v) =>
             Some(v.copy(gatewayLoginResponseHeader = Some(j)))
           case None =>
-            Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = Some(j), formatOfSpelling = None))
+            Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = Some(j), spelling = None))
         }
     }
   }
@@ -69,7 +69,7 @@ object ApiSession {
   def processJson(j: JValue, cnt: Option[SessionContext]): JValue = {
     cnt match {
       case Some(v) =>
-        v.formatOfSpelling match {
+        v.spelling match {
           case Some(s) if s == "ISO20022" =>
             useISO20022Spelling(j)
           case Some(s) if s == "OBP" =>
