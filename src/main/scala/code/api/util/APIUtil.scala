@@ -1796,9 +1796,9 @@ Versions are groups of endpoints in a file
     * This function is planed to be used at an endpoint in order to get a User based on Authorization Header data
     * It has to do the same thing as function OBPRestHelper.failIfBadAuthorizationHeader does
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
-    * @return An User wrapped into a Future
+    * @return A Tuple of an User wrapped into a Future and optional session context data
     */
-  def getUserFromAuthorizationHeaderFuture(): Future[(Box[User], Option[SessionContext])] = {
+  def getUseAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
     val format = s.param("format")
     val res =
@@ -1858,7 +1858,7 @@ Versions are groups of endpoints in a file
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def extractCallContext(emptyUserErrorMsg: String): Future[(Box[User], Option[SessionContext])] = {
-    getUserFromAuthorizationHeaderFuture() map {
+    getUseAndSessionContextFuture() map {
       x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
     }
   }
@@ -1866,7 +1866,7 @@ Versions are groups of endpoints in a file
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
   def extractCallContext(): Future[(Box[User], Option[SessionContext])] = {
-    getUserFromAuthorizationHeaderFuture()
+    getUseAndSessionContextFuture()
   }
 
   /**
