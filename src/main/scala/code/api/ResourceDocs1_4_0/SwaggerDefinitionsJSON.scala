@@ -1083,7 +1083,7 @@ object SwaggerDefinitionsJSON {
     is_obwg = true,
     tags = List("String"),
     typed_request_body = json.parse("""{"request": { "type" :"string" }}"""),
-    typed_success_reponse_body = json.parse("""{"response": { "type" :"string" }}""")
+    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}""")
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))

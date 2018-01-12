@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages, SessionContext}
-import code.api.v2_1_0._
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -388,7 +388,7 @@ trait Connector extends MdcLoggable{
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String): Box[TransactionId] = {
     for {
-      transactionId <- makePaymentImpl(fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePaymentImpl
+      transactionId <- makePaymentImpl(fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePayment
     } yield transactionId
   }
 
@@ -794,7 +794,7 @@ trait Connector extends MdcLoggable{
   //It is only used for V140 and V200, has been deprecated from V210.
   @deprecated
   def answerTransactionRequestChallenge(transReqId: TransactionRequestId, answer: String) : Box[Boolean] = {
-    val tr = getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+    val tr = getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
     tr match {
       case Full(tr: TransactionRequest) =>
@@ -823,13 +823,13 @@ trait Connector extends MdcLoggable{
 
   def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      tr <- getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description, TransactionRequestType(tr.`type`)) ?~ "Couldn't create Transaction"
+          BankIdAccountId (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description, TransactionRequestType(tr.`type`)) ?~! InvalidConnectorResponseForMakePayment
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)
+      tr <- getTransactionRequestImpl(transReqId)?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
     } yield {
       tr
     }
@@ -846,7 +846,7 @@ trait Connector extends MdcLoggable{
         transactionRequest.body.description,
         TransactionRequestType(transactionRequest.`type`),
         "" //Note chargePolicy  started to use from V210
-      ) ?~ "Couldn't create Transaction"
+      ) ?~! InvalidConnectorResponseForMakePayment
       didSaveTransId <- saveTransactionRequestTransaction(transRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transRequestId, TransactionRequestStatus.COMPLETED.toString)
 
@@ -863,55 +863,82 @@ trait Connector extends MdcLoggable{
     
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
-      //Note, it should be four different type of details in mappedtransactionrequest.
-      //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
-      // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
-      detailsJsonExtract <- tryo{details.extract[TransactionRequestDetailsMapperJSON]} ?~! s"create transaction detail body, can not extract to $TransactionRequestDetailsMapperJSON "
-
-     
-
-      valueAmount = detailsJsonExtract.value.amount
-
-      description = detailsJsonExtract.description
-
-    
-      // Note for 'toCounterparty' in the following :
-      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
-      // And it only used for COUNTERPARTY.toString and  SEPA.toString ,other types keep it empty now.
-      toAccount  <- TransactionRequestTypes.withName(transactionRequestType) match {
-        case COUNTERPARTY | SEPA  =>
+      transactionId  <- TransactionRequestTypes.withName(transactionRequestType) match {
+        case SANDBOX_TAN =>
           for{
-           counterpartyId <- Full(transactionRequest.counterparty_id)
-           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-           toAccount <- BankAccount(toCounterparty)
-          }yield{
-            toAccount
-          }
-        case FREE_FORM => Full(fromAccount)
-        case _ =>
-          for{
-            toBankId <- Full(BankId(detailsJsonExtract.to.bank_id))
-            toAccountId = AccountId(detailsJsonExtract.to.account_id)
+            sandboxBody <- tryo{details.extract[TransactionRequestBodySandBoxTanJSON]} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
+            toBankId = BankId(sandboxBody.to.bank_id)
+            toAccountId = AccountId(sandboxBody.to.account_id)
             toAccount <- Connector.connector.vend.getBankAccount(toBankId,toAccountId)
+            transactionId <- makePaymentv200(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody=sandboxBody,
+              BigDecimal(sandboxBody.value.amount),
+              sandboxBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy
+            ) ?~! InvalidConnectorResponseForMakePayment
           }yield{
-            toAccount
+            transactionId
           }
+        case COUNTERPARTY   =>
+          for{
+           counterpartyBody <- tryo{details.extract[TransactionRequestBodyCounterpartyJSON]}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
+           counterpartyId = CounterpartyId(counterpartyBody.to.counterparty_id)
+           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           toAccount <- BankAccount.toBankAccount(toCounterparty)
+           transactionId <- makePaymentv200(
+             fromAccount,
+             toAccount,
+             transactionRequestCommonBody=counterpartyBody,
+             BigDecimal(counterpartyBody.value.amount),
+             counterpartyBody.description,
+             TransactionRequestType(transactionRequestType),
+             transactionRequest.charge_policy
+           ) ?~! InvalidConnectorResponseForMakePayment
+          }yield{
+            transactionId
+          }
+        case SEPA  =>
+          for{
+            sepaBody <- tryo{(details.extract[TransactionRequestBodySEPAJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
+            toCounterpartyIBan = sepaBody.to.iban
+            toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+            toAccount <- BankAccount.toBankAccount(toCounterparty)
+            transactionId <- makePaymentv200(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody=sepaBody,
+              BigDecimal(sepaBody.value.amount),
+              sepaBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy
+            ) ?~! InvalidConnectorResponseForMakePayment
+          }yield{
+            transactionId
+          }  
+        case FREE_FORM => for{
+          freeformBody <- tryo{(details.extract[TransactionRequestBodyFreeFormJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyFreeFormJSON"
+          transactionId <- makePaymentv200(
+            fromAccount,
+            fromAccount,
+            transactionRequestCommonBody=freeformBody,
+            BigDecimal(freeformBody.value.amount),
+            freeformBody.description,
+            TransactionRequestType(transactionRequestType),
+            transactionRequest.charge_policy
+          ) ?~! InvalidConnectorResponseForMakePayment
+        }yield{
+          transactionId
+        }
+        case transactionRequestType => Failure(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")
       }
-
-      transactionId <- makePaymentv200(
-        fromAccount,
-        toAccount,
-        transactionRequestCommonBody=null,//Note chargePolicy only support in V210
-        BigDecimal(valueAmount), 
-        description,
-        TransactionRequestType(transactionRequestType),
-        transactionRequest.charge_policy
-      ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
       //After `makePaymentv200` and update data for request, we get the new requqest from database again.
-      transactionReques <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId)  ?~! s"get new Transaction problem..."
+      transactionReques <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transactionRequestId. Get updated transaction exeception."
 
     } yield {
       transactionReques
