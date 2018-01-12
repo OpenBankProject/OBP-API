@@ -450,20 +450,13 @@ trait APIMethods210 {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
-                  // Get the Counterparty by id
                   toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
                   toAccount <- BankAccount.toBankAccount(toCounterparty)
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy)))) ?~! InvalidChargePolicy
-                  transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(transactionRequestBodyCounterparty.to.counterparty_id,
-                                                                                                                transactionRequestAccountJSON,
-                                                                                                                amountOfMoneyJSON,
-                                                                                                                transactionRequestBodyCounterparty.description,
-                                                                                                                transactionRequestBodyCounterparty.charge_policy)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- tryo {write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
@@ -483,16 +476,9 @@ trait APIMethods210 {
                   toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
                   toAccount <- BankAccount.toBankAccount(toCounterparty)
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-                  // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
                   chargePolicy = transDetailsSEPAJson.charge_policy
                   _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
-                  transactionRequestDetailsSEPARMapperJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString,
-                                                                                                      transactionRequestAccountJSON,
-                                                                                                      amountOfMoneyJSON,
-                                                                                                      transDetailsSEPAJson.description,
-                                                                                                      chargePolicy)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsSEPARMapperJSON)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- tryo {write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
@@ -508,10 +494,7 @@ trait APIMethods210 {
                   transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                   transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)) 
-                  transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
-                                                                                                        amountOfMoneyJSON,
-                                                                                                        transactionRequestBodyFreeForm.description)
-                  transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperFreeForm)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- tryo {write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))}
                   createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
