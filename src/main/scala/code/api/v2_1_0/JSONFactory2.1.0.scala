@@ -118,49 +118,6 @@ case class TransactionRequestBodyFreeFormJSON(
                                                description: String
                                              ) extends TransactionRequestCommonBodyJSON
 
-
-
-//Mapper means this part will be stored into mapper.mdetails
-//And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
-// code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
-case class TransactionRequestDetailsMapperJSON(
-                                                to: TransactionRequestAccountJsonV140,
-                                                value: AmountOfMoneyJsonV121,
-                                                description: String
-                                              ) extends TransactionRequestCommonBodyJSON
-
-//Mapper means this part will be stored into mapper.mdetails
-//And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
-// code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
-case class TransactionRequestDetailsMapperCounterpartyJSON(
-                                                            counterparty_id: String,
-                                                            to: TransactionRequestAccountJsonV140,
-                                                            value: AmountOfMoneyJsonV121,
-                                                            description: String,
-                                                            charge_policy: String
-                                                          ) extends TransactionRequestCommonBodyJSON
-
-//Mapper means this part will be stored into mapper. This is just for prepare the data
-//And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
-// code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
-case class TransactionRequestDetailsMapperSEPAJSON(
-                                                    iban: String,
-                                                    to: TransactionRequestAccountJsonV140,
-                                                    value: AmountOfMoneyJsonV121,
-                                                    description: String,
-                                                    charge_policy: String
-                                                  ) extends TransactionRequestCommonBodyJSON
-
-
-//Mapper means this part will be stored into mapper. This is just for prepare the data
-//And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
-// code : detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
-case class TransactionRequestDetailsMapperFreeFormJSON(
-                                                        to: TransactionRequestAccountJsonV140,
-                                                        value: AmountOfMoneyJsonV121,
-                                                        description: String
-                                                      ) extends TransactionRequestCommonBodyJSON
-
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
                                              `type`: String,
