@@ -545,6 +545,20 @@ object APIUtil extends MdcLoggable {
     */
   def nameOfSpellingParam(): String = "spelling"
 
+  def getSpellingParam(): Box[String] = {
+    S.request match {
+      case Full(r) =>
+        r.header(nameOfSpellingParam()) match {
+          case Full(h) =>
+            Full(h)
+          case _ =>
+            S.param(nameOfSpellingParam())
+        }
+      case _ =>
+        S.param(nameOfSpellingParam())
+    }
+  }
+
   def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
@@ -556,13 +570,13 @@ object APIUtil extends MdcLoggable {
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -573,7 +587,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(S.param(nameOfSpellingParam())), None)
+    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, sc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -1818,7 +1832,7 @@ Versions are groups of endpoints in a file
     */
   def getUserAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
-    val format = s.param(nameOfSpellingParam())
+    val spelling = getSpellingParam()
     val res =
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
@@ -1867,7 +1881,7 @@ Versions are groups of endpoints in a file
       Future { (Empty, None) }
     }
     res map {
-      x => (x._1, ApiSession.updateSessionContext(Spelling(format), x._2))
+      x => (x._1, ApiSession.updateSessionContext(Spelling(spelling), x._2))
     }
   }
 
