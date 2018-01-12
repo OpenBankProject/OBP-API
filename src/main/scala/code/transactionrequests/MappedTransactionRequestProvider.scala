@@ -103,15 +103,16 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
       //toCounterparty fields
       .mName(toAccount.name)
-      .mThisBankId(toAccount.bankId.value)
-      .mThisAccountId(toAccount.accountId.value)
-//      .mThisViewId(toAccount.v) //TODO, now it is an account, not useful viewId
-      .mCounterpartyId(toAccount.branchId)//TODO, this mapping is wrong, we need get counterpartyId here.
       .mOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
       .mOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
       .mOtherBankRoutingScheme(toAccount.bankRoutingScheme)
       .mOtherBankRoutingAddress(toAccount.bankRoutingAddress)
-//      .mIsBeneficiary(toAccount.isBeneficiary)//TODO, now it is an account, not useful isBeneficiary
+      // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill the following fields .
+      //.mThisBankId(toAccount.bankId.value) 
+      //.mThisAccountId(toAccount.accountId.value)
+      //.mThisViewId(toAccount.v) 
+      //.mCounterpartyId(toAccount.branchId)
+      //.mIsBeneficiary(toAccount.isBeneficiary)
 
       //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
       .mBody_Value_Currency(transactionRequestCommonBody.value.currency)

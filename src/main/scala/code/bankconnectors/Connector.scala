@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages, SessionContext}
-import code.api.v2_1_0._
+import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -863,45 +863,77 @@ trait Connector extends MdcLoggable{
     
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
-      //Note, it should be four different type of details in mappedtransactionrequest.
-      //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
-      // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
-      detailsJsonExtract <- tryo{details.extract[TransactionRequestDetailsMapperJSON]} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestDetailsMapperJSON "
-
-      valueAmount = detailsJsonExtract.value.amount
-
-      description = detailsJsonExtract.description
-
-    
-      toAccount  <- TransactionRequestTypes.withName(transactionRequestType) match {
-        case COUNTERPARTY | SEPA  =>
+      transactionId  <- TransactionRequestTypes.withName(transactionRequestType) match {
+        case SANDBOX_TAN =>
           for{
-           counterpartyId <- Full(transactionRequest.counterparty_id)
-           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-           toAccount <- BankAccount(toCounterparty)
-          }yield{
-            toAccount
-          }
-        case FREE_FORM => Full(fromAccount)
-        case _ =>
-          for{
-            toBankId <- Full(BankId(detailsJsonExtract.to.bank_id))
-            toAccountId = AccountId(detailsJsonExtract.to.account_id)
+            sandboxBody <- tryo{details.extract[TransactionRequestBodySandBoxTanJSON]} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
+            toBankId = BankId(sandboxBody.to.bank_id)
+            toAccountId = AccountId(sandboxBody.to.account_id)
             toAccount <- Connector.connector.vend.getBankAccount(toBankId,toAccountId)
+            transactionId <- makePaymentv200(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody=sandboxBody,
+              BigDecimal(sandboxBody.value.amount),
+              sandboxBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy
+            ) ?~! InvalidConnectorResponseForMakePayment
           }yield{
-            toAccount
+            transactionId
           }
+        case COUNTERPARTY   =>
+          for{
+           counterpartyBody <- tryo{details.extract[TransactionRequestBodyCounterpartyJSON]}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
+           counterpartyId = CounterpartyId(counterpartyBody.to.counterparty_id)
+           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           toAccount <- BankAccount.toBankAccount(toCounterparty)
+           transactionId <- makePaymentv200(
+             fromAccount,
+             toAccount,
+             transactionRequestCommonBody=counterpartyBody,
+             BigDecimal(counterpartyBody.value.amount),
+             counterpartyBody.description,
+             TransactionRequestType(transactionRequestType),
+             transactionRequest.charge_policy
+           ) ?~! InvalidConnectorResponseForMakePayment
+          }yield{
+            transactionId
+          }
+        case SEPA  =>
+          for{
+            sepaBody <- tryo{(details.extract[TransactionRequestBodySEPAJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
+            toCounterpartyIBan = sepaBody.to.iban
+            toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+            toAccount <- BankAccount.toBankAccount(toCounterparty)
+            transactionId <- makePaymentv200(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody=sepaBody,
+              BigDecimal(sepaBody.value.amount),
+              sepaBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy
+            ) ?~! InvalidConnectorResponseForMakePayment
+          }yield{
+            transactionId
+          }  
+        case FREE_FORM => for{
+          freeformBody <- tryo{(details.extract[TransactionRequestBodyFreeFormJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyFreeFormJSON"
+          transactionId <- makePaymentv200(
+            fromAccount,
+            fromAccount,
+            transactionRequestCommonBody=freeformBody,
+            BigDecimal(freeformBody.value.amount),
+            freeformBody.description,
+            TransactionRequestType(transactionRequestType),
+            transactionRequest.charge_policy
+          ) ?~! InvalidConnectorResponseForMakePayment
+        }yield{
+          transactionId
+        }
+        case transactionRequestType => Failure(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")
       }
-
-      transactionId <- makePaymentv200(
-        fromAccount,
-        toAccount,
-        transactionRequestCommonBody=null,//Note chargePolicy only support in V210
-        BigDecimal(valueAmount), 
-        description,
-        TransactionRequestType(transactionRequestType),
-        transactionRequest.charge_policy
-      ) ?~! InvalidConnectorResponseForMakePayment
 
       didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
