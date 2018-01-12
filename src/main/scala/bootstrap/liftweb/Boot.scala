@@ -416,7 +416,7 @@ class Boot extends MdcLoggable {
         logger.info("ADAPTER INFO - " + t)
         logger.info("ADAPTER INFO - " + c)
       case _     =>
-        logger.info("ADAPTER INFO - Unknown reason.")
+        logger.info("ADAPTER INFO - Unknown status.")
     }
 
   }
