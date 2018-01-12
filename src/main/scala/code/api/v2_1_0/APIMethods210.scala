@@ -427,8 +427,6 @@ trait APIMethods210 {
               s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
             amountOfMoneyJSON <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
-            isMapped: Boolean <- Full((Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped"))
-
             createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case SANDBOX_TAN => {
                 for {
@@ -454,7 +452,7 @@ trait APIMethods210 {
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                   // Get the Counterparty by id
                   toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
-                  toAccount <- BankAccount(toCounterparty)
+                  toAccount <- BankAccount.toBankAccount(toCounterparty)
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
                   transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
@@ -483,9 +481,8 @@ trait APIMethods210 {
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
                   toIban <- Full(transDetailsSEPAJson.to.iban)
                   toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
-                  toAccount <- BankAccount(toCounterparty)
+                  toAccount <- BankAccount.toBankAccount(toCounterparty)
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
-
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                   transactionRequestAccountJSON = TransactionRequestAccountJsonV140(toCounterparty.otherBankRoutingAddress, toCounterparty.otherAccountRoutingAddress)
                   chargePolicy = transDetailsSEPAJson.charge_policy

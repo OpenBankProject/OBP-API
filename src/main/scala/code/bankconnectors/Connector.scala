@@ -874,16 +874,7 @@ trait Connector extends MdcLoggable{
 
     
       toAccount  <- TransactionRequestTypes.withName(transactionRequestType) match {
-        case COUNTERPARTY | SEPA  =>
-          for{
-           counterpartyId <- Full(transactionRequest.counterparty_id)
-           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-           toAccount <- BankAccount(toCounterparty)
-          }yield{
-            toAccount
-          }
-        case FREE_FORM => Full(fromAccount)
-        case _ =>
+        case SANDBOX_TAN =>
           for{
             toBankId <- Full(BankId(detailsJsonExtract.to.bank_id))
             toAccountId = AccountId(detailsJsonExtract.to.account_id)
@@ -891,6 +882,24 @@ trait Connector extends MdcLoggable{
           }yield{
             toAccount
           }
+        case COUNTERPARTY   =>
+          for{
+           counterpartyId <- Full(CounterpartyId(details.extract[TransactionRequestDetailsMapperCounterpartyJSON].counterparty_id))
+           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           toAccount <- BankAccount.toBankAccount(toCounterparty)
+          }yield{
+            toAccount
+          }
+        case SEPA  =>
+          for{
+            toCounterpartyIBan <- Full(details.extract[TransactionRequestDetailsMapperSEPAJSON].iban)
+            toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+            toAccount <- BankAccount.toBankAccount(toCounterparty)
+          }yield{
+            toAccount
+          }  
+        case FREE_FORM => Full(fromAccount)
+        case transactionRequestType => Failure(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")
       }
 
       transactionId <- makePaymentv200(

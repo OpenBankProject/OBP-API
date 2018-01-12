@@ -34,7 +34,7 @@ package code.model
 import java.util.Date
 
 import code.accountholder.AccountHolders
-import code.api.util.SessionContext
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
@@ -50,6 +50,7 @@ import net.liftweb.common._
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonDSL._
+import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Set}
 import scala.concurrent.Future
@@ -639,51 +640,55 @@ object BankAccount {
   def apply(bankId: BankId, accountId: AccountId, sessionContext: Option[SessionContext]) : Box[BankAccount] = {
     Connector.connector.vend.getBankAccount(bankId, accountId, sessionContext)
   }
+  /**
+    * Mapping a CounterpartyTrait to OBP BankAccount.
+    * If connector=mapped, we will search for the obp BankAccount.
+    * If connector=kafka, we can not find a bankAccount in obp, we only map some fileds. It depends on what we get from Adapter side.
+    *       
+    * @param counterparty 
+    * @return BankAccount
+    */
+  def toBankAccount(counterparty: CounterpartyTrait) : Box[BankAccount] = {
+    if (APIUtil.isSandboxMode)
+      for{
+        toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
+        toAccountId <- Full(AccountId(counterparty.otherAccountRoutingAddress))
+        toAccount <- BankAccount(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Now $toBankId and $toAccountId, please use correct OBP BankAccount to create the Counterparty. "
+      } yield{
+        toAccount
+      }
+    else
+      Full(
+        BankAccountInMemory(
   
-  def apply(counterpartyTrait: CounterpartyTrait) : Box[BankAccount] = {
-    Full(
-      BankAccountInMemory(
-        //BankAccount Trait
-        bankId = BankId(counterpartyTrait.otherBankRoutingAddress),
-        accountId = AccountId(counterpartyTrait.otherAccountRoutingAddress),
-        accountType = null,
-        balance = 0, //TODO double check, we can not get balance from CounterpartyTrait, so just use default 0.
-        currency = "EUR", //TODO, this need get from CounterpartyTrait, should add crrency there.
-        lastUpdate = null,
-        accountHolder = counterpartyTrait.name,
-        label = counterpartyTrait.name,
-        accountRoutingScheme = counterpartyTrait.otherAccountRoutingScheme,
-        accountRoutingAddress = counterpartyTrait.otherAccountRoutingAddress,
-        branchId = counterpartyTrait.counterpartyId,
-        swift_bic = Option(counterpartyTrait.otherAccountRoutingAddress),
-        iban = Option(counterpartyTrait.otherAccountSecondaryRoutingAddress),
-        number = counterpartyTrait.otherAccountRoutingAddress,
-        accountRoutings = List(
-          AccountRouting(counterpartyTrait.otherAccountRoutingScheme, counterpartyTrait.otherAccountRoutingAddress),
-          AccountRouting(counterpartyTrait.otherAccountSecondaryRoutingScheme, counterpartyTrait.otherAccountSecondaryRoutingAddress)
-        ),
-        accountRules = Nil,
-        
-        //Counterparty Trait
-        createdByUserId= counterpartyTrait.createdByUserId,
-        description = counterpartyTrait.description ,
-        name=counterpartyTrait.name,
-        thisBankId=counterpartyTrait.thisBankId,
-        thisAccountId = counterpartyTrait.thisAccountId,
-        thisViewId = counterpartyTrait.thisViewId,
-        counterpartyId=counterpartyTrait.counterpartyId,
-        otherAccountRoutingScheme = counterpartyTrait.otherAccountRoutingScheme,
-        otherAccountRoutingAddress = counterpartyTrait.otherAccountRoutingAddress,
-        otherAccountSecondaryRoutingScheme = counterpartyTrait.otherAccountSecondaryRoutingScheme,
-        otherAccountSecondaryRoutingAddress = counterpartyTrait.otherAccountSecondaryRoutingAddress,
-        otherBankRoutingScheme = counterpartyTrait.otherBankRoutingScheme,
-        otherBankRoutingAddress = counterpartyTrait.otherBankRoutingAddress,
-        otherBranchRoutingScheme = counterpartyTrait.otherBranchRoutingScheme,
-        otherBranchRoutingAddress = counterpartyTrait.otherBranchRoutingAddress,
-        isBeneficiary=counterpartyTrait.isBeneficiary,
-        bespoke=counterpartyTrait.bespoke
+          //Map Counterparty <--> BankAccount, not all fields we can fill.
+          accountHolder = counterparty.name,
+          accountRoutingScheme = counterparty.otherAccountRoutingScheme,
+          accountRoutingAddress = counterparty.otherAccountRoutingAddress,
+          accountRoutings = List(
+            AccountRouting(counterparty.otherAccountRoutingScheme,
+                           counterparty.otherAccountRoutingAddress),
+            AccountRouting(counterparty.otherAccountSecondaryRoutingScheme,
+                           counterparty.otherAccountSecondaryRoutingAddress)
+          ),
+  
+  
+          //Can not get from counterparty
+          bankId = BankId(""),
+          accountId = AccountId(""),
+          accountType = null,
+          balance = 0,
+          currency = "EUR",
+          lastUpdate = null,
+          name = "",
+          label = "",
+          branchId = "",
+          swift_bic = Option(""),
+          iban = Option(""),
+          number = "",
+          accountRules = Nil
+        )
       )
-    )
   }
   
   def publicAccounts : List[BankAccount] = {
@@ -707,44 +712,25 @@ object BankAccount {
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
 case class BankAccountInMemory(
-                                //BankAccount Trait
-                                bankId: BankId,
-                                accountId: AccountId,
-                                accountType: String,
-                                balance: BigDecimal,
-                                currency: String,
-                                name: String,
-                                lastUpdate: Date,
-                                accountHolder: String,
-                                label: String,
-                                accountRoutingScheme: String,
-                                accountRoutingAddress: String,
-                                branchId: String,
-                                swift_bic: Option[String],
-                                iban: Option[String],
-                                number: String,
-                                accountRoutings: List[AccountRouting],
-                                accountRules: List[AccountRule],
-
-                                //Counterparty Trait
-                                createdByUserId: String,
-                                description: String,
-                                thisBankId: String,
-                                thisAccountId: String,
-                                thisViewId: String,
-                                counterpartyId: String,
-                                otherAccountRoutingScheme: String,
-                                otherAccountRoutingAddress: String,
-                                otherAccountSecondaryRoutingScheme: String,
-                                otherAccountSecondaryRoutingAddress: String,
-                                otherBankRoutingScheme: String,
-                                otherBankRoutingAddress: String,
-                                otherBranchRoutingScheme: String,
-                                otherBranchRoutingAddress: String,
-                                isBeneficiary : Boolean,
-                                bespoke: List[CounterpartyBespoke]
-  
-) extends BankAccount with CounterpartyTrait
+  //BankAccount Trait
+  bankId: BankId,
+  accountId: AccountId,
+  accountType: String,
+  balance: BigDecimal,
+  currency: String,
+  name: String,
+  lastUpdate: Date,
+  accountHolder: String,
+  label: String,
+  accountRoutingScheme: String,
+  accountRoutingAddress: String,
+  branchId: String,
+  swift_bic: Option[String],
+  iban: Option[String],
+  number: String,
+  accountRoutings: List[AccountRouting],
+  accountRules: List[AccountRule]
+) extends BankAccount 
 
 /*
 The other bank account or counterparty in a transaction

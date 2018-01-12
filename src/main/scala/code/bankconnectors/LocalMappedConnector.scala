@@ -560,7 +560,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .counterpartyIban(toAccount.iban.getOrElse(""))
       .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
-      .CPCounterPartyId(toAccount.accountId.value)
+//      .CPCounterPartyId(toAccount.accountId.value)
       .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
       .CPOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
       .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)

@@ -1974,4 +1974,6 @@ Versions are groups of endpoints in a file
     thisAccountId : String,
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
+  
+  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped")
 }
