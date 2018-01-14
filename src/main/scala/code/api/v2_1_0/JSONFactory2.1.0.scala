@@ -643,7 +643,7 @@ object JSONFactory210{
       user_id = metric.getUserId(),
       user_name = metric.getUserName(),
       developer_email = metric.getDeveloperEmail(),
-      app_name = metric.getAppName,
+      app_name = metric.getAppName(),
       url = metric.getUrl(),
       date = metric.getDate(),
       consumer_id = metric.getConsumerId(),

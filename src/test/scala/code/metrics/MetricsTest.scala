@@ -17,6 +17,14 @@ class MetricsTest extends ServerSetup with WipeMetrics {
 
   val testUrl1 = "http://example.com/foo"
   val testUrl2 = "http://example.com/bar"
+  val testUserId ="UserId"
+  val testUserName = "userName"
+  val testAppName = "appName"
+  val testDeveloperEmail = "developerEmail"
+  val testConsumerId = "consumerId" 
+  val testImplementedByPartialFunction = "implementedByPartialFunction" 
+  val testVersion = "i.i.v"
+  val testVerb = "verb"
 
   val dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
   val day1 = dateFormatter.parse("2015-01-12T01:00:00")
@@ -48,7 +56,9 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   feature("API Metrics") {
 
     scenario("We save a new API metric") {
-      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
+      metrics.saveMetric(testUserId,testUrl1, day1, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
@@ -63,10 +73,18 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by url") {
-      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl1, day2, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl2, day2, -1L, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb,getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day2, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl2, day2, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
@@ -84,10 +102,18 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     }
 
     scenario("Group all metrics by day") {
-      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl1, day1, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl1, day2, -1L, getCorrelationId())
-      metrics.saveMetric(testUrl2, day2, -1L, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl1, day2, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
+      metrics.saveMetric(testUserId, testUrl2, day2, -1L, testUserName, testAppName,
+                         testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
+                         testVersion, testVerb, getCorrelationId())
 
       val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))
