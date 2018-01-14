@@ -55,7 +55,7 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.MappedBadLoginAttempt
-import code.management.{ImporterAPI}
+import code.management.ImporterAPI
 import code.meetings.MappedMeeting
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -85,6 +85,8 @@ import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
 import code.api.util.APIUtil.{ApiVersion, enableVersionIfAllowed}
+import code.bankconnectors.Connector
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 
 
 /**
@@ -397,6 +399,24 @@ class Boot extends MdcLoggable {
         case false => logger.info("Akka middleware layer is disabled.")
       }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
+    }
+
+    Connector.connector.vend.getAdapterInfo() match {
+      case Empty =>
+        logger.info("ADAPTER INFO - Adapter is not implemented.")
+      case Full(obj@InboundAdapterInfoInternal(errorCode, backendMessages, name, version, git_commit, date)) =>
+        logger.info("ADAPTER INFO - errorCode: " + errorCode)
+        logger.info("ADAPTER INFO - backendMessages: " + backendMessages)
+        logger.info("ADAPTER INFO - name: " + name)
+        logger.info("ADAPTER INFO - version: " + version)
+        logger.info("ADAPTER INFO - git_commit: " + git_commit)
+        logger.info("ADAPTER INFO - date: " + date)
+      case Failure(msg, t, c) =>
+        logger.info("ADAPTER INFO - " + msg)
+        logger.info("ADAPTER INFO - " + t)
+        logger.info("ADAPTER INFO - " + c)
+      case _     =>
+        logger.info("ADAPTER INFO - Unknown status.")
     }
 
   }
