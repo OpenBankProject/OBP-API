@@ -420,6 +420,48 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+  def logAPICall(sessionContext: Option[SessionContext]) = {
+    sessionContext match {
+      case Some(sc) =>
+        if(Props.getBool("write_metrics", false)) {
+          val u: User = sc.user.orNull
+          val userId = if (u != null) u.userId else "null"
+          val userName = if (u != null) u.name else "null"
+
+          val implementedByPartialFunction = sc.resourceDocument match {
+            case Some(r) => r.partialFunctionName
+            case _       => ""
+          }
+
+          val duration =
+            (sc.startTime, sc.endTime)  match {
+              case (Some(s), Some(e)) => (e.getTime - s.getTime)
+              case _       => -1
+            }
+
+          //execute saveMetric in future, as we do not need to know result of operation
+          Future {
+            APIMetrics.apiMetrics.vend.saveMetric(
+              userId,
+              sc.url,
+              sc.startTime.getOrElse(null),
+              duration,
+              userName,
+              "appName",
+              "developerEmail",
+              "consumerId",
+              implementedByPartialFunction,
+              sc.implementedInVersion,
+              sc.verb,
+              sc.correlationId
+            )
+          }
+        }
+      case _ =>
+        logger.error("SessionContext is not defined. Metrics cannot be saved.")
+    }
+  }
+
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     if(Props.getBool("write_metrics", false)) {
       val user =
@@ -583,6 +625,7 @@ object APIUtil extends MdcLoggable {
 
   def successJsonResponseFromCaseClass(cc: Any, sc: Option[SessionContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), sc)
+    logAPICall(sc.map(_.copy(endTime = Some(Helpers.now))))
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
@@ -1830,15 +1873,18 @@ Versions are groups of endpoints in a file
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
     * @return A Tuple of an User wrapped into a Future and optional session context data
     */
-  def getUserAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
+  def getUserAndSessionContextFuture(sc: SessionContext): Future[(Box[User], Option[SessionContext])] = {
     val s = S
     val spelling = getSpellingParam()
-    val start = Helpers.now
+    val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
+    val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+    val url = S.uriAndQueryString.getOrElse("")
+    val correlationId = getCorrelationId()
     val res =
     if (hasAnOAuthHeader) {
-      getUserFromOAuthHeaderFuture()
+      getUserFromOAuthHeaderFuture(sc)
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
-      DirectLogin.getUserFromDirectLoginHeaderFuture()
+      DirectLogin.getUserFromDirectLoginHeaderFuture(sc)
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
@@ -1852,7 +1898,7 @@ Versions are groups of endpoints in a file
                     case Full((u, cbsToken)) => // Authentication is successful
                       GatewayLogin.getOrCreateConsumer(payload, u)
                       val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
-                      val sessionContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), None)
+                      val sessionContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(sc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val sessionContext = ApiSession.updateSessionContext(GatewayLoginResponseHeader(Some(jwt)), sessionContextForRequest)
                       (Full(u), sessionContext)
@@ -1885,24 +1931,30 @@ Versions are groups of endpoints in a file
     res map {
       x => (x._1, ApiSession.updateSessionContext(Spelling(spelling), x._2))
     } map {
-      x => (x._1, x._2.map(_.copy(startTime = Some(start))))
+      x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
+    } map {
+      x => (x._1, x._2.map(_.copy(verb = verb)))
+    } map {
+      x => (x._1, x._2.map(_.copy(url = url)))
+    } map {
+      x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
     }
-  }
 
+  }
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def extractCallContext(emptyUserErrorMsg: String): Future[(Box[User], Option[SessionContext])] = {
-    getUserAndSessionContextFuture() map {
+  def extractCallContext(emptyUserErrorMsg: String, sc: SessionContext): Future[(Box[User], Option[SessionContext])] = {
+    getUserAndSessionContextFuture(sc) map {
       x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
     }
   }
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def extractCallContext(): Future[(Box[User], Option[SessionContext])] = {
-    getUserAndSessionContextFuture()
+  def extractCallContext(sc: SessionContext): Future[(Box[User], Option[SessionContext])] = {
+    getUserAndSessionContextFuture(sc)
   }
 
   /**

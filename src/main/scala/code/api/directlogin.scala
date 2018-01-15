@@ -465,8 +465,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def getUserFromDirectLoginHeaderFuture() : Future[(Box[User], Option[SessionContext])] = {
-    val sc = SessionContext()
+  def getUserFromDirectLoginHeaderFuture(sc: SessionContext) : Future[(Box[User], Option[SessionContext])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"

@@ -94,10 +94,10 @@ trait APIMethods300 {
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn)
+              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, sc)
               u <- unboxFullAndWrapIntoFuture{ user }
               account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
@@ -243,10 +243,10 @@ trait APIMethods300 {
     lazy val accountById : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           val res =
             for {
-              (user, sessionContext) <- extractCallContext(UserNotLoggedIn)
+              (user, sessionContext) <- extractCallContext(UserNotLoggedIn, sc)
               account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
@@ -297,10 +297,10 @@ trait APIMethods300 {
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           val res =
             for {
-            (user, sessionContext) <-  extractCallContext(UserNotLoggedIn)
+            (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, sc)
             account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
               x => fullBoxOrException(x ?~! BankAccountNotFound)
             } map { unboxFull(_) }
@@ -349,9 +349,9 @@ trait APIMethods300 {
     lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
       case "my" :: "accounts" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext)}
@@ -400,10 +400,10 @@ trait APIMethods300 {
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn)
+              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, sc)
               bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
@@ -465,10 +465,10 @@ trait APIMethods300 {
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn)
+              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, sc)
               bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
@@ -584,9 +584,9 @@ trait APIMethods300 {
 
     lazy val getUser: OBPEndpoint = {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -620,9 +620,9 @@ trait APIMethods300 {
 
     lazy val getUserByUserId: OBPEndpoint = {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -660,9 +660,9 @@ trait APIMethods300 {
 
     lazy val getUserByUsername: OBPEndpoint = {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -852,9 +852,9 @@ trait APIMethods300 {
     )
     lazy val getBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
-        _ => {
+        sc => {
           for {
-            (user, sessioContext) <- extractCallContext()
+            (user, sessioContext) <- extractCallContext(sc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -910,11 +910,11 @@ trait APIMethods300 {
     )
     lazy val getBranches : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
-        _ => {
+        sc => {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, sessioContext) <- extractCallContext()
+            (user, sessioContext) <- extractCallContext(sc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -983,9 +983,9 @@ trait APIMethods300 {
     )
     lazy val getAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext()
+            (user, sessioContext) <- extractCallContext(sc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetAtm(getAtmsIsPublic, user)
             }
@@ -1033,11 +1033,11 @@ trait APIMethods300 {
     )
     lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
-        _ => {
+        sc => {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, sessioContext) <- extractCallContext()
+            (user, sessioContext) <- extractCallContext(sc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -1106,10 +1106,10 @@ trait APIMethods300 {
 
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
-        _ =>
+        sc =>
           val s = S
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -1150,9 +1150,9 @@ trait APIMethods300 {
 
     lazy val getCustomersForUser : OBPEndpoint = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
-        _ => {
+        sc => {
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(sessioContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
@@ -1183,9 +1183,9 @@ trait APIMethods300 {
 
     lazy val getCurrentUser: OBPEndpoint = {
       case "users" :: "current" :: Nil JsonGet _ => {
-        _ => {
+        sc => {
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
@@ -1220,9 +1220,9 @@ trait APIMethods300 {
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)
@@ -1261,9 +1261,9 @@ trait APIMethods300 {
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)

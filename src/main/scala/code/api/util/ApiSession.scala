@@ -15,7 +15,11 @@ case class SessionContext(
                            user: Box[User] = Empty,
                            resourceDocument: Option[ResourceDoc] = None,
                            startTime: Option[Date] = None,
-                           endTime: Option[Date] = None
+                           endTime: Option[Date] = None,
+                           correlationId: String = "",
+                           url: String = "",
+                           verb: String = "",
+                           implementedInVersion: String = ""
                          )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam

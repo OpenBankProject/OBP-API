@@ -988,9 +988,9 @@ trait APIMethods210 {
 
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
-        _ =>
+        sc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn)
+            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, sc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
