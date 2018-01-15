@@ -390,18 +390,15 @@ object APIUtil extends MdcLoggable {
       case _ => "GET"
     }
 
-  def hasDirectLoginHeader : Boolean = hasHeader("DirectLogin")
+  def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
 
-  def hasAnOAuthHeader : Boolean = hasHeader("OAuth")
+  def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
-  def hasGatewayHeader() = hasHeader("GatewayLogin")
+  def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
 
-  def hasHeader(`type`: String) : Boolean = {
-    S.request match {
-      case Full(a) =>  a.header("Authorization") match {
-        case Full(parameters) => parameters.contains(`type`)
-        case _ => false
-      }
+  def hasHeader(`type`: String, authorization: Box[String]) : Boolean = {
+    authorization match {
+      case Full(a) if a.contains(`type`) => true
       case _ => false
     }
   }
@@ -439,17 +436,37 @@ object APIUtil extends MdcLoggable {
               case _       => -1
             }
 
-          //execute saveMetric in future, as we do not need to know result of operation
+          //execute saveMetric in future, as we do not need to know result of the operation
           Future {
+            val consumer =
+              if (hasAnOAuthHeader(sc.authorization)) {
+                getConsumer(sc) match {
+                  case Full(c) => Full(c)
+                  case _ => Empty
+                }
+              } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(sc.authorization)) {
+                DirectLogin.getConsumer(sc) match {
+                  case Full(c) => Full(c)
+                  case _ => Empty
+                }
+              } else {
+                Empty
+              }
+            val c: Consumer = consumer.orNull
+            //The consumerId, not key
+            val consumerId = if (u != null) c.id.toString() else "null"
+            val appName = if (u != null) c.name.toString() else "null"
+            val developerEmail = if (u != null) c.developerEmail.toString() else "null"
+
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
               sc.url,
               sc.startTime.getOrElse(null),
               duration,
               userName,
-              "appName",
-              "developerEmail",
-              "consumerId",
+              appName,
+              developerEmail,
+              consumerId,
               implementedByPartialFunction,
               sc.implementedInVersion,
               sc.verb,
@@ -463,14 +480,15 @@ object APIUtil extends MdcLoggable {
   }
 
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
+    val authorization = S.request.map(_.header("Authorization")).flatten
     if(Props.getBool("write_metrics", false)) {
       val user =
-        if (hasAnOAuthHeader) {
+        if (hasAnOAuthHeader(authorization)) {
           getUser match {
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -480,12 +498,12 @@ object APIUtil extends MdcLoggable {
         }
 
       val consumer =
-        if (hasAnOAuthHeader) {
+        if (hasAnOAuthHeader(authorization)) {
           getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
@@ -1875,17 +1893,18 @@ Versions are groups of endpoints in a file
     */
   def getUserAndSessionContextFuture(sc: SessionContext): Future[(Box[User], Option[SessionContext])] = {
     val s = S
+    val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
     val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
-    if (hasAnOAuthHeader) {
+    if (hasAnOAuthHeader(authorization)) {
       getUserFromOAuthHeaderFuture(sc)
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(sc)
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -1938,6 +1957,8 @@ Versions are groups of endpoints in a file
       x => (x._1, x._2.map(_.copy(url = url)))
     } map {
       x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
+    } map {
+      x => (x._1, x._2.map(_.copy(authorization = authorization)))
     }
 
   }

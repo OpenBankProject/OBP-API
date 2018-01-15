@@ -193,9 +193,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: SessionContext => Box[JsonResponse]) : JsonResponse = {
     val sc = SessionContext(resourceDocument = rd, startTime = Some(Helpers.now))
+    val authorization = S.request.map(_.header("Authorization")).flatten
     if(newStyleEndpoints(rd)) {
       fn(sc)
-    } else if (hasAnOAuthHeader) {
+    } else if (hasAnOAuthHeader(authorization)) {
       val usr = getUser
       usr match {
         case Full(u) => fn(sc.copy(user = Full(u))) // Authentication is successful
@@ -203,7 +204,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
       }
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
         case Full(u) => fn(sc.copy(user = Full(u)))// Authentication is successful
         case _ => {
@@ -211,7 +212,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Full(errorJsonResponse(message, httpCode))
         }
       }
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature

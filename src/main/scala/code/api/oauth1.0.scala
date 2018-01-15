@@ -891,6 +891,18 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     consumer
   }
 
+  def getConsumer(sc: SessionContext): Box[Consumer] = {
+    import code.model.Token
+    val consumer: Option[Consumer] = for {
+      tokenId: String <- sc.oAuthParams.get("oauth_token")
+      token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
+      consumer: Consumer <- token.consumer
+    } yield {
+      consumer
+    }
+    consumer
+  }
+
 
   def getUser : Box[User] = {
     val httpMethod = S.request match {
@@ -937,7 +949,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       _ <- Future { if (httpCode == 200) Full("ok") else Empty } map { x => APIUtil.fullBoxOrException(x ?~! message) }
       user <- getUserFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
     } yield {
-      (user, Some(sc.copy(user = user)))
+      (user, Some(sc.copy(user = user, oAuthParams = oAuthParameters)))
     }
   }
   def getUserFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[User]] = {
