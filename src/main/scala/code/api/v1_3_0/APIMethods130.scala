@@ -38,7 +38,7 @@ trait APIMethods130 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagUser))
 
-    lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCards : OBPEndpoint = {
       case "cards" :: Nil JsonGet _ => {
         user => {
             for {
@@ -68,7 +68,7 @@ trait APIMethods130 {
       List(apiTagCard))
 
 
-    lazy val getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCardsForBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
         user => {
           for {

@@ -85,7 +85,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         user => {
           for {
@@ -121,7 +121,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomerMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
         user => {
           for {
@@ -156,7 +156,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     // TODO Add Role
 
-    lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCustomerMessage : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
         user => {
           for {
@@ -212,7 +212,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBranch)
     )
 
-    lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getBranches : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet json => {
         user => {
           for {
@@ -278,7 +278,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBank)
     )
 
-    lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
         user => {
           for {
@@ -346,7 +346,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBank)
     )
 
-    lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getProducts : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
         user => {
           for {
@@ -389,7 +389,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     // TODO Require Role
 
-    lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCrmEvents : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
         user => {
           for {
@@ -449,7 +449,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         user =>
@@ -493,7 +493,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
@@ -558,7 +558,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         user =>
@@ -622,7 +622,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         user =>
@@ -678,7 +678,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCustomer : OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonPost json -> _ => {
         user =>
@@ -761,7 +761,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
 
 
-    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {

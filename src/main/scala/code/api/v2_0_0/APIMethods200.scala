@@ -139,7 +139,7 @@ trait APIMethods200 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
-    lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val allAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
       case "accounts" :: Nil JsonGet json => {
         user =>
@@ -172,7 +172,7 @@ trait APIMethods200 {
 
 
 
-        lazy val corePrivateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+        lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
           //get private accounts for all banks
           case "my" :: "accounts" :: Nil JsonGet json => {
             user =>
@@ -214,7 +214,7 @@ trait APIMethods200 {
 
 
 
-    lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet json => {
         user =>
@@ -250,7 +250,7 @@ trait APIMethods200 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 
-    lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val allAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
@@ -303,7 +303,7 @@ trait APIMethods200 {
 
     // This contains an approach to surface a resource via different end points in case of a default bank.
     // The second path is experimental
-    lazy val corePrivateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val corePrivateAccountsAtOneBank : OBPEndpoint = {
       // get private accounts for a single bank
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
         user =>
@@ -362,7 +362,7 @@ trait APIMethods200 {
       List(apiTagAccount)
     )
 
-    lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         user =>
@@ -397,7 +397,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
-    lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
         user =>
@@ -429,7 +429,7 @@ trait APIMethods200 {
 
     // TODO Add Role
 
-    lazy val getKycDocuments  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getKycDocuments  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
         user => {
           for {
@@ -461,7 +461,7 @@ trait APIMethods200 {
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagKyc, apiTagCustomer))
 
-    lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getKycMedia  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         user => {
           for {
@@ -494,7 +494,7 @@ trait APIMethods200 {
 
     // TODO Add Role
 
-    lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getKycChecks  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         user => {
           for {
@@ -524,7 +524,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer))
 
-    lazy val getKycStatuses  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getKycStatuses  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         user => {
           for {
@@ -555,7 +555,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getSocialMediaHandles  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonGet _ => {
         user => {
           for {
@@ -592,7 +592,7 @@ trait APIMethods200 {
 
     // TODO customerNumber should be in the url but not also in the postedData
 
-    lazy val addKycDocument : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addKycDocument : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_documents" :: documentId :: Nil JsonPut json -> _ => {
         // customerNumber is duplicated in postedData. remove from that?
         user => {
@@ -644,7 +644,7 @@ trait APIMethods200 {
       List(apiTagKyc, apiTagCustomer)
     )
 
-    lazy val addKycMedia : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addKycMedia : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_media" :: mediaId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
@@ -687,7 +687,7 @@ trait APIMethods200 {
       List(apiTagKyc, apiTagCustomer)
     )
 
-    lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addKycCheck : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: checkId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
@@ -731,7 +731,7 @@ trait APIMethods200 {
       List(apiTagKyc, apiTagCustomer)
     )
 
-    lazy val addKycStatus : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addKycStatus : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_statuses" :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
@@ -776,7 +776,7 @@ trait APIMethods200 {
       List(apiTagCustomer)
     )
 
-    lazy val addSocialMediaHandle : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addSocialMediaHandle : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
@@ -827,7 +827,7 @@ trait APIMethods200 {
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  Nil)
 
-    lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
 
@@ -880,7 +880,7 @@ trait APIMethods200 {
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
-    lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       //get transactions
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -930,7 +930,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
-    lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val accountById : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
@@ -966,7 +966,7 @@ trait APIMethods200 {
       List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement)
     )
 
-    lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPermissionsForBankAccount : OBPEndpoint = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
@@ -1001,7 +1001,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
-    lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
@@ -1061,7 +1061,7 @@ trait APIMethods200 {
     apiRelations += ApiRelation(createAccount, Implementations1_2_1.updateAccountLabel, "update_label")
 
 
-    lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createAccount : OBPEndpoint = {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         user => {
@@ -1138,7 +1138,7 @@ trait APIMethods200 {
       List(apiTagBank)
     )
 
-    lazy val getTransactionTypes : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionTypes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
         user => {
           for {
@@ -1228,7 +1228,7 @@ trait APIMethods200 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         user =>
@@ -1300,7 +1300,7 @@ trait APIMethods200 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         user =>
@@ -1389,7 +1389,7 @@ trait APIMethods200 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
@@ -1437,7 +1437,7 @@ trait APIMethods200 {
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
 
-    lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createUser: OBPEndpoint = {
       case "users" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -1514,7 +1514,7 @@ trait APIMethods200 {
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
-    lazy val createMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
         user =>
           if (Props.getBool("meeting.tokbox_enabled", false)) {
@@ -1571,7 +1571,7 @@ trait APIMethods200 {
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
-    lazy val getMeetings: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("meeting.tokbox_enabled", false)) {
@@ -1629,7 +1629,7 @@ trait APIMethods200 {
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
-    lazy val getMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("meeting.tokbox_enabled", false)) {
@@ -1692,7 +1692,7 @@ trait APIMethods200 {
     // Logged in user must have CanCreateCustomer (should no longer be able create customer for own user)
     // Add ApiLink to createUserCustomerLink
 
-    lazy val createCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -1754,7 +1754,7 @@ trait APIMethods200 {
       List(apiTagUser))
 
 
-    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCurrentUser: OBPEndpoint = {
       case "users" :: "current" :: Nil JsonGet _ => {
         user =>
             for {
@@ -1789,7 +1789,7 @@ trait APIMethods200 {
       List(apiTagUser))
 
 
-    lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getUser: OBPEndpoint = {
       case "users" :: userEmail :: Nil JsonGet _ => {
         user =>
             for {
@@ -1845,7 +1845,7 @@ trait APIMethods200 {
     // TODO
     // Allow multiple UserCustomerLinks per user (and bank)
 
-    lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createUserCustomerLinks : OBPEndpoint = {
       case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -1903,7 +1903,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
-    lazy val addEntitlement : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addEntitlement : OBPEndpoint = {
       //add access for specific user to a list of views
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         user =>
@@ -1948,7 +1948,7 @@ trait APIMethods200 {
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
 
-    lazy val getEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getEntitlements: OBPEndpoint = {
       case "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
         user =>
             for {
@@ -1996,7 +1996,7 @@ trait APIMethods200 {
       List(apiTagUser, apiTagEntitlement))
 
 
-    lazy val deleteEntitlement: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteEntitlement: OBPEndpoint = {
       case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
         user =>
             for {
@@ -2031,7 +2031,7 @@ trait APIMethods200 {
       List(apiTagRole, apiTagEntitlement))
 
 
-    lazy val getAllEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getAllEntitlements: OBPEndpoint = {
       case "entitlements" :: Nil JsonGet _ => {
         user =>
           for {
@@ -2126,7 +2126,7 @@ trait APIMethods200 {
         List())
 
     val esw = new elasticsearchWarehouse
-    lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val elasticSearchWarehouse: OBPEndpoint = {
       case "search" :: "warehouse" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
@@ -2212,7 +2212,7 @@ trait APIMethods200 {
         List(apiTagApi))
 
     val esm = new elasticsearchMetrics
-    lazy val elasticSearchMetrics: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val elasticSearchMetrics: OBPEndpoint = {
       case "search" :: "metrics" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
@@ -2241,7 +2241,7 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
-    lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomers : OBPEndpoint = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         user => {
           for {

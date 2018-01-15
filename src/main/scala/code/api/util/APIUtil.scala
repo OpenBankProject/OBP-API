@@ -1115,15 +1115,15 @@ object APIUtil extends MdcLoggable {
 
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(
-    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    fromPF : OBPEndpoint,
+    toPF : OBPEndpoint,
     rel : String
   )
 
   // Populated from Resource Doc and ApiRelation
   case class InternalApiLink(
-    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    fromPF : OBPEndpoint,
+    toPF : OBPEndpoint,
     rel : String,
     requestUrl: String
     )
@@ -1139,7 +1139,7 @@ object APIUtil extends MdcLoggable {
 )
 
   case class CallerContext(
-    caller : PartialFunction[Req, Box[User] => Box[JsonResponse]]
+    caller : OBPEndpoint
   )
 
   case class CodeContext(

@@ -314,7 +314,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
 
-    def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getResourceDocsObp : OBPEndpoint = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
      val (showCore, showPSD2, showOBWG, tags, partialFunctions) =  getParams()
       user => {
@@ -360,7 +360,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
 
-    def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getResourceDocsSwagger : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
         val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) =  getParams()
         user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
@@ -533,7 +533,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 
 
-    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {

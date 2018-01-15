@@ -123,7 +123,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
-    lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
@@ -173,7 +173,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
-    lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
@@ -217,7 +217,7 @@ trait APIMethods220 {
       List(apiTagAccount, apiTagView)
     )
 
-    lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateViewForBankAccount : OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         user =>
@@ -251,7 +251,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagFx))
 
-    lazy val getCurrentFxRate: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCurrentFxRate: OBPEndpoint = {
       case "banks" :: BankId(bankid) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
         user =>
           for {
@@ -291,7 +291,7 @@ trait APIMethods220 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
-    lazy val getCounterpartiesForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCounterpartiesForAccount : OBPEndpoint = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
         user =>
@@ -330,7 +330,7 @@ trait APIMethods220 {
       List(apiTagAccount)
     )
   
-    lazy val getCounterpartyById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCounterpartyById : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet json => {
         user =>
@@ -368,7 +368,7 @@ trait APIMethods220 {
       List(apiTagApi)
     )
 
-    lazy val getMessageDocs: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getMessageDocs: OBPEndpoint = {
       case "message-docs" :: connector :: Nil JsonGet _ => {
         user => {
           for {
@@ -407,7 +407,7 @@ trait APIMethods220 {
       List(apiTagBank)
     )
 
-    lazy val createBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -467,7 +467,7 @@ trait APIMethods220 {
       Nil
     )
 
-    lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
         user =>
           for {
@@ -520,7 +520,7 @@ trait APIMethods220 {
 
 
 
-    lazy val createAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
         user =>
           for {
@@ -574,7 +574,7 @@ trait APIMethods220 {
 
 
 
-    lazy val createProduct: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" ::  Nil JsonPut json -> _ => {
         user =>
           for {
@@ -639,7 +639,7 @@ trait APIMethods220 {
 
 
 
-    lazy val createFx: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createFx: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "fx" ::  Nil JsonPut json -> _ => {
         user =>
           for {
@@ -708,7 +708,7 @@ trait APIMethods220 {
     )
 
 
-    lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createAccount : OBPEndpoint = {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         user => {
@@ -778,7 +778,7 @@ trait APIMethods220 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: Nil)
 
-    lazy val config : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val config : OBPEndpoint = {
       case "config" :: Nil JsonGet _ => user => for {
         u <- user ?~! ErrorMessages.UserNotLoggedIn
         _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserHasMissingRoles $CanGetConfig")
@@ -834,7 +834,7 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi))
 
-    lazy val getConnectorMetrics : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
         user => {
           for {
@@ -958,7 +958,7 @@ trait APIMethods220 {
       Nil)
 
 
-    lazy val createConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -1035,7 +1035,7 @@ trait APIMethods220 {
       List(apiTagCounterparty, apiTagAccount))
   
   
-    lazy val createCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -1109,7 +1109,7 @@ trait APIMethods220 {
       List(apiTagAccount, apiTagCustomer, apiTagView)
     )
 
-    lazy val getCustomerViewsForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomerViewsForAccount : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet json => {
         user =>
@@ -1133,7 +1133,7 @@ trait APIMethods220 {
 
 
 /*
-    lazy val getCustomerViewsForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomerViewsForAccount : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
         user => {
           for {

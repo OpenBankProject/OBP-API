@@ -142,7 +142,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
 
    */
-  def failIfBadJSON(r: Req, h: (PartialFunction[Req, Box[User] => Box[JsonResponse]])): Box[User] => Box[JsonResponse] = {
+  def failIfBadJSON(r: Req, h: (OBPEndpoint)): Box[User] => Box[JsonResponse] = {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
@@ -263,8 +263,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
       * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
       */
-    def oPrefix(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): PartialFunction[Req, Box[User] => Box[JsonResponse]] =
-      new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
+    def oPrefix(pf: OBPEndpoint): OBPEndpoint =
+      new OBPEndpoint {
         def isDefinedAt(req: Req): Boolean =
           req.path.partPath.startsWith(list) && {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))

@@ -115,7 +115,7 @@ trait APIMethods121 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: Nil)
 
-    def root(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def root(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
       case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
       case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }
@@ -141,7 +141,7 @@ trait APIMethods121 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
-    lazy val getBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getBanks : OBPEndpoint = {
       //get banks
       case "banks" :: Nil JsonGet json => {
         user =>
@@ -178,7 +178,7 @@ trait APIMethods121 {
       apiTagBank :: Nil)
 
 
-    lazy val bankById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val bankById : OBPEndpoint = {
       //get bank by id
       case "banks" :: BankId(bankId) :: Nil JsonGet json => {
         user =>
@@ -216,7 +216,7 @@ trait APIMethods121 {
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val allAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
       case "accounts" :: Nil JsonGet json => {
         user =>
@@ -241,7 +241,7 @@ trait APIMethods121 {
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
-    lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: "private" :: Nil JsonGet json => {
         user =>
@@ -269,7 +269,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
-    lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet json => {
         user =>
@@ -300,7 +300,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val allAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
@@ -330,7 +330,7 @@ trait APIMethods121 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount))
 
-    lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         user =>
@@ -360,7 +360,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
-    lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
         user =>
@@ -400,7 +400,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
-    lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val accountById : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
@@ -432,7 +432,7 @@ trait APIMethods121 {
       List(apiTagAccount, apiTagCounterpartyMetaData)
     )
 
-    lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateAccountLabel : OBPEndpoint = {
       //change account label
       // TODO Use PATCH instead? Remove BANK_ID AND ACCOUNT_ID from the body? (duplicated in URL)
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
@@ -485,7 +485,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
-    lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
@@ -533,7 +533,7 @@ trait APIMethods121 {
       List(apiTagAccount, apiTagView)
     )
 
-    lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
@@ -577,7 +577,7 @@ trait APIMethods121 {
       List(apiTagAccount, apiTagView)
     )
   
-    lazy val updateViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateViewForBankAccount: OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
       ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
@@ -618,7 +618,7 @@ trait APIMethods121 {
       List(apiTagAccount, apiTagView)
     )
   
-    lazy val deleteViewForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteViewForBankAccount: OBPEndpoint = {
       //deletes a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
@@ -653,7 +653,7 @@ trait APIMethods121 {
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
   
-    lazy val getPermissionsForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPermissionsForBankAccount: OBPEndpoint = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
@@ -692,7 +692,7 @@ trait APIMethods121 {
     )
   
   
-    lazy val getPermissionForUserForBankAccount: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getPermissionForUserForBankAccount: OBPEndpoint = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
@@ -734,7 +734,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
-    lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addPermissionForUserForBankAccountForMultipleViews : OBPEndpoint = {
       //add access for specific user to a list of views
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
         user =>
@@ -774,7 +774,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
-    lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addPermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //add access for specific user to a specific view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         user =>
@@ -814,7 +814,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
-    lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val removePermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //delete access for specific user to one view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         user =>
@@ -848,7 +848,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
 
-    lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val removePermissionForUserForBankAccountForAllViews : OBPEndpoint = {
       //delete access for specific user to all the views
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
         user =>
@@ -880,7 +880,7 @@ trait APIMethods121 {
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
-    lazy val getOtherAccountsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
         user =>
@@ -911,7 +911,7 @@ trait APIMethods121 {
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
-    lazy val getOtherAccountByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       //get one other account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
@@ -943,7 +943,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val getOtherAccountMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountMetadata : OBPEndpoint = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
@@ -980,7 +980,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCounterpartyPublicAlias : OBPEndpoint = {
       //get public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
         user =>
@@ -1027,7 +1027,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyPublicAlias : OBPEndpoint = {
       //add public alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
         user =>
@@ -1071,7 +1071,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyPublicAlias : OBPEndpoint = {
       //update public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
         user =>
@@ -1113,7 +1113,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyPublicAlias : OBPEndpoint = {
       //delete public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
         user =>
@@ -1152,7 +1152,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val getOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountPrivateAlias : OBPEndpoint = {
       //get private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
@@ -1193,7 +1193,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addOtherAccountPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addOtherAccountPrivateAlias : OBPEndpoint = {
       //add private alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
@@ -1237,7 +1237,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyPrivateAlias : OBPEndpoint = {
       //update private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
         user =>
@@ -1280,7 +1280,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyPrivateAlias : OBPEndpoint = {
       //delete private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
         user =>
@@ -1320,7 +1320,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyMoreInfo : OBPEndpoint = {
       //add more info to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
         user =>
@@ -1361,7 +1361,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyMoreInfo : OBPEndpoint = {
       //update more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
         user =>
@@ -1401,7 +1401,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyMoreInfo : OBPEndpoint = {
       //delete more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         user =>
@@ -1441,7 +1441,7 @@ trait APIMethods121 {
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
 
-    lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyUrl : OBPEndpoint = {
       //add url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
         user =>
@@ -1482,7 +1482,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyUrl : OBPEndpoint = {
       //update url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
         user =>
@@ -1522,7 +1522,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyUrl : OBPEndpoint = {
       //delete url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonDelete _ => {
         user =>
@@ -1561,7 +1561,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyImageUrl : OBPEndpoint = {
       //add image url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
         user =>
@@ -1601,7 +1601,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyImageUrl : OBPEndpoint = {
       //update image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
         user =>
@@ -1635,7 +1635,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
-    lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyImageUrl : OBPEndpoint = {
       //delete image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         user =>
@@ -1673,7 +1673,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //add open corporate url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
         user =>
@@ -1714,7 +1714,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //update open corporate url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
         user =>
@@ -1754,7 +1754,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //delete open corporate url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
         user =>
@@ -1793,7 +1793,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyCorporateLocation : OBPEndpoint = {
       //add corporate location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
         user =>
@@ -1837,7 +1837,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyCorporateLocation : OBPEndpoint = {
       //update corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
         user =>
@@ -1879,7 +1879,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyCorporateLocation : OBPEndpoint = {
       //delete corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonDelete _ => {
         user =>
@@ -1923,7 +1923,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCounterpartyPhysicalLocation : OBPEndpoint = {
       //add physical location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
         user =>
@@ -1968,7 +1968,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateCounterpartyPhysicalLocation : OBPEndpoint = {
       //update physical location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
         user =>
@@ -2011,7 +2011,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
-    lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCounterpartyPhysicalLocation : OBPEndpoint = {
       //delete physical location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonDelete _ => {
         user =>
@@ -2079,7 +2079,7 @@ trait APIMethods121 {
       }
     }
   
-    lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] =  {
+    lazy val getTransactionsForBankAccount : OBPEndpoint =  {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
         val paramsBox: Box[List[OBPQueryParam]] = getTransactionParams(json)
@@ -2113,7 +2113,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagAccount))
 
-    lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
         user =>
@@ -2148,7 +2148,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionNarrative : OBPEndpoint = {
       //get narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
         user =>
@@ -2189,7 +2189,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addTransactionNarrative : OBPEndpoint = {
       //add narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
         user =>
@@ -2226,7 +2226,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateTransactionNarrative : OBPEndpoint = {
       //update narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
         user =>
@@ -2264,7 +2264,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteTransactionNarrative : OBPEndpoint = {
       //delete narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
         user =>
@@ -2299,7 +2299,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCommentsForViewOnTransaction : OBPEndpoint = {
       //get comments
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
         user =>
@@ -2337,7 +2337,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCommentForViewOnTransaction : OBPEndpoint = {
       //add comment
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
         user =>
@@ -2379,7 +2379,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteCommentForViewOnTransaction : OBPEndpoint = {
       //delete comment
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         user =>
@@ -2413,7 +2413,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTagsForViewOnTransaction : OBPEndpoint = {
       //get tags
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
         user =>
@@ -2450,7 +2450,7 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addTagForViewOnTransaction : OBPEndpoint = {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
 
@@ -2485,7 +2485,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteTagForViewOnTransaction : OBPEndpoint = {
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
 
@@ -2520,7 +2520,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getImagesForViewOnTransaction : OBPEndpoint = {
       //get images
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
         user =>
@@ -2559,7 +2559,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       List(apiTagTransactionMetaData, apiTagTransaction)
     )
 
-    lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addImageForViewOnTransaction : OBPEndpoint = {
       //add an image
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
         user =>
@@ -2600,7 +2600,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteImageForViewOnTransaction : OBPEndpoint = {
       //delete an image
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
         user =>
@@ -2634,7 +2634,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getWhereTagForViewOnTransaction : OBPEndpoint = {
       //get where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
         user =>
@@ -2674,7 +2674,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addWhereTagForViewOnTransaction : OBPEndpoint = {
       //add where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
         user =>
@@ -2718,7 +2718,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val updateWhereTagForViewOnTransaction : OBPEndpoint = {
       //update where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
         user =>
@@ -2765,7 +2765,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
-    lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val deleteWhereTagForViewOnTransaction : OBPEndpoint = {
       //delete where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
         user =>
@@ -2799,7 +2799,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
-    lazy val getOtherAccountForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getOtherAccountForTransaction : OBPEndpoint = {
       //get other account of a transaction
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
         user =>
@@ -2850,7 +2850,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 
     /*
 
-    lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val makePayment : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
         user =>
           if (Props.getBool("payments_enabled", false)) {

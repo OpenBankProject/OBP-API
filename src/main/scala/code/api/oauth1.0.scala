@@ -944,7 +944,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     httpCode match {
       case 200 =>
         for {
-          c <- Tokens.tokens.vend.getTokenByKeyFuture(key.openOrThrowException("Attempted to open an empty Box.")) map (_.map(_.userForeignKey.get))
+          c: Box[Long] <- Tokens.tokens.vend.getTokenByKeyFuture(key.openOrThrowException("Attempted to open an empty Box.")) map (_.map(_.userForeignKey.get))
           u <- c match {
             case Full(id) =>
               Users.users.vend.getResourceUserByResourceUserIdFuture(id)
