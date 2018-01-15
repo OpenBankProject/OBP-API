@@ -62,7 +62,7 @@ import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Props, StringHelpers}
+import net.liftweb.util.{Helpers, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Nil
@@ -1833,6 +1833,7 @@ Versions are groups of endpoints in a file
   def getUserAndSessionContextFuture(): Future[(Box[User], Option[SessionContext])] = {
     val s = S
     val spelling = getSpellingParam()
+    val start = Helpers.now
     val res =
     if (hasAnOAuthHeader) {
       getUserFromOAuthHeaderFuture()
@@ -1880,8 +1881,11 @@ Versions are groups of endpoints in a file
     } else {
       Future { (Empty, None) }
     }
+    // Update Session Context
     res map {
       x => (x._1, ApiSession.updateSessionContext(Spelling(spelling), x._2))
+    } map {
+      x => (x._1, x._2.map(_.copy(startTime = Some(start))))
     }
   }
 

@@ -1,7 +1,9 @@
 package code.api.util
 
+import java.util.Date
+
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.util.APIUtil.{useISO20022Spelling, useOBPSpelling}
+import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
 import code.model.User
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.json.JsonAST.JValue
@@ -10,7 +12,10 @@ case class SessionContext(
                            gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
                            gatewayLoginResponseHeader: Option[String] = None,
                            spelling: Option[String] = None,
-                           user: Box[User] = Empty
+                           user: Box[User] = Empty,
+                           resourceDocument: Option[ResourceDoc] = None,
+                           startTime: Option[Date] = None,
+                           endTime: Option[Date] = None
                          )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam
