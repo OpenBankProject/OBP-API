@@ -151,12 +151,12 @@ trait APIMethods300 {
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
             json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
-            u <- user ?~!UserNotLoggedIn
+            u <- sc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
@@ -195,14 +195,14 @@ trait APIMethods300 {
     lazy val updateViewForBankAccount : OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
             updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            u <- user ?~!UserNotLoggedIn
+            u <- sc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
@@ -548,9 +548,9 @@ trait APIMethods300 {
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
       case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
@@ -746,9 +746,9 @@ trait APIMethods300 {
 
     lazy val createBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
@@ -802,9 +802,9 @@ trait APIMethods300 {
 
     lazy val createAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
@@ -1104,7 +1104,7 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
 
-    lazy val getUsers: PartialFunction[Req, (Box[User]) => Box[JsonResponse]] = {
+    lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         _ =>
           val s = S
@@ -1297,11 +1297,11 @@ trait APIMethods300 {
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, sc.user)
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
             successJsonResponse(Extraction.decompose(otherBankAccountsJson))
@@ -1328,11 +1328,11 @@ trait APIMethods300 {
   
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
             successJsonResponse(Extraction.decompose(otherBankAccountJson))
@@ -1365,7 +1365,7 @@ trait APIMethods300 {
     lazy val getOtherAccountsForBank : OBPEndpoint = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
             _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound

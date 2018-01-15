@@ -1644,7 +1644,7 @@ Returns a string showed to the developer
   }
 
 
-  type OBPEndpoint = PartialFunction[Req, Box[User] => Box[JsonResponse]]
+  type OBPEndpoint = PartialFunction[Req, SessionContext => Box[JsonResponse]]
 
 /*
 Versions are groups of endpoints in a file

@@ -113,10 +113,10 @@ trait APIMethods210 {
     lazy val sandboxDataImport: OBPEndpoint = {
       // Import data into the sandbox
       case "sandbox" :: "data-import" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
             importData <- tryo {json.extract[SandboxDataImport]} ?~! {InvalidJsonFormat}
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
             allowDataImport <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
             canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
@@ -151,12 +151,12 @@ trait APIMethods210 {
     lazy val getTransactionRequestTypesSupportedByBank: OBPEndpoint = {
       // Get transaction request types supported by the bank
       case "banks" :: BankId(bankId) :: "transaction-request-types" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           for {
             u <- if(getTransactionRequestTypesIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
             transactionRequestTypes <- tryo(Props.get("transactionRequests_supported_types", ""))
@@ -402,10 +402,10 @@ trait APIMethods210 {
     lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
             _ <- booleanToBox(Props.getBool("transactionRequests_enabled", false)) ?~ TransactionDisabled
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! {BankNotFound}
@@ -557,11 +557,11 @@ trait APIMethods210 {
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               // Check we have a User
-              u: User <- user ?~ UserNotLoggedIn
+              u: User <- sc.user ?~ UserNotLoggedIn
 
               // Check format of bankId supplied in URL
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
@@ -579,7 +579,7 @@ trait APIMethods210 {
               fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
+              view <- tryo(fromAccount.permittedViews(sc.user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
 
               // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${InvalidTransactionRequestId} : $transReqId"
@@ -670,13 +670,13 @@ trait APIMethods210 {
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ UserNotLoggedIn
+              u <- sc.user ?~ UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
+              view <- tryo(fromAccount.permittedViews(sc.user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
               isOwner <- booleanToBox(u.ownerAccess(fromAccount), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
@@ -711,9 +711,9 @@ trait APIMethods210 {
 
     lazy val getRoles: OBPEndpoint = {
       case "roles" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
           }
           yield {
@@ -752,9 +752,9 @@ trait APIMethods210 {
 
     lazy val getEntitlementsByBankAndUser: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~ {BankNotFound}
             usr <- User.findByUserId(userId) ?~! UserNotFoundById
             allowedEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
@@ -805,9 +805,9 @@ trait APIMethods210 {
 
     lazy val getConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers)
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong)
@@ -842,9 +842,9 @@ trait APIMethods210 {
 
     lazy val getConsumers: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers )
             consumers <- Some(Consumer.findAll())
           } yield {
@@ -879,9 +879,9 @@ trait APIMethods210 {
 
     lazy val enableDisableConsumers: OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
             _ <- putData.enabled match {
               case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
@@ -924,9 +924,9 @@ trait APIMethods210 {
 
     lazy val addCardForBank: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserHasMissingRoles +CanCreateCardsForBank)
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
@@ -1039,9 +1039,9 @@ trait APIMethods210 {
 
     lazy val createTransactionType: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" ::  Nil JsonPut json -> _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
             postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
             cancreateTransactionType <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateTransactionType) == true,InsufficientAuthorisationToCreateTransactionType)
@@ -1079,13 +1079,13 @@ trait APIMethods210 {
 
     lazy val getAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
           // Get atm from the active provider
             u <- if (getAtmsIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             atm  <- Box(Atms.atmsProvider.vend.getAtm(bankId, atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
@@ -1129,12 +1129,12 @@ trait APIMethods210 {
 
     lazy val getBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
             u <- if (getBranchesIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
           } yield {
@@ -1181,13 +1181,13 @@ trait APIMethods210 {
 
     lazy val getProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
           // Get product from the active provider
             u <- if (getProductsIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             product <- Connector.connector.vend.getProduct(bankId, productCode)?~! {ProductNotFoundByProductCode}
           } yield {
@@ -1233,13 +1233,13 @@ trait APIMethods210 {
 
     lazy val getProducts : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
           // Get products from the active provider
             u <- if(getProductsIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             products <- Connector.connector.vend.getProducts(bankId)?~!  {ProductNotFoundByProductCode}
           } yield {
@@ -1299,9 +1299,9 @@ trait APIMethods210 {
 
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            u <- sc.user ?~! UserNotLoggedIn // TODO. CHECK user has role to create a customer / create a customer for another user id.
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
@@ -1362,9 +1362,9 @@ trait APIMethods210 {
 
     lazy val getCustomersForUser : OBPEndpoint = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
@@ -1400,9 +1400,9 @@ trait APIMethods210 {
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
             // Filter so we only see the ones for the bank in question
@@ -1440,9 +1440,9 @@ trait APIMethods210 {
 
     lazy val updateBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId)::  Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
@@ -1482,9 +1482,9 @@ trait APIMethods210 {
 
     lazy val createBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId)?~! {BankNotFound}
             branchJsonPostV210 <- tryo {json.extract[BranchJsonPostV210]} ?~! InvalidJsonFormat
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
@@ -1524,9 +1524,9 @@ trait APIMethods210 {
     
     lazy val updateConsumerRedirectUrl: OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "redirect_url" :: Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             _ <- booleanToBox(
               hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
               UserHasMissingRoles + CanUpdateConsumerRedirectUrl
@@ -1535,7 +1535,7 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            _ <- tryo(assert(consumer.createdByUserId.equals(user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
+            _ <- tryo(assert(consumer.createdByUserId.equals(sc.user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
@@ -1603,9 +1603,9 @@ trait APIMethods210 {
 
     lazy val getMetrics : OBPEndpoint = {
       case "management" :: "metrics" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), UserHasMissingRoles + CanReadMetrics )
   
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0

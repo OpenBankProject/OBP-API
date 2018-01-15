@@ -40,9 +40,9 @@ trait APIMethods130 {
 
     lazy val getCards : OBPEndpoint = {
       case "cards" :: Nil JsonGet _ => {
-        user => {
+        sc => {
             for {
-              u <- user ?~! ErrorMessages.UserNotLoggedIn 
+              u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
               cards <- Connector.connector.vend.getPhysicalCards(u)
             } yield {
               val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
@@ -70,9 +70,9 @@ trait APIMethods130 {
 
     lazy val getCardsForBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             cards <- Connector.connector.vend.getPhysicalCardsForBank(bank, u)
           } yield {

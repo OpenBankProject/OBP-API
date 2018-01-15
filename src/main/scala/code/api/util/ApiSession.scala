@@ -2,13 +2,15 @@ package code.api.util
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.APIUtil.{useISO20022Spelling, useOBPSpelling}
-import net.liftweb.common.Box
+import code.model.User
+import net.liftweb.common.{Box, Empty}
 import net.liftweb.json.JsonAST.JValue
 
 case class SessionContext(
-                           gatewayLoginRequestPayload: Option[PayloadOfJwtJSON],
-                           gatewayLoginResponseHeader: Option[String],
-                           spelling: Option[String]
+                           gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
+                           gatewayLoginResponseHeader: Option[String] = None,
+                           spelling: Option[String] = None,
+                           user: Box[User] = Empty
                          )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam

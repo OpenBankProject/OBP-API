@@ -317,7 +317,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def getResourceDocsObp : OBPEndpoint = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
      val (showCore, showPSD2, showOBWG, tags, partialFunctions) =  getParams()
-      user => {
+      sc =>{
 
        for {
          requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
@@ -363,7 +363,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def getResourceDocsSwagger : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
         val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) =  getParams()
-        user => getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
+        sc =>getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
       }
     }
 
@@ -535,7 +535,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
       case "dummy" :: Nil JsonGet json => {
-        user =>
+        sc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
             val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy, Akka(APIUtil.akkaSanityCheck()))

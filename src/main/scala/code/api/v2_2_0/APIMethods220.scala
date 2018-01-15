@@ -126,9 +126,9 @@ trait APIMethods220 {
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
-            u <- user ?~ UserNotLoggedIn
+            u <- sc.user ?~ UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
@@ -176,12 +176,12 @@ trait APIMethods220 {
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
             json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
-            u <- user ?~!UserNotLoggedIn
+            u <- sc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account createView (u, json)
           } yield {
@@ -220,14 +220,14 @@ trait APIMethods220 {
     lazy val updateViewForBankAccount : OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
             updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            u <- user ?~!UserNotLoggedIn
+            u <- sc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
@@ -253,12 +253,12 @@ trait APIMethods220 {
 
     lazy val getCurrentFxRate: OBPEndpoint = {
       case "banks" :: BankId(bankid) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
             bank <- Bank(bankId)?~! BankNotFound
             isValidCurrencyISOCodeFrom <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             isValidCurrencyISOCodeTo <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode).openOrThrowException("Attempted to open an empty Box.")) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
@@ -294,13 +294,13 @@ trait APIMethods220 {
     lazy val getCounterpartiesForAccount : OBPEndpoint = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)?~! ViewNotFound
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            canUserAccessView <- Full(account.permittedViews(sc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -333,13 +333,13 @@ trait APIMethods220 {
     lazy val getCounterpartyById : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)?~! ViewNotFound
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            canUserAccessView <- Full(account.permittedViews(user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            canUserAccessView <- Full(account.permittedViews(sc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
           } yield {
@@ -370,7 +370,7 @@ trait APIMethods220 {
 
     lazy val getMessageDocs: OBPEndpoint = {
       case "message-docs" :: connector :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
             //afka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
             connectorVersion<- tryo(connector.split("_")(1))?~! s"$InvalidConnector Current CONNECTOR is $connector. It should be eg: kafka_vJune2017"
@@ -409,10 +409,10 @@ trait APIMethods220 {
 
     lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
             bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             canCreateBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
@@ -469,9 +469,9 @@ trait APIMethods220 {
 
     lazy val createBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
               ||
@@ -522,9 +522,9 @@ trait APIMethods220 {
 
     lazy val createAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" ::  Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
@@ -576,9 +576,9 @@ trait APIMethods220 {
 
     lazy val createProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" ::  Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateProduct <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank) == true
               ||
@@ -641,9 +641,9 @@ trait APIMethods220 {
 
     lazy val createFx: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "fx" ::  Nil JsonPut json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~!ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             canCreateFx <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank) == true
               ||
@@ -711,11 +711,11 @@ trait APIMethods220 {
     lazy val createAccount : OBPEndpoint = {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
-        user => {
+        sc =>{
           for {
             jsonBody <- tryo (json.extract[CreateAccountJSONV220]) ?~! InvalidJsonFormat
             bank <- Bank(bankId) ?~! BankNotFound
-            loggedInUser <- user ?~! UserNotLoggedIn
+            loggedInUser <- sc.user ?~! UserNotLoggedIn
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! InvalidUserId
             isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! InvalidBankIdFormat
@@ -779,8 +779,8 @@ trait APIMethods220 {
       apiTagApi :: Nil)
 
     lazy val config : OBPEndpoint = {
-      case "config" :: Nil JsonGet _ => user => for {
-        u <- user ?~! ErrorMessages.UserNotLoggedIn
+      case "config" :: Nil JsonGet _ => sc =>for {
+        u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
         _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserHasMissingRoles $CanGetConfig")
       } yield {
         successJsonResponse(getConfigInfoJSON(), 200)
@@ -836,9 +836,9 @@ trait APIMethods220 {
 
     lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
             //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
@@ -960,9 +960,9 @@ trait APIMethods220 {
 
     lazy val createConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
@@ -1037,15 +1037,15 @@ trait APIMethods220 {
   
     lazy val createCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             bank <- Bank(bankId) ?~! BankNotFound
             account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! {AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            availableViews <- Full(account.permittedViews(user))
+            availableViews <- Full(account.permittedViews(sc.user))
             view <- View.fromUrl(viewId, account) ?~! {ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! {"Current user does not have access to the view " + viewId}
             canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
@@ -1112,7 +1112,7 @@ trait APIMethods220 {
     lazy val getCustomerViewsForAccount : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet json => {
-        user =>
+        sc =>
           for {
             bank <- Bank(bankId) ?~ BankNotFound
             account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
@@ -1135,7 +1135,7 @@ trait APIMethods220 {
 /*
     lazy val getCustomerViewsForAccount : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
