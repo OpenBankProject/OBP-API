@@ -87,7 +87,7 @@ object ApiSession {
             useISO20022Spelling(j)
           case Some(s) if s == "OBP" =>
             useOBPSpelling(j)
-          case None =>
+          case _ =>
             j
         }
       case None =>
