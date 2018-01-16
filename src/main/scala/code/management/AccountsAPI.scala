@@ -20,9 +20,9 @@ object AccountsAPI extends OBPRestHelper with MdcLoggable {
   oauthServe(prefix {
     //deletes a bank account
     case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete json => {
-      user =>
+      sc =>
         for {
-          u <- user ?~ "user not found"
+          u <- sc.user ?~ "user not found"
           account <- BankAccount(bankId, accountId) ?~ "Account not found"
         } yield {
           account.remove(u) match {

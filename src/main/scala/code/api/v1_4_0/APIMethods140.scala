@@ -85,11 +85,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
@@ -121,11 +121,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomerMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             //au <- ResourceUser.find(By(ResourceUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
@@ -156,9 +156,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     // TODO Add Role
 
-    lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCustomerMessage : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
-        user => {
+        sc =>{
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -212,14 +212,14 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBranch)
     )
 
-    lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getBranches : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet json => {
-        user => {
+        sc =>{
           for {
             u <- if(getBranchesIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             limit <- tryo(
@@ -278,16 +278,16 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBank)
     )
 
-    lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
-        user => {
+        sc =>{
           for {
           // Get atms from the active provider
 
             u <- if(getAtmsIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             limit <- tryo(
               S.param("limit") match {
@@ -346,15 +346,15 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(apiTagBank)
     )
 
-    lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getProducts : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
           // Get products from the active provider
             u <- if(getProductsIsPublic)
               Box(Some(1))
             else
-              user ?~! UserNotLoggedIn
+              sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
@@ -389,12 +389,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     // TODO Require Role
 
-    lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCrmEvents : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
-        user => {
+        sc =>{
           for {
             // Get crm events from the active provider
-            u <- user ?~! UserNotLoggedIn
+            u <- sc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
@@ -449,17 +449,17 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              u <- sc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- tryo(fromAccount.permittedViews(sc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
               transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
@@ -493,15 +493,15 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              u <- sc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- tryo(fromAccount.permittedViews(sc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
@@ -558,17 +558,17 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               /* TODO:
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              u <- sc.user ?~ ErrorMessages.UserNotLoggedIn
               transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV140]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -622,16 +622,16 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              u <- sc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- tryo(fromAccount.permittedViews(sc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
@@ -678,12 +678,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
-    lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCustomer : OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonPost json -> _ => {
-        user =>
+        sc =>
           for {
-            u <- user ?~! "User must be logged in to post Customer"
+            u <- sc.user ?~! "User must be logged in to post Customer"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = CanCreateCustomer :: CanCreateUserCustomerLink :: Nil
@@ -761,9 +761,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
 
 
-    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
       case "dummy" :: Nil JsonGet json => {
-        user =>
+        sc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
             val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))

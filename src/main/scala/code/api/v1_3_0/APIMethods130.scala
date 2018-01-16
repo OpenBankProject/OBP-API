@@ -38,11 +38,11 @@ trait APIMethods130 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagUser))
 
-    lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCards : OBPEndpoint = {
       case "cards" :: Nil JsonGet _ => {
-        user => {
+        sc => {
             for {
-              u <- user ?~! ErrorMessages.UserNotLoggedIn 
+              u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
               cards <- Connector.connector.vend.getPhysicalCards(u)
             } yield {
               val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
@@ -68,11 +68,11 @@ trait APIMethods130 {
       List(apiTagCard))
 
 
-    lazy val getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCardsForBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
-        user => {
+        sc => {
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- sc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             cards <- Connector.connector.vend.getPhysicalCardsForBank(bank, u)
           } yield {

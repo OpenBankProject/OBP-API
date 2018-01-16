@@ -122,7 +122,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
   )
   val allResourceDocs = Implementations1_2_1.resourceDocs
 
-  def findResourceDoc(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): Option[ResourceDoc] = {
+  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
