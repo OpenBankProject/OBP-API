@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.{APIUtil, ErrorMessages, SessionContext}
+import code.api.util.{APIUtil, ErrorMessages, CallContext}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
@@ -142,13 +142,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
 
    */
-  def failIfBadJSON(r: Req, h: (OBPEndpoint)): SessionContext => Box[JsonResponse] = {
+  def failIfBadJSON(r: Req, h: (OBPEndpoint)): CallContext => Box[JsonResponse] = {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
         //logger.debug("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: SessionContext) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
+          case Failure(msg, _, _) => (x: CallContext) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)
         }
       case false => h(r)
@@ -191,8 +191,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
-  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: SessionContext => Box[JsonResponse]) : JsonResponse = {
-    val sc = SessionContext(resourceDocument = rd, startTime = Some(Helpers.now))
+  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
+    val sc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
     val authorization = S.request.map(_.header("Authorization")).flatten
     if(newStyleEndpoints(rd)) {
       fn(sc)
@@ -272,7 +272,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): SessionContext => Box[JsonResponse] =
+        def apply(req: Req): CallContext => Box[JsonResponse] =
           pf.apply(req.withNewPath(req.path.drop(listLen)))
       }
   }
@@ -291,7 +291,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   TODO: should this be moved to def serve() further down?
    */
 
-  def oauthServe(handler: PartialFunction[Req, SessionContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
+  def oauthServe(handler: PartialFunction[Req, CallContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req): () => Box[LiftResponse] = {

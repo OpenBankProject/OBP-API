@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.api.util.{ErrorMessages, SessionContext}
+import code.api.util.{ErrorMessages, CallContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -308,7 +308,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier)
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -381,7 +381,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = memoizeSync(getAccountTTL millisecond) {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername

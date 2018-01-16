@@ -8,21 +8,21 @@ import code.model.User
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.json.JsonAST.JValue
 
-case class SessionContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
-                          gatewayLoginResponseHeader: Option[String] = None,
-                          spelling: Option[String] = None,
-                          user: Box[User] = Empty,
-                          resourceDocument: Option[ResourceDoc] = None,
-                          startTime: Option[Date] = None,
-                          endTime: Option[Date] = None,
-                          correlationId: String = "",
-                          url: String = "",
-                          verb: String = "",
-                          implementedInVersion: String = "",
-                          authorization: Box[String] = Empty,
-                          directLoginParams: Map[String, String] = Map(),
-                          oAuthParams: Map[String, String] = Map()
-                         )
+case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
+                       gatewayLoginResponseHeader: Option[String] = None,
+                       spelling: Option[String] = None,
+                       user: Box[User] = Empty,
+                       resourceDocument: Option[ResourceDoc] = None,
+                       startTime: Option[Date] = None,
+                       endTime: Option[Date] = None,
+                       correlationId: String = "",
+                       url: String = "",
+                       verb: String = "",
+                       implementedInVersion: String = "",
+                       authorization: Box[String] = Empty,
+                       directLoginParams: Map[String, String] = Map(),
+                       oAuthParams: Map[String, String] = Map()
+                      )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam
 case class GatewayLoginResponseHeader(jwt: Option[String]) extends GatewayLoginParam
@@ -33,16 +33,16 @@ object ApiSession {
 
   val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None)
 
-  def updateSessionContext(s: Spelling, cnt: Option[SessionContext]): Option[SessionContext] = {
+  def updateSessionContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {
     cnt match {
       case None =>
-        Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = None, spelling = s.spelling))
+        Some(CallContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = None, spelling = s.spelling))
       case Some(v) =>
         Some(v.copy(spelling = s.spelling))
     }
   }
 
-  def updateSessionContext(jwt: GatewayLoginParam, cnt: Option[SessionContext]): Option[SessionContext] = {
+  def updateSessionContext(jwt: GatewayLoginParam, cnt: Option[CallContext]): Option[CallContext] = {
     jwt match {
       case GatewayLoginRequestPayload(None) =>
         cnt
@@ -53,19 +53,19 @@ object ApiSession {
           case Some(v) =>
             Some(v.copy(Some(jwtPayload)))
           case None =>
-            Some(SessionContext(gatewayLoginRequestPayload = Some(jwtPayload), gatewayLoginResponseHeader = None, spelling = None))
+            Some(CallContext(gatewayLoginRequestPayload = Some(jwtPayload), gatewayLoginResponseHeader = None, spelling = None))
         }
       case GatewayLoginResponseHeader(Some(j)) =>
         cnt match {
           case Some(v) =>
             Some(v.copy(gatewayLoginResponseHeader = Some(j)))
           case None =>
-            Some(SessionContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = Some(j), spelling = None))
+            Some(CallContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = Some(j), spelling = None))
         }
     }
   }
 
-  def getGatawayLoginRequestInfo(cnt: Option[SessionContext]): PayloadOfJwtJSON = {
+  def getGatawayLoginRequestInfo(cnt: Option[CallContext]): PayloadOfJwtJSON = {
     cnt match {
       case Some(v) =>
         v.gatewayLoginRequestPayload match {
@@ -79,7 +79,7 @@ object ApiSession {
     }
   }
 
-  def processJson(j: JValue, cnt: Option[SessionContext]): JValue = {
+  def processJson(j: JValue, cnt: Option[CallContext]): JValue = {
     cnt match {
       case Some(v) =>
         v.spelling match {
