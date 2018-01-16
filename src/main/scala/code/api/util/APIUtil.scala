@@ -417,21 +417,21 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def logAPICall(sessionContext: Option[CallContext]) = {
-    sessionContext match {
-      case Some(sc) =>
+  def logAPICall(callContext: Option[CallContext]) = {
+    callContext match {
+      case Some(cc) =>
         if(Props.getBool("write_metrics", false)) {
-          val u: User = sc.user.orNull
+          val u: User = cc.user.orNull
           val userId = if (u != null) u.userId else "null"
           val userName = if (u != null) u.name else "null"
 
-          val implementedByPartialFunction = sc.resourceDocument match {
+          val implementedByPartialFunction = cc.resourceDocument match {
             case Some(r) => r.partialFunctionName
             case _       => ""
           }
 
           val duration =
-            (sc.startTime, sc.endTime)  match {
+            (cc.startTime, cc.endTime)  match {
               case (Some(s), Some(e)) => (e.getTime - s.getTime)
               case _       => -1
             }
@@ -439,13 +439,13 @@ object APIUtil extends MdcLoggable {
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
             val consumer =
-              if (hasAnOAuthHeader(sc.authorization)) {
-                getConsumer(sc) match {
+              if (hasAnOAuthHeader(cc.authorization)) {
+                getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(sc.authorization)) {
-                DirectLogin.getConsumer(sc) match {
+              } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+                DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
@@ -460,17 +460,17 @@ object APIUtil extends MdcLoggable {
 
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
-              sc.url,
-              sc.startTime.getOrElse(null),
+              cc.url,
+              cc.startTime.getOrElse(null),
               duration,
               userName,
               appName,
               developerEmail,
               consumerId,
               implementedByPartialFunction,
-              sc.implementedInVersion,
-              sc.verb,
-              sc.correlationId
+              cc.implementedInVersion,
+              cc.verb,
+              cc.correlationId
             )
           }
         }
@@ -630,26 +630,26 @@ object APIUtil extends MdcLoggable {
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
-    val jsonAst = ApiSession.processJson(json, sc)
+    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
-    val jsonAst = ApiSession.processJson(json, sc)
+    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def successJsonResponseFromCaseClass(cc: Any, sc: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), sc)
-    logAPICall(sc.map(_.copy(endTime = Some(Helpers.now))))
+  def successJsonResponseFromCaseClass(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+    val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
+    logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val sc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
-    val jsonAst = ApiSession.processJson(json, sc)
+    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
@@ -1891,7 +1891,7 @@ Versions are groups of endpoints in a file
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
     * @return A Tuple of an User wrapped into a Future and optional session context data
     */
-  def getUserAndSessionContextFuture(sc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def getUserAndSessionContextFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     val s = S
     val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
@@ -1901,9 +1901,9 @@ Versions are groups of endpoints in a file
     val correlationId = getCorrelationId()
     val res =
     if (hasAnOAuthHeader(authorization)) {
-      getUserFromOAuthHeaderFuture(sc)
+      getUserFromOAuthHeaderFuture(cc)
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
-      DirectLogin.getUserFromDirectLoginHeaderFuture(sc)
+      DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
@@ -1917,7 +1917,7 @@ Versions are groups of endpoints in a file
                     case Full((u, cbsToken)) => // Authentication is successful
                       GatewayLogin.getOrCreateConsumer(payload, u)
                       val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
-                      val sessionContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(sc))
+                      val sessionContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val sessionContext = ApiSession.updateSessionContext(GatewayLoginResponseHeader(Some(jwt)), sessionContextForRequest)
                       (Full(u), sessionContext)
@@ -1966,16 +1966,16 @@ Versions are groups of endpoints in a file
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def extractCallContext(emptyUserErrorMsg: String, sc: CallContext): Future[(Box[User], Option[CallContext])] = {
-    getUserAndSessionContextFuture(sc) map {
+  def extractCallContext(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+    getUserAndSessionContextFuture(cc) map {
       x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
     }
   }
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def extractCallContext(sc: CallContext): Future[(Box[User], Option[CallContext])] = {
-    getUserAndSessionContextFuture(sc)
+  def extractCallContext(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+    getUserAndSessionContextFuture(cc)
   }
 
   /**

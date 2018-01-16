@@ -25,7 +25,7 @@ object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
   oauthServe(apiPrefix{
 
     case "v1.0" :: "data-import" :: Nil JsonPost json -> _ => {
-      sc =>
+      cc =>
         logger.debug("Hello from v1.0 data-import")
         for{
           correctToken <- Props.get("sandbox_data_import_secret") ~> APIFailure("Data import is disabled for this API instance.", 403)

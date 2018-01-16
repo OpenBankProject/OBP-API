@@ -192,21 +192,21 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
-    val sc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
+    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
     val authorization = S.request.map(_.header("Authorization")).flatten
     if(newStyleEndpoints(rd)) {
-      fn(sc)
+      fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {
       val usr = getUser
       usr match {
-        case Full(u) => fn(sc.copy(user = Full(u))) // Authentication is successful
+        case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
       }
     } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
-        case Full(u) => fn(sc.copy(user = Full(u)))// Authentication is successful
+        case Full(u) => fn(cc.copy(user = Full(u)))// Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           Full(errorJsonResponse(message, httpCode))
@@ -232,7 +232,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                       }
                       setGatewayLoginUsername(s)(u.name)
                       setGatewayLoginCbsToken(s)(cbsToken)
-                      fn(sc.copy(user = Full(u)))
+                      fn(cc.copy(user = Full(u)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }
@@ -254,7 +254,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
     } else {
-      fn(sc)
+      fn(cc)
     }
   }
 

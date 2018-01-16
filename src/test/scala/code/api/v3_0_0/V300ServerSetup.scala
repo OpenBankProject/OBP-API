@@ -49,8 +49,11 @@ trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
       val request = v3_0Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken) //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V200-privateAccountsAtOneBank
       makeGetRequest(request)
     }
+
+
     
-    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts //TODO, how to make this map automatically. 
+    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts //TODO, how to make this map automatically.
+    println("accountsJson******************* " + accountsJson)
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition).id
   
