@@ -55,22 +55,6 @@ trait APIMetrics {
                  verb: String,
                  correlationId: String): Unit
 
-  def saveMetric(url : String, date : Date, duration: Long, correlationId: String) : Unit ={
-    //TODO: update all places calling old function before removing this
-    saveMetric("TODO: userId",
-      url,
-      date,
-      duration,
-      "TODO: userName",
-      "TODO: appName",
-      "TODO: developerEmail",
-      "TODO: consumerId" ,
-      "TODO: implementedByPartialFunction" ,
-      "TODO: i.i.v",
-      "TODO: verb",
-      correlationId)
-  }
-
 //  //TODO: ordering of list? should this be by date? currently not enforced
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
 //
@@ -104,7 +88,7 @@ trait APIMetric {
   def getDuration(): Long
   def getUserId() : String
   def getUserName() : String
-  def getAppName : String
+  def getAppName() : String
   def getDeveloperEmail() : String
   def getConsumerId() : String
   def getImplementedByPartialFunction() : String
