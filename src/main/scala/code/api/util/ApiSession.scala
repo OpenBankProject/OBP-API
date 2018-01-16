@@ -33,7 +33,7 @@ object ApiSession {
 
   val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None)
 
-  def updateSessionContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {
+  def updateCallContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {
     cnt match {
       case None =>
         Some(CallContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = None, spelling = s.spelling))
@@ -42,7 +42,7 @@ object ApiSession {
     }
   }
 
-  def updateSessionContext(jwt: GatewayLoginParam, cnt: Option[CallContext]): Option[CallContext] = {
+  def updateCallContext(jwt: GatewayLoginParam, cnt: Option[CallContext]): Option[CallContext] = {
     jwt match {
       case GatewayLoginRequestPayload(None) =>
         cnt
