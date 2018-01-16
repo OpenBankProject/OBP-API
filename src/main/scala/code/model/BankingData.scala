@@ -637,8 +637,8 @@ object BankAccount {
     Connector.connector.vend.getBankAccount(bankId, accountId)
   }
 
-  def apply(bankId: BankId, accountId: AccountId, sessionContext: Option[CallContext]) : Box[BankAccount] = {
-    Connector.connector.vend.getBankAccount(bankId, accountId, sessionContext)
+  def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[BankAccount] = {
+    Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
   }
   /**
     * Mapping a CounterpartyTrait to OBP BankAccount.

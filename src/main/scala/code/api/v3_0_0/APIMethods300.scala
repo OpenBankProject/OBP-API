@@ -97,16 +97,16 @@ trait APIMethods300 {
         cc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               u <- unboxFullAndWrapIntoFuture{ user }
-              account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+              account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
             } yield {
               for {
                 views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
               } yield {
-                (createViewsJSON(views), sessionContext)
+                (createViewsJSON(views), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -246,8 +246,8 @@ trait APIMethods300 {
         cc =>
           val res =
             for {
-              (user, sessionContext) <- extractCallContext(UserNotLoggedIn, cc)
-              account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
@@ -262,7 +262,7 @@ trait APIMethods300 {
                 moderatedAccount <- account.moderatedBankAccount(view, user)
               } yield {
                 val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
-                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), sessionContext)
+                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -300,8 +300,8 @@ trait APIMethods300 {
         cc =>
           val res =
             for {
-            (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            account <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            account <- Future { BankAccount(bankId, accountId, callContext) } map {
               x => fullBoxOrException(x ?~! BankAccountNotFound)
             } map { unboxFull(_) }
             availableViews <- (account.permittedViewsFuture(user))
@@ -314,7 +314,7 @@ trait APIMethods300 {
               moderatedAccount <- account.moderatedBankAccount(view, user)
             } yield {
               val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON)
-              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), sessionContext)
+              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), callContext)
             }
           }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -403,8 +403,8 @@ trait APIMethods300 {
         cc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
               // Assume owner view was requested
@@ -415,9 +415,9 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(sessionContext)
+                transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(callContext)
               } yield {
-                (createCoreTransactionsJSON(transactionsCore), sessionContext)
+                (createCoreTransactionsJSON(transactionsCore), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -468,8 +468,8 @@ trait APIMethods300 {
         cc =>
           val res =
             for {
-              (user, sessionContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              bankAccount <- Future { BankAccount(bankId, accountId, sessionContext) } map {
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
               // Assume owner view was requested
@@ -480,9 +480,9 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- getTransactionParams(json)
-                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(sessionContext)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
               } yield {
-                (createTransactionsJson(transactions), sessionContext)
+                (createTransactionsJson(transactions), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
