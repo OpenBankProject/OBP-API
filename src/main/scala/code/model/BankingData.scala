@@ -34,7 +34,7 @@ package code.model
 import java.util.Date
 
 import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, ErrorMessages, SessionContext}
+import code.api.util.{APIUtil, ErrorMessages, CallContext}
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
@@ -568,7 +568,7 @@ trait BankAccount extends MdcLoggable {
   */
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[SessionContext]): Box[List[ModeratedTransaction]] = {
+  final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[CallContext]): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactions(bankId, accountId, session, queryParams: _*)
@@ -579,7 +579,7 @@ trait BankAccount extends MdcLoggable {
   }
   
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactionsCore(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[SessionContext]): Box[List[ModeratedTransactionCore]] = {
+  final def getModeratedTransactionsCore(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[CallContext]): Box[List[ModeratedTransactionCore]] = {
     if(authorizedAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactionsCore(bankId, accountId, session, queryParams: _*)
@@ -637,8 +637,8 @@ object BankAccount {
     Connector.connector.vend.getBankAccount(bankId, accountId)
   }
 
-  def apply(bankId: BankId, accountId: AccountId, sessionContext: Option[SessionContext]) : Box[BankAccount] = {
-    Connector.connector.vend.getBankAccount(bankId, accountId, sessionContext)
+  def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[BankAccount] = {
+    Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
   }
   /**
     * Mapping a CounterpartyTrait to OBP BankAccount.

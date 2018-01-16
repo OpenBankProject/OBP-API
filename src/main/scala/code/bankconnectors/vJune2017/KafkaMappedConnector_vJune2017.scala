@@ -28,7 +28,7 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiSession, ErrorMessages, SessionContext}
+import code.api.util.{APIUtil, ApiSession, ErrorMessages, CallContext}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer._
@@ -470,7 +470,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = saveConnectorMetric {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -554,7 +554,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = saveConnectorMetric {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
       val (userName, cbs) = session match {
         case Some(c) =>
@@ -636,7 +636,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       ))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -680,7 +680,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }}("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], session: Option[SessionContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
     memoizeSync(accountsTTL second){
 
       val (userName, cbs) = session match {
@@ -767,7 +767,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       ))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric{
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric{
     val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
@@ -834,7 +834,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
   }("getTransactions")
   
-  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
     val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
@@ -1467,7 +1467,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[SessionContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
+  override def getCustomersByUserIdFuture(userId: String)(session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
 
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(

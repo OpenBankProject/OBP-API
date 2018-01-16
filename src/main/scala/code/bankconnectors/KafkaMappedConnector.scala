@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.accountholder.AccountHolders
-import code.api.util.{ErrorMessages, SessionContext}
+import code.api.util.{ErrorMessages, CallContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
@@ -339,7 +339,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[SessionContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -376,7 +376,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[SessionContext]): Box[BankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",

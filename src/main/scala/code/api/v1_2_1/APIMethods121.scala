@@ -116,8 +116,8 @@ trait APIMethods121 {
       apiTagApi :: Nil)
 
     def root(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
-      case "root" :: Nil JsonGet json => sc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
-      case Nil JsonGet json => sc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case "root" :: Nil JsonGet json => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case Nil JsonGet json => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }
 
 
@@ -144,7 +144,7 @@ trait APIMethods121 {
     lazy val getBanks : OBPEndpoint = {
       //get banks
       case "banks" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           def banksToJson(banksList: List[Bank]): JValue = {
             val banksJSON: List[BankJSON] = banksList.map(b => {
               JSONFactory.createBankJSON(b)
@@ -181,7 +181,7 @@ trait APIMethods121 {
     lazy val bankById : OBPEndpoint = {
       //get bank by id
       case "banks" :: BankId(bankId) :: Nil JsonGet json => {
-        sc =>
+        cc =>
           def bankToJson(bank : Bank) : JValue = {
             val bankJSON = JSONFactory.createBankJSON(bank)
             Extraction.decompose(bankJSON)
@@ -219,8 +219,8 @@ trait APIMethods121 {
     lazy val allAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
       case "accounts" :: Nil JsonGet json => {
-        sc =>
-          Full(successJsonResponse(bankAccountsListToJson(BankAccount.accounts(sc.user), sc.user)))
+        cc =>
+          Full(successJsonResponse(bankAccountsListToJson(BankAccount.accounts(cc.user), cc.user)))
       }
     }
 
@@ -244,9 +244,9 @@ trait APIMethods121 {
     lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: "private" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
           } yield {
             val availableAccounts = BankAccount.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -272,7 +272,7 @@ trait APIMethods121 {
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           val publicAccountsJson = bankAccountsListToJson(BankAccount.publicAccounts, Empty)
           Full(successJsonResponse(publicAccountsJson))
       }
@@ -303,12 +303,12 @@ trait APIMethods121 {
     lazy val allAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for{
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
-            val availableAccounts = bank.accounts(sc.user)
-            successJsonResponse(bankAccountsListToJson(availableAccounts, sc.user))
+            val availableAccounts = bank.accounts(cc.user)
+            successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
           }
       }
     }
@@ -333,9 +333,9 @@ trait APIMethods121 {
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
             val availableAccounts = bank.privateAccounts(u)
@@ -363,7 +363,7 @@ trait APIMethods121 {
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
@@ -403,12 +403,12 @@ trait APIMethods121 {
     lazy val accountById : OBPEndpoint = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            availableviews <- Full(account.permittedViews(sc.user))
+            availableviews <- Full(account.permittedViews(cc.user))
             view <- View.fromUrl(viewId, account)
-            moderatedAccount <- account.moderatedBankAccount(view, sc.user)
+            moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
             val moderatedAccountJson = JSONFactory.createBankAccountJSON(moderatedAccount, viewsAvailable)
@@ -436,9 +436,9 @@ trait APIMethods121 {
       //change account label
       // TODO Use PATCH instead? Remove BANK_ID AND ACCOUNT_ID from the body? (duplicated in URL)
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             json <- tryo { json.extract[UpdateAccountJSON] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
           } yield {
@@ -488,9 +488,9 @@ trait APIMethods121 {
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
@@ -536,9 +536,9 @@ trait APIMethods121 {
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             json <- tryo{json.extract[CreateViewJson]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
@@ -581,11 +581,11 @@ trait APIMethods121 {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
       ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
@@ -622,14 +622,14 @@ trait APIMethods121 {
       //deletes a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
-        sc =>
+        cc =>
           for {
             //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- account removeView(u, viewId)
           } yield noContentJsonResponse
@@ -656,9 +656,9 @@ trait APIMethods121 {
     lazy val getPermissionsForBankAccount: OBPEndpoint = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permissions <- account permissions u
           } yield {
@@ -695,9 +695,9 @@ trait APIMethods121 {
     lazy val getPermissionForUserForBankAccount: OBPEndpoint = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             permission <- account permission(u, providerId, userId)
           } yield {
@@ -737,9 +737,9 @@ trait APIMethods121 {
     lazy val addPermissionForUserForBankAccountForMultipleViews : OBPEndpoint = {
       //add access for specific user to a list of views
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
             addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), providerId, userId)
@@ -777,9 +777,9 @@ trait APIMethods121 {
     lazy val addPermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //add access for specific user to a specific view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
             addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
@@ -817,9 +817,9 @@ trait APIMethods121 {
     lazy val removePermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //delete access for specific user to one view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
@@ -851,9 +851,9 @@ trait APIMethods121 {
     lazy val removePermissionForUserForBankAccountForAllViews : OBPEndpoint = {
       //delete access for specific user to all the views
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             isRevoked <- account revokeAllPermissions(u, providerId, userId)
             if(isRevoked)
@@ -883,11 +883,11 @@ trait APIMethods121 {
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, sc.user)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
             val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
             successJsonResponse(Extraction.decompose(otherBankAccountsJson))
@@ -914,11 +914,11 @@ trait APIMethods121 {
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       //get one other account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {
             val otherBankAccountJson = JSONFactory.createOtherBankAccount(otherBankAccount)
             successJsonResponse(Extraction.decompose(otherBankAccountJson))
@@ -946,11 +946,11 @@ trait APIMethods121 {
     lazy val getOtherAccountMetadata : OBPEndpoint = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           } yield {
             val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(metadata)
@@ -983,11 +983,11 @@ trait APIMethods121 {
     lazy val getCounterpartyPublicAlias : OBPEndpoint = {
       //get public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
           } yield {
@@ -1030,11 +1030,11 @@ trait APIMethods121 {
     lazy val addCounterpartyPublicAlias : OBPEndpoint = {
       //add public alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
@@ -1074,11 +1074,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyPublicAlias : OBPEndpoint = {
       //update public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
@@ -1116,11 +1116,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyPublicAlias : OBPEndpoint = {
       //delete public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
@@ -1155,11 +1155,11 @@ trait APIMethods121 {
     lazy val getOtherAccountPrivateAlias : OBPEndpoint = {
       //get private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
           } yield {
@@ -1196,11 +1196,11 @@ trait APIMethods121 {
     lazy val addOtherAccountPrivateAlias : OBPEndpoint = {
       //add private alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
@@ -1240,11 +1240,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyPrivateAlias : OBPEndpoint = {
       //update private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
@@ -1283,11 +1283,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyPrivateAlias : OBPEndpoint = {
       //delete private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
@@ -1323,11 +1323,11 @@ trait APIMethods121 {
     lazy val addCounterpartyMoreInfo : OBPEndpoint = {
       //add more info to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
@@ -1364,11 +1364,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyMoreInfo : OBPEndpoint = {
       //update more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
@@ -1404,11 +1404,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyMoreInfo : OBPEndpoint = {
       //delete more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
             deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
@@ -1444,11 +1444,11 @@ trait APIMethods121 {
     lazy val addCounterpartyUrl : OBPEndpoint = {
       //add url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
@@ -1485,11 +1485,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyUrl : OBPEndpoint = {
       //update url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
@@ -1525,11 +1525,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyUrl : OBPEndpoint = {
       //delete url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
@@ -1564,11 +1564,11 @@ trait APIMethods121 {
     lazy val addCounterpartyImageUrl : OBPEndpoint = {
       //add image url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
@@ -1604,11 +1604,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyImageUrl : OBPEndpoint = {
       //update image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
@@ -1638,11 +1638,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyImageUrl : OBPEndpoint = {
       //delete image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
             deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
@@ -1676,11 +1676,11 @@ trait APIMethods121 {
     lazy val addCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //add open corporate url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
@@ -1717,11 +1717,11 @@ trait APIMethods121 {
     lazy val updateCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //update open corporate url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
@@ -1757,11 +1757,11 @@ trait APIMethods121 {
     lazy val deleteCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //delete open corporate url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
             deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
@@ -1796,12 +1796,12 @@ trait APIMethods121 {
     lazy val addCounterpartyCorporateLocation : OBPEndpoint = {
       //add corporate location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
@@ -1840,12 +1840,12 @@ trait APIMethods121 {
     lazy val updateCounterpartyCorporateLocation : OBPEndpoint = {
       //update corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
@@ -1882,12 +1882,12 @@ trait APIMethods121 {
     lazy val deleteCounterpartyCorporateLocation : OBPEndpoint = {
       //delete corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
           } yield {
@@ -1926,12 +1926,12 @@ trait APIMethods121 {
     lazy val addCounterpartyPhysicalLocation : OBPEndpoint = {
       //add physical location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
@@ -1971,12 +1971,12 @@ trait APIMethods121 {
     lazy val updateCounterpartyPhysicalLocation : OBPEndpoint = {
       //update physical location to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
@@ -2014,12 +2014,12 @@ trait APIMethods121 {
     lazy val deleteCounterpartyPhysicalLocation : OBPEndpoint = {
       //delete physical location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, sc.user)
+            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
           } yield {
@@ -2083,9 +2083,9 @@ trait APIMethods121 {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
         val paramsBox: Box[List[OBPQueryParam]] = getTransactionParams(json)
-        sc => getTransactionsForBankAccountCached(
+        cc => getTransactionsForBankAccountCached(
           paramsBox:  Box[List[OBPQueryParam]],
-          sc.user: Box[User],
+          cc.user: Box[User],
           accountId: AccountId,
           bankId: BankId,
           viewId : ViewId
@@ -2116,11 +2116,11 @@ trait APIMethods121 {
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            moderatedTransaction <- account.moderatedTransaction(transactionId, view, sc.user)
+            moderatedTransaction <- account.moderatedTransaction(transactionId, view, cc.user)
           } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)
             successJsonResponse(Extraction.decompose(json))
@@ -2151,9 +2151,9 @@ trait APIMethods121 {
     lazy val getTransactionNarrative : OBPEndpoint = {
       //get narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             narrative <- Box(metadata.ownerComment) ?~ { "view " + viewId + " does not authorize narrative access" }
           } yield {
             val narrativeJson = JSONFactory.createTransactionNarrativeJSON(narrative)
@@ -2192,9 +2192,9 @@ trait APIMethods121 {
     lazy val addTransactionNarrative : OBPEndpoint = {
       //add narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
@@ -2229,9 +2229,9 @@ trait APIMethods121 {
     lazy val updateTransactionNarrative : OBPEndpoint = {
       //update narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
@@ -2267,9 +2267,9 @@ trait APIMethods121 {
     lazy val deleteTransactionNarrative : OBPEndpoint = {
       //delete narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow deleting the narrative"}
           } yield {
             addNarrative("")
@@ -2302,9 +2302,9 @@ trait APIMethods121 {
     lazy val getCommentsForViewOnTransaction : OBPEndpoint = {
       //get comments
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             comments <- Box(metadata.comments) ?~ { "view " + viewId + " does not authorize comments access" }
           } yield {
             val json = JSONFactory.createTransactionCommentsJSON(comments)
@@ -2340,9 +2340,9 @@ trait APIMethods121 {
     lazy val addCommentForViewOnTransaction : OBPEndpoint = {
       //add comment
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
@@ -2382,11 +2382,11 @@ trait APIMethods121 {
     lazy val deleteCommentForViewOnTransaction : OBPEndpoint = {
       //delete comment
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
-            delete <- metadata.deleteComment(commentId, sc.user, account)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
+            delete <- metadata.deleteComment(commentId, cc.user, account)
           } yield {
             noContentJsonResponse
           }
@@ -2416,9 +2416,9 @@ trait APIMethods121 {
     lazy val getTagsForViewOnTransaction : OBPEndpoint = {
       //get tags
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             tags <- Box(metadata.tags) ?~ { "view " + viewId + " does not authorize tag access" }
           } yield {
             val json = JSONFactory.createTransactionTagsJSON(tags)
@@ -2454,9 +2454,9 @@ trait APIMethods121 {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
 
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} // TODO Error handling
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
@@ -2489,11 +2489,11 @@ Authentication via OAuth is required. The user must either have owner privileges
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
 
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
-            deleted <- metadata.deleteTag(tagId, sc.user, bankAccount)
+            deleted <- metadata.deleteTag(tagId, cc.user, bankAccount)
           } yield {
             noContentJsonResponse
           }
@@ -2523,9 +2523,9 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val getImagesForViewOnTransaction : OBPEndpoint = {
       //get images
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             images <- Box(metadata.images) ?~ { "view " + viewId + " does not authorize images access" }
           } yield {
             val json = JSONFactory.createTransactionImagesJSON(images)
@@ -2562,9 +2562,9 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val addImageForViewOnTransaction : OBPEndpoint = {
       //add an image
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
@@ -2603,11 +2603,11 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val deleteImageForViewOnTransaction : OBPEndpoint = {
       //delete an image
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
-            deleted <- Box(metadata.deleteImage(imageId, sc.user, bankAccount))
+            deleted <- Box(metadata.deleteImage(imageId, cc.user, bankAccount))
           } yield {
             noContentJsonResponse
           }
@@ -2637,9 +2637,9 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val getWhereTagForViewOnTransaction : OBPEndpoint = {
       //get where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             where <- Box(metadata.whereTag) ?~ { "view " + viewId + " does not authorize where tag access" }
           } yield {
             val json = JSONFactory.createLocationJSON(where)
@@ -2677,11 +2677,11 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val addWhereTagForViewOnTransaction : OBPEndpoint = {
       //add where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             view <- View.fromUrl(viewId, accountId, bankId)
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
@@ -2721,11 +2721,11 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val updateWhereTagForViewOnTransaction : OBPEndpoint = {
       //update where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
-        sc =>
+        cc =>
           for {
-            u <- sc.user
+            u <- cc.user
             view <- View.fromUrl(viewId, accountId, bankId)
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
@@ -2768,12 +2768,12 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val deleteWhereTagForViewOnTransaction : OBPEndpoint = {
       //delete where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
-        sc =>
+        cc =>
           for {
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- View.fromUrl(viewId, bankAccount)
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, sc.user)
-            deleted <- metadata.deleteWhereTag(viewId, sc.user, bankAccount)
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
+            deleted <- metadata.deleteWhereTag(viewId, cc.user, bankAccount)
           } yield {
             if(deleted)
               noContentJsonResponse
@@ -2802,11 +2802,11 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val getOtherAccountForTransaction : OBPEndpoint = {
       //get other account of a transaction
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
-        sc =>
+        cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- View.fromUrl(viewId, account)
-            transaction <- account.moderatedTransaction(transactionId, view, sc.user)
+            transaction <- account.moderatedTransaction(transactionId, view, cc.user)
             moderatedOtherBankAccount <- transaction.otherBankAccount
           } yield {
             val otherBankAccountJson = JSONFactory.createOtherBankAccount(moderatedOtherBankAccount)
@@ -2855,7 +2855,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         sc
           if (Props.getBool("payments_enabled", false)) {
             for {
-              u <- sc.user ?~ UserNotLoggedIn
+              u <- cc.user ?~ UserNotLoggedIn
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               toAccountUID = BankIdAccountId(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))

@@ -32,7 +32,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 import code.api.Constant._
-import code.api.util.{APIUtil, ErrorMessages, SessionContext}
+import code.api.util.{APIUtil, ErrorMessages, CallContext}
 import code.consumer.Consumers
 import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
@@ -891,7 +891,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     consumer
   }
 
-  def getConsumer(sc: SessionContext): Box[Consumer] = {
+  def getConsumer(sc: CallContext): Box[Consumer] = {
     import code.model.Token
     val consumer: Option[Consumer] = for {
       tokenId: String <- sc.oAuthParams.get("oauth_token")
@@ -939,7 +939,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     else
       Empty
 
-  def getUserFromOAuthHeaderFuture(sc: SessionContext): Future[(Box[User], Option[SessionContext])] = {
+  def getUserFromOAuthHeaderFuture(sc: CallContext): Future[(Box[User], Option[CallContext])] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"

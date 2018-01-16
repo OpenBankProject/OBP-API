@@ -32,7 +32,7 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages._
-import code.api.util.{ErrorMessages, SessionContext}
+import code.api.util.{ErrorMessages, CallContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
@@ -471,7 +471,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getTransactions(
                                 bankId: BankId,
                                 accountId: AccountId,
-                                session: Option[SessionContext],
+                                session: Option[CallContext],
                                 queryParams: OBPQueryParam*
   ): Box[List[Transaction]] = 
     saveConnectorMetric 
@@ -548,7 +548,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getBankAccount(
     bankId: BankId, 
     accountId: AccountId,
-    session: Option[SessionContext]
+    session: Option[CallContext]
   ): Box[BankAccount] = saveConnectorMetric {
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
