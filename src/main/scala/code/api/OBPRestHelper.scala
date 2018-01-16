@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, SessionContext}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
@@ -142,13 +142,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
 
    */
-  def failIfBadJSON(r: Req, h: (PartialFunction[Req, Box[User] => Box[JsonResponse]])): Box[User] => Box[JsonResponse] = {
+  def failIfBadJSON(r: Req, h: (OBPEndpoint)): SessionContext => Box[JsonResponse] = {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
         //logger.debug("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
+          case Failure(msg, _, _) => (x: SessionContext) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)
         }
       case false => h(r)
@@ -191,26 +191,28 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
-  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
+  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: SessionContext => Box[JsonResponse]) : JsonResponse = {
+    val sc = SessionContext(resourceDocument = rd, startTime = Some(Helpers.now))
+    val authorization = S.request.map(_.header("Authorization")).flatten
     if(newStyleEndpoints(rd)) {
-      fn(Empty)
-    } else if (hasAnOAuthHeader) {
+      fn(sc)
+    } else if (hasAnOAuthHeader(authorization)) {
       val usr = getUser
       usr match {
-        case Full(u) => fn(Full(u)) // Authentication is successful
+        case Full(u) => fn(sc.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
       }
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader) {
+    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
-        case Full(u) => fn(Full(u)) // Authentication is successful
+        case Full(u) => fn(sc.copy(user = Full(u)))// Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           Full(errorJsonResponse(message, httpCode))
         }
       }
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader) {
+    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
@@ -230,7 +232,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                       }
                       setGatewayLoginUsername(s)(u.name)
                       setGatewayLoginCbsToken(s)(cbsToken)
-                      fn(Full(u))
+                      fn(sc.copy(user = Full(u)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }
@@ -252,7 +254,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
     } else {
-      fn(Empty)
+      fn(sc)
     }
   }
 
@@ -263,14 +265,14 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
       * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
       */
-    def oPrefix(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): PartialFunction[Req, Box[User] => Box[JsonResponse]] =
-      new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
+    def oPrefix(pf: OBPEndpoint): OBPEndpoint =
+      new OBPEndpoint {
         def isDefinedAt(req: Req): Boolean =
           req.path.partPath.startsWith(list) && {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): Box[User] => Box[JsonResponse] =
+        def apply(req: Req): SessionContext => Box[JsonResponse] =
           pf.apply(req.withNewPath(req.path.drop(listLen)))
       }
   }
@@ -289,7 +291,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   TODO: should this be moved to def serve() further down?
    */
 
-  def oauthServe(handler: PartialFunction[Req, (Box[User]) => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
+  def oauthServe(handler: PartialFunction[Req, SessionContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req): () => Box[LiftResponse] = {

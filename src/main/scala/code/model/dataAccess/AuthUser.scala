@@ -289,15 +289,16 @@ import net.liftweb.util.Helpers._
     *
     */
   def getCurrentUser: Box[User] = {
+    val authorization = S.request.map(_.header("Authorization")).flatten
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
         Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException("Attempted to open an empty Box.").username.get)
-      else if (hasDirectLoginHeader)
+      else if (hasDirectLoginHeader(authorization))
         DirectLogin.getUser
-      else if (hasAnOAuthHeader) {
+      else if (hasAnOAuthHeader(authorization)) {
         OAuthHandshake.getUser
-      } else if (hasGatewayHeader()){
+      } else if (hasGatewayHeader(authorization)){
         GatewayLogin.getUser
       } else {
         debug(ErrorMessages.CurrentUserNotFoundException)
