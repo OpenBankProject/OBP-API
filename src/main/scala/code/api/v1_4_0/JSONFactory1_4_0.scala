@@ -383,50 +383,50 @@ object JSONFactory1_4_0 {
     } yield {
       value match {
         //Date -- should be the first
-        case i: Date                       => "\""  + key + """": {"type":"date-time"}"""
-        case Some(i: Date)                 => "\""  + key + """": {"type":"date-time"}"""
-        case List(i: Date, _*)             => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}""" 
-        case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
+        case i: Date                       => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case Some(i: Date)                 => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case List(i: Date, _*)             => "\""  + key + """": {"type": "array"}""" 
+        case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array"}"""
 
         //Boolean - 4 kinds
         case i: Boolean                    => "\""  + key + """": {"type":"boolean"}""" 
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean"}"""
-        case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array", "properties": {"type": "boolean"}}"""
-        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array", "properties": {"type": "boolean"}}"""
+        case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array"}"""
           
         //String   
-        case i: String if(key.contains("date"))  => "\""  + key + """": {"type":"date-time"}"""
-        case Some(i: String) if(key.contains("date"))  => "\""  + key + """": {"type":"date-time"}"""
-        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
-        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array", "properties": {"type": "date-time"}}"""
+        case i: String if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case Some(i: String) if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array"}"""
           
         case i: String                     => "\""  + key + """": {"type":"string"}"""
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
-        case List(i: String, _*)           => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}""" 
-        case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}"""
+        case List(i: String, _*)           => "\""  + key + """": {"type": "array"}""" 
+        case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array"}"""
         //Int 
-        case i: Int                        => "\""  + key + """": {"type":"int"}"""
-        case Some(i: Int)                  => "\""  + key + """": {"type":"int"}"""
-        case List(i: Int, _*)              => "\""  + key + """": {"type": "array", "properties": {"type": "int"}}"""
-        case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array", "properties": {"type": "int"}}"""
+        case i: Int                        => "\""  + key + """": {"type":"integer"}"""
+        case Some(i: Int)                  => "\""  + key + """": {"type":"integer"}"""
+        case List(i: Int, _*)              => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array"}"""
         //Long
-        case i: Long                       => "\""  + key + """": {"type":"long"}"""
-        case Some(i: Long)                 => "\""  + key + """": {"type":"long"}"""
-        case List(i: Long, _*)             => "\""  + key + """": {"type": "array", "properties": {"type": "long"}}"""
-        case Some(List(i: Long, _*))       => "\""  + key + """": {"type": "array", "properties": {"type": "long"}}"""
+        case i: Long                       => "\""  + key + """": {"type":"integer"}"""
+        case Some(i: Long)                 => "\""  + key + """": {"type":"integer"}"""
+        case List(i: Long, _*)             => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: Long, _*))       => "\""  + key + """": {"type": "array"}"""
         //Float
-        case i: Float                      => "\""  + key + """": {"type":"float"}"""
-        case Some(i: Float)                => "\""  + key + """": {"type":"float"}"""
-        case List(i: Float, _*)            => "\""  + key + """": {"type": "array", "properties": {"type": "float"}}"""
-        case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array", "properties": {"type": "float"}}"""
+        case i: Float                      => "\""  + key + """": {"type":"number"}"""
+        case Some(i: Float)                => "\""  + key + """": {"type":"number"}"""
+        case List(i: Float, _*)            => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array"}"""
         //Double
-        case i: Double                     => "\""  + key + """": {"type":"double"}"""
-        case Some(i: Double)               => "\""  + key + """": {"type":"double"}"""
-        case List(i: Double, _*)           => "\""  + key + """": {"type": "array", "properties": {"type": "double"}}"""
-        case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array", "properties": {"type": "double"}}"""
+        case i: Double                     => "\""  + key + """": {"type":"number"}"""
+        case Some(i: Double)               => "\""  + key + """": {"type":"number"}"""
+        case List(i: Double, _*)           => "\""  + key + """": {"type": "array"}"""
+        case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array"}"""
         
-        case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string"}"""
-        case List(APIUtil.defaultJValue,_*)         => "\""  + key + """": {"type": "array", "properties": {"type": "string"}}"""
+        case APIUtil.defaultJValue         => "\""  + key + """": {"type": "object", "properties" : {"string":{"type":"string"}}}"""
+        case List(APIUtil.defaultJValue,_*)         => "\""  + key + """": {"type": "array"}"""
         //List case classes.  
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
