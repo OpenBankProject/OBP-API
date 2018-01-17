@@ -11,6 +11,7 @@ import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
 import net.liftweb.json.Extraction
+import net.liftweb.json.Extraction.decompose
 import org.scalatest._
 
 import scala.collection.mutable.ArrayBuffer
@@ -58,7 +59,9 @@ class JSONFactory1_4_0Test extends FlatSpec
   "JSONFactory1_4_0.createTypedBody" should "work well, no exception is good enough" in {
     val inputCaseClass = AllCases()
     val result = JSONFactory1_4_0.createTypedBody(inputCaseClass)
-//    logger.debug(prettyRender(result))
+//    logger.info(prettyRender(decompose(inputCaseClass)))
+//    logger.info("---------------")
+//    logger.info(prettyRender(result))
   }
   
 }
