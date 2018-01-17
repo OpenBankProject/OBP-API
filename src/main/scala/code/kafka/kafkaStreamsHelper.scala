@@ -46,6 +46,11 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     .withClientId(clientId)
     .withMaxWakeups(maxWakeups)
     .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
+    .withProperty("security.protocol","SSL")
+    .withProperty("ssl.truststore.location", "/home/work/kafka/api.truststore.jks")
+    .withProperty("ssl.truststore.password", "redf1234")
+    .withProperty("ssl.keystore.location","/home/work/kafka/api.keystore.jks")
+    .withProperty("ssl.keystore.password", "redff1234")
 
   private val consumer: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
     val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(topic, partition), 0)
@@ -57,6 +62,11 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     .withBootstrapServers(bootstrapServers)
     .withProperty("batch.size", "0")
     .withParallelism(3)
+    .withProperty("security.protocol","SSL")
+    .withProperty("ssl.truststore.location", "/home/work/kafka/api.truststore.jks")
+    .withProperty("ssl.truststore.password", "redf1234")
+    .withProperty("ssl.keystore.location","/home/work/kafka/api.keystore.jks")
+    .withProperty("ssl.keystore.password", "redff1234")
   //.withProperty("auto.create.topics.enable", "true")
 
   private val producer = producerSettings
