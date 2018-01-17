@@ -351,12 +351,12 @@ trait APIMethods300 {
       case "my" :: "accounts" :: Nil JsonGet json => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext)}
+            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, callContext)}
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), sessioContext)
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), callContext)
           }
       }
     }
@@ -586,14 +586,14 @@ trait APIMethods300 {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            (JSONFactory300.createUserJSONs (users), sessioContext)
+            (JSONFactory300.createUserJSONs (users), callContext)
           }
       }
     }
@@ -622,7 +622,7 @@ trait APIMethods300 {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -632,7 +632,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), sessioContext)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), callContext)
           }
       }
     }
@@ -662,7 +662,7 @@ trait APIMethods300 {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
@@ -672,7 +672,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), sessioContext)
+            (JSONFactory300.createUserJSON (Full(user), entitlements), callContext)
           }
       }
     }
@@ -854,7 +854,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
         cc => {
           for {
-            (user, sessioContext) <- extractCallContext(cc)
+            (user, callContext) <- extractCallContext(cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -866,7 +866,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! msg)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createBranchJsonV300(branch), sessioContext)
+            (JSONFactory300.createBranchJsonV300(branch), callContext)
           }
         }
       }
@@ -914,7 +914,7 @@ trait APIMethods300 {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, sessioContext) <- extractCallContext(cc)
+            (user, callContext) <- extractCallContext(cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -951,7 +951,7 @@ trait APIMethods300 {
                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createBranchesJson(branches), sessioContext)
+            (JSONFactory300.createBranchesJson(branches), callContext)
           }
         }
       }
@@ -985,7 +985,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(cc)
+            (user, callContext) <- extractCallContext(cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetAtm(getAtmsIsPublic, user)
             }
@@ -996,7 +996,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ?~! AtmNotFoundByAtmId)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createAtmJsonV300(atm), sessioContext)
+            (JSONFactory300.createAtmJsonV300(atm), callContext)
           }
       }
     }
@@ -1037,7 +1037,7 @@ trait APIMethods300 {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, sessioContext) <- extractCallContext(cc)
+            (user, callContext) <- extractCallContext(cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
@@ -1074,7 +1074,7 @@ trait APIMethods300 {
                 .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createAtmsJsonV300(atms), sessioContext)
+            (JSONFactory300.createAtmsJsonV300(atms), callContext)
           }
         }
       }
@@ -1109,14 +1109,14 @@ trait APIMethods300 {
         cc =>
           val s = S
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            (JSONFactory300.createUserJSONs (users), sessioContext)
+            (JSONFactory300.createUserJSONs (users), callContext)
           }
       }
     }
@@ -1152,13 +1152,13 @@ trait APIMethods300 {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(sessioContext) map {
+            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(callContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createCustomersJson(customers), sessioContext)
+            (JSONFactory300.createCustomersJson(customers), callContext)
           }
         }
       }
@@ -1185,11 +1185,11 @@ trait APIMethods300 {
       case "users" :: "current" :: Nil JsonGet _ => {
         cc => {
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
           } yield {
-            (JSONFactory300.createUserJSON (user, entitlements), sessioContext)
+            (JSONFactory300.createUserJSON (user, entitlements), callContext)
           }
         }
       }
@@ -1222,17 +1222,17 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
             availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, sessioContext) map {
+            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, callContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), sessioContext)
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
       }
     }
@@ -1263,14 +1263,14 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
             bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
           } yield {
-            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), sessioContext)
+            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), callContext)
           }
       }
     }

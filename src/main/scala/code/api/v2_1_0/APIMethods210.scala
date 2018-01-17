@@ -990,14 +990,14 @@ trait APIMethods210 {
       case "users" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, sessioContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
-            (JSONFactory210.createUserJSONs (users), sessioContext)
+            (JSONFactory210.createUserJSONs (users), callContext)
           }
       }
     }

@@ -630,13 +630,13 @@ object APIUtil extends MdcLoggable {
     JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val cc = ApiSession.updateCallContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
   def createdJsonResponse(json: JsonAST.JValue, httpCode : Int = 201)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val cc = ApiSession.updateCallContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -648,7 +648,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val cc = ApiSession.updateSessionContext(Spelling(getSpellingParam()), None)
+    val cc = ApiSession.updateCallContext(Spelling(getSpellingParam()), None)
     val jsonAst = ApiSession.processJson(json, cc)
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
@@ -1917,9 +1917,9 @@ Versions are groups of endpoints in a file
                     case Full((u, cbsToken)) => // Authentication is successful
                       GatewayLogin.getOrCreateConsumer(payload, u)
                       val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
-                      val callContextForRequest = ApiSession.updateSessionContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
+                      val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                      val callContext = ApiSession.updateSessionContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
+                      val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
                       (Full(u), callContext)
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
@@ -1948,7 +1948,7 @@ Versions are groups of endpoints in a file
     }
     // Update Session Context
     res map {
-      x => (x._1, ApiSession.updateSessionContext(Spelling(spelling), x._2))
+      x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
     } map {
