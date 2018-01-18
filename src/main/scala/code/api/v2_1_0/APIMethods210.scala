@@ -714,7 +714,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
-            // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+            // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
           }
           yield {
             // Format the data as V2.1.0 json

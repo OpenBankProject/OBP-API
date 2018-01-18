@@ -1416,7 +1416,7 @@ trait APIMethods300 {
       entitlementRequestJSON,
       List(
         UserNotLoggedIn,
-        "Logged user is not super admin!",
+        UserNotSuperAdmin,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1428,7 +1428,7 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
-            _ <- Helper.booleanToFuture(failMsg = "Logged user is not super admin!") {
+            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }
             getedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {

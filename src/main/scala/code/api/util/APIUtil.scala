@@ -177,7 +177,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserNotSuperAdmin = "OBP-20050: User is not super admin!"
+  val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
 
 
