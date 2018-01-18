@@ -24,6 +24,13 @@ case class OneClass(
   strings : List[String] = List("String")
 )
 
+case class TwoClass(
+  string : String = "String",
+  strings : List[String] = List("String"),
+  oneClass: OneClass = OneClass(),
+  oneClasses: List[OneClass] = List(OneClass())
+)
+
 case class AllCases(
   string: String = "String",
   strings: List[String] = List("String"),
@@ -35,6 +42,8 @@ case class AllCases(
   ints: List[Int]= List(3),
   nestClass: OneClass = OneClass(),
   nestClasses: List[OneClass] = List(OneClass()),
+  nestClassTwo: TwoClass = TwoClass(),
+  nestClassesTwo: List[TwoClass] = List(TwoClass()),
   jvalue: JValue= APIUtil.defaultJValue,
   jvalues: List[JValue]= List(APIUtil.defaultJValue)
 )
@@ -59,9 +68,9 @@ class JSONFactory1_4_0Test extends FlatSpec
   "JSONFactory1_4_0.createTypedBody" should "work well, no exception is good enough" in {
     val inputCaseClass = AllCases()
     val result = JSONFactory1_4_0.createTypedBody(inputCaseClass)
-//    logger.info(prettyRender(decompose(inputCaseClass)))
-//    logger.info("---------------")
-//    logger.info(prettyRender(result))
+    logger.debug(prettyRender(decompose(inputCaseClass)))
+    logger.debug("---------------")
+    logger.debug(prettyRender(result))
   }
   
 }
