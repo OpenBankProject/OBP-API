@@ -310,7 +310,7 @@ We use jetty8 to run the API in production mode.
 * Now restart jetty8:
 
         sudo service jetty8 restart
-
+l
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 
@@ -326,9 +326,9 @@ the api will stop at boot up and ask for.
 
 * Edit your props file(s) to contain:
         
-        _kafka.use.ssl=true
-         keystore.path=/path/to/api.keystore.jks
-         truststore.path=/path/to/api.truststore.jks_
+        kafka.use.ssl=true
+        keystore.path=/path/to/api.keystore.jks
+        truststore.path=/path/to/api.truststore.jks
 
 
 ## Scala / Lift
