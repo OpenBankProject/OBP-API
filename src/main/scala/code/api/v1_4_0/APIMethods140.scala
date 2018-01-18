@@ -119,7 +119,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagMessage, apiTagCustomer))
 
     lazy val getCustomerMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -151,7 +151,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       successMessage,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagPerson)
+      List(apiTagMessage, apiTagCustomer, apiTagPerson)
     )
 
     // TODO Add Role
