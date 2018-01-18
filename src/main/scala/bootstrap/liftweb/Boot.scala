@@ -87,6 +87,7 @@ import net.liftweb.util.{Helpers, Props, Schedule, _}
 import code.api.util.APIUtil.{ApiVersion, enableVersionIfAllowed}
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
+import code.entitlementrequest.MappedEntitlementRequest
 
 
 /**
@@ -499,7 +500,8 @@ object ToSchemify {
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,
-    MappedExpectedChallengeAnswer
+    MappedExpectedChallengeAnswer,
+    MappedEntitlementRequest
   )
 
   // The following tables are accessed directly via Mapper / JDBC

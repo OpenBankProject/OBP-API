@@ -42,6 +42,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.customer.Customer
 import code.entitlement.Entitlement
+import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
 
@@ -383,6 +384,9 @@ case class CustomerJsonV300(
                              kyc_status: lang.Boolean,
                              last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
+
+case class EntitlementRequestJSON(entitlement_id: String, user_id: String, role_name: String, bank_id: String)
+case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
 
 object JSONFactory300{
   //stated -- Transaction relevant methods /////
@@ -1006,6 +1010,14 @@ object JSONFactory300{
   }
   def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
     CustomerJSONs(customers.map(createCustomerJson))
+  }
+
+  def createEntitlementRequestJSON(e: EntitlementRequest): EntitlementRequestJSON = {
+    EntitlementRequestJSON(
+      entitlement_id = e.entitlementId,
+      user_id = e.userId,
+      role_name = e.roleName,
+      bank_id = e.bankId)
   }
 
 }

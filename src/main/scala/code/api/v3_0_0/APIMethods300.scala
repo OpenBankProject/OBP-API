@@ -15,6 +15,7 @@ import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
+import code.entitlementrequest.EntitlementRequest
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -22,7 +23,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Full, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
@@ -1337,6 +1338,65 @@ trait APIMethods300 {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
             successJsonResponse(Extraction.decompose(otherBankAccountJson))
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      addEntitlementRequest,
+      implementedInApiVersion,
+      "addEntitlementRequest",
+      "POST",
+      "/entitlement_requests",
+      "Add Entitlement Request for a User.",
+      """Create Entitlement Request. Grant Role to User.
+        |
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementRequestJSON,
+      List(
+        UserNotLoggedIn,
+        UserNotFoundById,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        "Entitlement already exists for the user.",
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
+
+    lazy val addEntitlementRequest : OBPEndpoint = {
+      case "entitlement_requests" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture(user)
+              postedData <- Future { tryo{json.extract[CreateEntitlementRequestJSON]} } map {
+                x => fullBoxOrException(x ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON ")
+              } map { unboxFull(_) }
+              _ <- Future { if (postedData.bank_id == "") Full() else Bank(BankId(postedData.bank_id)) } map {
+                x => fullBoxOrException(x ?~! BankNotFound)
+              }
+              _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
+                availableRoles.exists(_ == postedData.role_name)
+              }
+              _ <- Helper.booleanToFuture(failMsg = EntitlementRequestAlreadyExists) {
+                EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(postedData.bank_id, u.userId, postedData.role_name).isEmpty
+              }
+              addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(postedData.bank_id, u.userId, postedData.role_name) map {
+                x => fullBoxOrException(x ?~! EntitlementRequestCannotBeAdded)
+              } map { unboxFull(_) }
+            } yield {
+              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), callContext)
+            }
       }
     }
 
