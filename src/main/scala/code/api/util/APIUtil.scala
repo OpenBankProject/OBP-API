@@ -376,7 +376,7 @@ object APIUtil extends MdcLoggable {
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
-  val defaultJValue = json.parse("""{"JsonObject":"OBP"}""")
+  val defaultJValue = Extraction.decompose(EmptyClassJson())
   val exampleDateString: String = "22/08/2013"
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse(exampleDateString)
