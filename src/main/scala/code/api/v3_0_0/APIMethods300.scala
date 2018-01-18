@@ -1367,7 +1367,8 @@ trait APIMethods300 {
         IncorrectRoleName,
         EntitlementIsBankRole,
         EntitlementIsSystemRole,
-        "Entitlement already exists for the user.",
+        EntitlementRequestAlreadyExists,
+        EntitlementRequestCannotBeAdded,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1397,6 +1398,45 @@ trait APIMethods300 {
             } yield {
               (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), callContext)
             }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getEntitlementRequests,
+      implementedInApiVersion,
+      "getEntitlementRequests",
+      "GET",
+      "/entitlement_requests",
+      "Get Entitlement Requests.",
+      """Get All Entitlement Request.
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementRequestJSON,
+      List(
+        UserNotLoggedIn,
+        "Logged user is not super admin!",
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
+
+    lazy val getEntitlementRequests : OBPEndpoint = {
+      case "entitlement_requests" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            _ <- Helper.booleanToFuture(failMsg = "Logged user is not super admin!") {
+              isSuperAdmin(u.userId)
+            }
+            getedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory300.createEntitlementRequestsJSON(getedEntitlementRequest), callContext)
+          }
       }
     }
 

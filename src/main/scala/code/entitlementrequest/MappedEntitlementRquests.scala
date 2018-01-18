@@ -1,7 +1,7 @@
 package code.entitlementrequest
 
 import code.util.{MappedUUID, UUIDString}
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
@@ -35,6 +35,12 @@ object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
   override def getEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]] = {
     Future {
       getEntitlementRequest(bankId, userId, roleName)
+    }
+  }
+
+  override def getEntitlementRequestsFuture(): Future[Box[List[EntitlementRequest]]] = {
+    Future {
+      Full(MappedEntitlementRequest.findAll())
     }
   }
 

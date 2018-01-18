@@ -17,6 +17,7 @@ trait EntitlementRequestProvider {
   def addEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]]
   def getEntitlementRequest(bankId: String, userId: String, roleName: String): Box[EntitlementRequest]
   def getEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]]
+  def getEntitlementRequestsFuture(): Future[Box[List[EntitlementRequest]]]
 }
 
 trait EntitlementRequest {
