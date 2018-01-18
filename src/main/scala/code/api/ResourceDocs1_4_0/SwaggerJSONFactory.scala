@@ -477,8 +477,6 @@ object SwaggerJSONFactory {
         case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
        
-        //TODO this should be improved, matching the JValue,now just support the default value
-        case APIUtil.defaultJValue         => "\""  + key + """": {"type":"string","example":""}"""
         //List case classes.  
         case List(f)                       => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
         case List(f,_*)                    => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"

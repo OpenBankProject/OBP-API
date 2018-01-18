@@ -385,48 +385,46 @@ object JSONFactory1_4_0 {
         //Date -- should be the first
         case i: Date                       => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case Some(i: Date)                 => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case List(i: Date, _*)             => "\""  + key + """": {"type": "array"}""" 
-        case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array"}"""
+        case List(i: Date, _*)             => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}""" 
+        case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
 
         //Boolean - 4 kinds
         case i: Boolean                    => "\""  + key + """": {"type":"boolean"}""" 
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean"}"""
-        case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array"}"""
+        case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
+        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
           
         //String   
         case i: String if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case Some(i: String) if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array"}"""
+        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
+        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
           
         case i: String                     => "\""  + key + """": {"type":"string"}"""
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
-        case List(i: String, _*)           => "\""  + key + """": {"type": "array"}""" 
-        case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array"}"""
+        case List(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}""" 
+        case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
         //Int 
         case i: Int                        => "\""  + key + """": {"type":"integer"}"""
         case Some(i: Int)                  => "\""  + key + """": {"type":"integer"}"""
-        case List(i: Int, _*)              => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array"}"""
+        case List(i: Int, _*)              => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
         //Long
         case i: Long                       => "\""  + key + """": {"type":"integer"}"""
         case Some(i: Long)                 => "\""  + key + """": {"type":"integer"}"""
-        case List(i: Long, _*)             => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: Long, _*))       => "\""  + key + """": {"type": "array"}"""
+        case List(i: Long, _*)             => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        case Some(List(i: Long, _*))       => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
         //Float
         case i: Float                      => "\""  + key + """": {"type":"number"}"""
         case Some(i: Float)                => "\""  + key + """": {"type":"number"}"""
-        case List(i: Float, _*)            => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array"}"""
+        case List(i: Float, _*)            => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+        case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         //Double
         case i: Double                     => "\""  + key + """": {"type":"number"}"""
         case Some(i: Double)               => "\""  + key + """": {"type":"number"}"""
-        case List(i: Double, _*)           => "\""  + key + """": {"type": "array"}"""
-        case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array"}"""
+        case List(i: Double, _*)           => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+        case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         
-        case APIUtil.defaultJValue         => "\""  + key + """": {"type": "object", "properties" : {"string":{"type":"string"}}}"""
-        case List(APIUtil.defaultJValue,_*)         => "\""  + key + """": {"type": "array"}"""
         //List case classes.  
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
@@ -447,7 +445,7 @@ object JSONFactory1_4_0 {
     val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
     //val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
     val definition = if (isArray)
-        """{ "type": "array", "properties" : {""" + fields + """}}""" 
+        """{ "type": "array",  "items" : {"type": "object","properties": {""" + fields + """}}}""" 
       else 
         """{ "type": "object", "properties" : {""" + fields + """}}"""
     definition
