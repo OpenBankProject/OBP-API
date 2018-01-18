@@ -1,7 +1,8 @@
 package code.entitlementrequest
 
+import code.api.util.ErrorMessages
 import code.util.{MappedUUID, UUIDString}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
@@ -32,6 +33,15 @@ object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
       By(MappedEntitlementRequest.mRoleName, roleName)
     )
   }
+
+  override def getEntitlementRequestFuture(entitlementRequestId: String): Future[Box[EntitlementRequest]] = {
+    Future {
+      MappedEntitlementRequest.find(
+        By(MappedEntitlementRequest.mEntitlementRequestId, entitlementRequestId)
+      )
+    }
+  }
+
   override def getEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]] = {
     Future {
       getEntitlementRequest(bankId, userId, roleName)
@@ -50,6 +60,16 @@ object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
     }
   }
 
+  override def deleteEntitlementRequestFuture(entitlementRequestId: String): Future[Box[Boolean]] = {
+    Future {
+      MappedEntitlementRequest.find(By(MappedEntitlementRequest.mEntitlementRequestId, entitlementRequestId)) match {
+        case Full(t) => Full(t.delete_!)
+        case Empty   => Empty ?~! ErrorMessages.EntitlementRequestNotFound
+        case _       => Full(false)
+      }
+    }
+  }
+
 }
 
 class MappedEntitlementRequest extends EntitlementRequest
@@ -57,7 +77,7 @@ class MappedEntitlementRequest extends EntitlementRequest
 
   def getSingleton = MappedEntitlementRequest
 
-  object mEntitlementId extends MappedUUID(this)
+  object mEntitlementRequestId extends MappedUUID(this)
 
   object mBankId extends UUIDString(this)
 
@@ -65,7 +85,7 @@ class MappedEntitlementRequest extends EntitlementRequest
 
   object mRoleName extends MappedString(this, 64)
 
-  override def entitlementId: String = mEntitlementId.get.toString
+  override def entitlementRequestId: String = mEntitlementRequestId.get.toString
 
   override def bankId: String = mBankId.get
 
@@ -76,5 +96,5 @@ class MappedEntitlementRequest extends EntitlementRequest
 
 
 object MappedEntitlementRequest extends MappedEntitlementRequest with LongKeyedMetaMapper[MappedEntitlementRequest] {
-  override def dbIndexes = UniqueIndex(mEntitlementId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mEntitlementRequestId) :: super.dbIndexes
 }

@@ -16,13 +16,15 @@ trait EntitlementRequestProvider {
   def addEntitlementRequest(bankId: String, userId: String, roleName: String): Box[EntitlementRequest]
   def addEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]]
   def getEntitlementRequest(bankId: String, userId: String, roleName: String): Box[EntitlementRequest]
+  def getEntitlementRequestFuture(entitlementRequestId: String): Future[Box[EntitlementRequest]]
   def getEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]]
   def getEntitlementRequestsFuture(): Future[Box[List[EntitlementRequest]]]
   def getEntitlementRequestsFuture(userId: String): Future[Box[List[EntitlementRequest]]]
+  def deleteEntitlementRequestFuture(entitlementRequestId: String): Future[Box[Boolean]]
 }
 
 trait EntitlementRequest {
-  def entitlementId: String
+  def entitlementRequestId: String
 
   def bankId: String
 

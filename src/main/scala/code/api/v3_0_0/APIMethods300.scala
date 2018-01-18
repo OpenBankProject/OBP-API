@@ -1432,11 +1432,11 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }
-            getdEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
+            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getdEntitlementRequests), callContext)
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
       }
     }
@@ -1449,7 +1449,7 @@ trait APIMethods300 {
       "GET",
       "/users/USER_ID/entitlement_requests",
       "Get Entitlement Requests for a User.",
-      """Get All Entitlement Request for a User.
+      """Get Entitlement Requests for a User.
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
@@ -1472,11 +1472,51 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }
-            getdEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
+            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getdEntitlementRequests), callContext)
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteEntitlementRequest,
+      implementedInApiVersion,
+      "deleteEntitlementRequest",
+      "DELETE",
+      "/entitlement_requests/ENTITLEMENT_REQUEST_ID",
+      "Delete Entitlement Request for a User.",
+      """Delete Entitlement Request for a User.
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementRequestJSON,
+      List(
+        UserNotLoggedIn,
+        UserNotSuperAdmin,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
+
+    lazy val deleteEntitlementRequest : OBPEndpoint = {
+      case "entitlement_requests" :: entitlementRequestId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
+              isSuperAdmin(u.userId)
+            }
+            deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (Full(deleteEntitlementRequest), callContext)
           }
       }
     }
