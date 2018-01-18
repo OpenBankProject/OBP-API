@@ -257,7 +257,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getOtherAccountsForBankAccount ::
                           Implementations3_0_0.getOtherAccountByIdForBankAccount ::
                           Implementations3_0_0.addEntitlementRequest ::
-                          Implementations3_0_0.getEntitlementRequests ::
+                          Implementations3_0_0.getAllEntitlementRequests ::
                           Nil
 
 

@@ -1403,9 +1403,9 @@ trait APIMethods300 {
 
 
     resourceDocs += ResourceDoc(
-      getEntitlementRequests,
+      getAllEntitlementRequests,
       implementedInApiVersion,
-      "getEntitlementRequests",
+      "getAllEntitlementRequests",
       "GET",
       "/entitlement_requests",
       "Get Entitlement Requests.",
@@ -1422,7 +1422,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
-    lazy val getEntitlementRequests : OBPEndpoint = {
+    lazy val getAllEntitlementRequests : OBPEndpoint = {
       case "entitlement_requests" :: Nil JsonGet _ => {
         cc =>
           for {
