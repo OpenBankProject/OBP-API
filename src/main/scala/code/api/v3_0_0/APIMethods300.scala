@@ -1417,6 +1417,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
+        ConnectorEmptyResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1431,53 +1432,94 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }
-            getedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
+            getdEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getedEntitlementRequest), callContext)
+            (JSONFactory300.createEntitlementRequestsJSON(getdEntitlementRequests), callContext)
           }
       }
     }
 
-    
-/* WIP
+
     resourceDocs += ResourceDoc(
-      getOtherAccountsForBank,
-      apiVersion,
-      "getOtherAccountsForBank",
+      getEntitlementRequests,
+      implementedInApiVersion,
+      "getEntitlementRequests",
       "GET",
-      "/banks/BANK_ID/other_accounts",
-      "Get Other Accounts of a Bank.",
-      s"""Returns data about all the other accounts at BANK_ID.
-          |This is a fireho
-          |${authenticationRequiredMessage(true)}
-          |""",
-      emptyObjectJson,
-      otherAccountsJSON,
+      "/users/USER_ID/entitlement_requests",
+      "Get Entitlement Requests for a User.",
+      """Get All Entitlement Request for a User.
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementRequestJSON,
       List(
-        BankAccountNotFound,
+        UserNotLoggedIn,
+        UserNotSuperAdmin,
+        ConnectorEmptyResponse,
         UnknownError
       ),
-      Catalogs(notCore, PSD2, OBWG),
-      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
-    lazy val getOtherAccountsForBank : OBPEndpoint = {
-      //get other accounts for one account
-      case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+    lazy val getEntitlementRequests : OBPEndpoint = {
+      case "users" :: userId :: "entitlement_requests" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
+              isSuperAdmin(u.userId)
+            }
+            getdEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
           } yield {
-            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
-            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+            (JSONFactory300.createEntitlementRequestsJSON(getdEntitlementRequests), callContext)
           }
       }
     }
-*/
+
+
+
+    /* WIP
+        resourceDocs += ResourceDoc(
+          getOtherAccountsForBank,
+          apiVersion,
+          "getOtherAccountsForBank",
+          "GET",
+          "/banks/BANK_ID/other_accounts",
+          "Get Other Accounts of a Bank.",
+          s"""Returns data about all the other accounts at BANK_ID.
+              |This is a fireho
+              |${authenticationRequiredMessage(true)}
+              |""",
+          emptyObjectJson,
+          otherAccountsJSON,
+          List(
+            BankAccountNotFound,
+            UnknownError
+          ),
+          Catalogs(notCore, PSD2, OBWG),
+          List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+
+        lazy val getOtherAccountsForBank : OBPEndpoint = {
+          //get other accounts for one account
+          case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+            cc =>
+              for {
+                _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+                account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+                view <- View.fromUrl(viewId, account)
+                otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+              } yield {
+                val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+                successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+              }
+          }
+        }
+    */
 
 
 

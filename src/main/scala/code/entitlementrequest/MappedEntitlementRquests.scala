@@ -44,6 +44,12 @@ object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
     }
   }
 
+  override def getEntitlementRequestsFuture(userId: String): Future[Box[List[EntitlementRequest]]] = {
+    Future {
+      Full(MappedEntitlementRequest.findAll(By(MappedEntitlementRequest.mUserId, userId)))
+    }
+  }
+
 }
 
 class MappedEntitlementRequest extends EntitlementRequest
