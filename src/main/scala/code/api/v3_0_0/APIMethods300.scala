@@ -1430,11 +1430,13 @@ trait APIMethods300 {
     lazy val getAllEntitlementRequests : OBPEndpoint = {
       case "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
+          val allowedEntitlements = CanGetEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
+              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
@@ -1473,11 +1475,13 @@ trait APIMethods300 {
     lazy val getEntitlementRequests : OBPEndpoint = {
       case "users" :: userId :: "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
+          val allowedEntitlements = CanGetEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
+              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
@@ -1517,11 +1521,13 @@ trait APIMethods300 {
     lazy val deleteEntitlementRequest : OBPEndpoint = {
       case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {
         cc =>
+          val allowedEntitlements = CanDeleteEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
+              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
