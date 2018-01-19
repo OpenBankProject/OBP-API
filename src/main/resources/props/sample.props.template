@@ -44,6 +44,13 @@ connector=mapped
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
+## Enable SSL for kafka, if set to true must set paths for the keystore locations
+#kafka.use.ssl=true
+
+# Paths to the SSL keystore files - has to be jks    
+#keystore.path=/path/to/api.keystore.jks
+#truststore.path=/path/to/api.truststore.jks
+
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
 ## This setting is also used by connector metrics (write_connector_metrics does not exist yet)

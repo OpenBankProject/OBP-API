@@ -9,6 +9,7 @@ import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
+import code.api.util.APIUtil.initPasswd
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
@@ -40,12 +41,26 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     */
   private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
 
-  private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
-    .withBootstrapServers(bootstrapServers)
-    .withGroupId(groupId)
-    .withClientId(clientId)
-    .withMaxWakeups(maxWakeups)
-    .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
+  private val consumerSettings = if (Props.get("kafka.use.ssl").getOrElse("false") == "true") {
+    ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
+      .withBootstrapServers(bootstrapServers)
+      .withGroupId(groupId)
+      .withClientId(clientId)
+      .withMaxWakeups(maxWakeups)
+      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
+      .withProperty("security.protocol","SSL")
+      .withProperty("ssl.truststore.location", Props.get("truststore.path").getOrElse(""))
+      .withProperty("ssl.truststore.password", initPasswd)
+      .withProperty("ssl.keystore.location",Props.get("keystore.path").getOrElse(""))
+      .withProperty("ssl.keystore.password", initPasswd)
+  } else {
+    ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
+      .withBootstrapServers(bootstrapServers)
+      .withGroupId(groupId)
+      .withClientId(clientId)
+      .withMaxWakeups(maxWakeups)
+      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
+  }
 
   private val consumer: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
     val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(topic, partition), 0)
@@ -53,11 +68,22 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .completionTimeout(completionTimeout)
   }
 
-  private val producerSettings = ProducerSettings(system, new StringSerializer, new StringSerializer)
-    .withBootstrapServers(bootstrapServers)
-    .withProperty("batch.size", "0")
-    .withParallelism(3)
-  //.withProperty("auto.create.topics.enable", "true")
+  private val producerSettings = if (Props.get("kafka.use.ssl").getOrElse("false") == "true") {
+    ProducerSettings(system, new StringSerializer, new StringSerializer)
+      .withBootstrapServers(bootstrapServers)
+      .withProperty("batch.size", "0")
+      .withParallelism(3)
+      .withProperty("security.protocol","SSL")
+      .withProperty("ssl.truststore.location", Props.get("truststore.path").getOrElse(""))
+      .withProperty("ssl.truststore.password", initPasswd)
+      .withProperty("ssl.keystore.location",Props.get("keystore.path").getOrElse(""))
+      .withProperty("ssl.keystore.password", initPasswd)
+  } else {
+    ProducerSettings(system, new StringSerializer, new StringSerializer)
+      .withBootstrapServers(bootstrapServers)
+      .withProperty("batch.size", "0")
+      .withParallelism(3)
+  }
 
   private val producer = producerSettings
     .createKafkaProducer()

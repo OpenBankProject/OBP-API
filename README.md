@@ -310,13 +310,25 @@ We use jetty8 to run the API in production mode.
 * Now restart jetty8:
 
         sudo service jetty8 restart
-
+l
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 
 ## Using Akka remote storage
 
 Most internal OBP model data access now occurs over Akka. This is so the machine that has JDBC access to the OBP database can be physically separated from the OBP API layer. In this configuration we run two instances of OBP-API on two different machines and they communicate over Akka. Please see README.Akka.md for instructions.
+
+## Using SSL Encryption with kafka
+
+For SSL encryption we use jks keystores.
+Note that both the keystore and the truststore (and all keys within) must have the same password for unlocking, for which
+the api will stop at boot up and ask for. 
+
+* Edit your props file(s) to contain:
+        
+        kafka.use.ssl=true
+        keystore.path=/path/to/api.keystore.jks
+        truststore.path=/path/to/api.truststore.jks
 
 
 ## Scala / Lift
