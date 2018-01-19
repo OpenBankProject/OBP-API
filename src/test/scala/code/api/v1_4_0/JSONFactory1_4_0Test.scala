@@ -2,22 +2,18 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{ApiVersion, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
-import code.api.v2_1_0.OBPAPI2_1_0
-import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
-import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction.decompose
+import net.liftweb.json._
+import org.everit.json.schema.loader.SchemaLoader
+import org.json.JSONObject
 import org.scalatest._
 
-import scala.collection.mutable.ArrayBuffer
-import net.liftweb.json._
-
-import scala.collection.mutable
+import scala.collection.mutable;
 
 case class OneClass(
   string : String = "String",
@@ -71,6 +67,23 @@ class JSONFactory1_4_0Test extends FlatSpec
     logger.debug(prettyRender(decompose(inputCaseClass)))
     logger.debug("---------------")
     logger.debug(prettyRender(result))
+  }
+  
+  
+  "validate all the resouceDocs json schema " should "work well, no exception is good enough" in {
+    val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
+    val resouceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList)
+    
+    for{
+      resouceDoc <- resouceDocs.resource_docs
+      json <- List(compactRender(decompose(resouceDoc.success_response_body)))
+      jsonSchema <- List(compactRender(resouceDoc.typed_success_response_body))
+    } yield {
+      val rawSchema = new JSONObject(jsonSchema)
+      val schema = SchemaLoader.load(rawSchema)
+      schema.validate(new JSONObject(json))
+    }
+    
   }
   
 }
