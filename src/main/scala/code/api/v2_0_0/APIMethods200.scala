@@ -1992,7 +1992,7 @@ trait APIMethods200 {
       emptyObjectJson,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {

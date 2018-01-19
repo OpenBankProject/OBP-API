@@ -1348,8 +1348,8 @@ trait APIMethods300 {
       "addEntitlementRequest",
       "POST",
       "/entitlement_requests",
-      "Add Entitlement Request for a User.",
-      """Create Entitlement Request. Grant Role to User.
+      "Add Entitlement Request for a Logged User.",
+      """Create Entitlement Request.
         |
         |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
         |
@@ -1357,7 +1357,7 @@ trait APIMethods300 {
         |
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        """.stripMargin,
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
       entitlementRequestJSON,
       List(
@@ -1408,10 +1408,14 @@ trait APIMethods300 {
       "getAllEntitlementRequests",
       "GET",
       "/entitlement_requests",
-      "Get Entitlement Requests.",
-      """Get All Entitlement Request.
+      "Get all Entitlement Requests",
+      """
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        |
+      """.stripMargin,
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
       entitlementRequestJSON,
       List(
@@ -1451,7 +1455,10 @@ trait APIMethods300 {
       "Get Entitlement Requests for a User.",
       """Get Entitlement Requests for a User.
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        """.stripMargin,
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
       entitlementRequestJSON,
       List(
@@ -1488,10 +1495,14 @@ trait APIMethods300 {
       "deleteEntitlementRequest",
       "DELETE",
       "/entitlement_requests/ENTITLEMENT_REQUEST_ID",
-      "Delete Entitlement Request for a User.",
-      """Delete Entitlement Request for a User.
+      "Delete Entitlement Request",
+      """Delete Entitlement Request specified by ENTITLEMENT_REQUEST_ID for an user specified by USER_ID
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        |
+      """.stripMargin,
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
       entitlementRequestJSON,
       List(
