@@ -2061,7 +2061,7 @@ object SwaggerDefinitionsJSON {
     name = "String",
     version = "String",
     git_commit = "String",
-    date = "String"
+    date = "2013-01-21T23:08:00Z"
   )
   
   val thisAccountJsonV300 = ThisAccountJsonV300(
