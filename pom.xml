@@ -48,6 +48,10 @@
       <name>OpenBankProject Git based repo</name>
       <url>https://raw.githubusercontent.com/OpenBankProject/OBP-M2-REPO/master/</url>
     </repository>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
   </repositories>
 
   <pluginRepositories>
@@ -59,6 +63,11 @@
   </pluginRepositories>
 
   <dependencies>
+    <dependency>
+      <groupId>com.github.everit-org.json-schema</groupId>
+      <artifactId>org.everit.json.schema</artifactId>
+      <version>1.6.1</version>
+    </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
