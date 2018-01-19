@@ -1992,7 +1992,7 @@ trait APIMethods200 {
       emptyObjectJson,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
@@ -2025,7 +2025,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, "Logged user is not super admin!", UnknownError),
+      List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement))
 
@@ -2035,7 +2035,7 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(isSuperAdmin(u.userId)) ?~! "Logged user is not super admin!"
+            _ <- booleanToBox(isSuperAdmin(u.userId)) ?~! UserNotSuperAdmin
             entitlements <- Entitlement.entitlement.vend.getEntitlements
           }
           yield {

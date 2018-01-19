@@ -129,6 +129,18 @@ object ApiRole {
   case object CanGetOtherAccountsAtBank extends ApiRole{
     val requiresBankId = true
   }
+  case object CanDeleteEntitlementRequestsAtOneBank extends ApiRole {
+    val requiresBankId = true
+  }
+  case object CanDeleteEntitlementRequestsAtAnyBank extends ApiRole {
+    val requiresBankId = false
+  }
+  case object CanGetEntitlementRequestsAtOneBank extends ApiRole {
+    val requiresBankId = true
+  }
+  case object CanGetEntitlementRequestsAtAnyBank extends ApiRole {
+    val requiresBankId = false
+  }
 
   private val roles = CanSearchAllTransactions ::
     CanSearchAllAccounts ::
@@ -171,6 +183,10 @@ object ApiRole {
     CanGetConfig ::
     CanGetConnectorMetrics ::
     CanGetOtherAccountsAtBank ::
+    CanDeleteEntitlementRequestsAtOneBank ::
+    CanDeleteEntitlementRequestsAtAnyBank ::
+    CanGetEntitlementRequestsAtOneBank ::
+    CanGetEntitlementRequestsAtAnyBank ::
     Nil
 
   def valueOf(value: String): ApiRole = {

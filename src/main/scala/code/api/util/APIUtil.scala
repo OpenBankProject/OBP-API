@@ -177,7 +177,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserNotSuperAdmin = "OBP-20050: User is not super admin!"
+  val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
 
 
@@ -268,6 +268,9 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val EntitlementDoesNotBelongsToUser = "OBP-30213: ENTITLEMENT_ID does not belongs to USER_ID"
+  val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
+  val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
+  val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
@@ -645,7 +648,12 @@ object APIUtil extends MdcLoggable {
   def successJsonResponseFromCaseClass(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
-    JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
+    callContext match {
+      case Some(c) if c.verb == "DELETE" =>
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
+      case _ =>
+        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
+    }
   }
 
   def acceptedJsonResponse(json: JsonAST.JValue, httpCode : Int = 202)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {

@@ -42,6 +42,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.customer.Customer
 import code.entitlement.Entitlement
+import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
 
@@ -384,6 +385,10 @@ case class CustomerJsonV300(
                              last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
 
+case class EntitlementRequestJSON(entitlement_request_id: String, user_id: String, role_name: String, bank_id: String)
+case class EntitlementRequestJSONs(entitlement_requests: List[EntitlementRequestJSON])
+case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
+
 object JSONFactory300{
   //stated -- Transaction relevant methods /////
   def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
@@ -452,7 +457,7 @@ object JSONFactory300{
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
-  
+
   def createOtherBankAccountsJson(otherBankAccounts : List[ModeratedOtherBankAccount]) : OtherAccountsJsonV300 =  {
     val otherAccountJsonV300 : List[OtherAccountJsonV300] = otherBankAccounts.map(createOtherBankAccount)
     OtherAccountsJsonV300(otherAccountJsonV300)
@@ -471,7 +476,7 @@ object JSONFactory300{
       details = createCoreTransactionDetailsJSON(transactionCore)
     )
   }
-  
+
   def createCoreTransactionDetailsJSON(transactionCore : ModeratedTransactionCore) : CoreTransactionDetailsJSON = {
     CoreTransactionDetailsJSON(
       `type` = stringOptionOrNull(transactionCore.transactionType),
@@ -611,7 +616,7 @@ object JSONFactory300{
       account.bankId.value,
       AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
     )
-  
+
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts)
 
@@ -1006,6 +1011,17 @@ object JSONFactory300{
   }
   def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
     CustomerJSONs(customers.map(createCustomerJson))
+  }
+
+  def createEntitlementRequestJSON(e: EntitlementRequest): EntitlementRequestJSON = {
+    EntitlementRequestJSON(
+      entitlement_request_id = e.entitlementRequestId,
+      user_id = e.userId,
+      role_name = e.roleName,
+      bank_id = e.bankId)
+  }
+  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestJSONs = {
+    EntitlementRequestJSONs(list.map(createEntitlementRequestJSON))
   }
 
 }
