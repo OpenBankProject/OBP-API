@@ -1347,7 +1347,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "addEntitlementRequest",
       "POST",
-      "/entitlement_requests",
+      "/entitlement-requests",
       "Add Entitlement Request for a Logged User.",
       """Create Entitlement Request.
         |
@@ -1375,7 +1375,7 @@ trait APIMethods300 {
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val addEntitlementRequest : OBPEndpoint = {
-      case "entitlement_requests" :: Nil JsonPost json -> _ => {
+      case "entitlement-requests" :: Nil JsonPost json -> _ => {
         cc =>
           for {
               (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1407,7 +1407,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "getAllEntitlementRequests",
       "GET",
-      "/entitlement_requests",
+      "/entitlement-requests",
       "Get all Entitlement Requests",
       """
         |
@@ -1428,7 +1428,7 @@ trait APIMethods300 {
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val getAllEntitlementRequests : OBPEndpoint = {
-      case "entitlement_requests" :: Nil JsonGet _ => {
+      case "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1451,7 +1451,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "getEntitlementRequests",
       "GET",
-      "/users/USER_ID/entitlement_requests",
+      "/users/USER_ID/entitlement-requests",
       "Get Entitlement Requests for a User.",
       """Get Entitlement Requests for a User.
         |
@@ -1471,7 +1471,7 @@ trait APIMethods300 {
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val getEntitlementRequests : OBPEndpoint = {
-      case "users" :: userId :: "entitlement_requests" :: Nil JsonGet _ => {
+      case "users" :: userId :: "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1494,7 +1494,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "deleteEntitlementRequest",
       "DELETE",
-      "/entitlement_requests/ENTITLEMENT_REQUEST_ID",
+      "/entitlement-requests/ENTITLEMENT_REQUEST_ID",
       "Delete Entitlement Request",
       """Delete Entitlement Request specified by ENTITLEMENT_REQUEST_ID for an user specified by USER_ID
         |
@@ -1515,7 +1515,7 @@ trait APIMethods300 {
       List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val deleteEntitlementRequest : OBPEndpoint = {
-      case "entitlement_requests" :: entitlementRequestId :: Nil JsonDelete _ => {
+      case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
