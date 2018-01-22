@@ -147,7 +147,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
   def setCanCreateTransactionType: Unit = {
     addEntitlement(mockBankId1.value, resourceUser1.userId, CanCreateTransactionType.toString)
     Then("We add entitlement to user1")
-    val hasEntitlement = code.api.util.APIUtil.hasEntitlement(mockBankId1.value, resourceUser1.userId, CanCreateTransactionType)
+    val hasEntitlement = code.api.util.APIUtil.hasEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.canCreateTransactionType)
     hasEntitlement should equal(true)
   }
 }

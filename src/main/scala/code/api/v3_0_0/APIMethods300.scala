@@ -590,7 +590,7 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
@@ -626,7 +626,7 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => fullBoxOrException(x ?~! UserNotFoundByUsername)
@@ -666,7 +666,7 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => fullBoxOrException(x ?~! UserNotFoundByUsername)
@@ -752,9 +752,9 @@ trait APIMethods300 {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
             _ <- booleanToBox(
-              hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
+              hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
-              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank) == true
+              hasEntitlement("", u.userId, canCreateBranchAtAnyBank) == true
               , createBranchEntitlementsRequiredText
             )
             branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
@@ -769,8 +769,8 @@ trait APIMethods300 {
     }
 
 
-    val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
-    val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
+    val createAtmEntitlementsRequiredForSpecificBank = canCreateAtm ::  Nil
+    val createAtmEntitlementsRequiredForAnyBank = canCreateAtmAtAnyBank ::  Nil
 
     val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
 
@@ -1113,7 +1113,7 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
@@ -1430,7 +1430,7 @@ trait APIMethods300 {
     lazy val getAllEntitlementRequests : OBPEndpoint = {
       case "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
-          val allowedEntitlements = CanGetEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlements = canGetEntitlementRequestsAtAnyBank :: Nil
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1475,7 +1475,7 @@ trait APIMethods300 {
     lazy val getEntitlementRequests : OBPEndpoint = {
       case "users" :: userId :: "entitlement-requests" :: Nil JsonGet _ => {
         cc =>
-          val allowedEntitlements = CanGetEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlements = canGetEntitlementRequestsAtAnyBank :: Nil
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1521,7 +1521,7 @@ trait APIMethods300 {
     lazy val deleteEntitlementRequest : OBPEndpoint = {
       case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {
         cc =>
-          val allowedEntitlements = CanDeleteEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlements = canDeleteEntitlementRequestsAtAnyBank :: Nil
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
