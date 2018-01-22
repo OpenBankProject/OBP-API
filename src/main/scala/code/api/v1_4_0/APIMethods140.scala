@@ -1,6 +1,6 @@
 package code.api.v1_4_0
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -686,7 +686,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             u <- cc.user ?~! "User must be logged in to post Customer"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
-            requiredEntitlements = CanCreateCustomer :: CanCreateUserCustomerLink :: Nil
+            requiredEntitlements = ApiRole.canCreateCustomer :: ApiRole.canCreateUserCustomerLink :: Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
             hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists

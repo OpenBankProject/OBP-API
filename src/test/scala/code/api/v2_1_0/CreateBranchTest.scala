@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole.CanCreateBranch
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches.BranchId
@@ -38,7 +39,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -63,7 +64,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -109,7 +110,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
       hasEntitlement should equal(true)
 
 
@@ -140,7 +141,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")

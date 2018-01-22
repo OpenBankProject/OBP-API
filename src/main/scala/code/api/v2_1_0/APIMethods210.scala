@@ -119,7 +119,7 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
             allowDataImport <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
-            canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
+            canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, canCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(Extraction.decompose(successMessage), 201)
@@ -412,7 +412,7 @@ trait APIMethods210 {
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
             _ <- View.fromUrl(viewId, fromAccount) ?~! {ViewNotFound}
             isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true ||
-              hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
+              hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
             _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
               s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
 
@@ -757,8 +757,8 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~ {BankNotFound}
             usr <- User.findByUserId(userId) ?~! UserNotFoundById
-            allowedEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
-                                  CanGetEntitlementsForAnyUserAtAnyBank::
+            allowedEntitlements = canGetEntitlementsForAnyUserAtOneBank ::
+                                  canGetEntitlementsForAnyUserAtAnyBank::
                                   Nil
             allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
             hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), UserHasMissingRoles+allowedEntitlementsTxt)
@@ -808,7 +808,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers)
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConsumers), UserHasMissingRoles + CanGetConsumers)
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong)
           } yield {
@@ -845,7 +845,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), UserHasMissingRoles + CanGetConsumers )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConsumers), UserHasMissingRoles + CanGetConsumers )
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
@@ -884,8 +884,8 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
             _ <- putData.enabled match {
-              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
-              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
+              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.canEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
+              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.canDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
             }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.toLong)
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
@@ -928,7 +928,7 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, CanCreateCardsForBank), UserHasMissingRoles +CanCreateCardsForBank)
+            canCreateCardsForBank <- booleanToBox(hasEntitlement(bankId.value, u.userId, canCreateCardsForBank), UserHasMissingRoles +CanCreateCardsForBank)
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
@@ -993,7 +993,7 @@ trait APIMethods210 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.CanGetAnyUser)
+              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             users <- Users.users.vend.getAllUsersF()
           } yield {
@@ -1044,7 +1044,7 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
             postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
-            cancreateTransactionType <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateTransactionType) == true,InsufficientAuthorisationToCreateTransactionType)
+            cancreateTransactionType <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateTransactionType) == true,InsufficientAuthorisationToCreateTransactionType)
             returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
           } yield {
             successJsonResponse(Extraction.decompose(returnTranscationType))
@@ -1252,11 +1252,11 @@ trait APIMethods210 {
       }
     }
 
-    val createCustomerEntitlementsRequiredForSpecificBank = CanCreateCustomer ::
-      CanCreateUserCustomerLink ::
+    val createCustomerEntitlementsRequiredForSpecificBank = canCreateCustomer ::
+      canCreateUserCustomerLink ::
       Nil
-    val createCustomerEntitlementsRequiredForAnyBank = CanCreateCustomerAtAnyBank ::
-      CanCreateUserCustomerLinkAtAnyBank ::
+    val createCustomerEntitlementsRequiredForAnyBank = canCreateCustomerAtAnyBank ::
+      canCreateUserCustomerLinkAtAnyBank ::
       Nil
     val createCustomeEntitlementsRequiredText = createCustomerEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createCustomerEntitlementsRequiredForAnyBank.mkString(" and ") + " entitlements required."
 
@@ -1445,7 +1445,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
 
@@ -1487,7 +1487,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             bank <- Bank(bankId)?~! {BankNotFound}
             branchJsonPostV210 <- tryo {json.extract[BranchJsonPostV210]} ?~! InvalidJsonFormat
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             branch <- transformToBranch(branchJsonPostV210)
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
@@ -1528,7 +1528,7 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~ UserNotLoggedIn
             _ <- booleanToBox(
-              hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
+              hasEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
               UserHasMissingRoles + CanUpdateConsumerRedirectUrl
             )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
@@ -1606,7 +1606,7 @@ trait APIMethods210 {
         cc => {
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), UserHasMissingRoles + CanReadMetrics )
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadMetrics), UserHasMissingRoles + CanReadMetrics )
   
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
   

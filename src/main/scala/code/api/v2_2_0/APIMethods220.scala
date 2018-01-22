@@ -413,7 +413,7 @@ trait APIMethods220 {
           for {
             bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            canCreateBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
+            canCreateBank <- booleanToBox(hasEntitlement("", u.userId, canCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
               bank.full_name,
@@ -473,9 +473,9 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
-              hasEntitlement("", u.userId, CanCreateBranchAtAnyBank)
+              hasEntitlement("", u.userId, canCreateBranchAtAnyBank)
               , createBranchEntitlementsRequiredText)
             branchJsonV220 <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             branch <- transformV220ToBranch(branchJsonV220)
@@ -488,8 +488,8 @@ trait APIMethods220 {
     }
 
 
-    val createAtmEntitlementsRequiredForSpecificBank = CanCreateAtm ::  Nil
-    val createAtmEntitlementsRequiredForAnyBank = CanCreateAtmAtAnyBank ::  Nil
+    val createAtmEntitlementsRequiredForSpecificBank = canCreateAtm ::  Nil
+    val createAtmEntitlementsRequiredForAnyBank = canCreateAtmAtAnyBank ::  Nil
 
     val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
 
@@ -542,8 +542,8 @@ trait APIMethods220 {
 
 
 
-    val createProductEntitlementsRequiredForSpecificBank = CanCreateProduct ::  Nil
-    val createProductEntitlementsRequiredForAnyBank = CanCreateProductAtAnyBank ::  Nil
+    val createProductEntitlementsRequiredForSpecificBank = canCreateProduct ::  Nil
+    val createProductEntitlementsRequiredForAnyBank = canCreateProductAtAnyBank ::  Nil
 
     val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createProductEntitlementsRequiredForAnyBank.mkString(" and ")
 
@@ -607,8 +607,8 @@ trait APIMethods220 {
 
 
 
-    val createFxEntitlementsRequiredForSpecificBank = CanCreateFxRate ::  Nil
-    val createFxEntitlementsRequiredForAnyBank = CanCreateFxRateAtAnyBank ::  Nil
+    val createFxEntitlementsRequiredForSpecificBank = canCreateFxRate ::  Nil
+    val createFxEntitlementsRequiredForAnyBank = canCreateFxRateAtAnyBank ::  Nil
 
     val createFxEntitlementsRequiredText = UserHasMissingRoles + createFxEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createFxEntitlementsRequiredForAnyBank.mkString(" and ")
 
@@ -721,7 +721,7 @@ trait APIMethods220 {
             isValidBankId <- tryo(assert(isValidID(accountId.value)))?~! InvalidBankIdFormat
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! UserNotFoundById
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) ,
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, canCreateAccount) == true || (user_id == loggedInUser.userId) ,
               s"${UserHasMissingRoles} CanCreateAccount or create account for self")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~! InvalidAccountType
@@ -781,7 +781,7 @@ trait APIMethods220 {
     lazy val config : OBPEndpoint = {
       case "config" :: Nil JsonGet _ => cc =>for {
         u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-        _ <- booleanToBox(hasEntitlement("", u.userId, CanGetConfig), s"$UserHasMissingRoles $CanGetConfig")
+        _ <- booleanToBox(hasEntitlement("", u.userId, canGetConfig), s"$UserHasMissingRoles $CanGetConfig")
       } yield {
         successJsonResponse(getConfigInfoJSON(), 200)
       }
@@ -839,7 +839,7 @@ trait APIMethods220 {
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
             //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
             //Note: Filters Part 1:
@@ -963,7 +963,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
                                                                 Some(UUID.randomUUID().toString),
