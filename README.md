@@ -310,7 +310,7 @@ We use jetty8 to run the API in production mode.
 * Now restart jetty8:
 
         sudo service jetty8 restart
-l
+
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 
