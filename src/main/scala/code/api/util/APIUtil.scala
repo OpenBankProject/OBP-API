@@ -56,9 +56,7 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestContinuation
-import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
@@ -1153,7 +1151,8 @@ object APIUtil extends MdcLoggable {
                           successResponseBody: scala.Product, // A successful response body
                           errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
-                          tags: List[ResourceDocTag]
+                          tags: List[ResourceDocTag],
+                          requiredRoles: Option[List[ApiRole]] = None
   )
 
 

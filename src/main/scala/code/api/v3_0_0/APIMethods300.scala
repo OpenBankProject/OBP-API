@@ -1,6 +1,5 @@
 package code.api.v3_0_0
 
-import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{canGetAtm, _}
@@ -8,10 +7,9 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v3_0_0.JSONFactory300._
-import code.atms.Atms
 import code.atms.Atms.AtmId
+import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
@@ -23,9 +21,9 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Empty, Full}
+import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -34,7 +32,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 
 
@@ -544,7 +541,8 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDataWarehouse))
+      List(apiTagDataWarehouse),
+      Some(List(canSearchWarehouse)))
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
@@ -580,7 +578,8 @@ trait APIMethods300 {
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
 
     lazy val getUser: OBPEndpoint = {
@@ -616,7 +615,8 @@ trait APIMethods300 {
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
 
     lazy val getUserByUserId: OBPEndpoint = {
@@ -656,7 +656,8 @@ trait APIMethods300 {
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
 
     lazy val getUserByUsername: OBPEndpoint = {
@@ -742,7 +743,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBranch)
+      List(apiTagBranch),
+      Some(List(canCreateBranch, canCreateBranchAtAnyBank))
     )
 
     lazy val createBranch: OBPEndpoint = {
@@ -796,7 +798,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagATM)
+      List(apiTagATM),
+      Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
 
 
@@ -1103,7 +1106,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
@@ -1425,7 +1429,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getAllEntitlementRequests : OBPEndpoint = {
       case "entitlement-requests" :: Nil JsonGet _ => {
@@ -1470,7 +1475,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getEntitlementRequests : OBPEndpoint = {
       case "users" :: userId :: "entitlement-requests" :: Nil JsonGet _ => {
@@ -1516,7 +1522,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canDeleteEntitlementRequestsAtAnyBank)))
 
     lazy val deleteEntitlementRequest : OBPEndpoint = {
       case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {

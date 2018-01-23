@@ -5,7 +5,6 @@ import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole
-import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
@@ -23,7 +22,6 @@ import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.{APIMetric, APIMetrics}
-import code.model.dataAccess.MappedBankAccount
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -31,7 +29,7 @@ import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, 
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
-import net.liftweb.http.{Req, S}
+import net.liftweb.http.S
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -41,15 +39,14 @@ import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.{APIFailure, ChargePolicy}
-import code.metadata.counterparties._
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
@@ -107,7 +104,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagSandbox))
+      List(apiTagApi, apiTagSandbox),
+      Some(List(canCreateSandbox)))
 
 
     lazy val sandboxDataImport: OBPEndpoint = {
@@ -387,7 +385,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest),
+      Some(List(canCreateAnyTransactionRequest)))
 
 
 
@@ -747,7 +746,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank)))
 
 
     lazy val getEntitlementsByBankAndUser: OBPEndpoint = {
@@ -800,7 +800,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer))
+      List(apiTagApi, apiTagConsumer),
+      Some(List(canGetConsumers)))
 
 
     lazy val getConsumer: OBPEndpoint = {
@@ -837,7 +838,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer))
+      List(apiTagApi, apiTagConsumer),
+      Some(List(canGetConsumers)))
 
 
     lazy val getConsumers: OBPEndpoint = {
@@ -874,7 +876,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer))
+      List(apiTagApi, apiTagConsumer),
+      Some(List(canEnableConsumers,canDisableConsumers)))
 
 
     lazy val enableDisableConsumers: OBPEndpoint = {
@@ -919,7 +922,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard))
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
 
 
     lazy val addCardForBank: OBPEndpoint = {
@@ -983,7 +987,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
 
     lazy val getUsers: OBPEndpoint = {
@@ -1032,7 +1037,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagBank)
+      List(apiTagBank),
+      Some(List(canCreateTransactionType))
     )
 
 
@@ -1288,7 +1294,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagPerson))
+      List(apiTagCustomer, apiTagPerson),
+      Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
 
     // TODO in next version?
     // Separate customer creation (keep here) from customer linking (remove from here)
@@ -1435,7 +1442,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBranch))
+      List(apiTagBranch),
+      Some(List(canCreateBranch)))
 
 
     lazy val updateBranch: OBPEndpoint = {
@@ -1478,7 +1486,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBranch, apiTagOpenData))
+      List(apiTagBranch, apiTagOpenData),
+      Some(List(canCreateBranch)))
 
     lazy val createBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
@@ -1519,7 +1528,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer)
+      List(apiTagApi, apiTagConsumer),
+      Some(List(canUpdateConsumerRedirectUrl))
     )
     
     lazy val updateConsumerRedirectUrl: OBPEndpoint = {
@@ -1599,7 +1609,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi))
+      List(apiTagApi),
+      Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {
       case "management" :: "metrics" :: Nil JsonGet _ => {

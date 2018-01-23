@@ -2,8 +2,8 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.AtmT
@@ -318,7 +318,8 @@ object JSONFactory1_4_0 {
                          is_obwg: Boolean,
                          tags: List[String],
                          typed_request_body: JValue,
-                         typed_success_response_body: JValue)
+                         typed_success_response_body: JValue,
+                         requiredRoles: Option[List[ApiRole]] = None)
 
 
 
@@ -352,7 +353,8 @@ object JSONFactory1_4_0 {
       is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
-      typed_success_response_body = createTypedBody(rd.successResponseBody)
+      typed_success_response_body = createTypedBody(rd.successResponseBody),
+      requiredRoles = rd.requiredRoles
       )
   }
 

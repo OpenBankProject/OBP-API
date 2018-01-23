@@ -1,56 +1,46 @@
 package code.api.v1_4_0
 
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.APIUtil.isValidCurrencyISOCode
-import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
+import code.api.util.ApiRole._
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.{JsonResponse, Req, S}
+import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JField, JObject, JValue}
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.json.JsonDSL._
-import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-import code.api.v1_2_1.{Akka, AmountOfMoneyJsonV121}
-import code.api.v2_0_0.CreateCustomerJson
-import code.metrics.ConnectorMetricsProvider
+import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
 // JObject creation
-import collection.mutable.ArrayBuffer
-
 import code.api.APIFailure
-import code.api.v1_2_1.{OBPAPI1_2_1, APIInfoJSON, HostedBy, APIMethods121}
-import code.api.v1_3_0.{OBPAPI1_3_0, APIMethods130}
+import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy}
+import code.api.v1_3_0.APIMethods130
+
+import scala.collection.mutable.ArrayBuffer
 //import code.api.v2_0_0.{OBPAPI2_0_0, APIMethods200}
 
 // So we can include resource docs from future versions
 //import code.api.v1_4_0.JSONFactory1_4_0._
+import java.text.SimpleDateFormat
+
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, noV, _}
+import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
-import code.customer.{CustomerFaceImage, CustomerMessages, Customer}
+import code.customer.{Customer, CustomerFaceImage, CustomerMessages}
 import code.model._
 import code.products.Products
-import code.api.util.APIUtil._
-import code.api.util.ErrorMessages
-
 import code.util.Helper._
-import code.api.util.APIUtil.ResourceDoc
-import java.text.SimpleDateFormat
-
-import code.api.util.APIUtil.authenticationRequiredMessage
-import code.api.util.ErrorMessages._
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-
-import code.api.util.APIUtil.noV
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -676,7 +666,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Could not create user_customer_links",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagCustomer),
+      Some(List(canCreateCustomer, canCreateUserCustomerLink)))
 
     lazy val addCustomer : OBPEndpoint = {
       //updates a view on a bank account
