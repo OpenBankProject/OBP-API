@@ -562,6 +562,24 @@ trait APIMethods300 {
       }
     }
 
+    lazy val aggregateWarehouse: OBPEndpoint = {
+      case "aggregate" :: "warehouse" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
+          } yield {
+            import net.liftweb.json._
+            val uriPart = compactRender(json \ "es_uri_part")
+            val bodyPart = compactRender(json \ "es_body_part").concat("{\"aggs\" : {\"grades_stats\" : { \"stats\" : { \"field\" : \"id\" } }}}")
+            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
+          }
+      }
+    }
+
+    
+    
+
 
     resourceDocs += ResourceDoc(
       getUser,
