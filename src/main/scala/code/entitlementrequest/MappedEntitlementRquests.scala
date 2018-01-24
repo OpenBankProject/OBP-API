@@ -1,5 +1,7 @@
 package code.entitlementrequest
 
+import java.util.Date
+
 import code.api.util.ErrorMessages
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Empty, Full}
@@ -92,6 +94,8 @@ class MappedEntitlementRequest extends EntitlementRequest
   override def userId: String = mUserId.get
 
   override def roleName: String = mRoleName.get
+
+  override def created: Date = createdAt.get
 }
 
 

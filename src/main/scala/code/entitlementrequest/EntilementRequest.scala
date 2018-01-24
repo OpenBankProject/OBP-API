@@ -1,5 +1,7 @@
 package code.entitlementrequest
 
+import java.util.Date
+
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -31,4 +33,6 @@ trait EntitlementRequest {
   def userId: String
 
   def roleName: String
+
+  def created: Date
 }
