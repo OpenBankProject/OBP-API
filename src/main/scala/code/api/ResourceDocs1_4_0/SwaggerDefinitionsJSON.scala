@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
+import code.api.util.ApiRole._
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
@@ -1083,7 +1084,8 @@ object SwaggerDefinitionsJSON {
     is_obwg = true,
     tags = List("String"),
     typed_request_body = json.parse("""{"request": { "type" :"string" }}"""),
-    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}""")
+    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}"""),
+    requiredRoles = Some(List(canCreateCustomer))
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))

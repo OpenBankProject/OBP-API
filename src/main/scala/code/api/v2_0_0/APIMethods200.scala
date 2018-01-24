@@ -7,7 +7,6 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
@@ -28,8 +27,8 @@ import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Full, _}
+import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{CurrentReq, JsonResponse, Req}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -38,10 +37,12 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.customer.{Customer, CustomerFaceImage}
 import code.util.Helper._
 import net.liftweb.json.Extraction
+
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -552,7 +553,8 @@ trait APIMethods200 {
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagCustomer),
+      Some(List(canGetSocialMediaHandles)))
 
     lazy val getSocialMediaHandles  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonGet _ => {
@@ -772,7 +774,8 @@ trait APIMethods200 {
         CustomerNotFoundByCustomerId,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer)
+      List(apiTagCustomer),
+      Some(List(canAddSocialMediaHandle))
     )
 
     lazy val addSocialMediaHandle : OBPEndpoint = {
@@ -1050,7 +1053,8 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount)
+      List(apiTagAccount),
+      Some(List(canCreateAccount))
     )
 
     apiRelations += ApiRelation(createAccount, createAccount, "self")
@@ -1225,7 +1229,8 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest),
+      Some(List(canCreateAnyTransactionRequest)))
 
     lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1681,7 +1686,8 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagPerson))
+      List(apiTagCustomer, apiTagPerson),
+      Some(List(canCreateCustomer,canCreateUserCustomerLink)))
 
 
 
@@ -1785,7 +1791,8 @@ trait APIMethods200 {
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagUser))
+      List(apiTagUser),
+      Some(List(canGetAnyUser)))
 
 
     lazy val getUser: OBPEndpoint = {
@@ -1839,7 +1846,8 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser))
+      List(apiTagCustomer, apiTagUser),
+      Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
 
     // TODO
     // Allow multiple UserCustomerLinks per user (and bank)
@@ -1900,7 +1908,8 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
       //add access for specific user to a list of views
@@ -1944,7 +1953,8 @@ trait APIMethods200 {
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
 
     lazy val getEntitlements: OBPEndpoint = {
@@ -1952,9 +1962,6 @@ trait APIMethods200 {
         cc =>
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
-              _ <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
-              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- booleanToBox(hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank )
               entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
@@ -2122,7 +2129,8 @@ trait APIMethods200 {
         emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List())
+        List(),
+        Some(List(canSearchWarehouse)))
 
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouse: OBPEndpoint = {
@@ -2208,7 +2216,8 @@ trait APIMethods200 {
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List(apiTagApi))
+        List(apiTagApi),
+        Some(List(canSearchMetrics)))
 
     val esm = new elasticsearchMetrics
     lazy val elasticSearchMetrics: OBPEndpoint = {

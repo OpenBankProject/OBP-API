@@ -19,9 +19,9 @@ import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper._
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Full
+import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
@@ -404,7 +404,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank)
+      List(apiTagBank),
+      Some(List(canCreateBank))
     )
 
     lazy val createBank: OBPEndpoint = {
@@ -464,7 +465,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      Nil,
+      Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
 
     lazy val createBranch: OBPEndpoint = {
@@ -515,7 +517,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagATM)
+      List(apiTagATM),
+      Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
 
 
@@ -569,7 +572,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct)
+      List(apiTagProduct),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
 
 
@@ -634,7 +638,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil
+      Nil,
+      Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
 
 
@@ -704,7 +709,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount)
+      List(apiTagAccount),
+      Some(List(canCreateAccount))
     )
 
 
@@ -776,7 +782,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApi :: Nil)
+      apiTagApi :: Nil,
+      Some(List(canGetConfig)))
 
     lazy val config : OBPEndpoint = {
       case "config" :: Nil JsonGet _ => cc =>for {
@@ -832,7 +839,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi))
+      List(apiTagApi),
+      Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
@@ -955,7 +963,8 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil)
+      Nil,
+      Some(List(canCreateConsumer)))
 
 
     lazy val createConsumer: OBPEndpoint = {
