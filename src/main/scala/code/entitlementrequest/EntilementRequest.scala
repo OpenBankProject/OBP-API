@@ -2,6 +2,7 @@ package code.entitlementrequest
 
 import java.util.Date
 
+import code.model.User
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -30,7 +31,7 @@ trait EntitlementRequest {
 
   def bankId: String
 
-  def userId: String
+  def user: Box[User]
 
   def roleName: String
 
