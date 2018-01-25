@@ -1224,7 +1224,7 @@ object SwaggerDefinitionsJSON {
 
   val entitlementRequestJSON =
     code.api.v3_0_0.EntitlementRequestJSON(
-      user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+      user = userJsonV200,
       entitlement_request_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
       role_name = "CanQueryOtherUser",
       bank_id = "gh.29.uk",
