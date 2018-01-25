@@ -319,7 +319,7 @@ object JSONFactory1_4_0 {
                          tags: List[String],
                          typed_request_body: JValue,
                          typed_success_response_body: JValue,
-                         requiredRoles: Option[List[ApiRole]] = None)
+                         roles: Option[List[ApiRole]] = None)
 
 
 
@@ -354,7 +354,7 @@ object JSONFactory1_4_0 {
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
       typed_success_response_body = createTypedBody(rd.successResponseBody),
-      requiredRoles = rd.requiredRoles
+      roles = rd.roles
       )
   }
 

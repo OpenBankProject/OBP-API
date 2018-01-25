@@ -191,14 +191,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             * replace JValue key: jsonClass --> api_role
             */
           def replaceJsonKey(json: JValue): JValue = json transformField {
-            case JField("json_class", x) => JField("api_role", x)
+            case JField("json_class", x) => JField("role", x)
           }
   
           /**
             * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
             */
           def replaceJsonValue(json: JValue): JValue = json transformField {
-            case JField("api_role", JString(x)) => JField("api_role", JString(x.substring("ApiRole$".length)))
+            case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
           }
           successJsonResponse(replaceJsonValue(replaceJsonKey(snakify(Extraction.decompose(innerJson)))))
         }
