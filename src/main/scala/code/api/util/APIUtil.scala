@@ -1152,7 +1152,7 @@ object APIUtil extends MdcLoggable {
                           errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
-                          requiredRoles: Option[List[ApiRole]] = None
+                          roles: Option[List[ApiRole]] = None
   )
 
 
