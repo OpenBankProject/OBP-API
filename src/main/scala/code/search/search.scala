@@ -18,9 +18,10 @@ import org.elasticsearch.common.settings.Settings
 import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.ElasticDsl._
-
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
+
+import scala.util.control.NoStackTrace
 
 
 class elasticsearch extends MdcLoggable {
@@ -53,20 +54,42 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
-  def searchProxyV300(userId: String, uri: String, body: String): LiftResponse = {
+  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): LiftResponse = {
     if (Props.getBool("allow_elasticsearch", false) ) {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
       logger.debug(esUrl)
       logger.debug(body)
-      val request = url(esUrl).<<(body).GET // Note that WE ONLY do GET - Keep it this way!
+      val request: Req = url(esUrl).<<(body).GET // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
-      ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+         if (statsOnly) ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+         else ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
       JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
     }
   }
 
+
+  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): LiftResponse = {
+    searchProxyV300(userId, uriPart, addAggregation(bodyPart,field), true)
+  }
+
+  private def addAggregation(bodyPart: String, field: String): String = {
+    bodyPart.dropRight(1).concat(",\"aggs\":{\"" + field + "\":{\"stats\":{\"field\":\""+ field + "\"}}}}")
+  }
+  
+  private def extractStatistics(body: JValue): JValue = {
+    body \  "aggregations" 
+  }
+  
+  private def privacyCheckStatistics(body: JValue): JValue = {
+    logger.debug(body)
+    val result = extractStatistics(body)
+    val count = (result \\ "count" \\ classOf[JInt]).headOption.getOrElse(throw new RuntimeException with NoStackTrace).toInt
+    if (count > 9) result
+    else json.JsonParser.parse("""{"error":"Not enough results "}""")
+  }
+  
   private def getAPIResponse(req: Req): APIResponse = {
     Await.result(
       for (response <- Http(req > as.Response(p => p)))

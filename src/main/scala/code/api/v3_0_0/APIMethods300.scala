@@ -561,9 +561,61 @@ trait APIMethods300 {
           }
       }
     }
-
+    resourceDocs += ResourceDoc(
+      aggregateWarehouse,
+      implementedInApiVersion,
+      "elasticSearchWarehouseV300",
+      "POST",
+      "/aggregate/warehouse",
+      "Search Warehouse Data Via Elasticsearch and return only stats aggregation",
+      s"""
+         |Search warehouse data via Elastic Search.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+        |CanSearchWarehouse entitlement is required to search warehouse data!
+         |
+        |Send your email, name, project name and user_id to the admins to get access.
+         |
+        |Elastic (search) is used in the background. See links below for syntax.
+         |
+        |This version differs from v2.0.0
+         |
+        |
+        |
+        |Example of usage:
+         |
+        |POST /search/warehouse
+         |
+        |{
+         |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
+         |  "es_body_part": {
+         |    "query": {
+         |      "range": {
+         |        "postDate": {
+         |          "from": "2011-12-10",
+         |          "to": "2011-12-12"
+         |        }
+         |      }
+         |    }
+         |  }
+         |}
+         |
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
+         |
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
+         |
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
+         |
+        |
+        """,
+      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      emptyObjectJson, //TODO what is output here?
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDataWarehouse))
     lazy val aggregateWarehouse: OBPEndpoint = {
-      case "aggregate" :: "warehouse" :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: "statistics" :: field :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -571,15 +623,12 @@ trait APIMethods300 {
           } yield {
             import net.liftweb.json._
             val uriPart = compactRender(json \ "es_uri_part")
-            val bodyPart = compactRender(json \ "es_body_part").concat("{\"aggs\" : {\"grades_stats\" : { \"stats\" : { \"field\" : \"id\" } }}}")
-            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
+            val bodyPart = compactRender(json \ "es_body_part")
+            successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, uriPart,bodyPart, field) ))
           }
       }
     }
-
     
-    
-
 
     resourceDocs += ResourceDoc(
       getUser,
