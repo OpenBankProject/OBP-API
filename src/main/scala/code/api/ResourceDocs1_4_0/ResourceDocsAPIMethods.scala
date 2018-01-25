@@ -12,7 +12,7 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, S}
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Props
 
@@ -186,7 +186,21 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           // Format the data as json
           val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
-          successJsonResponse(Extraction.decompose(innerJson))
+  
+          /**
+            * replace JValue key: jsonClass --> api_role
+            */
+          def replaceJsonKey(json: JValue): JValue = json transformField {
+            case JField("json_class", x) => JField("api_role", x)
+          }
+  
+          /**
+            * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
+            */
+          def replaceJsonValue(json: JValue): JValue = json transformField {
+            case JField("api_role", JString(x)) => JField("api_role", JString(x.substring("ApiRole$".length)))
+          }
+          successJsonResponse(replaceJsonValue(replaceJsonKey(snakify(Extraction.decompose(innerJson)))))
         }
         obpResourceDocJson
       }
