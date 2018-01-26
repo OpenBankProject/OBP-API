@@ -15,6 +15,7 @@ import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import code.api.util.ErrorMessages._
+import code.views.MapperViews.canUseFirehose
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -312,23 +313,32 @@ object MapperViews extends Views with MdcLoggable {
     * @return if find, return the view list. or return Nil.
     */
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] = {
-    //TODO: do this more efficiently?
-    //select all views by user.
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    //select the Private views by BankAccountUid
-    val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
-      p.view.obj match {
-        case Full(v) => if(
-          !v.isPublic &&
-            v.bankId == bankAccountId.bankId&&
-            v.accountId == bankAccountId.accountId){
-          Some(v)
-        } else None
-        case _ => None
-      }
-    })
-    // merge the Private and public views
-    userPrivateViewsForAccount ++ publicViews(bankAccountId)
+    canUseFirehose(user) match {
+      case true =>
+        ViewImpl.findAll(
+          By(ViewImpl.isFirehose_, true),
+          By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
+          By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
+        )
+      case false =>
+        //TODO: do this more efficiently?
+        //select all views by user.
+        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
+        //select the Private views by BankAccountUid
+        val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
+          p.view.obj match {
+            case Full(v) => if(
+              !v.isPublic &&
+                v.bankId == bankAccountId.bankId&&
+                v.accountId == bankAccountId.accountId){
+              Some(v)
+            } else None
+            case _ => None
+          }
+        })
+        // merge the Private and public views
+        userPrivateViewsForAccount ++ publicViews(bankAccountId)
+    }
   }
 
   def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
