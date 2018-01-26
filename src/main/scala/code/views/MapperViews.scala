@@ -313,32 +313,23 @@ object MapperViews extends Views with MdcLoggable {
     * @return if find, return the view list. or return Nil.
     */
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] = {
-    canUseFirehose(user) match {
-      case true =>
-        ViewImpl.findAll(
-          By(ViewImpl.isFirehose_, true),
-          By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
-          By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
-        )
-      case false =>
-        //TODO: do this more efficiently?
-        //select all views by user.
-        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-        //select the Private views by BankAccountUid
-        val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
-          p.view.obj match {
-            case Full(v) => if(
-              !v.isPublic &&
-                v.bankId == bankAccountId.bankId&&
-                v.accountId == bankAccountId.accountId){
-              Some(v)
-            } else None
-            case _ => None
-          }
-        })
-        // merge the Private and public views
-        userPrivateViewsForAccount ++ publicViews(bankAccountId)
-    }
+    //TODO: do this more efficiently?
+    //select all views by user.
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
+    //select the Private views by BankAccountUid
+    val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
+      p.view.obj match {
+        case Full(v) => if(
+          !v.isPublic &&
+            v.bankId == bankAccountId.bankId&&
+            v.accountId == bankAccountId.accountId){
+          Some(v)
+        } else None
+        case _ => None
+      }
+    })
+    // merge the Private and public views
+    (userPrivateViewsForAccount ++ publicViews(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
   }
 
   def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
@@ -384,6 +375,50 @@ object MapperViews extends Views with MdcLoggable {
         Nil
   }
 
+  /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseAccounts(user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+
+  /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseViews(bankAccountId: BankIdAccountId, user : User): List[ViewImpl] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
+        By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
+      )
+    } else {
+      Nil
+    }
+  }
+
+  /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bank.bankId.value)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
   def canUseFirehose(user: User): Boolean = {
     ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehose.toString())
   }
@@ -393,9 +428,6 @@ object MapperViews extends Views with MdcLoggable {
    */
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId] = {
     user match {
-      case Full(user) if canUseFirehose(user) =>
-        ViewImpl.findAll(By(ViewImpl.isFirehose_, true)) // find all the fire hose view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-                .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       case Full(user) => {
         val publicViewBankAndAccounts=
           if (ALLOW_PUBLIC_VIEWS)
@@ -410,8 +442,8 @@ object MapperViews extends Views with MdcLoggable {
           .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
-        //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
+        //we remove duplicates here, because some accounts, has public, фирехосе and Private views
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(user)).distinct
       }
       case _ => getAllPublicAccounts()
     }
@@ -423,9 +455,6 @@ object MapperViews extends Views with MdcLoggable {
    */
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId] = {
     user match {
-      case Full(user) if canUseFirehose(user) =>
-        ViewImpl.findAll(By(ViewImpl.isFirehose_, true), By(ViewImpl.bankPermalink, bank.bankId.value)) // find all the fire hose view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-                .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       case Full(user) => {
         val publicViewBankAndAccounts=
           if (ALLOW_PUBLIC_VIEWS)
@@ -441,7 +470,7 @@ object MapperViews extends Views with MdcLoggable {
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
         //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(bank, user)).distinct
       }
       case _ => getPublicBankAccounts(bank)
     }
