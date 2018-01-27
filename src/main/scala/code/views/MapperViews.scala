@@ -420,7 +420,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   def canUseFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehose.toString())
+    ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehoseAtAnyBank.toString())
   }
   /**
    * @param user

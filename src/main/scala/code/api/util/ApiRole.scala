@@ -142,8 +142,8 @@ object ApiRole {
   case class CanGetEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetEntitlementRequestsAtAnyBank = CanGetEntitlementRequestsAtAnyBank()
 
-  case class Firehose(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUseFirehose = Firehose()
+  case class CanUseFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUseFirehoseAtAnyBank = CanUseFirehoseAtAnyBank()
 
   private val roles =
     canSearchAllTransactions ::
@@ -191,7 +191,7 @@ object ApiRole {
     canDeleteEntitlementRequestsAtAnyBank ::
     canGetEntitlementRequestsAtOneBank ::
     canGetEntitlementRequestsAtAnyBank ::
-    canUseFirehose ::
+    canUseFirehoseAtAnyBank ::
     Nil
 
   def valueOf(value: String): ApiRole = {
