@@ -212,6 +212,7 @@ trait View {
   def name: String
   def description : String
   def isPublic : Boolean
+  def isFirehose : Boolean
   def users: List[User]
 
   //the view settings

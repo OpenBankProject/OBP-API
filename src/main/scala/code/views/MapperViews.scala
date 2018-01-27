@@ -3,6 +3,7 @@ package code.views
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
+import code.api.util.ApiRole
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
@@ -14,6 +15,8 @@ import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import code.api.util.ErrorMessages._
+import code.views.MapperViews.canUseFirehose
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -25,6 +28,7 @@ object MapperViews extends Views with MdcLoggable {
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   val ALLOW_PUBLIC_VIEWS: Boolean = Props.getBool("allow_public_views").openOr(false)
+  val ALLOW_FIREHOSE_VIEWS: Boolean = Props.getBool("allow_firehose_views").openOr(false)
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 
@@ -325,7 +329,7 @@ object MapperViews extends Views with MdcLoggable {
       }
     })
     // merge the Private and public views
-    userPrivateViewsForAccount ++ publicViews(bankAccountId)
+    (userPrivateViewsForAccount ++ publicViews(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
   }
 
   def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
@@ -372,6 +376,53 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseAccounts(user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+
+  /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseViews(bankAccountId: BankIdAccountId, user : User): List[ViewImpl] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
+        By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
+      )
+    } else {
+      Nil
+    }
+  }
+
+  /**
+    * An account is considered firehose if it contains a firehose view
+    * @return the list of all bankAccountUUIDs which contains a firehose view
+    */
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bank.bankId.value)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+  def canUseFirehose(user: User): Boolean = {
+    ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehose.toString())
+  }
+  /**
    * @param user
    * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
    */
@@ -391,8 +442,8 @@ object MapperViews extends Views with MdcLoggable {
           .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
-        //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
+        //we remove duplicates here, because some accounts, has public, фирехосе and Private views
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(user)).distinct
       }
       case _ => getAllPublicAccounts()
     }
@@ -419,7 +470,7 @@ object MapperViews extends Views with MdcLoggable {
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
         //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts).distinct
+        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(bank, user)).distinct
       }
       case _ => getPublicBankAccounts(bank)
     }
