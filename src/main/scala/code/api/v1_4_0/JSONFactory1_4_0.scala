@@ -334,8 +334,9 @@ object JSONFactory1_4_0 {
     // PegDown seems to be feature rich and ignores underscores in words by default.
 
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-
-    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+    // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
+    val PegDownProcessorTimeout: Long = 1000*20  
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     ResourceDocJson(
       operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.partialFunctionName.toString}",
