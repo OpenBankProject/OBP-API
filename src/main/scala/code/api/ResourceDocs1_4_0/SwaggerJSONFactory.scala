@@ -183,8 +183,10 @@ object SwaggerJSONFactory {
     }
 
     implicit val formats = DefaultFormats
-
-    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+    
+    // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
+    val PegDownProcessorTimeout: Long = 1000*20
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     val infoTitle = "Open Bank Project API"
     val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
