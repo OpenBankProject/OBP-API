@@ -57,7 +57,6 @@ trait User {
   def idGivenByProvider: String
   def provider : String
   def emailAddress : String
-  //TODO: rename to displayName?
   def name : String
   
   /**

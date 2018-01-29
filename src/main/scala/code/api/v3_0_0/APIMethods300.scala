@@ -277,11 +277,13 @@ trait APIMethods300 {
       "Get Account by Id (Core)",
       """Information returned about the account specified by ACCOUNT_ID:
         |
-        |* Number
-        |* Owners
-        |* Type
-        |* Balance
-        |* IBAN
+        |* Number - The human readable account number given by the bank that identifies the account.
+        |* Label - A label given by the owner of the account
+        |* Owners - Users that own this account
+        |* Type - The type of account
+        |* Balance - Currency and Value
+        |* Account Routings - A list that might include IBAN or national account identifiers
+        |* Account Rules - A list that might include Overdraft and other bank specific rules
         |
         |This call returns the owner view and requires access to that view.
         |
