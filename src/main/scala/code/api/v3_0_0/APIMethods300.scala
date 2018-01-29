@@ -1426,7 +1426,7 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      emptyObjectJson,
       entitlementRequestJSON,
       List(
         UserNotLoggedIn,
@@ -1472,7 +1472,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         """.stripMargin,
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      emptyObjectJson,
       entitlementRequestJSON,
       List(
         UserNotLoggedIn,
@@ -1496,6 +1496,47 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getEntitlementRequestsForCurrentUser,
+      implementedInApiVersion,
+      "getEntitlementRequestsForCurrentUser",
+      "GET",
+      "/my/entitlement-requests",
+      "Get Entitlement Requests for a Logged User.",
+      s"""Get Entitlement Requests for a Logged User.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        """.stripMargin,
+      emptyObjectJson,
+      entitlementRequestJSON,
+      List(
+        UserNotLoggedIn,
+        UserNotSuperAdmin,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      None)
+
+    lazy val getEntitlementRequestsForCurrentUser : OBPEndpoint = {
+      case "my" :: "entitlement-requests" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(u.userId) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
