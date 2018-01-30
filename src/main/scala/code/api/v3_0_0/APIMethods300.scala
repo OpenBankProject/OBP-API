@@ -232,7 +232,10 @@ trait APIMethods300 {
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-        |""",
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
@@ -288,7 +291,11 @@ trait APIMethods300 {
         |This call returns the owner view and requires access to that view.
         |
         |
-        |OAuth authentication is required""",
+        |OAuth authentication is required
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
