@@ -275,7 +275,10 @@ trait APIMethods220 {
       s"""Get the counterparties for the account / view.
           |
           |${authenticationRequiredMessage(true)}
-          |""",
+          |
+          |This endpoint works with firehose.
+          |
+          |""".stripMargin,
       emptyObjectJson,
       counterpartiesJsonV220,
       List(
@@ -320,7 +323,11 @@ trait APIMethods220 {
       "Get Counterparty by Counterparty Id.",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
-         |${authenticationRequiredMessage(true)}""",
+         |${authenticationRequiredMessage(true)}
+         |
+         |This endpoint works with firehose.
+         |
+         |""".stripMargin,
       emptyObjectJson,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
@@ -1029,7 +1036,10 @@ trait APIMethods220 {
           |The view specified by VIEW_ID must have the canAddCounterparty permission
          |
           |${authenticationRequiredMessage(true)}
-         |""",
+          |
+          |This endpoint works with firehose.
+          |
+         |""".stripMargin,
       postCounterpartyJSON,
       counterpartyWithMetadataJson,
       List(

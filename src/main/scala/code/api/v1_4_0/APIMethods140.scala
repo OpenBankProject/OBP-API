@@ -422,7 +422,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         | For instance in a 'SANDBOX_TAN' Transaction Request, for amounts over 1000 currency units, the user must supply a positive integer to complete the Transaction Request and create a Transaction.
         |
         | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
-        |
+        | 
+        | This endpoint works with firehose
+        | 
       """.stripMargin,
       emptyObjectJson,
       transactionRequestTypesJsonV140,
@@ -469,7 +471,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get all Transaction Requests.",
-      "",
+      "This endpoint works with firehose. ",
       emptyObjectJson,
       transactionRequest,
       List(
@@ -589,7 +591,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
+      """
+        |In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer. 
+        |
+        |This endpoint works with firehose.
+      """.stripMargin,
       challengeAnswerJSON,
       transactionRequest,
       List(

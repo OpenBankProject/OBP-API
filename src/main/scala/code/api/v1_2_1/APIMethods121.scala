@@ -209,7 +209,9 @@ trait APIMethods121 {
          |Note for those upgrading from v1.2:
          |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
          |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
-         |""",
+         |
+         |This endpoint works with firehose.
+         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UnknownError),
@@ -234,7 +236,11 @@ trait APIMethods121 {
       """Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is required.""",
+        |Authentication via OAuth is required.
+        |
+        |This endpoint works with firehose
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
@@ -261,8 +267,13 @@ trait APIMethods121 {
       "GET",
       "/accounts/public",
       "Get public accounts at all banks (Anonymous access).",
-      """Returns the list of private accounts the user has access to at all banks.
-        |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
+      """
+        |Returns the list of private accounts the user has access to at all banks.
+        |For each account the API returns the ID and the available views. 
+        |Authentication via OAuth is required.
+        |
+        |This endpoint works with firehose.
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UnknownError),
@@ -293,6 +304,9 @@ trait APIMethods121 {
         |Note for those upgrading from v1.2:
         |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
+        |
+        |This endpoint works with firehose.
+        |
       """,
       emptyObjectJson,
       accountJSON,
@@ -323,7 +337,11 @@ trait APIMethods121 {
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -353,7 +371,11 @@ trait APIMethods121 {
       "Get public accounts at one bank (Anonymous access).",
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is not required.""",
+        |Authentication via OAuth is not required.
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -393,7 +415,11 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |
-         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+         |
+         |This endpoint works with firehose
+         |
+         |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJSON,
       List(UserNotLoggedIn, UnknownError, BankAccountNotFound),

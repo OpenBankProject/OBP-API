@@ -533,6 +533,8 @@ trait APIMethods210 {
         |
         |4) `answer` : is `challenge.answer` can be any Interge in sandbox mode.  
         |
+        |This endpoint works with firehose.
+        |
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
@@ -652,6 +654,7 @@ trait APIMethods210 {
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
         |
+        |This endpoint works with firehose.
         |
       """.stripMargin,
       emptyObjectJson,
