@@ -44,6 +44,7 @@ import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import com.github.dwickern.macros.NameOf.nameOf
 import code.util.Helper.MdcLoggable
 
@@ -180,7 +181,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     (nameOf(Implementations3_0_0.getAllEntitlementRequests), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getEntitlementRequests), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getEntitlementRequestsForCurrentUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.deleteEntitlementRequest), ApiVersion.v3_0_0.toString)
+    (nameOf(Implementations3_0_0.deleteEntitlementRequest), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString)
   )
   /**
     * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result

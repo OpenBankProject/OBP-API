@@ -18,6 +18,7 @@ import code.metadata.counterparties.Counterparties
 import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
+import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.Full
 import net.liftweb.http.S
@@ -29,6 +30,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 
@@ -37,33 +39,29 @@ trait APIMethods220 {
   self: RestHelper =>
 
   // helper methods begin here
-  private def getConfigInfoJSON(): JValue = {
-    val apiConfiguration: JValue = {
+  private def getConfigInfoJSON(): ConfigurationJSON = {
 
-      val f1 = CachedFunctionJSON("getBank", Props.get("connector.cache.ttl.seconds.getBank", "0").toInt)
-      val f2 = CachedFunctionJSON("getBanks", Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt)
-      val f3 = CachedFunctionJSON("getAccount", Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt)
-      val f4 = CachedFunctionJSON("getAccounts", Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt)
-      val f5 = CachedFunctionJSON("getTransaction", Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt)
-      val f6 = CachedFunctionJSON("getTransactions", Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt)
-      val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
-      val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
+    val f1 = CachedFunctionJSON("getBank", Props.get("connector.cache.ttl.seconds.getBank", "0").toInt)
+    val f2 = CachedFunctionJSON("getBanks", Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt)
+    val f3 = CachedFunctionJSON("getAccount", Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt)
+    val f4 = CachedFunctionJSON("getAccounts", Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt)
+    val f5 = CachedFunctionJSON("getTransaction", Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt)
+    val f6 = CachedFunctionJSON("getTransactions", Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt)
+    val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
+    val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
 
-      val akkaPorts = PortJSON("remotedata.local.port", ObpActorConfig.localPort.toString) :: PortJSON("remotedata.port", ObpActorConfig.remotePort) :: Nil
-      val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel)
-      val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
+    val akkaPorts = PortJSON("remotedata.local.port", ObpActorConfig.localPort.toString) :: PortJSON("remotedata.port", ObpActorConfig.remotePort) :: Nil
+    val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel)
+    val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
 
-      val metrics = MetricsJSON("es.metrics.port.tcp", Props.get("es.metrics.port.tcp", "9300")) ::
-                    MetricsJSON("es.metrics.port.http", Props.get("es.metrics.port.tcp", "9200")) ::
+    val metrics = MetricsJSON("es.metrics.port.tcp", Props.get("es.metrics.port.tcp", "9300")) ::
+                  MetricsJSON("es.metrics.port.http", Props.get("es.metrics.port.tcp", "9200")) ::
+                  Nil
+    val warehouse = WarehouseJSON("es.warehouse.port.tcp", Props.get("es.warehouse.port.tcp", "9300")) ::
+                    WarehouseJSON("es.warehouse.port.http", Props.get("es.warehouse.port.http", "9200")) ::
                     Nil
-      val warehouse = WarehouseJSON("es.warehouse.port.tcp", Props.get("es.warehouse.port.tcp", "9300")) ::
-                      WarehouseJSON("es.warehouse.port.http", Props.get("es.warehouse.port.http", "9200")) ::
-                      Nil
 
-      val apiConfigJSON = ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
-      Extraction.decompose(apiConfigJSON)
-    }
-    apiConfiguration
+    ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
   }
   // helper methods end here
 
@@ -785,13 +783,18 @@ trait APIMethods220 {
       apiTagApi :: Nil,
       Some(List(canGetConfig)))
 
-    lazy val config : OBPEndpoint = {
-      case "config" :: Nil JsonGet _ => cc =>for {
-        u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-        _ <- booleanToBox(hasEntitlement("", u.userId, canGetConfig), s"$UserHasMissingRoles $CanGetConfig")
-      } yield {
-        successJsonResponse(getConfigInfoJSON(), 200)
-      }
+    lazy val config: OBPEndpoint = {
+      case "config" :: Nil JsonGet _ =>
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
+              hasEntitlement("", u.userId, ApiRole.canGetConfig)
+            }
+          } yield {
+            (getConfigInfoJSON(), callContext)
+          }
     }
 
 
