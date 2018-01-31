@@ -30,7 +30,7 @@ import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-
+import code.api.util.ErrorMessages._
 import code.api.Constant._
 import code.api.util.{APIUtil, ErrorMessages, CallContext}
 import code.consumer.Consumers
@@ -162,7 +162,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     //return true if the authorization header has a duplicated parameter
     def duplicatedParameters = {
       var output=false
-      val authorizationParameters = S.request.openOrThrowException("Attempted to open an empty Box.").header("Authorization").openOrThrowException("Attempted to open an empty Box.").split(",")
+      val authorizationParameters = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).header("Authorization").openOrThrowException(attemptedToOpenAnEmptyBox).split(",")
 
       //count the iterations of a parameter in the authorization header
       def countPram(parameterName : String, parametersArray :Array[String] )={
@@ -272,7 +272,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException("Attempted to open an empty Box.")
+      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
       var secret= consumer.secret.toString
 
       OAuthparameters.get("oauth_token") match {
@@ -480,7 +480,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     def duplicatedParameters(req1: Box[Req]) = {
       logger.debug("duplicatedParameters 1")
       var output=false
-      val authorizationParameters = req1.openOrThrowException("Attempted to open an empty Box.").header("Authorization").openOrThrowException("Attempted to open an empty Box.").split(",")
+      val authorizationParameters = req1.openOrThrowException(attemptedToOpenAnEmptyBox).header("Authorization").openOrThrowException(attemptedToOpenAnEmptyBox).split(",")
       logger.debug("duplicatedParameters 2")
       //count the iterations of a parameter in the authorization header
       def countPram(parameterName : String, parametersArray :Array[String] )={
@@ -594,7 +594,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException("Attempted to open an empty Box.")
+      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
       var secret= consumer.secret.toString
 
       OAuthparameters.get("oauth_token") match {
@@ -919,7 +919,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     if(httpCode==200)
     {
       //logger.debug("OAuth header correct ")
-      Tokens.tokens.vend.getTokenByKey(tokenID.openOrThrowException("Attempted to open an empty Box.")) match {
+      Tokens.tokens.vend.getTokenByKey(tokenID.openOrThrowException(attemptedToOpenAnEmptyBox)) match {
         case Full(token) => {
           //logger.debug("access token: "+ token + " found")
           val user = token.user
@@ -956,7 +956,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     httpCode match {
       case 200 =>
         for {
-          c: Box[Long] <- Tokens.tokens.vend.getTokenByKeyFuture(key.openOrThrowException("Attempted to open an empty Box.")) map (_.map(_.userForeignKey.get))
+          c: Box[Long] <- Tokens.tokens.vend.getTokenByKeyFuture(key.openOrThrowException(attemptedToOpenAnEmptyBox)) map (_.map(_.userForeignKey.get))
           u <- c match {
             case Full(id) =>
               Users.users.vend.getResourceUserByResourceUserIdFuture(id)

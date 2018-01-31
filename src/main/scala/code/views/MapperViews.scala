@@ -10,7 +10,7 @@ import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
-
+import code.api.util.ErrorMessages._
 import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
@@ -212,7 +212,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     val view = ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
 
-    if(view.isDefined && view.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
 
     view
   }
@@ -226,7 +226,7 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewUID : ViewIdBankIdAccountId) : Box[View] = {
     val view=ViewImpl.find(viewUID)
 
-    if(view.isDefined && view.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
 
     view
   }
@@ -765,7 +765,7 @@ object MapperViews extends Views with MdcLoggable {
         By(ViewImpl.accountPermalink, accountId.value),
         By(ViewImpl.name_, name)
       )
-    if(res.isDefined && res.openOrThrowException("Attempted to open an empty Box.").isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 

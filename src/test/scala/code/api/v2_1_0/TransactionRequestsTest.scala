@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import java.util.UUID
-
+import code.api.util.ErrorMessages._
 import code.api.ChargePolicy
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
@@ -26,7 +26,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   def transactionCount(accounts: BankAccount*): Int = {
     accounts.foldLeft(0)((accumulator, account) => {
-      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
+      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox).size
     })
   }
 
