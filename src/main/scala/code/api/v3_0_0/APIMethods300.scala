@@ -1434,7 +1434,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
-      entitlementRequestsJson,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
@@ -1480,7 +1480,7 @@ trait APIMethods300 {
         |
         """.stripMargin,
       emptyObjectJson,
-      entitlementRequestsJson,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
@@ -1518,15 +1518,15 @@ trait APIMethods300 {
       "getEntitlementRequestsForCurrentUser",
       "GET",
       "/my/entitlement-requests",
-      "Get Entitlement Requests for a Logged User.",
-      s"""Get Entitlement Requests for a Logged User.
+      "Get Entitlement Requests for the current User.",
+      s"""Get Entitlement Requests for the current User.
          |
         |
         |${authenticationRequiredMessage(true)}
          |
         """.stripMargin,
       emptyObjectJson,
-      entitlementRequestsJson,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
