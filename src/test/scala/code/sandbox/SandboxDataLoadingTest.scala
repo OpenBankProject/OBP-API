@@ -33,7 +33,7 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.accountholder.AccountHolders
@@ -148,7 +148,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     foundBankBox.isDefined should equal(true)
 
-    val foundBank = foundBankBox.openOrThrowException("Attempted to open an empty Box.")
+    val foundBank = foundBankBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     foundBank.bankId should equal(bankId)
     foundBank.shortName should equal(bank.short_name)
@@ -264,7 +264,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.user_name)
     foundUserBox.isDefined should equal(true)
 
-    val foundUser = foundUserBox.openOrThrowException("Attempted to open an empty Box.")
+    val foundUser = foundUserBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     foundUser.provider should equal(defaultProvider)
     foundUser.idGivenByProvider should equal(user.user_name)
@@ -278,7 +278,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val foundAccountBox = Connector.connector.vend.getBankAccount(bankId, accId)
     foundAccountBox.isDefined should equal(true)
 
-    val foundAccount = foundAccountBox.openOrThrowException("Attempted to open an empty Box.")
+    val foundAccount = foundAccountBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     foundAccount.bankId should equal(bankId)
     foundAccount.accountId should equal(accId)
@@ -297,7 +297,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       foundAccount.publicViews.size should equal(0)
     }
 
-    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).openOrThrowException("Attempted to open an empty Box.")
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)
     //there should be an owner view
     val views = Views.views.vend.permittedViews(owner, BankIdAccountId(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
@@ -315,7 +315,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     foundTransactionBox.isDefined should equal(true)
 
-    val foundTransaction = foundTransactionBox.openOrThrowException("Attempted to open an empty Box.")
+    val foundTransaction = foundTransactionBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     foundTransaction.id should equal(transactionId)
     foundTransaction.bankId should equal(bankId)
@@ -325,7 +325,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction.amount.toString should equal(transaction.details.value)
 
     def toDate(dateString : String) : Date = {
-      DateParser.parse(dateString).openOrThrowException("Attempted to open an empty Box.")
+      DateParser.parse(dateString).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
 
     foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)
@@ -605,7 +605,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.") should equal(Nil)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
   }
 
   it should "not allow data to be imported with an invalid secret token" in {
@@ -617,13 +617,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.") should equal(Nil)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
   }
 
   it should "require banks to have non-empty ids" in {
 
     //no banks should exist initially
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.").size should equal(0)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bank1Json = Extraction.decompose(bank1)
 
@@ -637,13 +637,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(bankWithoutId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.").size should equal(0)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
     getResponse(bankWithEmptyId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.").size should equal(0)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     //Check that the same json becomes valid when a non-empty id is added
     val validId = "foo"
@@ -652,7 +652,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(SUCCESS)
 
     //Check the bank was created
-    val banks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
+    val banks = Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
     banks.size should equal(1)
     val createdBank  = banks(0)
 
@@ -665,7 +665,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   it should "not allow multiple banks with the same id" in {
     //no banks should exist initially
-    Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.").size should equal(0)
+    Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bank1AsJValue = Extraction.decompose(bank1)
 
@@ -691,7 +691,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(bank1AsJValue, validOtherBank)).code should equal(SUCCESS)
 
     //check that two banks were created
-    val banks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
+    val banks = Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
     banks.size should equal(2)
   }
 
@@ -767,9 +767,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //a user should now have been created
     val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
     createdUser.isDefined should equal(true)
-    createdUser.openOrThrowException("Attempted to open an empty Box.").provider should equal(defaultProvider)
-    createdUser.openOrThrowException("Attempted to open an empty Box.").idGivenByProvider should equal(user1.user_name)
-    createdUser.openOrThrowException("Attempted to open an empty Box.").name should equal(user1.user_name)
+    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).provider should equal(defaultProvider)
+    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1.user_name)
+    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1.user_name)
 
   }
 
@@ -822,11 +822,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     firstUser.isDefined should equal(true)
     secondUser.isDefined should equal(true)
 
-    firstUser.openOrThrowException("Attempted to open an empty Box.").idGivenByProvider should equal(user1.user_name)
-    secondUser.openOrThrowException("Attempted to open an empty Box.").idGivenByProvider should equal(secondUserName)
+    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1.user_name)
+    secondUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(secondUserName)
 
-    firstUser.openOrThrowException("Attempted to open an empty Box.").name should equal(user1.user_name)
-    secondUser.openOrThrowException("Attempted to open an empty Box.").name should equal(secondUserName)
+    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1.user_name)
+    secondUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(secondUserName)
   }
 
   it should "fail if a specified user already exists" in {
@@ -885,7 +885,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
     createdAuthUserBox.isDefined should equal(true)
 
-    val createdAuthUser = createdAuthUserBox.openOrThrowException("Attempted to open an empty Box.")
+    val createdAuthUser = createdAuthUserBox.openOrThrowException(attemptedToOpenAnEmptyBox)
     createdAuthUser.password.match_?(user1.password) should equal(true)
   }
 
@@ -1240,7 +1240,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
+    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName.nonEmpty should equal(true)
 //    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
@@ -1268,7 +1268,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
+    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName.nonEmpty should equal(true)
 //    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
@@ -1296,7 +1296,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
+    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName should equal(t.counterparty.get.name.get)
 //    created.otherAccount.thisAccountId.value should equal("")
@@ -1323,7 +1323,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException("Attempted to open an empty Box.")
+    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName should equal(t.counterparty.get.name.get)
 //    created.otherAccount.thisAccountId.value should equal("")
@@ -1389,8 +1389,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
 
-    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
+    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 
     counter1.counterpartyId should equal(counter2.counterpartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
@@ -1423,8 +1423,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 //    foundTransaction1Box.isDefined should equal(true)
 //    foundTransaction2Box.isDefined should equal(true)
 //
-//    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-//    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
+//    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+//    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 //
 //    counter1.counterpartyId should not equal(counter2.counterpartyId)
 //    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
@@ -1457,8 +1457,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
 
-    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
+    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 
     counter1.counterpartyId should equal(counter2.counterpartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
@@ -1496,8 +1496,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
 
-    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
+    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 
     //transactions should have the same counterparty
     counter1.counterpartyId should not equal(counter2.counterpartyId)
@@ -1542,9 +1542,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction2Box.isDefined should equal(true)
     foundTransaction3Box.isDefined should equal(true)
 
-    val counter1 = foundTransaction1Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-    val counter2 = foundTransaction2Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
-    val counter3 = foundTransaction3Box.openOrThrowException("Attempted to open an empty Box.").otherAccount
+    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter3 = foundTransaction3Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 
     counter1.counterpartyId should not equal(counter2.counterpartyId)
     counter1.counterpartyId should not equal(counter3.counterpartyId)
@@ -1682,7 +1682,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     def getCreatedTransaction(id : String) =
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(id)).openOrThrowException("Attempted to open an empty Box.")
+        TransactionId(id)).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     val t1 = getCreatedTransaction(t.id)
     val t2 = getCreatedTransaction(newTransId)

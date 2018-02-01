@@ -115,6 +115,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val NotImplemented = "OBP-10010: Not Implemented "
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
+  val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -530,9 +531,9 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
+      val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+      val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
       val url = S.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
@@ -815,10 +816,10 @@ object APIUtil extends MdcLoggable {
       }
 
       if(parsedDate.isDefined){
-        Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else{
         Failure(FilterDateFormatError)
@@ -1905,8 +1906,8 @@ Versions are groups of endpoints in a file
     val s = S
     val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
-    val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
-    val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
@@ -2076,5 +2077,5 @@ Versions are groups of endpoints in a file
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
   
-  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped")
+  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 }

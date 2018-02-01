@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.bankconnectors.vJune2017.AccountRule
@@ -324,7 +324,7 @@ trait BankAccount extends MdcLoggable {
   * */
   final def remove(user : User): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException("Attempted to open an empty Box."))
+      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException(attemptedToOpenAnEmptyBox))
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
@@ -609,7 +609,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**

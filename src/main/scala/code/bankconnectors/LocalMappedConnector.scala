@@ -827,7 +827,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } yield {
       account.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, account.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, account.number, now).openOrThrowException("Attempted to open an empty Box.")
+      setBankAccountLastUpdated(bank.nationalIdentifier, account.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
 
     Full(result.getOrElse(false))
@@ -1489,7 +1489,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").currency
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).currency
         TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
 

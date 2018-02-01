@@ -2,7 +2,7 @@ package code.bankconnectors
 
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
-
+import code.api.util.ErrorMessages._
 import code.api.util.CallContext
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -268,7 +268,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
       val account = thisAccount.asInstanceOf[Account]
       if(envelope.isDefined) {
-        val e : OBPEnvelope = envelope.openOrThrowException("Attempted to open an empty Box.")
+        val e : OBPEnvelope = envelope.openOrThrowException(attemptedToOpenAnEmptyBox)
         logger.debug(s"Updating current balance for ${account.bankName} / ${account.accountNumber} / ${account.accountType}")
         account.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save(true)
         logger.debug("Saving new transaction")

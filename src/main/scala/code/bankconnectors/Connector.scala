@@ -978,7 +978,7 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = {
     val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException("Attempted to open an empty Box.")
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
 
       def appendUntilOkay(number : String) : String = {
         val newNumber = number + Random.nextInt(10)
@@ -1041,7 +1041,7 @@ trait Connector extends MdcLoggable{
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
-          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException("Attempted to open an empty Box.")) {
+          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {
             val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }

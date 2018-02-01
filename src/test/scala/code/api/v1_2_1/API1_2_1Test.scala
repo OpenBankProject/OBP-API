@@ -33,6 +33,7 @@ package code.api.v1_2_1
 
 import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
 import code.bankconnectors.Connector
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
@@ -656,7 +657,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       accounts.foldLeft(0)((accumulator, account) => {
         //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
         //it with the correct account owners, and be sure that we don't even run into pagination problems
-        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
+        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox).size
       })
     }
 
@@ -2012,7 +2013,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException("Attempted to open an empty Box.")
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       if(Views.views.vend.getOwners(view).toList.length == 0){
         val userId = resourceUser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
@@ -2056,7 +2057,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ViewIdBankIdAccountId(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException("Attempted to open an empty Box.")
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
 
@@ -2138,7 +2139,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException("Attempted to open an empty Box.")
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(viewId, BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       val userId = resourceUser1.idGivenByProvider
 
       Views.views.vend.getOwners(view).toList.length should equal(1)
@@ -2172,7 +2173,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view(ViewIdBankIdAccountId(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).openOrThrowException("Attempted to open an empty Box.")
+      val view = Views.views.vend.view(ViewIdBankIdAccountId(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
   }

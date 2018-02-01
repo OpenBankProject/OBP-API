@@ -1,7 +1,7 @@
 package code.crm
 
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import code.crm.CrmEvent._
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.customer.CustomerMessage
@@ -68,7 +68,7 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def scheduledDate: Date = mScheduledDate.get
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
-  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).openOrThrowException("Attempted to open an empty Box.")
+  override def user: ResourceUser = Users.users.vend.getResourceUserByResourceUserId(mUserId.get).openOrThrowException(attemptedToOpenAnEmptyBox)
   override def customerName : String = mCustomerName.get
   override def customerNumber : String = mCustomerNumber.get
 }

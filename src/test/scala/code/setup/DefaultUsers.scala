@@ -1,7 +1,7 @@
 package code.setup
 
 import java.util.UUID
-
+import code.api.util.ErrorMessages._
 import code.api.GatewayLogin
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
@@ -32,7 +32,7 @@ trait DefaultUsers {
     developerEmail = None,
     redirectURL = None,
     createdByUserId = userId
-  ).openOrThrowException("Attempted to open an empty Box.")
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
   lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
   
   // create the access token
@@ -43,10 +43,10 @@ trait DefaultUsers {
   val defaultProvider = Props.get("hostname", "")
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException("Attempted to open an empty Box.")
-  lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
-  lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
-  lazy val resourceUser4 = User.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException("Attempted to open an empty Box.")
+  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser4 = User.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   // create the tokens in database, we only need token-key and token-secret
   lazy val testToken1 = Tokens.tokens.vend.createToken(
@@ -59,7 +59,7 @@ trait DefaultUsers {
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).openOrThrowException("Attempted to open an empty Box.")
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   lazy val testToken2 = Tokens.tokens.vend.createToken(
     Access,
@@ -71,7 +71,7 @@ trait DefaultUsers {
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).openOrThrowException("Attempted to open an empty Box.")
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
     Some(testConsumer.id.get),
@@ -82,7 +82,7 @@ trait DefaultUsers {
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).openOrThrowException("Attempted to open an empty Box.")
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   lazy val testToken4 = Tokens.tokens.vend.createToken(Access,
     Some(testConsumer.id.get),
@@ -93,7 +93,7 @@ trait DefaultUsers {
     Some({ (now: TimeSpan) + tokenDuration }),
     Some(now),
     None
-  ).openOrThrowException("Attempted to open an empty Box.")
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   // prepare the tokens
   lazy val token1 = Token(testToken1.key.get, testToken1.secret.get)
