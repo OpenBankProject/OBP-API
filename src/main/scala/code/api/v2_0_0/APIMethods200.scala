@@ -132,7 +132,10 @@ trait APIMethods200 {
          |all public accounts.
          |
          |${authenticationRequiredMessage(false)}
-         |""",
+         |
+         |This endpoint works with firehose.
+         |
+         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
@@ -160,7 +163,10 @@ trait APIMethods200 {
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(true)}
-        |""",
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       coreAccountsJSON,
       List(UnknownError),
@@ -202,7 +208,10 @@ trait APIMethods200 {
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(false)}
-        |""",
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
@@ -241,8 +250,11 @@ trait APIMethods200 {
         |For each account the API returns the account ID and the available views.
         |
         |If the user is not authenticated, the list will contain only the accounts providing public views.
+        |
+        |This endpoint works with firehose.
+        |
         |${authenticationRequiredMessage(false)}
-      """,
+      """.stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
@@ -290,7 +302,11 @@ trait APIMethods200 {
         |
         |This call MAY have an alias /bank/accounts but ONLY if defaultBank is set in Props
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
@@ -354,7 +370,11 @@ trait APIMethods200 {
         |If you want less information about the account, use the /my accounts call
         |
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
@@ -390,7 +410,11 @@ trait APIMethods200 {
       "Get Accounts at Bank (Public)",
       """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is not required.""",
+        |Authentication via OAuth is not required.
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
@@ -822,7 +846,11 @@ trait APIMethods200 {
         |This call returns the owner view and requires access to that view.
         |
         |
-        |OAuth authentication is required""",
+        |OAuth authentication is required
+        |      
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
@@ -925,7 +953,10 @@ trait APIMethods200 {
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-        |""",
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
@@ -1209,7 +1240,9 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |""",
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       transactionRequestBodyJsonV200,
       emptyObjectJson,
       List(
@@ -1284,7 +1317,12 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
+      """ 
+        |In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+        |
+        |This endpoint works with firehose.
+        |
+      """.stripMargin,
       ChallengeAnswerJSON("89123812", "123345"),
       transactionRequestWithChargeJson,
       List(
@@ -1385,6 +1423,7 @@ trait APIMethods200 {
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
         |
+        |This endpoint works with firehose.
         |
       """.stripMargin,
       emptyObjectJson,

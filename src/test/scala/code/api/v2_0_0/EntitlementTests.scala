@@ -7,7 +7,7 @@ import net.liftweb.json.JsonAST._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.setup.DefaultUsers
-
+import code.api.util.ErrorMessages._
 
 /**
   * Created by markom on 10/14/16.
@@ -59,7 +59,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     scenario("We try to delete some entitlement as a super admin - deleteEntitlement") {
       When("We add required entitlement")
-      val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException("Attempted to open an empty Box.")
+      val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
       And("We make the request")
       val requestDelete = (v2_0Request / "users" / resourceUser1.userId / "entitlement" / ent.entitlementId).DELETE <@ (user1)
       val responseDelete = makeDeleteRequest(requestDelete)

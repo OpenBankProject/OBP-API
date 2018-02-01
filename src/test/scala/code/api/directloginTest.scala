@@ -9,7 +9,7 @@ import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.BeforeAndAfter
-
+import code.api.util.ErrorMessages._
 
 
 
@@ -39,7 +39,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
-      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
+      Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
 
     if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
@@ -53,7 +53,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         saveMe
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
-      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).openOrThrowException("Attempted to open an empty Box.")
+      Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")

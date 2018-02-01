@@ -8,7 +8,7 @@ import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
-
+import code.api.util.ErrorMessages._
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Hide, Show}
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -34,7 +34,7 @@ object CreateTestAccountForm{
       }
     }
 
-    val banks = Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
+    val banks = Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
     val bankOptions = banks.map{b =>
       val id = b.bankId.value
       (id, id)

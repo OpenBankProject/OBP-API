@@ -5,7 +5,7 @@ import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
-
+import code.api.util.ErrorMessages._
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.{ErrorMessages, CallContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
@@ -130,7 +130,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
 
-    val accounts = getBanks.openOrThrowException("Attempted to open an empty Box.").flatMap { bank => {
+    val accounts = getBanks.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       val parameters = new JHashMap
@@ -909,7 +909,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
   
     Full(result.getOrElse(false))

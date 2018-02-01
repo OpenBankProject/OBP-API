@@ -12,7 +12,7 @@ import net.liftweb.util.Props
 import org.scalatest._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
-import code.api.util.ErrorMessages.UserHasMissingRoles
+import code.api.util.ErrorMessages._
 
 class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers {
 
@@ -170,12 +170,12 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
 
   feature("Unit Tests for two getCbsToken and getErrors: ") {
     scenario("test the getErrors") {
-      val reply: List[String] =  GatewayLogin.getErrors(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
+      val reply: List[String] =  GatewayLogin.getErrors(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException(attemptedToOpenAnEmptyBox))))
       reply.forall(_.equalsIgnoreCase("")) should equal(true)
     }
 
     scenario("test the getCbsToken") {
-      val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
+      val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException(attemptedToOpenAnEmptyBox))))
       reply(0) should equal("cbsToken1")
       reply(1) should equal("cbsToken2")
 

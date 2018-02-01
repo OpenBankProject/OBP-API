@@ -533,6 +533,8 @@ trait APIMethods210 {
         |
         |4) `answer` : is `challenge.answer` can be any Interge in sandbox mode.  
         |
+        |This endpoint works with firehose.
+        |
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
@@ -652,6 +654,7 @@ trait APIMethods210 {
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
         |
+        |This endpoint works with firehose.
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1545,7 +1548,7 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            _ <- tryo(assert(consumer.createdByUserId.equals(cc.user.openOrThrowException("Attempted to open an empty Box.").userId)))?~! UserNoPermissionUpdateConsumer
+            _ <- tryo(assert(consumer.createdByUserId.equals(cc.user.openOrThrowException(attemptedToOpenAnEmptyBox).userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
@@ -1669,19 +1672,19 @@ trait APIMethods210 {
             // TODO check / comment this logic
 
             setFilterPart2 <- if (!consumerId.isEmpty)
-              Full(parameters += OBPConsumerId(consumerId.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPConsumerId(consumerId.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!userId.isEmpty)
-              Full(parameters += OBPUserId(userId.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPUserId(userId.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!url.isEmpty)
-              Full(parameters += OBPUrl(url.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPUrl(url.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!appName.isEmpty)
-              Full(parameters += OBPAppName(appName.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPAppName(appName.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!implementedInVersion.isEmpty)
-              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!implementedByPartialFunction.isEmpty)
-              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else if (!verb.isEmpty)
-              Full(parameters += OBPVerb(verb.openOrThrowException("Attempted to open an empty Box.")))
+              Full(parameters += OBPVerb(verb.openOrThrowException(attemptedToOpenAnEmptyBox)))
             else
               Full(parameters)
             
