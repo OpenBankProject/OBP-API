@@ -1511,15 +1511,15 @@ trait APIMethods300 {
       "getEntitlementRequestsForCurrentUser",
       "GET",
       "/my/entitlement-requests",
-      "Get Entitlement Requests for a Logged User.",
-      s"""Get Entitlement Requests for a Logged User.
+      "Get Entitlement Requests for the current User.",
+      s"""Get Entitlement Requests for the current User.
          |
         |
         |${authenticationRequiredMessage(true)}
          |
         """.stripMargin,
       emptyObjectJson,
-      entitlementRequestJSON,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,

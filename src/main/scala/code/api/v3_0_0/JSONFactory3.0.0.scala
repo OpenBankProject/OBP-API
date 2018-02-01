@@ -386,7 +386,7 @@ case class CustomerJsonV300(
 case class CustomerJSONs(customers: List[CustomerJsonV300])
 
 case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJsonV200, role_name: String, bank_id: String, created: Date)
-case class EntitlementRequestJSONs(entitlement_requests: List[EntitlementRequestJSON])
+case class EntitlementRequestsJSON(entitlement_requests: List[EntitlementRequestJSON])
 case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
 
 object JSONFactory300{
@@ -1022,8 +1022,8 @@ object JSONFactory300{
       created = e.created
     )
   }
-  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestJSONs = {
-    EntitlementRequestJSONs(list.map(createEntitlementRequestJSON))
+  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestsJSON = {
+    EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
 }

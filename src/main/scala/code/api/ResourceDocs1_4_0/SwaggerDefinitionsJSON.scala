@@ -1240,6 +1240,9 @@ object SwaggerDefinitionsJSON {
       created = exampleDate
     )
 
+  val entitlementRequestsJSON = EntitlementRequestsJSON(entitlement_requests = List(entitlementRequestJSON))
+
+
   val coreTransactionDetailsJSON = CoreTransactionDetailsJSON(
     `type` = "AC",
     description = "OBP",
