@@ -659,6 +659,23 @@ object JSONFactory300{
       createAccountRulesJSON(account.accountRules)
     )
   }
+  
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : List[ModeratedCoreAccountJsonV300] =  {
+    accounts.map(
+      account => 
+       ModeratedCoreAccountJsonV300 (
+        account.accountId.value,
+        stringOrNull(account.bankId.value),
+        stringOptionOrNull(account.label),
+        stringOptionOrNull(account.number),
+        createOwnersJSON(account.owners.getOrElse(Set()), account.bankName.getOrElse("")),
+        stringOptionOrNull(account.accountType),
+        createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+        createAccountRoutingsJSON(account.accountRoutings),
+        createAccountRulesJSON(account.accountRules)
+      )
+    )
+  }
 
   // Accept a license object and return its json representation
   def createLicenseJson(license : LicenseT) : LicenseJsonV140 = {

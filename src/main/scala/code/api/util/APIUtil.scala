@@ -101,6 +101,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
+  val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -1090,6 +1091,7 @@ object APIUtil extends MdcLoggable {
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")
+  val apiTagFirehoseData = ResourceDocTag("FirehoseData")
   val apiTagPublicData = ResourceDocTag("PublicData")
   val apiTagPrivateData = ResourceDocTag("PrivateData")
   val apiTagTransaction = ResourceDocTag("Transaction")

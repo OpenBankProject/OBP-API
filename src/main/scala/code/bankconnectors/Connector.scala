@@ -3,10 +3,11 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
@@ -18,7 +19,7 @@ import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
-import code.model.{Transaction, TransactionRequestType, User, _}
+import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -204,6 +205,29 @@ trait Connector extends MdcLoggable{
       acc <- accounts
       a <- getBankAccount(acc._1, acc._2)
     } yield a
+  }
+  
+  //Moderated the accouts for the firehose user, according to the viewId.
+  //1 each id-> find a proper bankAccount object.
+  //2 each bankAccount object find the proper view.
+  //3 use view and user to moderate the bankaccount object.
+  def getModeratedAccounts(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId) : Box[List[ModeratedBankAccount]] = {
+    Full(
+      for{
+        bankIdAccountId <- bankIdAccountIdList 
+        bankAccount <- getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+        view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+        moderatedAccount <- bankAccount.moderatedBankAccount(view, user) //Error handling is in lower method
+      } yield {
+        moderatedAccount
+      }
+    )
+  }
+  
+  def getModeratedAccountsFuture(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId) : Future[Box[List[ModeratedBankAccount]]] = {
+    Future{
+      getModeratedAccounts(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId)
+    }
   }
   
   /**

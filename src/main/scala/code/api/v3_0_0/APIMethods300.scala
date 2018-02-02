@@ -19,7 +19,7 @@ import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
-import code.views.Views
+import code.views.{MapperViews, Views}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.S
@@ -367,8 +367,49 @@ trait APIMethods300 {
           }
       }
     }
-
-
+  
+    resourceDocs += ResourceDoc(
+      getFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      "getFirehoseAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
+      "Get Firehose Accounts at one Bank (Firehose)",
+      s"""
+         |Get firehose accounts at one bank. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      coreAccountsJsonV300,
+      List(UserNotLoggedIn,UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount, apiTagFirehoseData))
+  
+    lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet json => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
+               MapperViews.canUseFirehose(u)
+            }
+            bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
+            bank<- unboxFullAndWrapIntoFuture(bankBox)
+            availableBankIdAccountIdList <- Future { MapperViews.getAllFirehoseAccounts(bank, u) } 
+            
+            moderatedAccountsBox <- Connector.connector.vend.getModeratedAccountsFuture(user,availableBankIdAccountIdList,viewId)
+            moderatedAccounts <- unboxFullAndWrapIntoFuture{ moderatedAccountsBox }
+            
+          } yield {
+            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts), callContext)
+          }
+      }
+    }
+  
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       implementedInApiVersion,
