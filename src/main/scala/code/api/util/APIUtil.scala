@@ -649,6 +649,8 @@ object APIUtil extends MdcLoggable {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
+      case Some(c) if c.httpCode.isDefined =>
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, c.httpCode.get)
       case Some(c) if c.verb == "DELETE" =>
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
       case _ =>
