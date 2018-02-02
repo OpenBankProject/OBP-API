@@ -228,7 +228,6 @@ class ViewsTests extends V300ServerSetup {
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
       val creationReply = postView(bankId, bankAccountId, postBodyViewJson, user1)
-      println("*************************" + creationReply)
       creationReply.code should equal (201)
       val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
       createdView.can_see_images should equal(true)
