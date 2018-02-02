@@ -558,6 +558,13 @@ object MapperViews extends Views with MdcLoggable {
       case Full(v) => Full(v)
     }
   }
+  
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
+    getExistingView(bankId, accountId, "Firehose") match {
+      case Empty => createDefaultOwnerView(bankId, accountId, description)
+      case Full(v) => Full(v)
+    }
+  }
 
   def getOwners(view: View) : Set[User] = {
     val viewUid = ViewImpl.find(view.uid)
@@ -740,6 +747,10 @@ object MapperViews extends Views with MdcLoggable {
     res.nonEmpty
   }
 
+  def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    createAndSaveFirehoseView(bankId, accountId, "Firehose View")
+  }
+  
   def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveOwnerView(bankId, accountId, "Owner View")
   }
@@ -797,6 +808,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create
       .isSystem_(true)
+      .isFirehose_(false)
       .bankPermalink(bankId.value)
       .accountPermalink(accountId.value)
       .name_("Owner")
@@ -879,7 +891,99 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
   }
-
+  
+  def unsavedFirehoseView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    create
+      .isSystem_(true)
+      .isFirehose_(false)
+      .bankPermalink(bankId.value)
+      .accountPermalink(accountId.value)
+      .name_("Firehose")
+      .permalink_("firehose")
+      .description_(description)
+      .isPublic_(false) //(default is false anyways)
+      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
+      .usePublicAliasIfOneExists_(false) //(default is false anyways)
+      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
+      .canSeeTransactionThisBankAccount_(true)
+      .canSeeTransactionOtherBankAccount_(true)
+      .canSeeTransactionMetadata_(true)
+      .canSeeTransactionDescription_(true)
+      .canSeeTransactionAmount_(true)
+      .canSeeTransactionType_(true)
+      .canSeeTransactionCurrency_(true)
+      .canSeeTransactionStartDate_(true)
+      .canSeeTransactionFinishDate_(true)
+      .canSeeTransactionBalance_(true)
+      .canSeeComments_(true)
+      .canSeeOwnerComment_(true)
+      .canSeeTags_(true)
+      .canSeeImages_(true)
+      .canSeeBankAccountOwners_(true)
+      .canSeeBankAccountType_(true)
+      .canSeeBankAccountBalance_(true)
+      .canSeeBankAccountCurrency_(true)
+      .canSeeBankAccountLabel_(true)
+      .canSeeBankAccountNationalIdentifier_(true)
+      .canSeeBankAccountSwift_bic_(true)
+      .canSeeBankAccountIban_(true)
+      .canSeeBankAccountNumber_(true)
+      .canSeeBankAccountBankName_(true)
+      .canSeeBankAccountBankPermalink_(true)
+      .canSeeOtherAccountNationalIdentifier_(true)
+      .canSeeOtherAccountSWIFT_BIC_(true)
+      .canSeeOtherAccountIBAN_(true)
+      .canSeeOtherAccountBankName_(true)
+      .canSeeOtherAccountNumber_(true)
+      .canSeeOtherAccountMetadata_(true)
+      .canSeeOtherAccountKind_(true)
+      .canSeeMoreInfo_(true)
+      .canSeeUrl_(true)
+      .canSeeImageUrl_(true)
+      .canSeeOpenCorporatesUrl_(true)
+      .canSeeCorporateLocation_(true)
+      .canSeePhysicalLocation_(true)
+      .canSeePublicAlias_(true)
+      .canSeePrivateAlias_(true)
+      .canAddMoreInfo_(true)
+      .canAddURL_(true)
+      .canAddImageURL_(true)
+      .canAddOpenCorporatesUrl_(true)
+      .canAddCorporateLocation_(true)
+      .canAddPhysicalLocation_(true)
+      .canAddPublicAlias_(true)
+      .canAddPrivateAlias_(true)
+      .canAddCounterparty_(true)
+      .canDeleteCorporateLocation_(true)
+      .canDeletePhysicalLocation_(true)
+      .canEditOwnerComment_(true)
+      .canAddComment_(true)
+      .canDeleteComment_(true)
+      .canAddTag_(true)
+      .canDeleteTag_(true)
+      .canAddImage_(true)
+      .canDeleteImage_(true)
+      .canAddWhereTag_(true)
+      .canSeeWhereTag_(true)
+      .canDeleteWhereTag_(true)
+      .canInitiateTransaction_(true)
+      .canSeeBankRoutingScheme_(true) //added following in V300
+      .canSeeBankRoutingAddress_(true)
+      .canSeeBankAccountRoutingScheme_(true)
+      .canSeeBankAccountRoutingAddress_(true)
+      .canSeeOtherBankRoutingScheme_(true)
+      .canSeeOtherBankRoutingAddress_(true)
+      .canSeeOtherAccountRoutingScheme_(true)
+      .canSeeOtherAccountRoutingAddress_(true)
+      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
+      .canAddTransactionRequestToAnyAccount_(true)
+  }
+  
+  def createAndSaveFirehoseView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    val res = unsavedFirehoseView(bankId, accountId, description).saveMe
+    Full(res)
+  }
+  
   def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
     val res = unsavedOwnerView(bankId, accountId, description).saveMe
     Full(res)
@@ -888,6 +992,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
+      isFirehose_(false).
       name_("Public").
       description_(description).
       permalink_("public").
@@ -984,6 +1089,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
+      isFirehose_(false).
       name_("Accountant"). // Use the singular form
       description_(description).
       permalink_("accountant"). // Use the singular form
@@ -1079,6 +1185,7 @@ Auditors
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
+      isFirehose_(false).
       name_("Auditor"). // Use the singular form
       description_(description).
       permalink_("auditor"). // Use the singular form

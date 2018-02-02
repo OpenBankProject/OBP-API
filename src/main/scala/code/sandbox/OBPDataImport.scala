@@ -99,10 +99,14 @@ trait OBPDataImport extends MdcLoggable {
    * Create CRM events that can be saved.
    */
   protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]]
-
-
-
-
+  
+  
+  
+  /**
+    * Create an firehose view for account with BankId @bankId and AccountId @accountId that can be saved.
+    */
+  protected def createFirehoseView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
@@ -384,7 +388,10 @@ trait OBPDataImport extends MdcLoggable {
   final protected def createViews(acc : SandboxAccountImport) : List[ViewType] = {
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
-
+  
+    val firehoseView =
+      createFirehoseView(bankId, accountId, "Firehose View")
+    
     val ownerView =
         createOwnerView(bankId, accountId, "Owner View")
 
@@ -403,7 +410,7 @@ trait OBPDataImport extends MdcLoggable {
         createAuditorsView(bankId, accountId, "Auditors View")
       else Empty
 
-    List(ownerView, publicView, accountantsView, auditorsView).flatten
+    List(firehoseView, ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
