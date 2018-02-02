@@ -207,28 +207,8 @@ trait Connector extends MdcLoggable{
     } yield a
   }
   
-  //Moderated the accouts for the firehose user, according to the viewId.
-  //1 each id-> find a proper bankAccount object.
-  //2 each bankAccount object find the proper view.
-  //3 use view and user to moderate the bankaccount object.
-  def getModeratedAccounts(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId) : Box[List[ModeratedBankAccount]] = {
-    Full(
-      for{
-        bankIdAccountId <- bankIdAccountIdList 
-        bankAccount <- getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-        view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-        moderatedAccount <- bankAccount.moderatedBankAccount(view, user) //Error handling is in lower method
-      } yield {
-        moderatedAccount
-      }
-    )
-  }
+
   
-  def getModeratedAccountsFuture(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId) : Future[Box[List[ModeratedBankAccount]]] = {
-    Future{
-      getModeratedAccounts(user: Box[User], bankIdAccountIdList: List[BankIdAccountId], viewId: ViewId)
-    }
-  }
   
   /**
     * 
