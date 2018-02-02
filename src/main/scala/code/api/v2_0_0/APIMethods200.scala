@@ -26,6 +26,7 @@ import code.model.{BankAccount, BankId, _}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
+import code.util.Helper
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
@@ -33,7 +34,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
@@ -2080,14 +2081,16 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(isSuperAdmin(u.userId)) ?~! UserNotSuperAdmin
-            entitlements <- Entitlement.entitlement.vend.getEntitlements
-          }
-          yield {
-            // Format the data as V2.0.0 json
-            val json = JSONFactory200.createEntitlementJSONs(entitlements)
-            successJsonResponse(Extraction.decompose(json))
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
+              isSuperAdmin(u.userId)
+            }
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory200.createEntitlementJSONs(entitlements), callContext)
           }
       }
     }

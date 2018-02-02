@@ -43,6 +43,12 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     Some(MappedEntitlement.findAll(OrderBy(MappedEntitlement.updatedAt, Descending)))
   }
 
+  override def getEntitlementsFuture(): Future[Box[List[Entitlement]]] = {
+    Future {
+      getEntitlements()
+    }
+  }
+
   override def deleteEntitlement(entitlement: Box[Entitlement]): Box[Boolean] = {
     // Return a Box so we can handle errors later.
     for {
