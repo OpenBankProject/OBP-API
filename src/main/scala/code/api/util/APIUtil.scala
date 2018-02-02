@@ -650,7 +650,7 @@ object APIUtil extends MdcLoggable {
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
       case Some(c) if c.httpCode.isDefined =>
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, c.httpCode.get)
+        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, c.httpCode.get)
       case Some(c) if c.verb == "DELETE" =>
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
       case _ =>
