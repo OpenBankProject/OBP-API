@@ -646,7 +646,7 @@ object APIUtil extends MdcLoggable {
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def successJsonResponseFromCaseClass(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+  def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
@@ -1832,7 +1832,7 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1861,7 +1861,7 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))

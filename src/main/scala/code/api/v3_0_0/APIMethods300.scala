@@ -823,7 +823,7 @@ trait APIMethods300 {
             ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
           }
           yield {
-            successJsonResponseFromCaseClass(createAdapterInfoJson(ai), None)
+            successJsonResponseNewStyle(createAdapterInfoJson(ai), None)
           }
       }
     }
@@ -1541,7 +1541,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
-      entitlementRequestJSON,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
@@ -1587,7 +1587,7 @@ trait APIMethods300 {
         |
         """.stripMargin,
       emptyObjectJson,
-      entitlementRequestJSON,
+      entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
@@ -1672,8 +1672,8 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
-      entitlementRequestJSON,
+      emptyObjectJson,
+      emptyObjectJson,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
