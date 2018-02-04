@@ -597,6 +597,7 @@ object MapperViews extends Views with MdcLoggable {
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     Full(ViewImpl.create.
       isSystem_(false).
+      isFirehose_(false).
       name_(randomString(5)).
       description_(randomString(3)).
       permalink_(randomString(3)).
@@ -808,7 +809,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create
       .isSystem_(true)
-      .isFirehose_(false)
+      .isFirehose_(true)
       .bankPermalink(bankId.value)
       .accountPermalink(accountId.value)
       .name_("Owner")
@@ -895,7 +896,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedFirehoseView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create
       .isSystem_(true)
-      .isFirehose_(false)
+      .isFirehose_(true)
       .bankPermalink(bankId.value)
       .accountPermalink(accountId.value)
       .name_("Firehose")
@@ -992,7 +993,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
-      isFirehose_(false).
+      isFirehose_(true).
       name_("Public").
       description_(description).
       permalink_("public").
@@ -1089,7 +1090,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
-      isFirehose_(false).
+      isFirehose_(true).
       name_("Accountant"). // Use the singular form
       description_(description).
       permalink_("accountant"). // Use the singular form
@@ -1185,7 +1186,7 @@ Auditors
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create.
       isSystem_(true).
-      isFirehose_(false).
+      isFirehose_(true).
       name_("Auditor"). // Use the singular form
       description_(description).
       permalink_("auditor"). // Use the singular form
