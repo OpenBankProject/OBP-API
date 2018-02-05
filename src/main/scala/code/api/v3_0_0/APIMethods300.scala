@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{ApiRole, CallContext, ErrorMessages}
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
 import code.bankconnectors.Connector
@@ -21,7 +21,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
@@ -150,17 +150,28 @@ trait APIMethods300 {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
-          for {
-            json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
-            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
-            u <- cc.user ?~!UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- account createView (u, json)
-          } yield {
-            val viewJSON = JSONFactory300.createViewJSON(view)
-            createdJsonResponse(Extraction.decompose(viewJSON))
-          }
+          val res =
+            for {
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              postedData <- Future { tryo{json.extract[CreateViewJson]} } map {
+                x => fullBoxOrException(x ?~! s"$InvalidJsonFormat The Json body should be the $CreateViewJson ")
+              } map { unboxFull(_) }
+              //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
+                postedData.name.startsWith("_")
+              }
+              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+                view <- account createView (u, postedData)
+              } yield {
+                (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -194,19 +205,34 @@ trait APIMethods300 {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
-          for {
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
-            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
-            _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            u <- cc.user ?~!UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
-            updatedView <- account.updateView(u, viewId, updateJson)
-          } yield {
-            val viewJSON = JSONFactory300.createViewJSON(updatedView)
-            successJsonResponse(Extraction.decompose(viewJSON))
-          }
+          val res =
+            for {
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
+                x => fullBoxOrException(x ?~! s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON ")
+              } map { unboxFull(_) }
+              //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
+                viewId.value.startsWith("_")
+              }
+              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankId, accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+              _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
+                !view.isSystem
+              }
+              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+                updatedView <- account.updateView(u, viewId, updateJson)
+              } yield {
+                (JSONFactory300.createViewJSON(updatedView), callContext)
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
