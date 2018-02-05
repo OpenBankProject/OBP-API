@@ -418,64 +418,6 @@ trait APIMethods300 {
       }
     }
   
-  
-    resourceDocs += ResourceDoc(
-      getFirehoseTransactionsAtOneBank,
-      implementedInApiVersion,
-      "getFirehoseTransactionsAtOneBank",
-      "GET",
-      "/banks/BANK_ID/firehose/transactions/views/VIEW_ID",
-      "Get Firehose Transactions at one Bank (Firehose)",
-      s"""
-         |Get firehose transactions at one bank. 
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""".stripMargin,
-      emptyObjectJson,
-      coreTransactionsJsonV300,
-      List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData))
-  
-    lazy val getFirehoseTransactionsAtOneBank : OBPEndpoint = {
-      //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" :: "transactions"  :: "views" :: ViewId(viewId):: Nil JsonGet json => {
-        cc =>
-          val res =
-            for {
-              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-              u <- unboxFullAndWrapIntoFuture{ user }
-              _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-                MapperViews.canUseFirehose(u)
-              }
-              bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
-              bank<- unboxFullAndWrapIntoFuture(bankBox)
-              availableBankIdAccountIdList <- Future { MapperViews.getAllFirehoseAccounts(bank, u) }
-            } yield {
-               for {
-                params <- getTransactionParams(json)
-                transactionsCoreListList = for{
-                //Here is a new for-loop to get the bankAccounts for the firehose user, according to the viewId.
-                //1 each accountId-> find a proper bankAccount object.
-                //2 each bankAccount object find the proper view.
-                //3 use view , user bankAccount object to loop the transactions for each account.
-                 bankIdAccountId <- availableBankIdAccountIdList
-                 bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-                 view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-                 //Here is a new for-loop for transactions
-                 transactionCoreList <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(callContext)
-                } yield{
-                  transactionCoreList
-                 }
-               } yield {
-                (createCoreTransactionsJSON(transactionsCoreListList.flatten), callContext)
-              }
-            }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
-      }
-    }
-
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       implementedInApiVersion,
