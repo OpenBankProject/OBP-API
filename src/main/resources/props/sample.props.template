@@ -52,6 +52,9 @@ jwt.use.ssl=false
 
 # Paths to the SSL keystore files - has to be jks    
 #keystore.path=/path/to/api.keystore.jks
+#keystore.password = redf1234
+#keystore.passphrase = redf1234
+#keystore.alias = localhost
 #truststore.path=/path/to/api.truststore.jks
 
 

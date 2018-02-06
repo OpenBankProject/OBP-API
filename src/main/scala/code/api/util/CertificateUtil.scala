@@ -1,7 +1,8 @@
 package code.api.util
 
 import java.io.FileInputStream
-import java.security.{PrivateKey, PublicKey, _}
+import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
+import java.security.{PublicKey, _}
 import javax.crypto.Cipher
 
 import code.api.util.CryptoSystem.CryptoSystem
@@ -14,6 +15,21 @@ object CryptoSystem extends Enumeration {
 }
 
 object CertificateUtil {
+
+  lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = Props.getBool("jwt.use.ssl", false) match  {
+    case true =>
+      getKeyPair(
+        jkspath = Props.get("keystore.path").getOrElse(""),
+        jkspasswd = Props.get("keystore.password").getOrElse(""),
+        keypasswd = Props.get("keystore.passphrase").getOrElse(""),
+        alias = Props.get("keystore.alias").getOrElse("")
+      )
+    case false =>
+      val keyPair = buildKeyPair(CryptoSystem.RSA)
+      val pubKey = keyPair.getPublic
+      val privateKey = keyPair.getPrivate
+      (pubKey, privateKey)
+  }
 
   def getKeyPair(jkspath: String, jkspasswd: String, keypasswd: String, alias: String): (PublicKey, Key) = {
     val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
@@ -83,30 +99,19 @@ object CertificateUtil {
   @throws[Exception]
   def main(args: Array[String]): Unit = {
 
-    val (publicKey: PublicKey, privateKey: PrivateKey) = Props.getBool("jwt.use.ssl", false) match  {
-      case true =>
-        getKeyPair(
-          jkspath = Props.get("keystore.path").getOrElse(""),
-          jkspasswd = "redf1234",
-          keypasswd = "redf1234",
-          alias = "localhost"
-        )
-      case false =>
-        val keyPair = buildKeyPair(CryptoSystem.RSA)
-        val pubKey = keyPair.getPublic
-        val privateKey = keyPair.getPrivate
-        (pubKey, privateKey)
-    }
+    System.out.println("Public key:" + publicKey.getEncoded)
+    System.out.println("Private key:" + privateKey.getEncoded)
 
-    // 1. We get from the gw encrypted token with public key
-    val encryptedWithPublic = encrypt(publicKey, "This is a secret message", CryptoSystem.RSA)
-    System.out.println("Encrypted token with public key:") //
-    System.out.println(new String(encryptedWithPublic)) // <<encrypted message>>
+    // 1.1 Encrypt the token with public key
+    val encryptedWithPublicReceived = encrypt(publicKey, "This is a secret message we should receive", CryptoSystem.RSA)
+    System.out.println("Encrypted token with public key:")
+    System.out.println(new String(encryptedWithPublicReceived)) // <<encrypted message>>
 
-    // 2. Decrypt the token with private key
-    val decryptedToken = decrypt(privateKey, encryptedWithPublic, CryptoSystem.RSA)
+    // 1.2 Decrypt the token with private key
+    val decryptedToken = decrypt(privateKey, encryptedWithPublicReceived, CryptoSystem.RSA)
     System.out.println("Decrypted token with private key:") // This is a secret message
     System.out.println(new String(decryptedToken)) // This is a secret message
+
 
   }
 
