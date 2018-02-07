@@ -112,7 +112,10 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
-
+  
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateFirehoseView(bankId, accountId, description))
+  
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId, description))
 

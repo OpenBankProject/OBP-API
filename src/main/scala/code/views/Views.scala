@@ -54,6 +54,7 @@ trait Views {
   def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
@@ -110,6 +111,7 @@ class RemotedataViewsCaseClasses {
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)

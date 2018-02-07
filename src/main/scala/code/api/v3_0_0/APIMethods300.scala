@@ -20,7 +20,7 @@ import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
-import code.views.Views
+import code.views.{MapperViews, Views}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
@@ -394,8 +394,57 @@ trait APIMethods300 {
           }
       }
     }
-
-
+  
+    resourceDocs += ResourceDoc(
+      getFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      "getFirehoseAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
+      "Get Firehose Accounts at one Bank (Firehose)",
+      s"""
+         |Get firehose accounts at one bank. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      moderatedCoreAccountsJsonV300,
+      List(UserNotLoggedIn,UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount, apiTagFirehoseData))
+  
+    lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet json => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
+               MapperViews.canUseFirehose(u)
+            }
+            bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
+            bank<- unboxFullAndWrapIntoFuture(bankBox)
+            availableBankIdAccountIdList <- Future { MapperViews.getAllFirehoseAccounts(bank, u) }
+            moderatedAccounts = for {
+              //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
+              //1 each accountId-> find a proper bankAccount object.
+              //2 each bankAccount object find the proper view.
+              //3 use view and user to moderate the bankaccount object.
+              bankIdAccountId <- availableBankIdAccountIdList
+              bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, user) //Error handling is in lower method
+            } yield {
+              moderatedAccount
+            }
+          } yield {
+            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts), callContext)
+          }
+      }
+    }
+  
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       implementedInApiVersion,
