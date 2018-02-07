@@ -1687,7 +1687,7 @@ trait APIMethods300 {
          |
         """.stripMargin,
       emptyObjectJson,
-      entitlementRequestsJSON,
+      entitlementJSONs,
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
