@@ -28,11 +28,12 @@ package code.snippet
 
 import code.api.OAuthHandshake
 import code.model.Consumer
+import code.token.Tokens
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.By
 import net.liftweb.sitemap.Menu
 
@@ -47,11 +48,12 @@ class OAuthWorkedThanks extends MdcLoggable {
     val redirectUrl = S.param("redirectUrl").map(urlDecode(_))
     
     //extract the clean(omit the parameters) redirect url from request url
-    val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("wrongurl")) openOr("wrongurl")
-    //get the current app CONSUMER_KEY
-    val appConsumerKey = OAuthHandshake.currentAppConsumerKey
-    //get the redirectURL from CONSUMER table
-    val validRedirectURL = Consumer.getRedirectURLByConsumerKey(appConsumerKey)
+    val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
+    
+    val requestedOauthToken = Helper.extractOauthToken(redirectUrl.openOr("No Oauth Token here")) openOr("No Oauth Token here")
+    
+    // 1st, find token --> 2rd, find consumer -->3rd ,find the RedictUrl.
+    val validRedirectURL= Tokens.tokens.vend.getTokenByKey(requestedOauthToken).map(_.consumer.map(_.redirectURL.get)).flatten.getOrElse("invalidRedirectURL")
     
     redirectUrl match {
       case Full(url) =>
