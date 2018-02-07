@@ -252,6 +252,10 @@ case class ModeratedCoreAccountJsonV300(
                                          account_rules: List[AccountRuleJsonV300]
 )
 
+case class ModeratedCoreAccountsJsonV300(
+  accounts: List[ModeratedCoreAccountJsonV300]
+)
+
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
 
 //ended -- account relevant case classes /////
@@ -657,6 +661,25 @@ object JSONFactory300{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
+    )
+  }
+  
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : ModeratedCoreAccountsJsonV300 =  {
+    ModeratedCoreAccountsJsonV300(
+      accounts.map(
+        account => 
+          ModeratedCoreAccountJsonV300 (
+            account.accountId.value,
+            stringOrNull(account.bankId.value),
+            stringOptionOrNull(account.label),
+            stringOptionOrNull(account.number),
+            createOwnersJSON(account.owners.getOrElse(Set()), account.bankName.getOrElse("")),
+            stringOptionOrNull(account.accountType),
+            createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+            createAccountRoutingsJSON(account.accountRoutings),
+            createAccountRulesJSON(account.accountRules)
+          )
+      )
     )
   }
 

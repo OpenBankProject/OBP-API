@@ -57,9 +57,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object OAuthHandshake extends RestHelper with MdcLoggable {
 
-  /** Get the current app CONSUMER_KEY, it is used to get the redirectURL from CONSUMER table by CONSUMER_KEY. */
-  var currentAppConsumerKey = ""
-  
   serve
   {
     //Handling get request for a "request token"
@@ -350,8 +347,6 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     var httpCode : Int = 500
 
     var parameters = getAllParameters
-    //TODO store the consumer key in appConsumerKey variable, may be fixed latter.
-    currentAppConsumerKey=getAllParameters.get("oauth_consumer_key").getOrElse("")
 
     //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
@@ -672,9 +667,6 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     var httpCode : Int = 500
 
     var parameters = getAllParameters
-    //TODO store the consumer key in appConsumerKey variable, may be fixed latter.
-    currentAppConsumerKey=getAllParameters.get("oauth_consumer_key").getOrElse("")
-
 
     val alreadyUsedNonceF = alreadyUsedNonceFuture(parameters)
     val validToken2F = {

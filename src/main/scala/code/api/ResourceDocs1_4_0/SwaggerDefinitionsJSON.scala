@@ -2150,6 +2150,8 @@ object SwaggerDefinitionsJSON {
     account_rules = List(accountRuleJsonV300)
   )
   
+  val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
