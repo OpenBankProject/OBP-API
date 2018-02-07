@@ -6,6 +6,7 @@ import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, CallContext, ErrorMessages}
+import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
 import code.bankconnectors.Connector
@@ -1668,6 +1669,46 @@ trait APIMethods300 {
             } map { unboxFull(_) }
           } yield {
             (Full(deleteEntitlementRequest), callContext)
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getEntitlementsForCurrentUser,
+      implementedInApiVersion,
+      "getEntitlementsForCurrentUser",
+      "GET",
+      "/my/entitlements",
+      "Get Entitlements for the current User.",
+      s"""Get Entitlements for the current User.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        """.stripMargin,
+      emptyObjectJson,
+      entitlementRequestsJSON,
+      List(
+        UserNotLoggedIn,
+        UserNotSuperAdmin,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      None)
+
+    lazy val getEntitlementsForCurrentUser : OBPEndpoint = {
+      case "my" :: "entitlements" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture(user)
+            getEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory200.createEntitlementJSONs(getEntitlements), callContext)
           }
       }
     }

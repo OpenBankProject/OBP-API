@@ -28,7 +28,7 @@ package code.api
 
 import java.io.UnsupportedEncodingException
 
-import code.api.util.ErrorMessages
+import code.api.util.{CertificateUtil, CryptoSystem, ErrorMessages}
 import code.bankconnectors.{Connector, InboundAccountCommon}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
@@ -37,7 +37,8 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.exceptions.JWTVerificationException
+import com.auth0.jwt.algorithms.Algorithm.RSA256
+import com.auth0.jwt.exceptions.{JWTCreationException, JWTVerificationException}
 import com.auth0.jwt.interfaces.DecodedJWT
 import net.liftweb.common._
 import net.liftweb.http._
@@ -83,15 +84,15 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case None => getFieldFromPayloadJson(payloadAsJsonString, "cbs_token")
     }
 
-    val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
     var jwt: String = ""
-
-
-    import com.auth0.jwt.JWT
-    import com.auth0.jwt.algorithms.Algorithm
-    import com.auth0.jwt.exceptions.JWTCreationException
     try {
-      val algorithm = Algorithm.HMAC256(secretKey)
+      val algorithm = Props.getBool("jwt.use.ssl", false) match {
+        case true =>
+          Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
+        case false =>
+          val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
+          Algorithm.HMAC256(secretKey)
+      }
       jwt = JWT.create.
         withClaim("login_user_name", username).
         withClaim("is_first", false).
@@ -133,8 +134,13 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def validateJwtToken(token: String): Box[DecodedJWT] = {
     try {
       val jwtDecoded = JWT.decode(token)
-      val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
-      val algorithm = Algorithm.HMAC256(secretKey)
+      val algorithm = Props.getBool("jwt.use.ssl", false) match {
+        case true =>
+          Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
+        case false =>
+          val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
+          Algorithm.HMAC256(secretKey)
+      }
       val verifier = JWT.
         require(algorithm).
         withClaim("login_user_name", jwtDecoded.getClaim("login_user_name").asString()).
