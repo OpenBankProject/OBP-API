@@ -2,11 +2,12 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.customer.Customer
 import code.model.BankId
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerJsonV140}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
@@ -16,22 +17,8 @@ import net.liftweb.json.Serialization.write
 class CustomerTest extends V200ServerSetup with DefaultUsers {
 
   def createCustomerJson(customerNumber: String) = {
-    CreateCustomerJson(
-      user_id = resourceUser1.userId,
-      customer_number = customerNumber,
-      legal_name = "Someone",
-      mobile_phone_number = "125245",
-      email = "hello@hullo.com",
-      face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-      date_of_birth = exampleDate,
-      relationship_status = "Single",
-      dependants = 1,
-      dob_of_dependants = List(exampleDate),
-      highest_education_attained = "Bachelor’s Degree",
-      employment_status = "Employed",
-      kyc_status = true,
-      last_ok_date = exampleDate
-    )
+    //try to use the json, we provide to the app.
+    SwaggerDefinitionsJSON.createCustomerJson.copy(user_id = resourceUser1.userId, customer_number = customerNumber)
   }
 
   feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {
