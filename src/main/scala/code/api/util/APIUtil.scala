@@ -233,6 +233,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val CreateOrUpdateCounterpartyMetadataError = "OBP-30036: Could not create or update CounterpartyMetadata"
   val CounterpartyMetadataNotFound = "OBP-30037: CounterpartyMetadata not found. Please specify valid values for BANK_ID, ACCOUNT_ID and COUNTERPARTY_ID. "
 
+  val CreateFxRateError = "OBP-30032: Could not insert the Fx Rate"
+  val UpdateFxRateError = "OBP-30033: Could not update the Fx Rate"
+  val UnknownFxRateError = "OBP-30033: Unknown Fx Rate error"
+
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

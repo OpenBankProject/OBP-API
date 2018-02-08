@@ -1114,12 +1114,13 @@ trait Connector extends MdcLoggable{
 
 
   def createOrUpdateFXRate(
-  bankId : String,
-  fromCurrencyCode: String,
-  toCurrencyCode: String,
-  conversionValue: Double,
-  inverseConversionValue: Double,
-  effectiveDate: Date): Box[FXRate] = Failure(NotImplemented + currentMethodName)
+                            bankId: String,
+                            fromCurrencyCode: String,
+                            toCurrencyCode: String,
+                            conversionValue: Double,
+                            inverseConversionValue: Double,
+                            effectiveDate: Date
+                          ): Box[FXRate] = Failure(NotImplemented + currentMethodName)
 
 
 

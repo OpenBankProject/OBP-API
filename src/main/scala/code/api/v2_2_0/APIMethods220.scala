@@ -643,7 +643,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil,
+      List(apiTagFx),
       Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
 
