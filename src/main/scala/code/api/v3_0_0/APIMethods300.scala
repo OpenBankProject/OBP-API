@@ -34,6 +34,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 
 
@@ -497,7 +498,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
-      "/search/warehouse",
+      "/search/warehouse/INDEX_NAME/TOPIC_NAME",
       "Search Warehouse Data Via Elasticsearch",
       s"""
         |Search warehouse data via Elastic Search.
@@ -516,10 +517,10 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
-        |POST /search/warehouse
-        |
+        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE/THE_TOPIC_YOU_WANT_TO_USE
+        |or
+        |POST /search/warehouse/ALL/ALL
         |{
-        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
         |  "es_body_part": {
         |    "query": {
         |      "range": {
@@ -548,14 +549,15 @@ trait APIMethods300 {
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
-      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: index :: topic :: Nil JsonPost json -> _ => {
+            
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compactRender(json \ "es_uri_part")
+            val uriPart = createElasticSearchUriPart(index, topic) //compactRender(json \ "es_uri_part")
             val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
@@ -615,19 +617,30 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDataWarehouse))
     lazy val aggregateWarehouse: OBPEndpoint = {
-      case "search" :: "warehouse" :: "statistics" :: field :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: "statistics" :: index :: topic ::field :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compactRender(json \ "es_uri_part")
+            val uriPart = createElasticSearchUriPart(index, topic) //compactRender(json \ "es_uri_part")
             val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, uriPart,bodyPart, field) ))
           }
       }
     }
+    
+    def createElasticSearchUriPart(index: String, topic: String): String = {
+      val validIndices = Props.get("es.warehouse.allowed.indices", "").split(",").toSet
+      val realIndex =
+        if (index == "" || index == "ALL") Props.get("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
+        else index
+      if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
+      val addTopic = if (topic == "ALL") "" else "/" + topic
+      "/" + realIndex + addTopic + "/_search"
+    }
+    
     
 
     resourceDocs += ResourceDoc(
