@@ -1470,6 +1470,47 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     fxRateFromTo.orElse(fxRateToFrom)
   }
 
+  override def createOrUpdateFXRate(
+                                     bankId: String,
+                                     fromCurrencyCode: String,
+                                     toCurrencyCode: String,
+                                     conversionValue: Double,
+                                     inverseConversionValue: Double,
+                                     effectiveDate: Date
+                                   ): Box[FXRate] = {
+    val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mBankId, bankId),
+      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
+    )
+    fxRateFromTo match {
+      case Full(x) =>
+        tryo {
+          x
+            .mBankId(bankId)
+            .mFromCurrencyCode(fromCurrencyCode)
+            .mToCurrencyCode(toCurrencyCode)
+            .mConversionValue(conversionValue)
+            .mInverseConversionValue(inverseConversionValue)
+            .mEffectiveDate(effectiveDate)
+            .saveMe()
+        } ?~! UpdateFxRateError
+      case Empty =>
+        tryo {
+          MappedFXRate.create
+            .mBankId(bankId)
+            .mFromCurrencyCode(fromCurrencyCode)
+            .mToCurrencyCode(toCurrencyCode)
+            .mConversionValue(conversionValue)
+            .mInverseConversionValue(inverseConversionValue)
+            .mEffectiveDate(effectiveDate)
+            .saveMe()
+        } ?~! CreateFxRateError
+      case _ =>
+        Failure("UnknownFxRateError")
+    }
+  }
+
   /**
     * get the TransactionRequestTypeCharge from the TransactionRequestTypeCharge table
     * In Mapped, we will ignore accountId, viewId for now.
