@@ -257,7 +257,7 @@ trait APIMethods220 {
             _ <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             _ <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
             _ <- cc.user ?~! UserNotLoggedIn
-            fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode).openOrThrowException(attemptedToOpenAnEmptyBox)) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
+            fxRate <- Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
             successJsonResponse(Extraction.decompose(viewJSON))
