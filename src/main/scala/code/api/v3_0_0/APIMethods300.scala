@@ -445,6 +445,56 @@ trait APIMethods300 {
       }
     }
   
+  
+    resourceDocs += ResourceDoc(
+      getFirehoseTransactionsForBankAccount,
+      implementedInApiVersion,
+      "getFirehoseTransactionsForBankAccount",
+      "GET",
+      "/banks/BANK_ID/firehose/accounts/ACCOUNT_ID/views/VIEW_ID/transactions",
+      "Get Firehose Transactions for Account (Firehose)",
+      s"""
+         |Get firehose transactions for Account. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      transactionsJsonV300,
+      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagAccount, apiTagFirehoseData))
+  
+    lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+        cc =>
+          val res =
+            for {
+              (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
+               MapperViews.canUseFirehose(u)
+              }
+              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
+              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+              //Note: error handling and messages for getTransactionParams are in the sub method
+                params <- getTransactionParams(json)
+                transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
+              } yield {
+                (createTransactionsJson(transactions), callContext)
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
+      }
+    }
+
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       implementedInApiVersion,
