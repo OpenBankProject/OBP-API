@@ -275,6 +275,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
   val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
+  val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
