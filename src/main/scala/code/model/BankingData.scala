@@ -625,15 +625,6 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
 
-  @deprecated(Helper.deprecatedJsonGenerationMessage)
-  final def overviewJson(user: Box[User]): JObject = {
-    val views = permittedViews(user)
-    ("number" -> number) ~
-    ("account_alias" -> label) ~
-    ("owner_description" -> "") ~
-    ("views_available" -> views.map(view => view.toJson)) ~
-    View.linksJson(views, accountId, bankId)
-  }
 }
 
 object BankAccount {

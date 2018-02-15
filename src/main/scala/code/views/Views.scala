@@ -33,7 +33,6 @@ trait Views {
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
-  def view(viewUID : ViewIdBankIdAccountId) : Box[View]
 
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
@@ -66,7 +65,6 @@ trait Views {
   def grantAccessToView(user : User, view : View) : Boolean
   def grantAccessToAllExistingViews(user : User) : Boolean
 
-  def viewExists(bank: BankId, accountId: AccountId, name: String): Boolean
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
@@ -105,7 +103,6 @@ class RemotedataViewsCaseClasses {
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
   }
   case class view(pars: Any*) {
-    def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
@@ -122,7 +119,6 @@ class RemotedataViewsCaseClasses {
   case class grantAccessToView(user : User, view : View)
   case class grantAccessToAllExistingViews(user : User)
 
-  case class viewExists(bank: BankId, accountId: AccountId, name: String)
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
   case class removeAllViews(bankId: BankId, accountId: AccountId)
 

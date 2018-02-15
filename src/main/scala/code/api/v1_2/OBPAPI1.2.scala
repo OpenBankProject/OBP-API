@@ -82,7 +82,7 @@
 //  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] =
 //    for {
 //      account <- BankAccount(bankId, accountId)
-//      view <- View.fromUrl(viewId, account)
+//      view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //      moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
 //      metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
 //    } yield metadata
@@ -179,7 +179,7 @@
 //        for {
 //          account <- BankAccount(bankId, accountId)
 //          availableviews <- Full(account.permittedViews(user))
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          moderatedAccount <- account.moderatedBankAccount(view, user)
 //        } yield {
 //            val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
@@ -341,7 +341,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
 //        } yield {
 //          val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
@@ -356,7 +356,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //        } yield {
 //          val otherBankAccountJson = JSONFactory.createOtherBankAccount(otherBankAccount)
@@ -371,7 +371,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //        } yield {
@@ -387,7 +387,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
@@ -404,7 +404,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
@@ -423,7 +423,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
@@ -442,7 +442,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
@@ -459,7 +459,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
@@ -476,7 +476,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
@@ -496,7 +496,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
@@ -516,7 +516,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
@@ -532,7 +532,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
@@ -552,7 +552,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
@@ -572,7 +572,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
@@ -588,7 +588,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
@@ -608,7 +608,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
@@ -628,7 +628,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
@@ -644,7 +644,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
@@ -664,7 +664,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
@@ -684,7 +684,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
@@ -700,7 +700,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
@@ -720,7 +720,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
@@ -740,7 +740,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
@@ -757,7 +757,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
@@ -779,7 +779,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
@@ -801,7 +801,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
@@ -828,7 +828,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
@@ -850,7 +850,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
@@ -872,7 +872,7 @@
 //        for {
 //          u <- user
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
 //          metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
 //          deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
@@ -894,7 +894,7 @@
 //      for {
 //        params <- getTransactionParams(json)
 //        bankAccount <- BankAccount(bankId, accountId)
-//        view <- View.fromUrl(viewId, bankAccount)
+//        view <- Views.views.vend.view(viewId, bankAccount)
 //        transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
 //      } yield {
 //        val json = JSONFactory.createTransactionsJSON(transactions)
@@ -909,7 +909,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
 //        } yield {
 //            val json = JSONFactory.createTransactionJSON(moderatedTransaction)
@@ -1189,7 +1189,7 @@
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
-//          view <- View.fromUrl(viewId, account)
+//          view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
 //          transaction <- account.moderatedTransaction(transactionId, view, user)
 //          moderatedOtherBankAccount <- transaction.otherBankAccount
 //        } yield {

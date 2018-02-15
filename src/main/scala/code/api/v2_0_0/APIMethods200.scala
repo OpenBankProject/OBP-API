@@ -27,6 +27,7 @@ import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
+import code.views.Views
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
@@ -869,7 +870,7 @@ trait APIMethods200 {
             account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             availableviews <- Full(account.permittedViews(cc.user))
             // Assume owner view was requested
-            view <- View.fromUrl( ViewId("owner"), account)
+            view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableviews.map(JSONFactory121.createViewJSON)
@@ -920,7 +921,7 @@ trait APIMethods200 {
             params <- getTransactionParams(json)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
-            view <- View.fromUrl( ViewId("owner"), bankAccount)
+            view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
             transactions <- bankAccount.getModeratedTransactions(cc.user, view, params : _*)(None)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)
@@ -972,7 +973,7 @@ trait APIMethods200 {
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(cc.user))
-            view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
             _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
@@ -1285,7 +1286,7 @@ trait APIMethods200 {
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
               availableViews <- Full(fromAccount.permittedViews(cc.user))
-              _ <- View.fromUrl(viewId, fromAccount) ?~! ViewNotFound
+              _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
               _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
 
               _ <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true , InsufficientAuthorisationToCreateTransactionRequest)

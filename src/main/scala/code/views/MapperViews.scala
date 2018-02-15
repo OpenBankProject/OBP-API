@@ -223,14 +223,6 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def view(viewUID : ViewIdBankIdAccountId) : Box[View] = {
-    val view=ViewImpl.find(viewUID)
-
-    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-
-    view
-  }
-
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
@@ -724,30 +716,6 @@ object MapperViews extends Views with MdcLoggable {
       false
   }
   
-  /**
-    * Find view by bankId , accountId and viewName. If it is exsting in ViewImple table, return true.
-    * Otherwise, return false.
-    * 
-    * But not used yet !
-    */
-  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
-    val res =
-      if (ALLOW_PUBLIC_VIEWS)
-        ViewImpl.findAll(
-          By(ViewImpl.bankPermalink, bankId.value),
-          By(ViewImpl.accountPermalink, accountId.value),
-          By(ViewImpl.name_, name)
-        )
-      else
-        ViewImpl.findAll(
-          By(ViewImpl.bankPermalink, bankId.value),
-          By(ViewImpl.accountPermalink, accountId.value),
-          By(ViewImpl.name_, name),
-          By(ViewImpl.isPublic_, false)
-        )
-    res.nonEmpty
-  }
-
   def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveFirehoseView(bankId, accountId, "Firehose View")
   }

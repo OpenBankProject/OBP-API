@@ -111,7 +111,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
       val ownerViewUID = ViewIdBankIdAccountId(ViewId("owner"), bankId, accountId)
-      val existingOwnerView = Views.views.vend.view(ownerViewUID)
+      val existingOwnerView = Views.views.vend.view(ownerViewUID.viewId, BankIdAccountId(ownerViewUID.bankId, ownerViewUID.accountId))
 
       existingOwnerView match {
         case Full(v) => {

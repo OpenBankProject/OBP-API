@@ -200,6 +200,8 @@ trait View {
   // System Views: eg: owner, accountant ... They are the fixed views, account owner can not modify it. 
   // User Created Views: Start with _, eg _son, _wife ... The owner can update the fields for these views. 
   def isSystem : Boolean
+  def isFirehose : Boolean
+  def isPublic : Boolean
   
   //these ids are used together to uniquely identify a view
   def viewId : ViewId
@@ -211,8 +213,6 @@ trait View {
 
   def name: String
   def description : String
-  def isPublic : Boolean
-  def isFirehose : Boolean
   def users: List[User]
 
   //the view settings
@@ -792,31 +792,5 @@ trait View {
     }
     else
       None
-  }
-  
-  @deprecated(Helper.deprecatedJsonGenerationMessage)
-  def toJson : JObject = {
-    ("name" -> name) ~
-    ("description" -> description)
-  }
-
-}
-
-object View {
-  def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-  def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
-    Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId))
-
-  @deprecated(Helper.deprecatedJsonGenerationMessage)
-  def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
-    val viewsJson = views.map(view => {
-      ("rel" -> "account") ~
-        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.viewId }) ~
-        ("method" -> "GET") ~
-        ("title" -> "Get information about one account")
-    })
-
-    ("links" -> viewsJson)
   }
 }
