@@ -33,7 +33,7 @@
 package code.api.util
 
 import java.io.InputStream
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
@@ -41,6 +41,7 @@ import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
 import code.bankconnectors._
@@ -117,6 +118,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
+  val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -275,6 +277,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
   val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
+  val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
@@ -2086,4 +2089,29 @@ Versions are groups of endpoints in a file
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
   
   val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+
+  /**
+    * This function is implemented in order to support encrypted values in props file.
+    * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
+    *  db.url=SOME_ENCRYPTED_VALUE
+    *  db.url.is_encrypted=true
+    *  getDecryptedPropsValue("db.url") = jdbc:postgresql://localhost:5432/han_obp_api_9?user=han_obp_api&password=mypassword
+    * @param nameOfProperty Name of property which value should be decrypted
+    * @return Decrypted value of a property
+    */
+  def getPropsValue(nameOfProperty: String): Box[String] = {
+    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
+      case (Full(encryptedValue), Full(isEncrypted))  if isEncrypted == "true" =>
+        val decryptedValue: Array[Byte] = decrypt(privateKey, encryptedValue.getBytes(StandardCharsets.UTF_8), CryptoSystem.RSA)
+        Full(decryptedValue.toString)
+      case (Full(property), Full(isEncrypted))  if isEncrypted == "false" =>
+        Full(property)
+      case (Full(property), Empty) =>
+        Full(property)
+      case _ =>
+        logger.error(cannotDecryptValueOfProperty + nameOfProperty)
+        Failure(cannotDecryptValueOfProperty + nameOfProperty)
+    }
+  }
+
 }
