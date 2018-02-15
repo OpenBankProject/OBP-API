@@ -2099,7 +2099,7 @@ Versions are groups of endpoints in a file
     * @param nameOfProperty Name of property which value should be decrypted
     * @return Decrypted value of a property
     */
-  def getDecryptedPropsValue(nameOfProperty: String): Box[String] = {
+  def getPropsValue(nameOfProperty: String): Box[String] = {
     (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
       case (Full(encryptedValue), Full(isEncrypted))  if isEncrypted == "true" =>
         val decryptedValue: Array[Byte] = decrypt(privateKey, encryptedValue.getBytes(StandardCharsets.UTF_8), CryptoSystem.RSA)

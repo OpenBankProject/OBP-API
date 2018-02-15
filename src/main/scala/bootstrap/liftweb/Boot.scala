@@ -167,8 +167,8 @@ class Boot extends MdcLoggable {
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
             new StandardDBVendor(driver,
-              APIUtil.getDecryptedPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-              Props.get("db.user"), APIUtil.getDecryptedPropsValue("db.password"))
+              APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+              Props.get("db.user"), APIUtil.getPropsValue("db.password"))
           case _ =>
             new StandardDBVendor(
               driver,
