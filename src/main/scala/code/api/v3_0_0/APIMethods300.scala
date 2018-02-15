@@ -1440,7 +1440,7 @@ trait APIMethods300 {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
@@ -1471,7 +1471,7 @@ trait APIMethods300 {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
@@ -1793,7 +1793,7 @@ trait APIMethods300 {
               for {
                 _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
                 account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-                view <- View.fromUrl(viewId, account)
+                view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
                 otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
               } yield {
                 val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
