@@ -184,7 +184,8 @@ class Boot extends MdcLoggable {
     
     print("Enter the Password for the SSL Certificate Stores: ")
     //As most IDEs do not provide a Console, we fall back to readLine
-    code.api.util.APIUtil.initPasswd =  if (Props.get("kafka.use.ssl").getOrElse("") == "true") {
+    code.api.util.APIUtil.initPasswd =  if (Props.get("kafka.use.ssl").getOrElse("") == "true" ||
+      Props.get("jwt.use.ssl").getOrElse("") == "true") {
       try {
         System.console.readPassword().toString
       } catch {
