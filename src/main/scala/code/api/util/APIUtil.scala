@@ -2093,21 +2093,26 @@ Versions are groups of endpoints in a file
   /**
     * This function is implemented in order to support encrypted values in props file.
     * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
-    *  db.url=SOME_ENCRYPTED_VALUE
+    *  db.url=Helpers.base64Encode(SOME_ENCRYPTED_VALUE)
     *  db.url.is_encrypted=true
     *  getDecryptedPropsValue("db.url") = jdbc:postgresql://localhost:5432/han_obp_api_9?user=han_obp_api&password=mypassword
+    *  Encrypt/Decrypt workflow:
+    *  Encrypt: Array[Byte] -> Helpers.base64Encode(encrypted) -> Props file: String -> Helpers.base64Decode(encryptedValue) -> Decrypt: Array[Byte]
     * @param nameOfProperty Name of property which value should be decrypted
     * @return Decrypted value of a property
     */
   def getPropsValue(nameOfProperty: String): Box[String] = {
     (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
-      case (Full(encryptedValue), Full(isEncrypted))  if isEncrypted == "true" =>
-        val decryptedValue: Array[Byte] = decrypt(privateKey, encryptedValue.getBytes(StandardCharsets.UTF_8), CryptoSystem.RSA)
-        Full(decryptedValue.toString)
+      case (Full(base64PropsValue), Full(isEncrypted))  if isEncrypted == "true" =>
+        val decryptedValueAsArray = decrypt(privateKey, Helpers.base64Decode(base64PropsValue), CryptoSystem.RSA)
+        val decryptedValueAsString = new String(decryptedValueAsArray)
+        Full(decryptedValueAsString)
       case (Full(property), Full(isEncrypted))  if isEncrypted == "false" =>
         Full(property)
       case (Full(property), Empty) =>
         Full(property)
+      case (Empty, Empty) =>
+        Empty
       case _ =>
         logger.error(cannotDecryptValueOfProperty + nameOfProperty)
         Failure(cannotDecryptValueOfProperty + nameOfProperty)
