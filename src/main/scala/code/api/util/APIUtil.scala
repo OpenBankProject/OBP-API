@@ -2109,6 +2109,7 @@ Versions are groups of endpoints in a file
       case (Full(property), Empty) =>
         Full(property)
       case _ =>
+        logger.error(cannotDecryptValueOfProperty + nameOfProperty)
         Failure(cannotDecryptValueOfProperty + nameOfProperty)
     }
   }
