@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
@@ -962,7 +962,7 @@ trait APIMethods300 {
 
 
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+    val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getBranch,
@@ -1096,7 +1096,7 @@ trait APIMethods300 {
       }
     }
 
-    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtm,

@@ -7,7 +7,7 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -35,6 +35,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -1144,7 +1145,7 @@ trait APIMethods200 {
 
 
 
-    val getTransactionTypesIsPublic = Props.getBool("apiOptions.getTransactionTypesIsPublic", true)
+    val getTransactionTypesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
 
 
     resourceDocs += ResourceDoc(
@@ -1271,7 +1272,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
             /* TODO:
              * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
@@ -1348,7 +1349,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
@@ -1437,7 +1438,7 @@ trait APIMethods200 {
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
@@ -1562,7 +1563,7 @@ trait APIMethods200 {
     lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("meeting.tokbox_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               // TODO use these keys to get session and tokens from tokbox
               _ <- Props.get("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
@@ -1619,7 +1620,7 @@ trait APIMethods200 {
     lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("meeting.tokbox_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
@@ -1677,7 +1678,7 @@ trait APIMethods200 {
     lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("meeting.tokbox_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound

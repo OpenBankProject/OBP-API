@@ -432,7 +432,7 @@ object APIUtil extends MdcLoggable {
   def logAPICall(callContext: Option[CallContext]) = {
     callContext match {
       case Some(cc) =>
-        if(Props.getBool("write_metrics", false)) {
+        if(getPropsAsBoolValue("write_metrics", false)) {
           val u: User = cc.user.orNull
           val userId = if (u != null) u.userId else "null"
           val userName = if (u != null) u.name else "null"
@@ -456,7 +456,7 @@ object APIUtil extends MdcLoggable {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
                 DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
@@ -493,14 +493,14 @@ object APIUtil extends MdcLoggable {
 
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     val authorization = S.request.map(_.header("Authorization")).flatten
-    if(Props.getBool("write_metrics", false)) {
+    if(getPropsAsBoolValue("write_metrics", false)) {
       val user =
         if (hasAnOAuthHeader(authorization)) {
           getUser match {
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -515,7 +515,7 @@ object APIUtil extends MdcLoggable {
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
@@ -1464,7 +1464,7 @@ Returns a string showed to the developer
     val result = blockOfCode
     // call-by-name
     val t1 = System.currentTimeMillis()
-    if (Props.getBool("write_metrics", false)){
+    if (getPropsAsBoolValue("write_metrics", false)){
       val correlationId = getCorrelationId()
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
@@ -1474,7 +1474,7 @@ Returns a string showed to the developer
   }
 
   def akkaSanityCheck (): Box[Boolean] = {
-    Props.getBool("use_akka", false) match {
+    getPropsAsBoolValue("use_akka", false) match {
       case true =>
         val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
         SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
@@ -1924,9 +1924,9 @@ Versions are groups of endpoints in a file
     val res =
     if (hasAnOAuthHeader(authorization)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -2015,7 +2015,7 @@ Versions are groups of endpoints in a file
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
-        val failuresMsg = Props.getBool("display_internal_errors").openOr(false) match {
+        val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
           case true => // Show all error in a chain
             obj.messageChain
           case false => // Do not display internal errors
@@ -2117,6 +2117,16 @@ Versions are groups of endpoints in a file
         logger.error(cannotDecryptValueOfProperty + nameOfProperty)
         Failure(cannotDecryptValueOfProperty + nameOfProperty)
     }
+  }
+
+  def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {
+    getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
+  }
+  def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
+    getPropsValue(nameOfProperty) map(toInt) openOr(defaultValue)
+  }
+  def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
+    getPropsValue(nameOfProperty) flatMap(asLong) openOr(defaultValue)
   }
 
 }

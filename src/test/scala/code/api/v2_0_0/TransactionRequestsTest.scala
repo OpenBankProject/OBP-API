@@ -2,7 +2,7 @@ package code.api.v2_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.bankconnectors.Connector
@@ -33,7 +33,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
     }
 
     // No challenge, No FX (same currencies)
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {
@@ -182,7 +182,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
 
     // No challenge, No FX (same currencies)
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {}
     } else {
       scenario("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {
@@ -320,7 +320,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
       }
     }
 
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a user without owner view access", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user without owner view access", TransactionRequest) {
@@ -367,7 +367,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
     }
 
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at a different BANK_ID", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at a different BANK_ID", TransactionRequest) {
@@ -428,7 +428,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
     }
 
     // No challenge, with FX
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {}
     } else {
       scenario("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {
@@ -640,7 +640,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
 
     // With challenge, No FX (Same currencies)
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a challenge, same currencies", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a challenge", TransactionRequest) {
@@ -811,7 +811,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
 
     // With Challenge, with FX
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request with challenge", TransactionRequest) {}
     } else {
       scenario("we create an FX transaction request with challenge", TransactionRequest) {

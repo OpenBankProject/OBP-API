@@ -3,7 +3,7 @@ package code.views
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
@@ -11,6 +11,7 @@ import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
 import code.api.util.ErrorMessages._
+
 import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
@@ -27,8 +28,8 @@ object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
-  val ALLOW_PUBLIC_VIEWS: Boolean = Props.getBool("allow_public_views").openOr(false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = Props.getBool("allow_firehose_views").openOr(false)
+  val ALLOW_PUBLIC_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_public_views", false)
+  val ALLOW_FIREHOSE_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_firehose_views", false)
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 

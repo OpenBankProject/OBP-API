@@ -224,7 +224,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(OAuthHandshake)
 
     // JWT auth endpoints
-    if(Props.getBool("allow_direct_login", true)) {
+    if(APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
@@ -234,7 +234,7 @@ class Boot extends MdcLoggable {
 
 
     //  OpenIdConnect endpoint and validator
-    if(Props.getBool("allow_openidconnect", false)) {
+    if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
       LiftRules.dispatch.append(OpenIdConnect)
     }
 
@@ -270,7 +270,7 @@ class Boot extends MdcLoggable {
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 
     //add sandbox api calls only if we're running in sandbox mode
-    if(Props.getBool("allow_sandbox_data_import", false)) {
+    if(APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false)) {
       LiftRules.statelessDispatch.append(SandboxApiCalls)
     } else {
       logger.info("Not adding sandbox api calls")
@@ -280,7 +280,7 @@ class Boot extends MdcLoggable {
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
     val accountCreation = {
-      if(Props.getBool("allow_sandbox_account_creation", false)){
+      if(APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
         // Not mentioning test and sandbox for App store purposes right now.
         List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> AuthUser.loginFirst)
@@ -294,7 +294,7 @@ class Boot extends MdcLoggable {
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
     }
 
-    if (!Props.getBool("remotedata.enable", false)) {
+    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
       try {
         logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
         RemotedataActors.startActors(actorSystem)
@@ -306,7 +306,7 @@ class Boot extends MdcLoggable {
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
-    if (Props.getBool("write_metrics", false)) {
+    if (APIUtil.getPropsAsBoolValue("write_metrics", false)) {
       logger.info("writeMetrics is true. We will write API metrics")
     } else {
       logger.info("writeMetrics is false. We will NOT write API metrics")
@@ -371,7 +371,7 @@ class Boot extends MdcLoggable {
     S.addAround(DB.buildLoanWrapper)
 
     try {
-      val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+      val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)
       if(useMessageQueue)
         BankAccountCreationListener.startListen
     } catch {
@@ -405,7 +405,7 @@ class Boot extends MdcLoggable {
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
       case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
-      case Empty =>  Props.getBool("use_akka", false) match {
+      case Empty =>  APIUtil.getPropsAsBoolValue("use_akka", false) match {
         case true => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
         case false => logger.info("Akka middleware layer is disabled.")
       }

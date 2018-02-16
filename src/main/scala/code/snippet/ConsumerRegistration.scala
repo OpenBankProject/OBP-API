@@ -31,7 +31,7 @@ Berlin 13359, Germany
  */
 package code.snippet
 
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.model._
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.{Empty, Full}
@@ -202,7 +202,7 @@ class ConsumerRegistration extends MdcLoggable {
     } yield {
 
       // Only send consumer key / secret by email if we explicitly want that.
-      val sendSensitive : Boolean = Props.getBool("mail.api.consumer.registered.notification.send.sensistive", false)
+      val sendSensitive : Boolean = APIUtil.getPropsAsBoolValue("mail.api.consumer.registered.notification.send.sensistive", false)
       val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 

@@ -2,6 +2,7 @@ package code.metadata.tags
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model._
 import code.remotedata.RemotedataTags
 import net.liftweb.common.Box
@@ -12,7 +13,7 @@ object Tags  extends SimpleInjector {
   val tags = new Inject(buildOne _) {}
 
   def buildOne: Tags =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedTags
       case true => RemotedataTags     // We will use Akka as a middleware
     }

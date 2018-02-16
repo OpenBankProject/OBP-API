@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
@@ -127,7 +127,7 @@ trait APIMethods210 {
     }
 
 
-    val getTransactionRequestTypesIsPublic = Props.getBool("apiOptions.getTransactionRequestTypesIsPublic", true)
+    val getTransactionRequestTypesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getTransactionRequestTypesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getTransactionRequestTypesSupportedByBank,
@@ -404,7 +404,7 @@ trait APIMethods210 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            _ <- booleanToBox(Props.getBool("transactionRequests_enabled", false)) ?~ TransactionDisabled
+            _ <- booleanToBox(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) ?~ TransactionDisabled
             u <- cc.user ?~ UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
@@ -560,7 +560,7 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               // Check we have a User
               u: User <- cc.user ?~ UserNotLoggedIn
@@ -674,7 +674,7 @@ trait APIMethods210 {
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
@@ -1011,7 +1011,7 @@ trait APIMethods210 {
       }
     }
 
-    val getTransactionTypesIsPublic = Props.getBool("apiOptions.getTransactionTypesIsPublic", true)
+    val getTransactionTypesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       createTransactionType,
@@ -1064,7 +1064,7 @@ trait APIMethods210 {
     }
 
 
-    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtm,
@@ -1108,7 +1108,7 @@ trait APIMethods210 {
       }
     }
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+    val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getBranch,
@@ -1156,7 +1156,7 @@ trait APIMethods210 {
       }
     }
 
-    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
 
     resourceDocs += ResourceDoc(
@@ -1542,7 +1542,7 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~ UserNotLoggedIn
             _ <- booleanToBox(
-              hasEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl) || Props.getBool("consumers_enabled_by_default", false),
+              hasEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl) || APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false),
               UserHasMissingRoles + CanUpdateConsumerRedirectUrl
             )
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
@@ -1551,7 +1551,7 @@ trait APIMethods210 {
             //only the developer that created the Consumer should be able to edit it
             _ <- tryo(assert(consumer.createdByUserId.equals(cc.user.openOrThrowException(attemptedToOpenAnEmptyBox).userId)))?~! UserNoPermissionUpdateConsumer
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
-            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(Props.getBool("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
+            updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None) ?~! UpdateConsumerError
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
             createdJsonResponse(Extraction.decompose(json))

@@ -16,7 +16,7 @@ object CryptoSystem extends Enumeration {
 
 object CertificateUtil {
 
-  lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = Props.getBool("jwt.use.ssl", false) match  {
+  lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
       getKeyPair(
         jkspath = Props.get("keystore.path").getOrElse(""),

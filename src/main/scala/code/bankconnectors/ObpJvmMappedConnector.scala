@@ -531,7 +531,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
-        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.lastUpdate match {
           case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
           case _ => true

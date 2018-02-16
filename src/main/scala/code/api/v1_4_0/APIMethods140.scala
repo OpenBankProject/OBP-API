@@ -167,7 +167,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+    val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getBranches,
@@ -234,7 +234,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtms,
@@ -302,7 +302,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
 
     resourceDocs += ResourceDoc(
@@ -445,7 +445,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -488,7 +488,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -554,7 +554,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               /* TODO:
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
@@ -622,7 +622,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}

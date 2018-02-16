@@ -2,6 +2,7 @@ package code.metrics
 
 import java.util.{Calendar, Date}
 
+import code.api.util.APIUtil
 import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataConnectorMetrics
 import net.liftweb.util.{Props, SimpleInjector}
@@ -11,7 +12,7 @@ object ConnectorMetricsProvider extends SimpleInjector {
   val metrics = new Inject(buildOne _) {}
 
   def buildOne: ConnectorMetricsProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => ConnectorMetrics
       case true => RemotedataConnectorMetrics     // We will use Akka as a middleware
     }
