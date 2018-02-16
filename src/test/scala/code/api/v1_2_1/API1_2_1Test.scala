@@ -667,7 +667,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     TODO check we have equivelent tests in Create Transaction Request tests
 
-    if (Props.getBool("payments_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("payments_enabled", false) == false) {
       ignore("we make a payment", Payments) {}
     } else {
       scenario("we make a payment", Payments) {

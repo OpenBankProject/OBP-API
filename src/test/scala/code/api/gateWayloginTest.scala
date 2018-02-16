@@ -1,6 +1,6 @@
 package code.api
 
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.setup.{APIResponse, DefaultUsers, ServerSetup}
@@ -95,7 +95,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
   def gatewayLoginNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current" / "customers"
 
   feature("GatewayLogin in a BLOCKING way") {
-    Props.getBool("allow_gateway_login", false) match  {
+    APIUtil.getPropsAsBoolValue("allow_gateway_login", false) match  {
       case true =>
         scenario("Missing parameter token in a blocking way") {
           When("We try to login without parameter token in a Header")
@@ -134,7 +134,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
   }
 
   feature("GatewayLogin in a NON BLOCKING way") {
-    Props.getBool("allow_gateway_login", false) match  {
+    APIUtil.getPropsAsBoolValue("allow_gateway_login", false) match  {
       case true =>
         scenario("Missing parameter token in a blocking way") {
           When("We try to login without parameter token in a Header")

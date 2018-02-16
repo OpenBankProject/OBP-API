@@ -6,7 +6,7 @@ import java.security.{PublicKey, _}
 import javax.crypto.Cipher
 
 import code.api.util.CryptoSystem.CryptoSystem
-import net.liftweb.util.Props
+import net.liftweb.util.{Helpers, Props}
 
 
 object CryptoSystem extends Enumeration {
@@ -16,12 +16,12 @@ object CryptoSystem extends Enumeration {
 
 object CertificateUtil {
 
-  lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = Props.getBool("jwt.use.ssl", false) match  {
+  lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
       getKeyPair(
         jkspath = Props.get("keystore.path").getOrElse(""),
-        jkspasswd = Props.get("keystore.password").getOrElse(""),
-        keypasswd = Props.get("keystore.passphrase").getOrElse(""),
+        jkspasswd = Props.get("keystore.password").getOrElse(APIUtil.initPasswd),
+        keypasswd = Props.get("keystore.passphrase").getOrElse(APIUtil.initPasswd),
         alias = Props.get("keystore.alias").getOrElse("")
       )
     case false =>
@@ -99,16 +99,30 @@ object CertificateUtil {
   @throws[Exception]
   def main(args: Array[String]): Unit = {
 
+    print("Enter the Password for the SSL Certificate Stores: ")
+    //As most IDEs do not provide a Console, we fall back to readLine
+    code.api.util.APIUtil.initPasswd =
+      if (Props.get("kafka.use.ssl").getOrElse("") == "true" ||
+          Props.get("jwt.use.ssl").getOrElse("") == "true")
+      {
+        try {
+          System.console.readPassword().toString
+        } catch {
+          case e: NullPointerException => scala.io.StdIn.readLine()
+        }
+      } else {"notused"}
+
     System.out.println("Public key:" + publicKey.getEncoded)
     System.out.println("Private key:" + privateKey.getEncoded)
 
     // 1.1 Encrypt the token with public key
     val encryptedWithPublicReceived = encrypt(publicKey, "This is a secret message we should receive", CryptoSystem.RSA)
     System.out.println("Encrypted token with public key:")
-    System.out.println(new String(encryptedWithPublicReceived)) // <<encrypted message>>
+    val encryptedString = Helpers.base64Encode(encryptedWithPublicReceived)
+    System.out.println(encryptedString) // <<encrypted message>>
 
     // 1.2 Decrypt the token with private key
-    val decryptedToken = decrypt(privateKey, encryptedWithPublicReceived, CryptoSystem.RSA)
+    val decryptedToken = decrypt(privateKey, Helpers.base64Decode(encryptedString), CryptoSystem.RSA)
     System.out.println("Decrypted token with private key:") // This is a secret message
     System.out.println(new String(decryptedToken)) // This is a secret message
 

@@ -250,7 +250,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     //check if the application is registered and active
     else if (
       requestType == "authorizationToken" &&
-        Props.getBool("direct_login_consumer_key_mandatory", true) &&
+        APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true) &&
         ! APIUtil.registeredApplication(parameters.getOrElse("consumer_key", ""))) {
 
       logger.error("application: " + parameters.getOrElse("consumer_key", "") + " not found")
@@ -364,7 +364,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       if (requestType == "protectedResource") {
         validAccessTokenFuture(parameters.getOrElse("token", ""))
       } else if (requestType == "authorizationToken" &&
-                Props.getBool("direct_login_consumer_key_mandatory", true))
+                APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true))
       {
         APIUtil.registeredApplicationFuture(parameters.getOrElse("consumer_key", ""))
       } else {
@@ -392,7 +392,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       }
       //check if the application is registered and active
       else if ( requestType == "authorizationToken" &&
-                Props.getBool("direct_login_consumer_key_mandatory", true) &&
+                APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true) &&
                 !valid)
       {
         logger.error("application: " + parameters.getOrElse("consumer_key", "") + " not found")

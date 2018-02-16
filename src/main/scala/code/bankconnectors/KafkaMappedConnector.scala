@@ -25,9 +25,10 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
+
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.{ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
@@ -480,9 +481,9 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
-        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.lastUpdate match {
-          case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+          case Full(l) => now after time(l.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
         //if(outDatedTransactions && useMessageQueue) {
@@ -502,7 +503,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   // Get one counterparty by the Counterparty Id
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
 
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
     } else {
       val req = Map(
@@ -527,7 +528,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
 
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterpartyByIban(iban)
     } else {
       val req = Map(

@@ -2,6 +2,7 @@ package code.metadata.comments
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model._
 import code.remotedata.RemotedataComments
 import net.liftweb.common.Box
@@ -12,7 +13,7 @@ object Comments extends SimpleInjector {
   val comments = new Inject(buildOne _) {}
 
   def buildOne: Comments =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedComments
       case true => RemotedataComments     // We will use Akka as a middleware
     }

@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Mobile, Web}
@@ -309,7 +310,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object isActive extends MappedBoolean(this){
-    override def defaultValue = Props.getBool("consumers_enabled_by_default", false)
+    override def defaultValue = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)
   }
   object name extends MappedString(this, 100){
     override def validations = minLength3(this) _ :: super.validations

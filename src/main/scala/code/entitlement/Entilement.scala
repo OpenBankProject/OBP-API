@@ -1,6 +1,7 @@
 package code.entitlement
 
 
+import code.api.util.APIUtil
 import code.remotedata.RemotedataEntitlements
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -12,7 +13,7 @@ object Entitlement extends SimpleInjector {
   val entitlement = new Inject(buildOne _) {}
 
   def buildOne: EntitlementProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedEntitlementsProvider
       case true => RemotedataEntitlements     // We will use Akka as a middleware
     }

@@ -2882,7 +2882,7 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val makePayment : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
         sc
-          if (Props.getBool("payments_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("payments_enabled", false)) {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}

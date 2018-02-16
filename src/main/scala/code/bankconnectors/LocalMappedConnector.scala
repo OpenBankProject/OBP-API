@@ -265,9 +265,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } {
       Future{
-        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.accountLastUpdate.get match {
-          case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+          case Full(l) => now after time(l.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
         if(outDatedTransactions && useMessageQueue) {

@@ -25,10 +25,11 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
+
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
-import code.api.util.{ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0._
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchT}
@@ -890,7 +891,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
     } else {
       val req = OutboundCounterpartyByCounterpartyIdBase(
@@ -946,7 +947,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterpartyByIban(iban)
     } else {
       val req = OutboundCounterpartyByIbanBase(
