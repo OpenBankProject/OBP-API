@@ -2122,8 +2122,11 @@ Versions are groups of endpoints in a file
   def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {
     getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
   }
+  def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
+    getPropsValue(nameOfProperty) map(toInt)
+  }
   def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
-    getPropsValue(nameOfProperty) map(toInt) openOr(defaultValue)
+    getPropsAsIntValue(nameOfProperty) openOr(defaultValue)
   }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsValue(nameOfProperty) flatMap(asLong) openOr(defaultValue)

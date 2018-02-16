@@ -1,5 +1,6 @@
 package code.util
 
+import code.api.util.APIUtil
 import net.liftweb.mapper.{MappedString, Mapper}
 import net.liftweb.util.Props
 
@@ -12,20 +13,20 @@ class UUIDString [T <: Mapper[T]](override val fieldOwner : T) extends MappedStr
 
 object UUIDString {
   // We use 44 as a default because base64 encoding of sha256 is 44 characters long
-  val MaxLength = Props.getInt("uuid_string.length", 44)
+  val MaxLength = APIUtil.getPropsAsIntValue("uuid_string.length", 44)
 }
 
 
 class MediumString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, MediumString.MaxLength)
 
 object MediumString {
-  val MaxLength = Props.getInt("medium_string.length", 20)
+  val MaxLength = APIUtil.getPropsAsIntValue("medium_string.length", 20)
 }
 
 class AccountIdString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, AccountIdString.MaxLength)
 
 object AccountIdString {
-  val MaxLength = Props.getInt("account_id.length", 64)
+  val MaxLength = APIUtil.getPropsAsIntValue("account_id.length", 64)
 }
 
 
@@ -36,5 +37,5 @@ So we can store a time of day without the date e.g. 23:33 - but also go past mid
 class TwentyFourHourClockString [T <: Mapper[T]](override val fieldOwner : T) extends MappedString(fieldOwner, TwentyFourHourClockString.MaxLength)
 
 object TwentyFourHourClockString {
-  val MaxLength = Props.getInt("time_string.length", 5)
+  val MaxLength = APIUtil.getPropsAsIntValue("time_string.length", 5)
 }

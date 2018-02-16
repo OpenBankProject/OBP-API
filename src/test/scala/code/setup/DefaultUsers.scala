@@ -1,8 +1,10 @@
 package code.setup
 
 import java.util.UUID
+
 import code.api.util.ErrorMessages._
 import code.api.GatewayLogin
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.consumer.Consumers
 import code.model.TokenType._
@@ -36,7 +38,7 @@ trait DefaultUsers {
   lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
   
   // create the access token
-  val expiration = Props.getInt("token_expiration_weeks", 4)
+  val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
   lazy val tokenDuration = weeks(expiration)
   
   // Create resource user, need provider 
