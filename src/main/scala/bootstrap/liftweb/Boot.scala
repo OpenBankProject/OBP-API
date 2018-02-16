@@ -397,8 +397,8 @@ class Boot extends MdcLoggable {
       }
     }
 
-    if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
-      val delay = Props.getLong("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
+    if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
+      val delay = APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
       TransactionStatusScheduler.start(delay)
     }
 

@@ -2128,8 +2128,11 @@ Versions are groups of endpoints in a file
   def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
     getPropsAsIntValue(nameOfProperty) openOr(defaultValue)
   }
+  def getPropsAsLongValue(nameOfProperty: String): Box[Long] = {
+    getPropsValue(nameOfProperty) flatMap(asLong)
+  }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
-    getPropsValue(nameOfProperty) flatMap(asLong) openOr(defaultValue)
+    getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
 
 }
