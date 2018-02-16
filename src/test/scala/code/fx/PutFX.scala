@@ -158,10 +158,6 @@ object PutFX extends SendServerRequests {
         val json = Extraction.decompose(fxJsonV210)
         println(s"json to post is $json")
 
-        val lala = prettyRender(json)
-
-        println(s"lala to put is $lala")
-
         val result = ObpPut(url, json)
 
         if (!result.isEmpty) {
