@@ -4,9 +4,10 @@ import java.io.FileInputStream
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.security.{PublicKey, _}
 import javax.crypto.Cipher
+
 import code.api.util.CryptoSystem.CryptoSystem
 import com.nimbusds.jose.crypto.RSAEncrypter
-import com.nimbusds.jose.{EncryptionMethod, JWEAlgorithm, JWEHeader}
+import com.nimbusds.jose.{EncryptionMethod, JOSEObject, JWEAlgorithm, JWEHeader}
 import com.nimbusds.jwt.EncryptedJWT
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.{Helpers, Props}
@@ -98,21 +99,22 @@ object CertificateUtil extends MdcLoggable {
     cipher.doFinal(encrypted)
   }
 
-  def getClaimSet(payload: String) = {
+  def getClaimSet(jwt: String) = {
     import com.nimbusds.jose.util.Base64URL
     import com.nimbusds.jwt.PlainJWT
     // {"alg":"none"}// {"alg":"none"}
     val header = "eyJhbGciOiJub25lIn0"
-    val plainJwt = new PlainJWT(new Base64URL(header), new Base64URL(payload))
+    val parts: Array[Base64URL] = JOSEObject.split(jwt)
+    val plainJwt = new PlainJWT(new Base64URL(header), (parts(1)))
     plainJwt.getJWTClaimsSet
   }
-  def encryptJwtWithRsa(jwtPayload: String) = {
+  def encryptJwtWithRsa(jwt: String) = {
     // Request JWT encrypted with RSA-OAEP-256 and 128-bit AES/GCM
     val header = new JWEHeader(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A128GCM)
     // Create an encrypter with the specified public RSA key
     val encrypter = new RSAEncrypter(publicKey)
     // Create the encrypted JWT object
-    val encryptedJWT = new EncryptedJWT(header, CertificateUtil.getClaimSet(jwtPayload))
+    val encryptedJWT = new EncryptedJWT(header, CertificateUtil.getClaimSet(jwt))
     // Do the actual encryption
     encryptedJWT.encrypt(encrypter)
     logger.debug("encryptedJWT.serialize(): " + encryptedJWT.serialize())
