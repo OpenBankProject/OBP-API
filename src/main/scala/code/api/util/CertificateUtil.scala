@@ -6,6 +6,10 @@ import java.security.{PublicKey, _}
 import javax.crypto.Cipher
 
 import code.api.util.CryptoSystem.CryptoSystem
+import com.nimbusds.jose.crypto.RSAEncrypter
+import com.nimbusds.jose.{EncryptionMethod, JOSEObject, JWEAlgorithm, JWEHeader}
+import com.nimbusds.jwt.EncryptedJWT
+import code.util.Helper.MdcLoggable
 import net.liftweb.util.{Helpers, Props}
 
 
@@ -14,7 +18,7 @@ object CryptoSystem extends Enumeration {
   val RSA = Value
 }
 
-object CertificateUtil {
+object CertificateUtil extends MdcLoggable {
 
   lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
@@ -93,6 +97,45 @@ object CertificateUtil {
     val cipher = Cipher.getInstance(cryptoSystem.toString)
     cipher.init(Cipher.DECRYPT_MODE, privateKey)
     cipher.doFinal(encrypted)
+  }
+
+  def getClaimSet(jwt: String) = {
+    import com.nimbusds.jose.util.Base64URL
+    import com.nimbusds.jwt.PlainJWT
+    // {"alg":"none"}// {"alg":"none"}
+    val header = "eyJhbGciOiJub25lIn0"
+    val parts: Array[Base64URL] = JOSEObject.split(jwt)
+    val plainJwt = new PlainJWT(new Base64URL(header), (parts(1)))
+    plainJwt.getJWTClaimsSet
+  }
+  def encryptJwtWithRsa(jwt: String) = {
+    // Request JWT encrypted with RSA-OAEP-256 and 128-bit AES/GCM
+    val header = new JWEHeader(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A128GCM)
+    // Create an encrypter with the specified public RSA key
+    val encrypter = new RSAEncrypter(publicKey)
+    // Create the encrypted JWT object
+    val encryptedJWT = new EncryptedJWT(header, CertificateUtil.getClaimSet(jwt))
+    // Do the actual encryption
+    encryptedJWT.encrypt(encrypter)
+    logger.debug("encryptedJWT.serialize(): " + encryptedJWT.serialize())
+    // Return JWT
+    encryptedJWT.serialize()
+  }
+  def decryptJwtWithRsa(jwt: String) = {
+    import com.nimbusds.jose.crypto.RSADecrypter
+    import com.nimbusds.jwt.EncryptedJWT
+    // Parse back
+    val jwtParsed = EncryptedJWT.parse(jwt)
+    System.out.println("decryptJwtWithRsa: " + jwtParsed.serialize())
+    // Create a decrypter with the specified private RSA key
+    val decrypter = new RSADecrypter(privateKey)
+    jwtParsed.decrypt(decrypter)
+    logger.debug("jwt: " + jwt)
+    logger.debug("getState: " + jwtParsed.getState)
+    logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
+    logger.debug("getCipherText: " + jwtParsed.getCipherText)
+    logger.debug("getAuthTag: " + jwtParsed.getAuthTag)
+    jwtParsed.serialize()
   }
 
 
