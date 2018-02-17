@@ -124,7 +124,7 @@ object CertificateUtil extends MdcLoggable {
   def decryptJwtWithRsa(jwt: String) = {
     import com.nimbusds.jose.crypto.RSADecrypter
     import com.nimbusds.jwt.EncryptedJWT
-    // Parse back// Parse back
+    // Parse back
     val jwtParsed = EncryptedJWT.parse(jwt)
     System.out.println("decryptJwtWithRsa: " + jwtParsed.serialize())
     // Create a decrypter with the specified private RSA key

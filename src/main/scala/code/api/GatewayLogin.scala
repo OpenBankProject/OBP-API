@@ -107,7 +107,12 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         //Invalid Signing configuration / Couldn't convert Claims.
         logger.error(exception)
     }
-    jwt
+    APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
+      case true =>
+        CertificateUtil.encryptJwtWithRsa(jwt)
+      case false =>
+        jwt
+    }
   }
 
   def parseJwt(parameters: Map[String, String]): Box[String] = {
