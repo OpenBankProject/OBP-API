@@ -48,7 +48,9 @@ trait Views {
 
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]

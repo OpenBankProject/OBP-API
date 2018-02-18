@@ -181,7 +181,8 @@ trait Bank {
   //it's not entirely clear what this is/represents (BLZ in Germany?)
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
-
+  
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
@@ -692,6 +693,7 @@ object BankAccount {
     }
   }
 
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)

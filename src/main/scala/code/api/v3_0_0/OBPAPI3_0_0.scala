@@ -153,7 +153,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.addKycMedia ::
                           Implementations2_0_0.addKycStatus ::
                           Implementations2_0_0.addSocialMediaHandle ::
-                          Implementations2_0_0.allAccountsAtOneBank ::
+                          Implementations2_0_0.getPrivateAccountsAtOneBank ::
                           //now in V220
                           //Implementations2_0_0.createAccount ::
                           Implementations2_0_0.createMeeting ::
