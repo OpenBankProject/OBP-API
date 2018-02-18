@@ -1,5 +1,6 @@
 package code.views
 
+import code.api.util.APIUtil
 import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
 import net.liftweb.common.Box
@@ -14,7 +15,7 @@ object Views  extends SimpleInjector {
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
   def buildOne: Views =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MapperViews
       case true => RemotedataViews     // We will use Akka as a middleware
     }

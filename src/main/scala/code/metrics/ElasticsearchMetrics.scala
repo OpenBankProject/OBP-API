@@ -2,6 +2,7 @@ package code.metrics
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.bankconnectors._
 import code.search.elasticsearchMetrics
 import net.liftweb.mapper._
@@ -12,7 +13,7 @@ object ElasticsearchMetrics extends APIMetrics {
   val es = new elasticsearchMetrics
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String): Unit = {
-    if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       //TODO ,need to be fixed now add more parameters
       es.indexMetric(userId, url, date, duration, userName, appName, developerEmail, correlationId)
     }

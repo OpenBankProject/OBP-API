@@ -33,10 +33,12 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.accountholder.AccountHolders
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}
@@ -90,7 +92,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
-    if (!Props.getBool("remotedata.enable", false)) {
+    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
       ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
     } else {
       Views.views.vend.bulkDeleteAllPermissionsAndViews()

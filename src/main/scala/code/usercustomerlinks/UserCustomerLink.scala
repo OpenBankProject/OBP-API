@@ -2,6 +2,7 @@ package code.usercustomerlinks
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.remotedata.RemotedataUserCustomerLinks
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -12,7 +13,7 @@ object UserCustomerLink extends SimpleInjector {
   val userCustomerLink = new Inject(buildOne _) {}
 
   def buildOne: UserCustomerLinkProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedUserCustomerLinkProvider
       case true => RemotedataUserCustomerLinks     // We will use Akka as a middleware
     }

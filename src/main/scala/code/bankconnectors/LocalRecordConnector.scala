@@ -2,8 +2,9 @@ package code.bankconnectors
 
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
+
 import code.api.util.ErrorMessages._
-import code.api.util.CallContext
+import code.api.util.{APIUtil, CallContext}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches.{Branch, BranchT}
@@ -338,8 +339,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
     Future {
-      val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-      val outDatedTransactions = now after time(account.accountLastUpdate.get.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+      val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
+      val outDatedTransactions = now after time(account.accountLastUpdate.get.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
       if(outDatedTransactions && useMessageQueue) {
         UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
