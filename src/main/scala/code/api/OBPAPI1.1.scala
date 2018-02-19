@@ -99,7 +99,7 @@ case class SuccessMessage(
 //  if(httpCode==200)
 //  {
 //    logger.debug("OAuth header correct ")
-//    Tokens.tokens.vend.getTokenByKey(tokenID.gopenOrThrowException("Attempted to open an empty Box.")et) match {
+//    Tokens.tokens.vend.getTokenByKey(tokenID.gopenOrThrowException(attemptedToOpenAnEmptyBox)et) match {
 //      case Full(token) => {
 //        logger.debug("access token: "+ token + " found")
 //        val user = User.findByResourceUserId(token.userForeignKey.get)

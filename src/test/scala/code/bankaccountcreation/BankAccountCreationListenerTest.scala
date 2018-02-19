@@ -1,6 +1,7 @@
 package code.bankaccountcreation
 
 import code.accountholder.AccountHolders
+import code.api.util.ErrorMessages._
 import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
@@ -36,7 +37,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
       Users.users.vend.getUserByProviderId(userProvider, userId).getOrElse {
-        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None).openOrThrowException("Attempted to open an empty Box.")
+        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
       }
 
     val expectedBankId = "quxbank"
@@ -89,7 +90,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         And("A bank should be created")
         val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId))
         createdBankBox.isDefined should equal(true)
-        val createdBank = createdBankBox.openOrThrowException("Attempted to open an empty Box.")
+        val createdBank = createdBankBox.openOrThrowException(attemptedToOpenAnEmptyBox)
         createdBank.nationalIdentifier should equal(bankIdentifier)
 
       }

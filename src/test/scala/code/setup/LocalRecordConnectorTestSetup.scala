@@ -6,7 +6,7 @@ import code.model._
 import code.model.dataAccess._
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers._
-
+import code.api.util.ErrorMessages._
 import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Random._
@@ -27,7 +27,7 @@ trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val q = QueryBuilder.start(HostedBank.permalink.name).is(bankId.value).get()
-    val hostedBank = HostedBank.find(q).openOrThrowException("Attempted to open an empty Box.")
+    val hostedBank = HostedBank.find(q).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     Account.createRecord.
       accountBalance(900000000).

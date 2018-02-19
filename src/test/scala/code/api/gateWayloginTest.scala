@@ -12,7 +12,7 @@ import net.liftweb.util.Props
 import org.scalatest._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
-import code.api.util.ErrorMessages.UserHasMissingRoles
+import code.api.util.ErrorMessages._
 
 class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers {
 
@@ -85,6 +85,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
   }
   */
   val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwiY2JzX2lkIjoiIn0.yTg9LfSdzPXamC9EApd1zcXWU0cVPbWBjcn9y4FLq9U"
+  val jwtRSA256 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhcHBfbmFtZSI6Im15YXBwNCIsInRpbWVfc3RhbXAiOiIxOS0wNi0yMDE3OjIyOjI3OjExOjEwMCIsImxvZ2luX3VzZXJfbmFtZSI6InNpbW9uciIsImNic190b2tlbiI6IiIsImlzX2ZpcnN0IjpmYWxzZSwiY2JzX2lkIjoiIiwiYXBwX2lkIjoiNTkzNDUwNzM0NTg3MzQ1In0.bpDHeyGMQgxnTnmGVPu_mUngc_wekEKwNkXD9K4UfYflmU01JVqKZchwNQSdwZQ5FnvLeHf112iN2X2yaVmjkNzrjkxi-EVNNdMimMZLyLDy-RxkRZkXnlItJVhdnR-_htXryy2XzV3EhnxY8qtO-fqd3IQPTKNx4-knrPu_F4-5nQAW0hlwJRb5HAGYTDMqePXTuo16_hYdtEheU6GJONDdezpXu6BzYDCA3pmiy1cHRABClqdS76m3PdChHnEEqVKIoczfLjj6Prnwjeww4cb_b29Hh-Yfe4DEwwI9cyZ_SyxOinB5-wZhPneqW1dLn6V7dGKsoh9ELmYl3qWIPQ"
 
   val invalidJwt = ("Authorization", ("GatewayLogin token=%s").format(invalidSecretJwt))
   val validJwt = ("Authorization", ("GatewayLogin token=%s").format(jwt))
@@ -170,12 +171,12 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
 
   feature("Unit Tests for two getCbsToken and getErrors: ") {
     scenario("test the getErrors") {
-      val reply: List[String] =  GatewayLogin.getErrors(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
+      val reply: List[String] =  GatewayLogin.getErrors(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException(attemptedToOpenAnEmptyBox))))
       reply.forall(_.equalsIgnoreCase("")) should equal(true)
     }
 
     scenario("test the getCbsToken") {
-      val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException("Attempted to open an empty Box."))))
+      val reply: List[String] =  GatewayLogin.getCbsTokens(json.compactRender(Extraction.decompose(fakeResultFromAdapter.openOrThrowException(attemptedToOpenAnEmptyBox))))
       reply(0) should equal("cbsToken1")
       reply(1) should equal("cbsToken2")
 

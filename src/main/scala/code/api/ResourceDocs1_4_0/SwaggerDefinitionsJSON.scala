@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
+import code.api.util.ApiRole._
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
@@ -1083,7 +1084,8 @@ object SwaggerDefinitionsJSON {
     is_obwg = true,
     tags = List("String"),
     typed_request_body = json.parse("""{"request": { "type" :"string" }}"""),
-    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}""")
+    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}"""),
+    roles = Some(List(canCreateCustomer))
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))
@@ -1220,14 +1222,6 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
-  val entitlementRequestJSON =
-    code.api.v3_0_0.EntitlementRequestJSON(
-      user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-      entitlement_request_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
-      role_name = "CanQueryOtherUser",
-      bank_id = "gh.29.uk"
-    )
-
   val userJsonV200 = UserJsonV200(
     user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     email = "robert.x.0.gh@example.com",
@@ -1236,6 +1230,18 @@ object SwaggerDefinitionsJSON {
     username = "robert.x.0.gh",
     entitlements = entitlementJSONs
   )
+
+  val entitlementRequestJSON =
+    code.api.v3_0_0.EntitlementRequestJSON(
+      user = userJsonV200,
+      entitlement_request_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
+      role_name = "CanQueryOtherUser",
+      bank_id = "gh.29.uk",
+      created = exampleDate
+    )
+
+  val entitlementRequestsJSON = EntitlementRequestsJSON(entitlement_requests = List(entitlementRequestJSON))
+
 
   val coreTransactionDetailsJSON = CoreTransactionDetailsJSON(
     `type` = "AC",
@@ -2143,6 +2149,8 @@ object SwaggerDefinitionsJSON {
     account_routings = List(accountRoutingJsonV121),
     account_rules = List(accountRuleJsonV300)
   )
+  
+  val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
   
   //The common error or success format.
   //Just some helper format to use in Json 

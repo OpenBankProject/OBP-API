@@ -252,6 +252,10 @@ case class ModeratedCoreAccountJsonV300(
                                          account_rules: List[AccountRuleJsonV300]
 )
 
+case class ModeratedCoreAccountsJsonV300(
+  accounts: List[ModeratedCoreAccountJsonV300]
+)
+
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
 
 //ended -- account relevant case classes /////
@@ -385,8 +389,8 @@ case class CustomerJsonV300(
                              last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
 
-case class EntitlementRequestJSON(entitlement_request_id: String, user_id: String, role_name: String, bank_id: String)
-case class EntitlementRequestJSONs(entitlement_requests: List[EntitlementRequestJSON])
+case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJsonV200, role_name: String, bank_id: String, created: Date)
+case class EntitlementRequestsJSON(entitlement_requests: List[EntitlementRequestJSON])
 case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
 
 object JSONFactory300{
@@ -657,6 +661,25 @@ object JSONFactory300{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
+    )
+  }
+  
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : ModeratedCoreAccountsJsonV300 =  {
+    ModeratedCoreAccountsJsonV300(
+      accounts.map(
+        account => 
+          ModeratedCoreAccountJsonV300 (
+            account.accountId.value,
+            stringOrNull(account.bankId.value),
+            stringOptionOrNull(account.label),
+            stringOptionOrNull(account.number),
+            createOwnersJSON(account.owners.getOrElse(Set()), account.bankName.getOrElse("")),
+            stringOptionOrNull(account.accountType),
+            createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+            createAccountRoutingsJSON(account.accountRoutings),
+            createAccountRulesJSON(account.accountRules)
+          )
+      )
     )
   }
 
@@ -1016,12 +1039,14 @@ object JSONFactory300{
   def createEntitlementRequestJSON(e: EntitlementRequest): EntitlementRequestJSON = {
     EntitlementRequestJSON(
       entitlement_request_id = e.entitlementRequestId,
-      user_id = e.userId,
+      user = JSONFactory200.createUserJSON(e.user),
       role_name = e.roleName,
-      bank_id = e.bankId)
+      bank_id = e.bankId,
+      created = e.created
+    )
   }
-  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestJSONs = {
-    EntitlementRequestJSONs(list.map(createEntitlementRequestJSON))
+  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestsJSON = {
+    EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
 }

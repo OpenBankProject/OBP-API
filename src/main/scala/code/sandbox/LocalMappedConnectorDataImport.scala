@@ -260,6 +260,10 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
     }
   }
 
+  protected def createFirehoseView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.getOrCreateFirehoseView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
+  
   protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
     Views.views.vend.getOrCreateOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
   }

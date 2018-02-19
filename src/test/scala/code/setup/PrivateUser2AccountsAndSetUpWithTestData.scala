@@ -3,6 +3,7 @@ package code.setup
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
 import net.liftweb.util.Helpers._
+import code.api.util.ErrorMessages._
 
 trait PrivateUser2AccountsAndSetUpWithTestData {
 
@@ -18,7 +19,7 @@ trait PrivateUser2AccountsAndSetUpWithTestData {
    */
   def accountTestsSpecificDBSetup() {
 
-    val banks =  Connector.connector.vend.getBanks.openOrThrowException("Attempted to open an empty Box.")
+    val banks =  Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
 
     def generateAccounts(owner: User) = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {

@@ -1,7 +1,7 @@
 package code.setup
 
 import java.util.{Date, UUID}
-
+import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
 import code.entitlement.Entitlement
@@ -52,7 +52,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       otherAccountSecondaryRoutingAddress ="String",
       description = "String",
       bespoke = Nil
-    ).openOrThrowException("Attempted to open an empty Box.")
+    ).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded
@@ -89,7 +89,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).openOrThrowException("Attempted to open an empty Box.").accountCurrency(currency).saveMe()
+     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).openOrThrowException(attemptedToOpenAnEmptyBox).accountCurrency(currency).saveMe()
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {

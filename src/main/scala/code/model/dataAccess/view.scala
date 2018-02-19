@@ -173,6 +173,12 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
     override def dbIndexed_? = true
   }
+
+  object isFirehose_ extends MappedBoolean(this){
+    override def defaultValue = true
+    override def dbIndexed_? = true
+  }
+
   object usePrivateAliasIfOneExists_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -413,6 +419,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
+  def isFirehose : Boolean = isFirehose_.get
 
   //the view settings
   def usePrivateAliasIfOneExists: Boolean = usePrivateAliasIfOneExists_.get

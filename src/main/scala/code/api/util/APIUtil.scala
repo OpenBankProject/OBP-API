@@ -56,9 +56,7 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestContinuation
-import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
@@ -103,6 +101,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
+  val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -117,6 +116,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val NotImplemented = "OBP-10010: Not Implemented "
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
+  val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -232,6 +232,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val CreateOrUpdateCounterpartyMetadataError = "OBP-30036: Could not create or update CounterpartyMetadata"
   val CounterpartyMetadataNotFound = "OBP-30037: CounterpartyMetadata not found. Please specify valid values for BANK_ID, ACCOUNT_ID and COUNTERPARTY_ID. "
+
+  val CreateFxRateError = "OBP-30032: Could not insert the Fx Rate"
+  val UpdateFxRateError = "OBP-30033: Could not update the Fx Rate"
+  val UnknownFxRateError = "OBP-30033: Unknown Fx Rate error"
 
 
   // Meetings
@@ -532,9 +536,9 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
+      val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+      val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
       val url = S.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
@@ -646,10 +650,12 @@ object APIUtil extends MdcLoggable {
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def successJsonResponseFromCaseClass(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+  def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
+      case Some(c) if c.httpCode.isDefined =>
+        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, c.httpCode.get)
       case Some(c) if c.verb == "DELETE" =>
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
       case _ =>
@@ -817,10 +823,10 @@ object APIUtil extends MdcLoggable {
       }
 
       if(parsedDate.isDefined){
-        Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else{
         Failure(FilterDateFormatError)
@@ -1091,6 +1097,7 @@ object APIUtil extends MdcLoggable {
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")
+  val apiTagFirehoseData = ResourceDocTag("FirehoseData")
   val apiTagPublicData = ResourceDocTag("PublicData")
   val apiTagPrivateData = ResourceDocTag("PrivateData")
   val apiTagTransaction = ResourceDocTag("Transaction")
@@ -1153,7 +1160,8 @@ object APIUtil extends MdcLoggable {
                           successResponseBody: scala.Product, // A successful response body
                           errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
-                          tags: List[ResourceDocTag]
+                          tags: List[ResourceDocTag],
+                          roles: Option[List[ApiRole]] = None
   )
 
 
@@ -1830,7 +1838,7 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1859,7 +1867,7 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1906,8 +1914,8 @@ Versions are groups of endpoints in a file
     val s = S
     val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
-    val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
-    val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
@@ -2077,5 +2085,5 @@ Versions are groups of endpoints in a file
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
   
-  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped")
+  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 }

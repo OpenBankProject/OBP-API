@@ -25,6 +25,7 @@ trait EntitlementProvider {
   def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]]
   def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean]
   def getEntitlements() : Box[List[Entitlement]]
+  def getEntitlementsFuture() : Future[Box[List[Entitlement]]]
   def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
 }
 
@@ -42,6 +43,7 @@ class RemotedataEntitlementsCaseClasses {
   case class getEntitlementsByUserIdFuture(userId: String)
   case class deleteEntitlement(entitlement: Box[Entitlement])
   case class getEntitlements()
+  case class getEntitlementsFuture()
   case class addEntitlement(bankId: String, userId: String, roleName: String)
 }
 

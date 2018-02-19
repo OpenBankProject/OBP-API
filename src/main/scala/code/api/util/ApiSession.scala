@@ -21,7 +21,8 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
                        implementedInVersion: String = "",
                        authorization: Box[String] = Empty,
                        directLoginParams: Map[String, String] = Map(),
-                       oAuthParams: Map[String, String] = Map()
+                       oAuthParams: Map[String, String] = Map(),
+                       httpCode: Option[Int] = None
                       )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam

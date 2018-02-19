@@ -214,6 +214,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 2.1.0
   val endpointsOf2_2_0 =  Implementations2_2_0.getCurrentFxRate ::
+                          Implementations2_2_0.createFx ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getCounterpartyById ::
                           Implementations2_2_0.getMessageDocs ::
@@ -260,6 +261,10 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getAllEntitlementRequests ::
                           Implementations3_0_0.getEntitlementRequests ::
                           Implementations3_0_0.deleteEntitlementRequest ::
+                          Implementations3_0_0.getEntitlementRequestsForCurrentUser ::
+                          Implementations3_0_0.getFirehoseAccountsAtOneBank ::
+                          Implementations3_0_0.getEntitlementsForCurrentUser ::
+                          Implementations3_0_0.getFirehoseTransactionsForBankAccount ::
                           Nil
 
 

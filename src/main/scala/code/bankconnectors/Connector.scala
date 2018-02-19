@@ -3,10 +3,11 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
@@ -18,7 +19,7 @@ import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
-import code.model.{Transaction, TransactionRequestType, User, _}
+import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -205,6 +206,9 @@ trait Connector extends MdcLoggable{
       a <- getBankAccount(acc._1, acc._2)
     } yield a
   }
+  
+
+  
   
   /**
     * 
@@ -978,7 +982,7 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = {
     val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException("Attempted to open an empty Box.")
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
 
       def appendUntilOkay(number : String) : String = {
         val newNumber = number + Random.nextInt(10)
@@ -1041,7 +1045,7 @@ trait Connector extends MdcLoggable{
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
-          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException("Attempted to open an empty Box.")) {
+          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {
             val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
@@ -1110,12 +1114,13 @@ trait Connector extends MdcLoggable{
 
 
   def createOrUpdateFXRate(
-  bankId : String,
-  fromCurrencyCode: String,
-  toCurrencyCode: String,
-  conversionValue: Double,
-  inverseConversionValue: Double,
-  effectiveDate: Date): Box[FXRate] = Failure(NotImplemented + currentMethodName)
+                            bankId: String,
+                            fromCurrencyCode: String,
+                            toCurrencyCode: String,
+                            conversionValue: Double,
+                            inverseConversionValue: Double,
+                            effectiveDate: Date
+                          ): Box[FXRate] = Failure(NotImplemented + currentMethodName)
 
 
 
