@@ -358,8 +358,15 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
-
+  private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
+  
+  /**
+    * 
+    * Check search for the bankaccount private views which the user have access to ++ public views.
+    * @param user a user
+    * @return a list of views, the user can access
+    *         
+    */
   final def permittedViews(user: Box[User]) : List[View] = {
     user match {
       case Full(u) => u.permittedViews(this)
