@@ -575,7 +575,7 @@ trait APIMethods300 {
          |
         |${authenticationRequiredMessage(true)}
          |
-        |CanSearchWarehouse entitlement is required to search warehouse data!
+        |CanSearchWarehouseStats entitlement is required to search warehouse data!
          |
         |Send your email, name, project name and user_id to the admins to get access.
          |
@@ -587,10 +587,10 @@ trait APIMethods300 {
         |
         |Example of usage:
          |
-        |POST /search/warehouse
+        |POST /search/warehouse/statistics/INDEX/TOPIC/FIELD
          |
         |{
-         |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
+         | 
          |  "es_body_part": {
          |    "query": {
          |      "range": {
@@ -617,14 +617,14 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDataWarehouse))
     lazy val aggregateWarehouse: OBPEndpoint = {
-      case "search" :: "warehouse" :: "statistics" :: index :: topic ::field :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: "statistics" :: field :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
           } yield {
             import net.liftweb.json._
-            val uriPart = createElasticSearchUriPart(index, topic) //compactRender(json \ "es_uri_part")
+            val uriPart =  compactRender(json \ "es_uri_part") //createElasticSearchUriPart(index, topic)
             val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, uriPart,bodyPart, field) ))
           }
