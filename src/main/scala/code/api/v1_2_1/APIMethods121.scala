@@ -3,7 +3,7 @@ package code.api.v1_2_1
 import java.net.URL
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
@@ -194,36 +194,36 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
-      allAccountsAllBanks,
+      getPrivateAccountsAllBanks,
       apiVersion,
-      "allAccountsAllBanks",
+      "getPrivateAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts at all banks (Authenticated + Anonymous access).",
-      """Returns the list of accounts at that the user has access to at all banks.
+      "Get accounts at all banks (Private, inc views).",
+      s"""Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
-         |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-         |the user is authenticated, the list will contain Private accounts to which the user has access, in addition to
-         |all public accounts.
-         |
-         |Note for those upgrading from v1.2:
-         |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
-         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
-         |
          |This endpoint works with firehose.
+         |
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       emptyObjectJson,
       accountJSON,
-      List(UnknownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAllBanks : OBPEndpoint = {
+    //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
+    lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
       case "accounts" :: Nil JsonGet json => {
         cc =>
-          Full(successJsonResponse(bankAccountsListToJson(BankAccount.accounts(cc.user), cc.user)))
+          for {
+            u <- cc.user ?~  UserNotLoggedIn
+          } yield {
+            val availableAccounts = BankAccount.privateAccounts(u)
+            successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
+          }
       }
     }
 
@@ -291,22 +291,18 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      allAccountsAtOneBank,
+      getPrivateAccountsAtOneBank,
       apiVersion,
-      "allAccountsAtOneBank",
+      "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at bank (Autheneticated + Anonymous access).",
-      """Returns the list of accounts at BANK_ID that the user has access to.
+      "Get accounts at bank (Private, inc views).",
+      s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
-        |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
-        |
-        |Note for those upgrading from v1.2:
-        |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
-        |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
-        |
         |This endpoint works with firehose.
+        |
+        |${authenticationRequiredMessage(true)}
         |
       """,
       emptyObjectJson,
@@ -315,14 +311,16 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAtOneBank : OBPEndpoint = {
+    //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same now.
+    lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         cc =>
           for{
+            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
-            val availableAccounts = bank.accounts(cc.user)
+            val availableAccounts = bank.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
           }
       }

@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.APIFailure
+import code.api.util.ErrorMessages
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
@@ -522,7 +523,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
-      APIFailure(s"View with permalink $viewId not found", 404)
+      APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 

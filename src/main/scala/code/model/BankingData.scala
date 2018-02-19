@@ -181,7 +181,8 @@ trait Bank {
   //it's not entirely clear what this is/represents (BLZ in Germany?)
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
-
+  
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
@@ -357,8 +358,15 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
-
+  private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
+  
+  /**
+    * 
+    * Check search for the bankaccount private views which the user have access to ++ public views.
+    * @param user a user
+    * @return a list of views, the user can access
+    *         
+    */
   final def permittedViews(user: Box[User]) : List[View] = {
     user match {
       case Full(u) => u.permittedViews(this)
@@ -692,6 +700,7 @@ object BankAccount {
     }
   }
 
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)

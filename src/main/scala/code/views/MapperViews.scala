@@ -127,14 +127,8 @@ object MapperViews extends Views with MdcLoggable {
     } else {
       viewImpls.foreach(v => {
         if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-        if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, v.id)) == 0) {
-          ViewPrivileges.create.
-            user(user.resourceUserId.value).
-            view(v.id).
-            save
-        }
+        getOrCreateViewPrivilege(user, v)
       })
-      //TODO: this doesn't handle the case where one viewImpl fails to be saved
       Full(viewImpls)
     }
   }

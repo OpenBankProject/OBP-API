@@ -27,6 +27,8 @@ trait Views {
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
   def getOrCreateViewPrivilege(view: View, user: User): Box[View]
+  // This is for ViewPrivileges. It will first find the view object by `viewIdBankIdAccountId`
+  // And than, @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
   def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
@@ -46,7 +48,9 @@ trait Views {
 
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
