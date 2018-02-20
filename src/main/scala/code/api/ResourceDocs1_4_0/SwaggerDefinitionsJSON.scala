@@ -1069,6 +1069,7 @@ object SwaggerDefinitionsJSON {
     function = "getBranches"
   )
   // Used to describe the OBP API calls for documentation and API discovery purposes
+  val canCreateCustomerSwagger = CanCreateCustomer()
   val resourceDocJson = ResourceDocJson(
     operation_id = "String",
     request_verb = "String",
@@ -1085,7 +1086,7 @@ object SwaggerDefinitionsJSON {
     tags = List("String"),
     typed_request_body = json.parse("""{"request": { "type" :"string" }}"""),
     typed_success_response_body = json.parse("""{"response": { "type" :"string" }}"""),
-    roles = Some(List(canCreateCustomer))
+    roles = Some(List(canCreateCustomerSwagger))
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))

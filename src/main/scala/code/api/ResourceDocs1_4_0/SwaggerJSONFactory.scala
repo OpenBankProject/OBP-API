@@ -15,6 +15,7 @@ import scala.collection.immutable.ListMap
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
 import code.api.util.ErrorMessages._
+import net.liftweb.json.JsonAST.JValue
 
 object SwaggerJSONFactory {
   //Info Object
@@ -443,6 +444,12 @@ object SwaggerJSONFactory {
       // _ = print("\n val properties for comprehension: " + key + " is " + value)
     } yield {
       value match {
+        //TODO: this maybe wrong, JValue will have many types: JObject, JBool, JInt, JDouble , but here we just map one type `String`
+        case i:JValue                     => "\""  + key + """": {"type":"string","example":"This is a json String."}"""
+        case Some(i:JValue)               => "\""  + key + """": {"type":"string","example":"This is a json String."}"""
+        case List(i: JValue, _*)          => "\""  + key + """": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+        case Some(List(i: JValue, _*))    => "\""  + key + """": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+          
         //Boolean - 4 kinds
         case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
