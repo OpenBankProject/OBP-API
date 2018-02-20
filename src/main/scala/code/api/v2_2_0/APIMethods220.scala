@@ -774,9 +774,10 @@ trait APIMethods220 {
       "config",
       "GET",
       "/config",
-      "The configuration of the API",
+      "Get API Configuration",
       """Returns information about:
         |
+        |* API Config
         |* Akka ports
         |* Elastic search ports
         |* Cached function """,

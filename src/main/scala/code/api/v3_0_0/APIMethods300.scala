@@ -1765,6 +1765,46 @@ trait APIMethods300 {
 
 
 
+   val exampleGlossaryItems = List(GlossaryItem(
+      title = "Title ",
+      description =
+        """
+          |Description.
+          |
+          |Goes here..
+        """))
+
+    def getExampleGlossaryItems : List[GlossaryItem] = {
+      exampleGlossaryItems.toList
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getApiGlossary,
+      implementedInApiVersion,
+      "glossary",
+      "GET",
+      "/api/glossary",
+      "Get API Glossary",
+      """Returns the glossary of the API
+        |""",
+      emptyObjectJson,
+      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      List(UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagApi :: Nil)
+
+    lazy val getApiGlossary : OBPEndpoint = {
+      case "api" :: "glossary" :: Nil JsonGet json => _ => {
+        val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+        Full(successJsonResponse(Extraction.decompose(json)))
+      }
+    }
+
+
+
+
+
     /* WIP
         resourceDocs += ResourceDoc(
           getOtherAccountsForBank,

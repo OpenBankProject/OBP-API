@@ -45,6 +45,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
+import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
 
@@ -393,7 +394,47 @@ case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJson
 case class EntitlementRequestsJSON(entitlement_requests: List[EntitlementRequestJSON])
 case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
 
+
+
+case class GlossaryDescriptionJsonV300 (markdown: String, html: String)
+
+case class GlossaryItemJsonV300 (title: String,
+                                 description : GlossaryDescriptionJsonV300
+                                )
+
+case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
+
+
+
+import code.api.util.APIUtil.GlossaryItem
+
 object JSONFactory300{
+
+  // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+  // But we don't want to have to escape underscores (\_) in our documentation
+  // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+  // PegDown seems to be feature rich and ignores underscores in words by default.
+
+  // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+  // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
+  val PegDownProcessorTimeout: Long = 1000*20
+  val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
+
+
+
+  def createGlossaryItemsJsonV300(glossaryItems: List[GlossaryItem]) : GlossaryItemsJsonV300 = {
+    GlossaryItemsJsonV300(glossary_items = glossaryItems.map(createGlossaryItemJsonV300))
+  }
+
+  def createGlossaryItemJsonV300(glossaryItem : GlossaryItem) : GlossaryItemJsonV300 = {
+    GlossaryItemJsonV300(
+      title = glossaryItem.title,
+      description = GlossaryDescriptionJsonV300 (markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
+                                                  html = pegDownProcessor.markdownToHtml(glossaryItem.description.stripMargin).replaceAll("\n", "")
+      )
+    )
+  }
+
   //stated -- Transaction relevant methods /////
   def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
     TransactionsJsonV300(transactions.map(createTransactionJSON))

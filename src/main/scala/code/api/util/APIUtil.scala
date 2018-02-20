@@ -35,6 +35,7 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.{Charset, StandardCharsets}
 import java.text.SimpleDateFormat
+import java.util
 import java.util.{Date, UUID}
 
 import code.api.Constant._
@@ -1166,6 +1167,144 @@ object APIUtil extends MdcLoggable {
                           tags: List[ResourceDocTag],
                           roles: Option[List[ApiRole]] = None
   )
+
+
+  case class GlossaryItem(
+                           title: String,
+                           description: String
+                       )
+
+
+
+
+
+  val glossaryItems = ArrayBuffer[GlossaryItem]()
+
+
+
+  glossaryItems += GlossaryItem(
+    title = "Account",
+    description =
+      """The thing that tokens of value (money) come in and out of.
+        |An account has one or more `owners` which are `Users`.
+        |In the future, `Customers` may also be `owners`.
+        |An account has a balance in a specified currency and zero or more `transactions` which are records of successful movements of money.
+        |"""
+  )
+
+  glossaryItems += GlossaryItem(
+    title = "Account.account_id",
+    description =
+    """
+      |An identifier for the account that MUST NOT leak the account number or other identifier nomrally used by the customer or bank staff.
+      |It SHOULD be a UUID. It MUST be unique in combination with the BANK_ID. ACCOUNT_ID is used in many URLS so it should be considered public.
+      |(We do NOT use account number in URLs since URLs are cached and logged all over the internet.)
+      |In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
+      |In non sandbox modes (Kafka etc.), ACCOUNT_ID is mapped to core banking account numbers / identifiers at the South Side Adapter level.
+      |ACCOUNT_ID is used to link Metadata and Views so it must be persistant and known to the North Side (OBP-API).
+    """)
+
+  glossaryItems += GlossaryItem(
+    title = "Bank",
+    description =
+    """
+      |The entity that represents the financial institution or bank within a financial group.
+      |Open Bank Project is a multi-bank API. Each bank resource contains basic identifying information such as name, logo and website.
+    """)
+
+
+  glossaryItems += GlossaryItem(
+    title = "Bank.bank_id",
+    description =
+    """
+      |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
+      |
+      |It is typically a human (developer) friendly string for ease of identification.
+      |In sandbox mode it typically has the form financialinstitutuion.sequenceno.region.language. e.g. "bnpp-irb.01.it.it" however for production it could be the BIC of the institution.
+     """)
+
+  glossaryItems += GlossaryItem(
+    title = "Consumer",
+    description =
+    """
+      |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
+      |
+      |Each Consumer has a consumer key and secrect which allows it to enter into secure communication with the API server.
+    """)
+
+  glossaryItems += GlossaryItem(
+    title = "Customer",
+    description =
+      """
+        |The legal entity that has the relationship to the bank. Customers are linked to Users via `User Customer Links`. Customer attributes include Date of Birth, Customer Number etc.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Customer.customer_id",
+    description =
+      """
+        |The identifier that MUST NOT leak the customer number or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique in combination with BANK_ID.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Transaction",
+    description =
+      """
+        |Records of successful movements of money from / to an `Account`. OBP Transactions don't contain any "draft" or "pending" Transactions. (see Transaction Requests). Transactions contain infomration including type, description, from, to, currency, amount and new balance information.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Transaction Requests",
+    description =
+      """
+        |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
+        |
+        |A successful Transaction Request results in a Transaction.
+        |
+        |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User",
+    description =
+      """
+        |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.user_id",
+    description =
+      """
+        |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.provider",
+    description =
+      """
+        |The name of the authentication service. e.g. the OBP hostname or kafka if users are authenticated over Kafka.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.provider_id",
+    description =
+      """
+        |The id of the user given by the authenticaiton provider.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User Customer Links",
+    description =
+      """
+        |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
+      """)
+
+  def getGlossaryItems : List[GlossaryItem] = {
+    glossaryItems.toList
+  }
 
 
   /**
