@@ -28,7 +28,7 @@ package code.api
 
 import java.io.UnsupportedEncodingException
 
-import code.api.util.{CertificateUtil, CryptoSystem, ErrorMessages}
+import code.api.util.{APIUtil, CertificateUtil, CryptoSystem, ErrorMessages}
 import code.bankconnectors.{Connector, InboundAccountCommon}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
@@ -86,7 +86,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
     var jwt: String = ""
     try {
-      val algorithm = Props.getBool("jwt.use.ssl", false) match {
+      val algorithm = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
         case true =>
           Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
         case false =>
@@ -107,7 +107,12 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         //Invalid Signing configuration / Couldn't convert Claims.
         logger.error(exception)
     }
-    jwt
+    APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
+      case true =>
+        CertificateUtil.encryptJwtWithRsa(jwt)
+      case false =>
+        jwt
+    }
   }
 
   def parseJwt(parameters: Map[String, String]): Box[String] = {
@@ -134,7 +139,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def validateJwtToken(token: String): Box[DecodedJWT] = {
     try {
       val jwtDecoded = JWT.decode(token)
-      val algorithm = Props.getBool("jwt.use.ssl", false) match {
+      val algorithm = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
         case true =>
           Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
         case false =>

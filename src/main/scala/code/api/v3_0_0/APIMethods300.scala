@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
@@ -962,7 +962,7 @@ trait APIMethods300 {
 
 
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+    val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getBranch,
@@ -1096,7 +1096,7 @@ trait APIMethods300 {
       }
     }
 
-    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtm,
@@ -1440,7 +1440,7 @@ trait APIMethods300 {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
@@ -1471,7 +1471,7 @@ trait APIMethods300 {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
@@ -1765,6 +1765,46 @@ trait APIMethods300 {
 
 
 
+   val exampleGlossaryItems = List(GlossaryItem(
+      title = "Title ",
+      description =
+        """
+          |Description.
+          |
+          |Goes here..
+        """))
+
+    def getExampleGlossaryItems : List[GlossaryItem] = {
+      exampleGlossaryItems.toList
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getApiGlossary,
+      implementedInApiVersion,
+      "glossary",
+      "GET",
+      "/api/glossary",
+      "Get API Glossary",
+      """Returns the glossary of the API
+        |""",
+      emptyObjectJson,
+      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      List(UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagApi :: Nil)
+
+    lazy val getApiGlossary : OBPEndpoint = {
+      case "api" :: "glossary" :: Nil JsonGet json => _ => {
+        val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+        Full(successJsonResponse(Extraction.decompose(json)))
+      }
+    }
+
+
+
+
+
     /* WIP
         resourceDocs += ResourceDoc(
           getOtherAccountsForBank,
@@ -1793,7 +1833,7 @@ trait APIMethods300 {
               for {
                 _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
                 account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-                view <- View.fromUrl(viewId, account)
+                view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
                 otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
               } yield {
                 val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)

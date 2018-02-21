@@ -1,5 +1,6 @@
 package code.views
 
+import code.api.util.APIUtil
 import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
 import net.liftweb.common.Box
@@ -14,7 +15,7 @@ object Views  extends SimpleInjector {
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
   def buildOne: Views =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MapperViews
       case true => RemotedataViews     // We will use Akka as a middleware
     }
@@ -26,6 +27,8 @@ trait Views {
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
   def getOrCreateViewPrivilege(view: View, user: User): Box[View]
+  // This is for ViewPrivileges. It will first find the view object by `viewIdBankIdAccountId`
+  // And than, @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
   def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
@@ -33,7 +36,6 @@ trait Views {
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
-  def view(viewUID : ViewIdBankIdAccountId) : Box[View]
 
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
@@ -46,7 +48,9 @@ trait Views {
 
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
@@ -66,7 +70,6 @@ trait Views {
   def grantAccessToView(user : User, view : View) : Boolean
   def grantAccessToAllExistingViews(user : User) : Boolean
 
-  def viewExists(bank: BankId, accountId: AccountId, name: String): Boolean
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
@@ -105,7 +108,6 @@ class RemotedataViewsCaseClasses {
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
   }
   case class view(pars: Any*) {
-    def apply(viewIdBankIdAccountId: ViewIdBankIdAccountId): Box[View] = this (viewIdBankIdAccountId)
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
@@ -122,7 +124,6 @@ class RemotedataViewsCaseClasses {
   case class grantAccessToView(user : User, view : View)
   case class grantAccessToAllExistingViews(user : User)
 
-  case class viewExists(bank: BankId, accountId: AccountId, name: String)
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
   case class removeAllViews(bankId: BankId, accountId: AccountId)
 

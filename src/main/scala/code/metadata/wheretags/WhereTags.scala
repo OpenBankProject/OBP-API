@@ -2,6 +2,7 @@ package code.metadata.wheretags
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model._
 import code.remotedata.RemotedataWhereTags
 import net.liftweb.common.Box
@@ -12,7 +13,7 @@ object WhereTags  extends SimpleInjector {
   val whereTags = new Inject(buildOne _) {}
 
   def buildOne: WhereTags =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MapperWhereTags
       case true => RemotedataWhereTags     // We will use Akka as a middleware
     }

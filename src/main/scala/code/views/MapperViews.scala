@@ -3,7 +3,7 @@ package code.views
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
@@ -11,6 +11,7 @@ import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
 import code.api.util.ErrorMessages._
+
 import scala.collection.immutable.List
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
@@ -27,8 +28,8 @@ object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
-  val ALLOW_PUBLIC_VIEWS: Boolean = Props.getBool("allow_public_views").openOr(false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = Props.getBool("allow_firehose_views").openOr(false)
+  val ALLOW_PUBLIC_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_public_views", false)
+  val ALLOW_FIREHOSE_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_firehose_views", false)
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 
@@ -126,14 +127,8 @@ object MapperViews extends Views with MdcLoggable {
     } else {
       viewImpls.foreach(v => {
         if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-        if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, v.id)) == 0) {
-          ViewPrivileges.create.
-            user(user.resourceUserId.value).
-            view(v.id).
-            save
-        }
+        getOrCreateViewPrivilege(user, v)
       })
-      //TODO: this doesn't handle the case where one viewImpl fails to be saved
       Full(viewImpls)
     }
   }
@@ -221,14 +216,6 @@ object MapperViews extends Views with MdcLoggable {
     Future {
       view(viewId, account)
     }
-  }
-
-  def view(viewUID : ViewIdBankIdAccountId) : Box[View] = {
-    val view=ViewImpl.find(viewUID)
-
-    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-
-    view
   }
 
   /*
@@ -724,30 +711,6 @@ object MapperViews extends Views with MdcLoggable {
       false
   }
   
-  /**
-    * Find view by bankId , accountId and viewName. If it is exsting in ViewImple table, return true.
-    * Otherwise, return false.
-    * 
-    * But not used yet !
-    */
-  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
-    val res =
-      if (ALLOW_PUBLIC_VIEWS)
-        ViewImpl.findAll(
-          By(ViewImpl.bankPermalink, bankId.value),
-          By(ViewImpl.accountPermalink, accountId.value),
-          By(ViewImpl.name_, name)
-        )
-      else
-        ViewImpl.findAll(
-          By(ViewImpl.bankPermalink, bankId.value),
-          By(ViewImpl.accountPermalink, accountId.value),
-          By(ViewImpl.name_, name),
-          By(ViewImpl.isPublic_, false)
-        )
-    res.nonEmpty
-  }
-
   def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveFirehoseView(bankId, accountId, "Firehose View")
   }

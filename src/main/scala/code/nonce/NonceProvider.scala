@@ -2,6 +2,7 @@ package code.nonce
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model.{MappedNonceProvider, Nonce}
 import code.remotedata.RemotedataNonces
 import net.liftweb.common.Box
@@ -15,7 +16,7 @@ object Nonces extends SimpleInjector {
   val nonces = new Inject(buildOne _) {}
 
   def buildOne: NoncesProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedNonceProvider
       case true => RemotedataNonces     // We will use Akka as a middleware
     }

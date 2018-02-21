@@ -2,6 +2,7 @@ package code.metrics
 
 import java.util.{Calendar, Date}
 
+import code.api.util.APIUtil
 import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataMetrics
 import net.liftweb.util.{Props, SimpleInjector}
@@ -11,11 +12,11 @@ object APIMetrics extends SimpleInjector {
   val apiMetrics = new Inject(buildOne _) {}
 
   def buildOne: APIMetrics =
-    Props.getBool("allow_elasticsearch", false) &&
-      Props.getBool("allow_elasticsearch_metrics", false) match {
+    APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) &&
+      APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) match {
         // case false => MappedMetrics
         case false =>
-          Props.getBool("use_akka", false) match {
+          APIUtil.getPropsAsBoolValue("use_akka", false) match {
             case false  => MappedMetrics
             case true => RemotedataMetrics     // We will use Akka as a middleware
           }

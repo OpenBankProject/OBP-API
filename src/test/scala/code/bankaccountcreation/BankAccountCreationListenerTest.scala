@@ -1,6 +1,7 @@
 package code.bankaccountcreation
 
 import code.accountholder.AccountHolders
+import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.model.{BankId, User}
 import code.views.Views
@@ -59,7 +60,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       AccountHolders.accountHolders.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))
     }
 
-    if (Props.getBool("messageQueue.createBankAccounts", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false) == false) {
       ignore("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {}
       ignore("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {}
     } else {

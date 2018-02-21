@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat
 
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
+import code.api.util.APIUtil
 import code.model.BankId
 import code.util.Helper.MdcLoggable
 import dispatch._
@@ -56,7 +57,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   
   val server = TestServer
   def baseRequest = host(server.host, server.port)
-  val secured = Props.getBool("external.https", false)
+  val secured = APIUtil.getPropsAsBoolValue("external.https", false)
   def externalBaseRequest = (server.externalHost, server.externalPort) match {
     case (Full(h), Full(p)) if secured  => host(h, p).secure
     case (Full(h), Full(p)) if !secured => host(h, p)

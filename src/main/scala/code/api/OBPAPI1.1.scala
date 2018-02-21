@@ -220,7 +220,7 @@ case class SuccessMessage(
 //  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] =
 //    for {
 //      account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-//      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
+//      view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~ { "view "  + viewId + " not found"}
 //      moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorized"
 //      metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
 //    } yield metadata
@@ -228,7 +228,7 @@ case class SuccessMessage(
 //  private def moderatedTransactionOtherAccount(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : Box[ModeratedOtherBankAccount] =
 //    for {
 //      account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-//      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
+//      view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~ { "view "  + viewId + " not found"}
 //      moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorized"
 //      otherAccount <- Box(moderatedTransaction.otherBankAccount) ?~ {"view " + viewId + " does not authorize other account access"}
 //    } yield otherAccount
@@ -236,7 +236,7 @@ case class SuccessMessage(
 //  private def moderatedOtherAccount(bankId : BankId, accountId : AccountId, viewId : ViewId, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
 //    for {
 //      account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-//      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
+//      view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~ { "view "  + viewId + " not found"}
 //      moderatedOtherBankAccount <- account.moderatedOtherBankAccount(other_account_ID, view, user)
 //    } yield moderatedOtherBankAccount
 //
@@ -393,7 +393,7 @@ case class SuccessMessage(
 //      val moderatedAccountAndViews = for {
 //        bank <- Bank(bankId) ?~ { "bank " + bankId + " not found" } ~> 404
 //        account <- BankAccount(bankId, accountId) ?~ { "account " + accountId + " not found for bank" } ~> 404
-//        view <- View.fromUrl(viewId, account) ?~ { "view " + viewId + " not found for account" } ~> 404
+//        view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~ { "view " + viewId + " not found for account" } ~> 404
 //        moderatedAccount <- account.moderatedBankAccount(view, user) ?~ { "view/account not authorized" } ~> 401
 //        availableViews <- Full(account.permittedViews(user))
 //      } yield ModeratedAccountAndViews(moderatedAccount, availableViews)
@@ -456,7 +456,7 @@ case class SuccessMessage(
 //      val response : Box[JsonResponse] = for {
 //        params <- getTransactionParams(json)
 //        bankAccount <- BankAccount(bankId, accountId)
-//        view <- View.fromUrl(viewId, bankAccount)
+//        view <- Views.views.vend.view(viewId, bankAccount)
 //        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params: _*)
 //      } yield {
 //        JsonResponse(transactionsJson(transactions, view),Nil, Nil, 200)
@@ -473,7 +473,7 @@ case class SuccessMessage(
 //      def transactionInJson(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
 //        val moderatedTransaction = for {
 //            account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-//            view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
+//            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~ { "view "  + viewId + " not found"}
 //            moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorized"
 //          } yield moderatedTransaction
 //
@@ -689,7 +689,7 @@ case class SuccessMessage(
 //
 //              val comment = for{
 //                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-//                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  postedComment <- addComment(user, viewId, commentJson.value, commentJson.posted_date)
 //                } yield postedComment
 //
@@ -785,7 +785,7 @@ case class SuccessMessage(
 //
 //                val tag = for{
 //                    user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-//                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedTagID <- addTag(user, viewId, tagJson.value, tagJson.posted_date)
 //                  } yield postedTagID
 //
@@ -886,7 +886,7 @@ case class SuccessMessage(
 //
 //              val imageId = for{
 //                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-//                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
 //                  postedImageId <- addImage(user, viewId, imageJson.label, url.toString)
 //                } yield postedImageId
@@ -968,7 +968,7 @@ case class SuccessMessage(
 //
 //              val postedGeoTag = for{
 //                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-//                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  posterWheteTag <- addWhereTag(user, viewId, whereTagJson.where.longitude, whereTagJson.where.latitude)
 //                } yield posterWheteTag
 //
@@ -1020,7 +1020,7 @@ case class SuccessMessage(
 //
 //              val postedGeoTag = for{
 //                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-//                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  posterWheteTag <- addWhereTag(user, viewId, whereTagJson.where.longitude, whereTagJson.where.latitude)
 //                } yield posterWheteTag
 //
@@ -1584,7 +1584,7 @@ case class SuccessMessage(
 //              }
 //              val postedGeoTag = for {
 //                    u <- user ?~ "User not found. Authentication via OAuth is required"
-//                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedGeoTag <- addCorporateLocation(u, viewId, corporateLocationJSON.corporate_location.longitude, corporateLocationJSON.corporate_location.latitude)
 //                  } yield postedGeoTag
 //
@@ -1643,7 +1643,7 @@ case class SuccessMessage(
 //              }
 //              val postedGeoTag = for {
 //                    u <- user ?~ "User not found. Authentication via OAuth is required"
-//                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedGeoTag <- addCorporateLocation(u, viewId, corporateLocationJSON.corporate_location.longitude, corporateLocationJSON.corporate_location.latitude)
 //                  } yield postedGeoTag
 //
@@ -1702,7 +1702,7 @@ case class SuccessMessage(
 //              }
 //              val postedGeoTag = for {
 //                    u <- user ?~ "User not found. Authentication via OAuth is required"
-//                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedGeoTag <- addPhysicalLocation(u, viewId, physicalLocationJSON.physical_location.longitude, physicalLocationJSON.physical_location.latitude)
 //                  } yield postedGeoTag
 //
@@ -1761,7 +1761,7 @@ case class SuccessMessage(
 //              }
 //              val postedGeoTag = for {
 //                    u <- user ?~ "User not found. Authentication via OAuth is required"
-//                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
+//                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedGeoTag <- addPhysicalLocation(u, viewId, physicalLocationJSON.physical_location.longitude, physicalLocationJSON.physical_location.latitude)
 //                  } yield postedGeoTag
 //

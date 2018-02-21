@@ -2,6 +2,7 @@ package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
+import code.api.util.APIUtil
 import code.model._
 import code.model.dataAccess._
 import code.views.Views
@@ -54,7 +55,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    if (!Props.getBool("remotedata.enable", false)) {
+    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
     } else {
       Views.views.vend.bulkDeleteAllPermissionsAndViews()

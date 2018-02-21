@@ -77,9 +77,14 @@ trait User {
       Failure("user doesn't have access to any view that allows initiating transactions")
     }
   }
-     
-
+  
+  /**
+    *  return all the views the user has the access to. 
+    */
   def views: List[View]
+  /**
+    * Check the User have this `view` or not.
+    */
   def permittedView(v: View): Boolean =
     views.contains(v)
   

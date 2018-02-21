@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.api.OpenIdConnectConfig
+import code.api.util.APIUtil
 import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
@@ -96,7 +97,7 @@ class Login {
 
 
   def openIdConnectButton : CssSel = {
-    if(Props.getBool("allow_openidconnect", false)){
+    if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)){
       val config = OpenIdConnectConfig.get()
       var onclick = "getCode();"
       if (config.url_login.endsWith(".js") )
@@ -116,7 +117,7 @@ class Login {
   }
 
   def openIdConnectScripts : CssSel = {
-    if(Props.getBool("allow_openidconnect", false)){
+    if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)){
       val config = OpenIdConnectConfig.get()
       val url = config.url_login
 

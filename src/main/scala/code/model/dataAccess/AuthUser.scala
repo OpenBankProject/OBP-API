@@ -257,7 +257,7 @@ import net.liftweb.util.Helpers._
   override def signupFields = List(firstName, lastName, email, username, password)
 
   // If we want to validate email addresses set this to false
-  override def skipEmailValidation = Props.getBool("authUser.skipEmailValidation", true)
+  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", true)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
@@ -516,7 +516,7 @@ import net.liftweb.util.Helpers._
 
       case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
           connector match {
-            case Helper.matchAnyKafka() if ( Props.getBool("kafka.user.authentication", false) &&
+            case Helper.matchAnyKafka() if ( APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { kafkaUser <- getUserFromConnector(username, password)
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
@@ -529,7 +529,7 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
 		}
-            case "obpjvm" if ( Props.getBool("obpjvm.user.authentication", false) &&
+            case "obpjvm" if ( APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { obpjvmUser <- getUserFromConnector(username, password)
                   obpjvmUserId <- tryo{obpjvmUser.user} } yield {
@@ -720,8 +720,8 @@ import net.liftweb.util.Helpers._
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
-            (Props.getBool("kafka.user.authentication", false) ||
-            Props.getBool("obpjvm.user.authentication", false)) =>
+            (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
+            APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
               val preLoginState = capturePreLoginState()
               info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
