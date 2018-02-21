@@ -145,7 +145,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
@@ -199,7 +199,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView)
+      List(apiTagView, apiTagAccount)
     )
 
     lazy val updateViewForBankAccount : OBPEndpoint = {

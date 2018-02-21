@@ -508,7 +508,7 @@ trait APIMethods121 {
       viewsJSONV121,
       List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -640,7 +640,7 @@ trait APIMethods121 {
         "user does not have owner access"
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView)
+      List(apiTagView, apiTagAccount)
     )
   
     lazy val deleteViewForBankAccount: OBPEndpoint = {
@@ -675,7 +675,7 @@ trait APIMethods121 {
       permissionsJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView, apiTagEntitlement)
+      List(apiTagView, apiTagAccount, apiTagEntitlement)
     )
   
     lazy val getPermissionsForBankAccount: OBPEndpoint = {
@@ -739,9 +739,9 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Grant User access to a list of views.",
-      s"""Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
+      s"""Grants the user identified by PROVIDER_ID at their provider PROVIDER access to a list of views at BANK_ID for account ACCOUNT_ID.
         |
-        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER_ID and PROVIDER.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -757,17 +757,17 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : OBPEndpoint = {
       //add access for specific user to a list of views
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), providerId, userId)
+            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -780,9 +780,11 @@ trait APIMethods121 {
       apiVersion,
       "addPermissionForUserForBankAccountForOneView",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
       "Grant User access to View.",
-      """Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      """Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+          |
+          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
           |
           |OAuth authentication is required and the user needs to have access to the owner view.
           |
@@ -797,17 +799,17 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
         ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //add access for specific user to a specific view
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
-            addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
+            addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -822,7 +824,7 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Revoke access to one View.",
-      """Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+      """Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
         |
         |Revoking a user access to a public view will return an error message.
         |
@@ -837,16 +839,16 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //delete access for specific user to one view
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), providerId, userId)
+            isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
             if(isRevoked)
           } yield noContentJsonResponse
       }
@@ -859,7 +861,7 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Revoke access to all Views on Account",
-      """Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
+      """Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to all the views at BANK_ID for account ACCOUNT_ID.
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
@@ -871,16 +873,16 @@ trait APIMethods121 {
         "user does not have access to owner view on account"
         ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagUser, apiTagView, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : OBPEndpoint = {
       //delete access for specific user to all the views
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonDelete json => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAllPermissions(u, providerId, userId)
+            isRevoked <- account revokeAllPermissions(u, provider, providerId)
             if(isRevoked)
           } yield noContentJsonResponse
       }

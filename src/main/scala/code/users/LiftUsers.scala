@@ -32,6 +32,7 @@ object LiftUsers extends Users {
   }
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+    // Note: providerId is generally human readable like a username. it is not a uuid like user_id.
     ResourceUser.find(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, idGivenByProvider))
   }
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
