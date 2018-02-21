@@ -34,7 +34,8 @@ package code.model
 import java.util.Date
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.APIUtil.hasEntitlement
+import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
@@ -324,7 +325,7 @@ trait BankAccount extends MdcLoggable {
   * Delete this account (if connector allows it, e.g. local mirror of account data)
   * */
   final def remove(user : User): Box[Boolean] = {
-    if(user.ownerAccess(this)){
+    if(user.hasOwnerView(this)){
       Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException(attemptedToOpenAnEmptyBox))
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
@@ -332,7 +333,7 @@ trait BankAccount extends MdcLoggable {
   }
 
   final def updateLabel(user : User, label : String): Box[Boolean] = {
-    if(user.ownerAccess(this)){
+    if(user.hasOwnerView(this)){
       Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label)
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
@@ -412,7 +413,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       Full(Views.views.vend.permissions(BankIdAccountId(this.bankId,this.accountId)))
     else
       Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
@@ -426,7 +427,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Permission] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       for{
         u <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
         p <- Views.views.vend.permission(BankIdAccountId(this.bankId,this.accountId), u)
@@ -444,7 +445,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def addPermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
@@ -462,7 +463,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def addPermissions(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
@@ -480,7 +481,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def revokePermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
@@ -499,7 +500,7 @@ trait BankAccount extends MdcLoggable {
 
   final def revokeAllPermissions(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(user.ownerAccess(this))
+    if(user.hasOwnerView(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
@@ -515,14 +516,14 @@ trait BankAccount extends MdcLoggable {
 
   final def views(user : User) : Box[List[View]] = {
     //check if the user has access to the owner view in this the account
-    if(user.ownerAccess(this)) {
+    if(user.hasOwnerView(this)) {
       Full(Views.views.vend.views(BankIdAccountId(this.bankId,this.accountId))) }
     else
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   final def createView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
-    if(!userDoingTheCreate.ownerAccess(this)) {
+    if(!userDoingTheCreate.hasOwnerView(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.createView(BankIdAccountId(this.bankId,this.accountId), v)
@@ -537,7 +538,7 @@ trait BankAccount extends MdcLoggable {
   }
 
   final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: UpdateViewJSON) : Box[View] = {
-    if(!userDoingTheUpdate.ownerAccess(this)) {
+    if(!userDoingTheUpdate.hasOwnerView(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.updateView(BankIdAccountId(this.bankId,this.accountId), viewId, v)
@@ -552,7 +553,7 @@ trait BankAccount extends MdcLoggable {
   }
 
   final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
-    if(!userDoingTheRemove.ownerAccess(this)) {
+    if(!userDoingTheRemove.hasOwnerView(this)) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
       val deleted = Views.views.vend.removeView(viewId, BankIdAccountId(this.bankId,this.accountId))

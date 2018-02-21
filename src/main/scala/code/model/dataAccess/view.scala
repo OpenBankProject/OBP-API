@@ -67,6 +67,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
+  //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
+  //we only constraint it when we create it : code.views.MapperViews.createView 
   object permalink_ extends UUIDString(this)
 
   def users : List[User] =  users_.toList
