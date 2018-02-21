@@ -104,7 +104,7 @@ trait APIMethods121 {
       "root",
       "GET",
       "/root",
-      "Get API Info",
+      "Get API Info (root)",
       """Returns information about:
         |
         |* API version
