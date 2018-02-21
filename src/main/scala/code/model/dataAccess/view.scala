@@ -422,6 +422,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
+  def isPrivate : Boolean = !isPublic_.get
   def isFirehose : Boolean = isFirehose_.get
 
   //the view settings

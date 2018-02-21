@@ -202,6 +202,7 @@ trait View {
   def isSystem : Boolean
   def isFirehose : Boolean
   def isPublic : Boolean
+  def isPrivate : Boolean
   
   //these ids are used together to uniquely identify a view
   def viewId : ViewId
