@@ -1024,7 +1024,7 @@ trait APIMethods200 {
       apiVersion,
       "getPermissionForUserForBankAccount",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/USER_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User.",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.

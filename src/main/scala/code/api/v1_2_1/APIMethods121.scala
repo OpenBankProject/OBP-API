@@ -737,7 +737,7 @@ trait APIMethods121 {
       apiVersion,
       "addPermissionForUserForBankAccountForMultipleViews",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views",
       "Grant User access to a list of views.",
       s"""Grants the user identified by PROVIDER_ID at their provider PROVIDER access to a list of views at BANK_ID for account ACCOUNT_ID.
         |
