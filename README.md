@@ -354,6 +354,23 @@ The Encrypt/Decrypt workflow is :
 5. Decrypt: Array[Byte]
 
 1st, 2nd and 3rd step can be done using an external tool
+
+####Encrypting props values with openssl on the commandline
+
+1. Export the public certificate from the keystore:
+
+    `keytool -export -/PATH/TO/KEYSTORE.jks -alias CERTIFICATE_ALIAS -rfc -file apipub.cert`
+2. Extract the public key from the public certificate
+
+    `openssl x509 -pubkey -noout -in apipub.cert > PUBKEY.pub`
+3. Get the encrypted propsvalue like in the following bash script (usage ./scriptname.sh /PATH/TO/PUBKEY.pub propsvalue)
+
+```
+#!/bin/bash
+echo -n $2 |openssl pkeyutl -pkeyopt rsa_padding_mode:pkcs1 -encrypt  -pubin -inkey $1 -out >(base64)
+```
+
+
    
 ## Scala / Lift
 
