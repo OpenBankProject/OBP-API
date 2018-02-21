@@ -784,7 +784,7 @@ trait APIMethods121 {
       "Grant User access to View.",
       """Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
           |
-          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER and PROVIDER_ID.
           |
           |OAuth authentication is required and the user needs to have access to the owner view.
           |
