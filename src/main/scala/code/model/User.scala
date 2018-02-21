@@ -93,7 +93,7 @@ trait User {
     * @param bankAccount The input bankAccount, check if it contains "owner" view. 
     * @return  True: if the bankAccount contains the "owner". False, if no "owner"
     */
-  def ownerAccess(bankAccount: BankAccount): Boolean =
+  def hasOwnerView(bankAccount: BankAccount): Boolean =
     permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
 
   /**

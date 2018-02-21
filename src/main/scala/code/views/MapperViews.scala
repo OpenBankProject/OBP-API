@@ -61,7 +61,7 @@ object MapperViews extends Views with MdcLoggable {
       } else {
         v.accountId == account.accountId &&
           v.bankId == account.bankId &&
-          !v.isPublic
+          v.isPrivate
       }
     )
     Full(Permission(user, views))
@@ -307,7 +307,7 @@ object MapperViews extends Views with MdcLoggable {
     val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
       p.view.obj match {
         case Full(v) => if(
-          !v.isPublic &&
+            v.isPrivate &&
             v.bankId == bankAccountId.bankId&&
             v.accountId == bankAccountId.accountId){
           Some(v)
@@ -426,7 +426,7 @@ object MapperViews extends Views with MdcLoggable {
 
         val privateViewBankAndAccounts = ViewPrivileges
           .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
+          .map(_.view.obj).flatten.filter(_.isPrivate) //select all the Private views
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
         //we remove duplicates here, because some accounts, has public, фирехосе and Private views
@@ -453,7 +453,7 @@ object MapperViews extends Views with MdcLoggable {
 
         val privateViewBankAndAccounts = ViewPrivileges
           .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId ==bank.bankId) //select all the Private views according to bankId
+          .map(_.view.obj).flatten.filter(v => v.isPrivate && v.bankId ==bank.bankId) //select all the Private views according to bankId
           .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
 
         //we remove duplicates here, because some accounts, has both public views and Private views
@@ -469,7 +469,7 @@ object MapperViews extends Views with MdcLoggable {
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {
     ViewPrivileges
     .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(!_.isPublic) //select all the Private views
+      .map(_.view.obj).flatten.filter(_.isPrivate) //select all the Private views
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
@@ -489,7 +489,7 @@ object MapperViews extends Views with MdcLoggable {
   def getPrivateBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] = {
     ViewPrivileges
       .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId) //select all the Private views according to bankId
+      .map(_.view.obj).flatten.filter(v => v.isPrivate && v.bankId == bankId) //select all the Private views according to bankId
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
