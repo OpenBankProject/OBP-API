@@ -26,8 +26,9 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.{ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
@@ -115,7 +116,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[KafkaInboundAccount] = getBanks.openOrThrowException("Attempted to open an empty Box.").flatMap { bank => {
+    val accounts: List[KafkaInboundAccount] = getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -480,9 +481,9 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
-        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.lastUpdate match {
-          case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+          case Full(l) => now after time(l.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
         //if(outDatedTransactions && useMessageQueue) {
@@ -502,7 +503,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   // Get one counterparty by the Counterparty Id
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
 
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
     } else {
       val req = Map(
@@ -527,7 +528,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
 
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterpartyByIban(iban)
     } else {
       val req = Map(
@@ -883,7 +884,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
 
     Full(result.getOrElse(false))

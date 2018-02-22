@@ -1,6 +1,7 @@
 package code.entitlement
 
 
+import code.api.util.APIUtil
 import code.remotedata.RemotedataEntitlements
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -12,7 +13,7 @@ object Entitlement extends SimpleInjector {
   val entitlement = new Inject(buildOne _) {}
 
   def buildOne: EntitlementProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedEntitlementsProvider
       case true => RemotedataEntitlements     // We will use Akka as a middleware
     }
@@ -25,6 +26,7 @@ trait EntitlementProvider {
   def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]]
   def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean]
   def getEntitlements() : Box[List[Entitlement]]
+  def getEntitlementsFuture() : Future[Box[List[Entitlement]]]
   def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
 }
 
@@ -42,6 +44,7 @@ class RemotedataEntitlementsCaseClasses {
   case class getEntitlementsByUserIdFuture(userId: String)
   case class deleteEntitlement(entitlement: Box[Entitlement])
   case class getEntitlements()
+  case class getEntitlementsFuture()
   case class addEntitlement(bankId: String, userId: String, roleName: String)
 }
 

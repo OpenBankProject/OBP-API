@@ -2,6 +2,7 @@ package code.metadata.transactionimages
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model._
 import code.remotedata.RemotedataTransactionImages
 import net.liftweb.common.Box
@@ -12,7 +13,7 @@ object TransactionImages  extends SimpleInjector {
   val transactionImages = new Inject(buildOne _) {}
 
   def buildOne: TransactionImages =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MapperTransactionImages
       case true => RemotedataTransactionImages     // We will use Akka as a middleware
     }

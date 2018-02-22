@@ -1,6 +1,7 @@
 package code.actorsystem
 
 import akka.actor.ActorSystem
+import code.api.util.APIUtil
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.typesafe.config.ConfigFactory
@@ -41,7 +42,7 @@ trait ObpLookupSystem extends MdcLoggable {
 
   def getRemotedataActor(actorName: String) = {
 
-    val actorPath: String = Props.getBool("remotedata.enable", false) match {
+    val actorPath: String = APIUtil.getPropsAsBoolValue("remotedata.enable", false) match {
     case true =>
       val hostname = ObpActorConfig.remoteHostname
       val port = ObpActorConfig.remotePort

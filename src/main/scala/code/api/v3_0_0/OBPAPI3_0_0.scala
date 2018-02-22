@@ -153,7 +153,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.addKycMedia ::
                           Implementations2_0_0.addKycStatus ::
                           Implementations2_0_0.addSocialMediaHandle ::
-                          Implementations2_0_0.allAccountsAtOneBank ::
+                          Implementations2_0_0.getPrivateAccountsAtOneBank ::
                           //now in V220
                           //Implementations2_0_0.createAccount ::
                           Implementations2_0_0.createMeeting ::
@@ -214,6 +214,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 2.1.0
   val endpointsOf2_2_0 =  Implementations2_2_0.getCurrentFxRate ::
+                          Implementations2_2_0.createFx ::
                           Implementations2_2_0.getCounterpartiesForAccount ::
                           Implementations2_2_0.getCounterpartyById ::
                           Implementations2_2_0.getMessageDocs ::
@@ -260,6 +261,11 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getAllEntitlementRequests ::
                           Implementations3_0_0.getEntitlementRequests ::
                           Implementations3_0_0.deleteEntitlementRequest ::
+                          Implementations3_0_0.getEntitlementRequestsForCurrentUser ::
+                          Implementations3_0_0.getFirehoseAccountsAtOneBank ::
+                          Implementations3_0_0.getEntitlementsForCurrentUser ::
+                          Implementations3_0_0.getFirehoseTransactionsForBankAccount ::
+                          Implementations3_0_0.getApiGlossary ::
                           Implementations3_0_0.aggregateWarehouse ::
                           Nil
 

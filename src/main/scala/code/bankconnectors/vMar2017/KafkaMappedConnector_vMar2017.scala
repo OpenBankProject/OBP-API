@@ -26,9 +26,10 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
-import code.api.util.{ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0._
 import code.bankconnectors._
 import code.branches.Branches.{Branch, BranchT}
@@ -194,7 +195,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks.openOrThrowException("Attempted to open an empty Box.").flatMap { bank => {
+    val accounts: List[InboundAccount] = getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -890,7 +891,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
     } else {
       val req = OutboundCounterpartyByCounterpartyIdBase(
@@ -946,7 +947,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
-    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+    if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       Counterparties.counterparties.vend.getCounterpartyByIban(iban)
     } else {
       val req = OutboundCounterpartyByIbanBase(
@@ -1508,7 +1509,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
   
     Full(result.getOrElse(false))

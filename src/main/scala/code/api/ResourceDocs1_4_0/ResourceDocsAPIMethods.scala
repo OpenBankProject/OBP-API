@@ -1,46 +1,39 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil._
 import code.api.util.APIUtil.ApiVersion._
+import code.api.util.APIUtil._
+import code.api.util.ApiRole._
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
-import code.api.v3_0_0.{APIMethods300, OBPAPI3_0_0}
-import code.api.v3_0_0.OBPAPI3_0_0._
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
-import net.liftweb.common.{Box, Empty, Full}
+import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req, S}
+import net.liftweb.http.{JsonResponse, S}
+import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
-import scala.collection.mutable
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
 import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
 import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
 import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
-import code.api.util.ErrorMessages._
 
 import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
 import java.text.SimpleDateFormat
-import code.model._
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory._
-import code.api.util.ErrorMessages._
 
-import scalacache.memoization.memoizeSync
-import concurrent.duration._
+import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
+
+import scala.concurrent.duration._
+import scalacache.memoization.memoizeSync
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -57,7 +50,57 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
     val exampleDate = simpleDateFormat.parse(exampleDateString)
-
+  
+    implicit val formats = new Formats {
+      val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
+      override val typeHints = ShortTypeHints(List(
+        classOf[CanSearchAllTransactions],
+        classOf[CanSearchAllAccounts],
+        classOf[CanQueryOtherUser],
+        classOf[CanSearchWarehouse],
+        classOf[CanSearchMetrics],
+        classOf[CanCreateCustomer],
+        classOf[CanCreateCustomerAtAnyBank],
+        classOf[CanCreateUserCustomerLink],
+        classOf[CanCreateUserCustomerLinkAtAnyBank],
+        classOf[CanCreateAccount],
+        classOf[CanGetAnyUser],
+        classOf[CanCreateAnyTransactionRequest],
+        classOf[CanAddSocialMediaHandle],
+        classOf[CanGetSocialMediaHandles],
+        classOf[CanCreateSandbox],
+        classOf[CanGetEntitlementsForAnyUserAtOneBank],
+        classOf[CanCreateEntitlementAtOneBank],
+        classOf[CanDeleteEntitlementAtOneBank],
+        classOf[CanGetEntitlementsForAnyUserAtAnyBank],
+        classOf[CanCreateEntitlementAtAnyBank],
+        classOf[CanDeleteEntitlementAtAnyBank],
+        classOf[CanGetConsumers],
+        classOf[CanDisableConsumers],
+        classOf[CanEnableConsumers],
+        classOf[CanUpdateConsumerRedirectUrl],
+        classOf[CanCreateConsumer],
+        classOf[CanCreateTransactionType],
+        classOf[CanCreateCardsForBank],
+        classOf[CanCreateBranch],
+        classOf[CanCreateBranchAtAnyBank],
+        classOf[CanCreateAtm],
+        classOf[CanCreateAtmAtAnyBank],
+        classOf[CanCreateProduct],
+        classOf[CanCreateProductAtAnyBank],
+        classOf[CanCreateFxRate],
+        classOf[CanCreateFxRateAtAnyBank],
+        classOf[CanCreateBank],
+        classOf[CanReadMetrics],
+        classOf[CanGetConfig],
+        classOf[CanGetConnectorMetrics],
+        classOf[CanGetOtherAccountsAtBank],
+        classOf[CanDeleteEntitlementRequestsAtOneBank],
+        classOf[CanDeleteEntitlementRequestsAtAnyBank],
+        classOf[CanGetEntitlementRequestsAtOneBank],
+        classOf[CanGetEntitlementRequestsAtAnyBank])
+      )
+    }
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {
@@ -146,7 +189,21 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           // Format the data as json
           val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
           // Return
-          successJsonResponse(Extraction.decompose(innerJson))
+  
+          /**
+            * replace JValue key: jsonClass --> api_role
+            */
+          def replaceJsonKey(json: JValue): JValue = json transformField {
+            case JField("json_class", x) => JField("role", x)
+          }
+  
+          /**
+            * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
+            */
+          def replaceJsonValue(json: JValue): JValue = json transformField {
+            case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
+          }
+          successJsonResponse(replaceJsonValue(replaceJsonKey(snakify(Extraction.decompose(innerJson)))))
         }
         obpResourceDocJson
       }

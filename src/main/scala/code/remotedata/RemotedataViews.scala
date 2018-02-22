@@ -31,9 +31,6 @@ object RemotedataViews extends ObpActorInit with Views {
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] =
     extractFutureToBox(actor ? cc.revokeAllPermissions(bankId, accountId, user))
 
-  def view(viewUID : ViewIdBankIdAccountId) : Box[View] =
-    extractFutureToBox(actor ? cc.view(viewUID))
-
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] =
     extractFutureToBox(actor ? cc.view(viewId, account))
 
@@ -112,7 +109,10 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
-
+  
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateFirehoseView(bankId, accountId, description))
+  
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
     extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId, description))
 
@@ -124,9 +124,6 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] =
     extractFutureToBox(actor ? cc.createRandomView(bankId, accountId))
-
-  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean =
-    extractFuture(actor ? cc.viewExists(bankId, accountId, name))
 
   // For tests
   def bulkDeleteAllPermissionsAndViews(): Boolean =

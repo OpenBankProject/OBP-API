@@ -1,7 +1,7 @@
 package code.management
 
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.model.{Transaction, BankId, AccountId}
 import code.tesobe.ErrorMessage
@@ -124,7 +124,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
             Connector.connector.vend.updateAccountBalance(
               mostRecentTransaction.bankId,
               mostRecentTransaction.accountId,
-              mostRecentTransaction.balance).openOrThrowException("Attempted to open an empty Box.")
+              mostRecentTransaction.balance).openOrThrowException(attemptedToOpenAnEmptyBox)
           }
         }
 
@@ -166,7 +166,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
               //refresh account lastUpdate in case transactions were posted but they were all duplicates (account was still "refreshed")
               val mostRecentTransaction = importerTransactions.maxBy(t => t.obp_transaction.details.completed)
               val account = mostRecentTransaction.obp_transaction.this_account
-              Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now).openOrThrowException("Attempted to open an empty Box.")
+              Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
             }
             val jsonList = insertedTs.map(whenAddedJson)
             JsonResponse(JArray(jsonList))

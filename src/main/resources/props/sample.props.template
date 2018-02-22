@@ -44,11 +44,17 @@ connector=mapped
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
+## Enable SSL for JWT, if set to true must set paths for the keystore locations
+jwt.use.ssl=false
+
 ## Enable SSL for kafka, if set to true must set paths for the keystore locations
 #kafka.use.ssl=true
 
 # Paths to the SSL keystore files - has to be jks    
 #keystore.path=/path/to/api.keystore.jks
+#keystore.password = redf1234
+#keystore.passphrase = redf1234
+#keystore.alias = localhost
 #truststore.path=/path/to/api.truststore.jks
 
 
@@ -375,6 +381,9 @@ autocomplete_at_login_form_enabled=false
 
 # control the create and access to public views.
 # allow_public_views=false
+
+# control access to firehose views.
+# allow_firehose_views=false
 
 # -- Gateway login --------------------------------------
 # Enable/Disable Gateway communication at all

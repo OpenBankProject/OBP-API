@@ -2,6 +2,7 @@ package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
+import code.api.util.APIUtil
 import code.model._
 import code.model.dataAccess._
 import code.views.Views
@@ -9,6 +10,7 @@ import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{DefaultConnectionIdentifier, Props}
+import code.api.util.ErrorMessages._
 
 /**
  * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
@@ -29,15 +31,15 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).openOrThrowException("Attempted to open an empty Box.")
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).openOrThrowException("Attempted to open an empty Box.")
+    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createRandomView(bankId, accountId).openOrThrowException("Attempted to open an empty Box.")
+    Views.views.vend.createRandomView(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
 
@@ -53,7 +55,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    if (!Props.getBool("remotedata.enable", false)) {
+    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
     } else {
       Views.views.vend.bulkDeleteAllPermissionsAndViews()

@@ -33,14 +33,16 @@
 package code.api.util
 
 import java.io.InputStream
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import java.text.SimpleDateFormat
+import java.util
 import java.util.{Date, UUID}
 
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
 import code.bankconnectors._
@@ -56,9 +58,7 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestContinuation
-import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
@@ -103,6 +103,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
+  val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -117,6 +118,8 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val NotImplemented = "OBP-10010: Not Implemented "
   val InvalidFutureDateValue = "OBP-10011: future_date has to be in future."
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
+  val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
+  val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -233,6 +236,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val CreateOrUpdateCounterpartyMetadataError = "OBP-30036: Could not create or update CounterpartyMetadata"
   val CounterpartyMetadataNotFound = "OBP-30037: CounterpartyMetadata not found. Please specify valid values for BANK_ID, ACCOUNT_ID and COUNTERPARTY_ID. "
 
+  val CreateFxRateError = "OBP-30032: Could not insert the Fx Rate"
+  val UpdateFxRateError = "OBP-30033: Could not update the Fx Rate"
+  val UnknownFxRateError = "OBP-30033: Unknown Fx Rate error"
+
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -271,6 +278,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
   val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
+  val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
@@ -425,7 +433,7 @@ object APIUtil extends MdcLoggable {
   def logAPICall(callContext: Option[CallContext]) = {
     callContext match {
       case Some(cc) =>
-        if(Props.getBool("write_metrics", false)) {
+        if(getPropsAsBoolValue("write_metrics", false)) {
           val u: User = cc.user.orNull
           val userId = if (u != null) u.userId else "null"
           val userName = if (u != null) u.name else "null"
@@ -449,7 +457,7 @@ object APIUtil extends MdcLoggable {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
                 DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
@@ -486,14 +494,14 @@ object APIUtil extends MdcLoggable {
 
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     val authorization = S.request.map(_.header("Authorization")).flatten
-    if(Props.getBool("write_metrics", false)) {
+    if(getPropsAsBoolValue("write_metrics", false)) {
       val user =
         if (hasAnOAuthHeader(authorization)) {
           getUser match {
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -508,7 +516,7 @@ object APIUtil extends MdcLoggable {
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
@@ -532,9 +540,9 @@ object APIUtil extends MdcLoggable {
         case _       => ""
       }
       //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
+      val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
       //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+      val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
       val url = S.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
@@ -646,10 +654,12 @@ object APIUtil extends MdcLoggable {
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def successJsonResponseFromCaseClass(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+  def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
+      case Some(c) if c.httpCode.isDefined =>
+        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, c.httpCode.get)
       case Some(c) if c.verb == "DELETE" =>
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
       case _ =>
@@ -817,10 +827,10 @@ object APIUtil extends MdcLoggable {
       }
 
       if(parsedDate.isDefined){
-        Full(parsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.openOrThrowException("Attempted to open an empty Box."))
+        Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
       }
       else{
         Failure(FilterDateFormatError)
@@ -1091,6 +1101,7 @@ object APIUtil extends MdcLoggable {
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")
+  val apiTagFirehoseData = ResourceDocTag("FirehoseData")
   val apiTagPublicData = ResourceDocTag("PublicData")
   val apiTagPrivateData = ResourceDocTag("PrivateData")
   val apiTagTransaction = ResourceDocTag("Transaction")
@@ -1138,7 +1149,7 @@ object APIUtil extends MdcLoggable {
   //check #511, https://github.com/OpenBankProject/OBP-API/issues/511
   // get rid of JValue, but in API-EXPLORER or other places, it need the Empty JValue "{}"
   // So create the EmptyClassJson to set the empty JValue "{}"
-  case class EmptyClassJson()
+  case class EmptyClassJson(jsonString: String ="{}")
 
   // Used to document the API calls
   case class ResourceDoc(
@@ -1153,8 +1164,147 @@ object APIUtil extends MdcLoggable {
                           successResponseBody: scala.Product, // A successful response body
                           errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
-                          tags: List[ResourceDocTag]
+                          tags: List[ResourceDocTag],
+                          roles: Option[List[ApiRole]] = None
   )
+
+
+  case class GlossaryItem(
+                           title: String,
+                           description: String
+                       )
+
+
+
+
+
+  val glossaryItems = ArrayBuffer[GlossaryItem]()
+
+
+
+  glossaryItems += GlossaryItem(
+    title = "Account",
+    description =
+      """The thing that tokens of value (money) come in and out of.
+        |An account has one or more `owners` which are `Users`.
+        |In the future, `Customers` may also be `owners`.
+        |An account has a balance in a specified currency and zero or more `transactions` which are records of successful movements of money.
+        |"""
+  )
+
+  glossaryItems += GlossaryItem(
+    title = "Account.account_id",
+    description =
+    """
+      |An identifier for the account that MUST NOT leak the account number or other identifier nomrally used by the customer or bank staff.
+      |It SHOULD be a UUID. It MUST be unique in combination with the BANK_ID. ACCOUNT_ID is used in many URLS so it should be considered public.
+      |(We do NOT use account number in URLs since URLs are cached and logged all over the internet.)
+      |In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
+      |In non sandbox modes (Kafka etc.), ACCOUNT_ID is mapped to core banking account numbers / identifiers at the South Side Adapter level.
+      |ACCOUNT_ID is used to link Metadata and Views so it must be persistant and known to the North Side (OBP-API).
+    """)
+
+  glossaryItems += GlossaryItem(
+    title = "Bank",
+    description =
+    """
+      |The entity that represents the financial institution or bank within a financial group.
+      |Open Bank Project is a multi-bank API. Each bank resource contains basic identifying information such as name, logo and website.
+    """)
+
+
+  glossaryItems += GlossaryItem(
+    title = "Bank.bank_id",
+    description =
+    """
+      |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
+      |
+      |It is typically a human (developer) friendly string for ease of identification.
+      |In sandbox mode it typically has the form financialinstitutuion.sequenceno.region.language. e.g. "bnpp-irb.01.it.it" however for production it could be the BIC of the institution.
+     """)
+
+  glossaryItems += GlossaryItem(
+    title = "Consumer",
+    description =
+    """
+      |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
+      |
+      |Each Consumer has a consumer key and secrect which allows it to enter into secure communication with the API server.
+    """)
+
+  glossaryItems += GlossaryItem(
+    title = "Customer",
+    description =
+      """
+        |The legal entity that has the relationship to the bank. Customers are linked to Users via `User Customer Links`. Customer attributes include Date of Birth, Customer Number etc.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Customer.customer_id",
+    description =
+      """
+        |The identifier that MUST NOT leak the customer number or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique in combination with BANK_ID.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Transaction",
+    description =
+      """
+        |Records of successful movements of money from / to an `Account`. OBP Transactions don't contain any "draft" or "pending" Transactions. (see Transaction Requests). Transactions contain infomration including type, description, from, to, currency, amount and new balance information.
+        |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Transaction Requests",
+    description =
+      """
+        |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
+        |
+        |A successful Transaction Request results in a Transaction.
+        |
+        |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User",
+    description =
+      """
+        |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.user_id",
+    description =
+      """
+        |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.provider",
+    description =
+      """
+        |The name of the authentication service. e.g. the OBP hostname or kafka if users are authenticated over Kafka.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User.provider_id",
+    description =
+      """
+        |The id of the user given by the authenticaiton provider.
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "User Customer Links",
+    description =
+      """
+        |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
+      """)
+
+  def getGlossaryItems : List[GlossaryItem] = {
+    glossaryItems.toList
+  }
 
 
   /**
@@ -1453,7 +1603,7 @@ Returns a string showed to the developer
     val result = blockOfCode
     // call-by-name
     val t1 = System.currentTimeMillis()
-    if (Props.getBool("write_metrics", false)){
+    if (getPropsAsBoolValue("write_metrics", false)){
       val correlationId = getCorrelationId()
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
@@ -1463,7 +1613,7 @@ Returns a string showed to the developer
   }
 
   def akkaSanityCheck (): Box[Boolean] = {
-    Props.getBool("use_akka", false) match {
+    getPropsAsBoolValue("use_akka", false) match {
       case true =>
         val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
         SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
@@ -1830,7 +1980,7 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseFromCaseClass(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
         case _                  => reply.apply(errorJsonResponse("Error"))
@@ -1859,7 +2009,7 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseFromCaseClass(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
         case _                  => Full(reply.apply(errorJsonResponse("Error")))
@@ -1906,16 +2056,16 @@ Versions are groups of endpoints in a file
     val s = S
     val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
-    val implementedInVersion = S.request.openOrThrowException("Attempted to open an empty Box.").view
-    val verb = S.request.openOrThrowException("Attempted to open an empty Box.").requestType.method
+    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
     if (hasAnOAuthHeader(authorization)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -2004,7 +2154,7 @@ Versions are groups of endpoints in a file
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
-        val failuresMsg = Props.getBool("display_internal_errors").openOr(false) match {
+        val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
           case true => // Show all error in a chain
             obj.messageChain
           case false => // Do not display internal errors
@@ -2077,5 +2227,51 @@ Versions are groups of endpoints in a file
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
   
-  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException("Attempted to open an empty Box.").toString).equalsIgnoreCase("mapped")
+  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+
+  /**
+    * This function is implemented in order to support encrypted values in props file.
+    * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
+    *  db.url=Helpers.base64Encode(SOME_ENCRYPTED_VALUE)
+    *  db.url.is_encrypted=true
+    *  getDecryptedPropsValue("db.url") = jdbc:postgresql://localhost:5432/han_obp_api_9?user=han_obp_api&password=mypassword
+    *  Encrypt/Decrypt workflow:
+    *  Encrypt: Array[Byte] -> Helpers.base64Encode(encrypted) -> Props file: String -> Helpers.base64Decode(encryptedValue) -> Decrypt: Array[Byte]
+    * @param nameOfProperty Name of property which value should be decrypted
+    * @return Decrypted value of a property
+    */
+  def getPropsValue(nameOfProperty: String): Box[String] = {
+    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
+      case (Full(base64PropsValue), Full(isEncrypted))  if isEncrypted == "true" =>
+        val decryptedValueAsArray = decrypt(privateKey, Helpers.base64Decode(base64PropsValue), CryptoSystem.RSA)
+        val decryptedValueAsString = new String(decryptedValueAsArray)
+        Full(decryptedValueAsString)
+      case (Full(property), Full(isEncrypted))  if isEncrypted == "false" =>
+        Full(property)
+      case (Full(property), Empty) =>
+        Full(property)
+      case (Empty, Empty) =>
+        Empty
+      case _ =>
+        logger.error(cannotDecryptValueOfProperty + nameOfProperty)
+        Failure(cannotDecryptValueOfProperty + nameOfProperty)
+    }
+  }
+
+  def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {
+    getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
+  }
+  def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
+    getPropsValue(nameOfProperty) map(toInt)
+  }
+  def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
+    getPropsAsIntValue(nameOfProperty) openOr(defaultValue)
+  }
+  def getPropsAsLongValue(nameOfProperty: String): Box[Long] = {
+    getPropsValue(nameOfProperty) flatMap(asLong)
+  }
+  def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
+    getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
+  }
+
 }

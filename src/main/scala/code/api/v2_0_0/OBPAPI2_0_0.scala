@@ -146,50 +146,50 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // Updated in 2.0.0 (less info about the views)
     val endpointsOf2_0_0 =  List(
-      Implementations2_0_0.allAccountsAllBanks,
-    Implementations2_0_0.corePrivateAccountsAllBanks,
-    Implementations2_0_0.publicAccountsAllBanks,
-    Implementations2_0_0.allAccountsAtOneBank,
-    Implementations2_0_0.corePrivateAccountsAtOneBank, // this is /my accounts
-    Implementations2_0_0.privateAccountsAtOneBank, // This was missing for a while from v2.0.0
-    Implementations2_0_0.publicAccountsAtOneBank,
-    Implementations2_0_0.createTransactionRequest,
-    Implementations2_0_0.answerTransactionRequestChallenge,
-    Implementations2_0_0.getTransactionRequests, // Now has charges information
-    // Updated in 2.0.0 (added sorting and better guards / error messages)
-    Implementations2_0_0.accountById,
-    Implementations2_0_0.getPermissionsForBankAccount,
-    Implementations2_0_0.getPermissionForUserForBankAccount,
-    // New in 2.0.0
-    Implementations2_0_0.getKycDocuments,
-    Implementations2_0_0.getKycMedia,
-    Implementations2_0_0.getKycStatuses,
-    Implementations2_0_0.getKycChecks,
-    Implementations2_0_0.getSocialMediaHandles,
-    Implementations2_0_0.addKycDocument,
-    Implementations2_0_0.addKycMedia,
-    Implementations2_0_0.addKycStatus,
-    Implementations2_0_0.addKycCheck,
-    Implementations2_0_0.addSocialMediaHandle,
-    Implementations2_0_0.getCoreAccountById,
-    Implementations2_0_0.getCoreTransactionsForBankAccount,
-    Implementations2_0_0.createAccount,
-    Implementations2_0_0.getTransactionTypes,
-    Implementations2_0_0.createUser,
-    Implementations2_0_0.createMeeting,
-    Implementations2_0_0.getMeetings,
-    Implementations2_0_0.getMeeting,
-    Implementations2_0_0.createCustomer,
-    Implementations2_0_0.getCurrentUser,
-    Implementations2_0_0.getUser,
-    Implementations2_0_0.createUserCustomerLinks,
-    Implementations2_0_0.addEntitlement,
-    Implementations2_0_0.getEntitlements,
-    Implementations2_0_0.deleteEntitlement,
-    Implementations2_0_0.getAllEntitlements,
-    Implementations2_0_0.elasticSearchWarehouse,
-    Implementations2_0_0.elasticSearchMetrics,
-    Implementations2_0_0.getCustomers
+      Implementations2_0_0.getPrivateAccountsAllBanks,
+      Implementations2_0_0.corePrivateAccountsAllBanks,
+      Implementations2_0_0.publicAccountsAllBanks,
+      Implementations2_0_0.getPrivateAccountsAtOneBank,
+      Implementations2_0_0.corePrivateAccountsAtOneBank, // this is /my accounts
+      Implementations2_0_0.privateAccountsAtOneBank, // This was missing for a while from v2.0.0
+      Implementations2_0_0.publicAccountsAtOneBank,
+      Implementations2_0_0.createTransactionRequest,
+      Implementations2_0_0.answerTransactionRequestChallenge,
+      Implementations2_0_0.getTransactionRequests, // Now has charges information
+      // Updated in 2.0.0 (added sorting and better guards / error messages)
+      Implementations2_0_0.accountById,
+      Implementations2_0_0.getPermissionsForBankAccount,
+      Implementations2_0_0.getPermissionForUserForBankAccount,
+      // New in 2.0.0
+      Implementations2_0_0.getKycDocuments,
+      Implementations2_0_0.getKycMedia,
+      Implementations2_0_0.getKycStatuses,
+      Implementations2_0_0.getKycChecks,
+      Implementations2_0_0.getSocialMediaHandles,
+      Implementations2_0_0.addKycDocument,
+      Implementations2_0_0.addKycMedia,
+      Implementations2_0_0.addKycStatus,
+      Implementations2_0_0.addKycCheck,
+      Implementations2_0_0.addSocialMediaHandle,
+      Implementations2_0_0.getCoreAccountById,
+      Implementations2_0_0.getCoreTransactionsForBankAccount,
+      Implementations2_0_0.createAccount,
+      Implementations2_0_0.getTransactionTypes,
+      Implementations2_0_0.createUser,
+      Implementations2_0_0.createMeeting,
+      Implementations2_0_0.getMeetings,
+      Implementations2_0_0.getMeeting,
+      Implementations2_0_0.createCustomer,
+      Implementations2_0_0.getCurrentUser,
+      Implementations2_0_0.getUser,
+      Implementations2_0_0.createUserCustomerLinks,
+      Implementations2_0_0.addEntitlement,
+      Implementations2_0_0.getEntitlements,
+      Implementations2_0_0.deleteEntitlement,
+      Implementations2_0_0.getAllEntitlements,
+      Implementations2_0_0.elasticSearchWarehouse,
+      Implementations2_0_0.elasticSearchMetrics,
+      Implementations2_0_0.getCustomers
   )
 
 

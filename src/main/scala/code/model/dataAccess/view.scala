@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.APIFailure
+import code.api.util.ErrorMessages
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
@@ -66,6 +67,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
+  //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
+  //we only constraint it when we create it : code.views.MapperViews.createView 
   object permalink_ extends UUIDString(this)
 
   def users : List[User] =  users_.toList
@@ -173,6 +176,12 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
     override def dbIndexed_? = true
   }
+
+  object isFirehose_ extends MappedBoolean(this){
+    override def defaultValue = true
+    override def dbIndexed_? = true
+  }
+
   object usePrivateAliasIfOneExists_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -413,6 +422,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
+  def isPrivate : Boolean = !isPublic_.get
+  def isFirehose : Boolean = isFirehose_.get
 
   //the view settings
   def usePrivateAliasIfOneExists: Boolean = usePrivateAliasIfOneExists_.get
@@ -515,7 +526,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
-      APIFailure(s"View with permalink $viewId not found", 404)
+      APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 

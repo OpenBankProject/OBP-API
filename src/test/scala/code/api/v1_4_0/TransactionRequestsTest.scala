@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -12,6 +13,7 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
+import code.api.util.ErrorMessages._
 
 class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
 
@@ -24,11 +26,11 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       accounts.foldLeft(0)((accumulator, account) => {
         //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
         //it with the correct account owners, and be sure that we don't even run into pagination problems
-        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException("Attempted to open an empty Box.").size
+        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox).size
       })
     }
 
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request without challenge", TransactionRequest) {}
     } else {
       scenario("we create a transaction request without challenge", TransactionRequest) {
@@ -158,7 +160,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       }
     }
 
-    if (Props.getBool("transactionRequests_enabled", false) == false) {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a challenge", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a challenge", TransactionRequest) {

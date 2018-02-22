@@ -2,8 +2,8 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.AtmT
@@ -318,7 +318,8 @@ object JSONFactory1_4_0 {
                          is_obwg: Boolean,
                          tags: List[String],
                          typed_request_body: JValue,
-                         typed_success_response_body: JValue)
+                         typed_success_response_body: JValue,
+                         roles: Option[List[ApiRole]] = None)
 
 
 
@@ -333,8 +334,9 @@ object JSONFactory1_4_0 {
     // PegDown seems to be feature rich and ignores underscores in words by default.
 
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-
-    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+    // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
+    val PegDownProcessorTimeout: Long = 1000*20  
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     ResourceDocJson(
       operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.partialFunctionName.toString}",
@@ -352,7 +354,8 @@ object JSONFactory1_4_0 {
       is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
-      typed_success_response_body = createTypedBody(rd.successResponseBody)
+      typed_success_response_body = createTypedBody(rd.successResponseBody),
+      roles = rd.roles
       )
   }
 

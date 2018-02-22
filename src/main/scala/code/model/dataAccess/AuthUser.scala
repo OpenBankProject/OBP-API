@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import java.util.UUID
-
+import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.GatewayLogin.gateway
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
@@ -171,7 +171,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def createUnsavedResourceUser() : ResourceUser = {
-    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username.get), Some(username.get), Some(email.get), None).openOrThrowException("Attempted to open an empty Box.")
+    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username.get), Some(username.get), Some(email.get), None).openOrThrowException(attemptedToOpenAnEmptyBox)
     user
   }
 
@@ -257,7 +257,7 @@ import net.liftweb.util.Helpers._
   override def signupFields = List(firstName, lastName, email, username, password)
 
   // If we want to validate email addresses set this to false
-  override def skipEmailValidation = Props.getBool("authUser.skipEmailValidation", true)
+  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", true)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
@@ -293,7 +293,7 @@ import net.liftweb.util.Helpers._
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
-        Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException("Attempted to open an empty Box.").username.get)
+        Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).username.get)
       else if (hasDirectLoginHeader(authorization))
         DirectLogin.getUser
       else if (hasAnOAuthHeader(authorization)) {
@@ -516,7 +516,7 @@ import net.liftweb.util.Helpers._
 
       case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
           connector match {
-            case Helper.matchAnyKafka() if ( Props.getBool("kafka.user.authentication", false) &&
+            case Helper.matchAnyKafka() if ( APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { kafkaUser <- getUserFromConnector(username, password)
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
@@ -529,7 +529,7 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
 		}
-            case "obpjvm" if ( Props.getBool("obpjvm.user.authentication", false) &&
+            case "obpjvm" if ( APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { obpjvmUser <- getUserFromConnector(username, password)
                   obpjvmUserId <- tryo{obpjvmUser.user} } yield {
@@ -720,8 +720,8 @@ import net.liftweb.util.Helpers._
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
-            (Props.getBool("kafka.user.authentication", false) ||
-            Props.getBool("obpjvm.user.authentication", false)) =>
+            (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
+            APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
               val preLoginState = capturePreLoginState()
               info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
@@ -833,7 +833,7 @@ import net.liftweb.util.Helpers._
     */
   def updateUserAccountViews(user: User): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccounts(user.name, false).openOrThrowException("Attempted to open an empty Box.")
+    val accounts = Connector.connector.vend.getBankAccounts(user.name, false).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts)

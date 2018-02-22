@@ -57,7 +57,6 @@ trait User {
   def idGivenByProvider: String
   def provider : String
   def emailAddress : String
-  //TODO: rename to displayName?
   def name : String
   
   /**
@@ -78,9 +77,14 @@ trait User {
       Failure("user doesn't have access to any view that allows initiating transactions")
     }
   }
-     
-
+  
+  /**
+    *  return all the views the user has the access to. 
+    */
   def views: List[View]
+  /**
+    * Check the User have this `view` or not.
+    */
   def permittedView(v: View): Boolean =
     views.contains(v)
   
@@ -89,7 +93,7 @@ trait User {
     * @param bankAccount The input bankAccount, check if it contains "owner" view. 
     * @return  True: if the bankAccount contains the "owner". False, if no "owner"
     */
-  def ownerAccess(bankAccount: BankAccount): Boolean =
+  def hasOwnerView(bankAccount: BankAccount): Boolean =
     permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
 
   /**

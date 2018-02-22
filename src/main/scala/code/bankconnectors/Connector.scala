@@ -3,10 +3,11 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
@@ -18,7 +19,7 @@ import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
-import code.model.{Transaction, TransactionRequestType, User, _}
+import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -206,6 +207,9 @@ trait Connector extends MdcLoggable{
     } yield a
   }
   
+
+  
+  
   /**
     * 
     * @param username username of the user.
@@ -349,7 +353,7 @@ trait Connector extends MdcLoggable{
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -419,7 +423,7 @@ trait Connector extends MdcLoggable{
     val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
@@ -478,7 +482,7 @@ trait Connector extends MdcLoggable{
     // Always create a new Transaction Request
     val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
        // isValidTransactionRequestType is checked at API layer. Maybe here too.
@@ -565,7 +569,7 @@ trait Connector extends MdcLoggable{
           // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
           // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
           // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-          if (Props.getLong("transaction_status_scheduler_delay").isEmpty )
+          if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty )
           TransactionRequestStatus.COMPLETED
           else
             TransactionRequestStatus.PENDING
@@ -716,7 +720,7 @@ trait Connector extends MdcLoggable{
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       transactionRequests <- getTransactionRequestsImpl(fromAccount)
     } yield transactionRequests
 
@@ -777,7 +781,7 @@ trait Connector extends MdcLoggable{
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes
   }
@@ -978,7 +982,7 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = {
     val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException("Attempted to open an empty Box.")
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
 
       def appendUntilOkay(number : String) : String = {
         val newNumber = number + Random.nextInt(10)
@@ -1041,7 +1045,7 @@ trait Connector extends MdcLoggable{
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
-          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException("Attempted to open an empty Box.")) {
+          if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {
             val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
@@ -1110,12 +1114,13 @@ trait Connector extends MdcLoggable{
 
 
   def createOrUpdateFXRate(
-  bankId : String,
-  fromCurrencyCode: String,
-  toCurrencyCode: String,
-  conversionValue: Double,
-  inverseConversionValue: Double,
-  effectiveDate: Date): Box[FXRate] = Failure(NotImplemented + currentMethodName)
+                            bankId: String,
+                            fromCurrencyCode: String,
+                            toCurrencyCode: String,
+                            conversionValue: Double,
+                            inverseConversionValue: Double,
+                            effectiveDate: Date
+                          ): Box[FXRate] = Failure(NotImplemented + currentMethodName)
 
 
 

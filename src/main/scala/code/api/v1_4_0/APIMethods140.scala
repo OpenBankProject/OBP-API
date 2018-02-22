@@ -1,56 +1,46 @@
 package code.api.v1_4_0
 
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.APIUtil.isValidCurrencyISOCode
-import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
+import code.api.util.ApiRole._
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.{JsonResponse, Req, S}
+import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JField, JObject, JValue}
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.json.JsonDSL._
-import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-import code.api.v1_2_1.{Akka, AmountOfMoneyJsonV121}
-import code.api.v2_0_0.CreateCustomerJson
-import code.metrics.ConnectorMetricsProvider
+import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 
 // JObject creation
-import collection.mutable.ArrayBuffer
-
 import code.api.APIFailure
-import code.api.v1_2_1.{OBPAPI1_2_1, APIInfoJSON, HostedBy, APIMethods121}
-import code.api.v1_3_0.{OBPAPI1_3_0, APIMethods130}
+import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy}
+import code.api.v1_3_0.APIMethods130
+
+import scala.collection.mutable.ArrayBuffer
 //import code.api.v2_0_0.{OBPAPI2_0_0, APIMethods200}
 
 // So we can include resource docs from future versions
 //import code.api.v1_4_0.JSONFactory1_4_0._
+import java.text.SimpleDateFormat
+
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, noV, _}
+import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
-import code.customer.{CustomerFaceImage, CustomerMessages, Customer}
+import code.customer.{Customer, CustomerFaceImage, CustomerMessages}
 import code.model._
 import code.products.Products
-import code.api.util.APIUtil._
-import code.api.util.ErrorMessages
-
 import code.util.Helper._
-import code.api.util.APIUtil.ResourceDoc
-import java.text.SimpleDateFormat
-
-import code.api.util.APIUtil.authenticationRequiredMessage
-import code.api.util.ErrorMessages._
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-
-import code.api.util.APIUtil.noV
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -177,7 +167,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+    val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getBranches,
@@ -244,7 +234,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtms,
@@ -312,7 +302,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
 
-    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
 
     resourceDocs += ResourceDoc(
@@ -432,7 +422,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         | For instance in a 'SANDBOX_TAN' Transaction Request, for amounts over 1000 currency units, the user must supply a positive integer to complete the Transaction Request and create a Transaction.
         |
         | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
-        |
+        | 
+        | This endpoint works with firehose
+        | 
       """.stripMargin,
       emptyObjectJson,
       transactionRequestTypesJsonV140,
@@ -453,7 +445,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -479,7 +471,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get all Transaction Requests.",
-      "",
+      "This endpoint works with firehose. ",
       emptyObjectJson,
       transactionRequest,
       List(
@@ -496,7 +488,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -562,7 +554,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               /* TODO:
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
@@ -599,7 +591,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
+      """
+        |In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer. 
+        |
+        |This endpoint works with firehose.
+      """.stripMargin,
       challengeAnswerJSON,
       transactionRequest,
       List(
@@ -626,7 +622,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -676,7 +672,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Could not create user_customer_links",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer))
+      List(apiTagCustomer),
+      Some(List(canCreateCustomer, canCreateUserCustomerLink)))
 
     lazy val addCustomer : OBPEndpoint = {
       //updates a view on a bank account
