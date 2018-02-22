@@ -1,5 +1,7 @@
 package code.search
 
+import java.nio.charset.Charset
+
 import dispatch.{Http, url}
 import code.util.Helper.MdcLoggable
 
@@ -19,8 +21,11 @@ import org.elasticsearch.common.settings.Settings
 import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.ElasticDsl._
+import dispatch.as.String.charset
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
+
+import scala.util.control.NoStackTrace
 
 
 class elasticsearch extends MdcLoggable {
@@ -59,7 +64,7 @@ class elasticsearch extends MdcLoggable {
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
       logger.debug(esUrl)
       logger.debug(body)
-      val request = url(esUrl).<<(body).GET // Note that WE ONLY do GET - Keep it this way!
+      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
       ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
