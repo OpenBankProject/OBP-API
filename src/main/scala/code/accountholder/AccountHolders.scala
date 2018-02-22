@@ -23,6 +23,7 @@ object AccountHolders extends SimpleInjector {
 
 trait AccountHolders {
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
+  def getAccountsHeld(bankId: BankId, user: User): Set[BankIdAccountId]
   def createAccountHolder(userId: Long, bankId: String, accountId: String): Boolean
   def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] //There is no AccountHolder trait, database structure different with view
   def bulkDeleteAllAccountHolders(): Box[Boolean]
@@ -31,6 +32,7 @@ trait AccountHolders {
 class RemotedataAccountHoldersCaseClasses {
   case class createAccountHolder(userId: Long, bankId: String, accountId: String)
   case class getAccountHolders(bankId: BankId, accountId: AccountId)
+  case class getAccountsHeld(bankId: BankId, user: User)
   case class getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId)
   case class bulkDeleteAllAccountHolders()
 }

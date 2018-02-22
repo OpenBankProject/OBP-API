@@ -19,6 +19,9 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
 
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     extractFuture(actor ? cc.getAccountHolders(bankId, accountId))
+  
+  override def getAccountsHeld(bankId: BankId, user: User): Set[BankIdAccountId] =
+    extractFuture(actor ? cc.getAccountsHeld(bankId: BankId, user: User))
 
   def bulkDeleteAllAccountHolders(): Box[Boolean] =
     extractFutureToBox(actor ? cc.bulkDeleteAllAccountHolders())

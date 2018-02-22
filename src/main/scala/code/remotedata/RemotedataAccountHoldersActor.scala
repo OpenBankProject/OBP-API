@@ -26,6 +26,10 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("getAccountHolders(" + bankId +", "+ accountId +")")
       sender ! extractResult(mapper.getAccountHolders(bankId, accountId))
 
+    case cc.getAccountsHeld(bankId: BankId, user: User) =>
+      logger.debug("getAccountsHeld(" + bankId +", "+ user+")")
+      sender ! extractResult(mapper.getAccountsHeld(bankId: BankId, user: User))
+      
     case cc.bulkDeleteAllAccountHolders() =>
       logger.debug("bulkDeleteAllAccountHolders()")
       sender ! extractResult(mapper.bulkDeleteAllAccountHolders())

@@ -266,6 +266,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getEntitlementsForCurrentUser ::
                           Implementations3_0_0.getFirehoseTransactionsForBankAccount ::
                           Implementations3_0_0.getApiGlossary ::
+                          Implementations3_0_0.getAccountsHeld ::
                           Nil
 
 
