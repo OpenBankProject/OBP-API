@@ -293,14 +293,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
-  override def getCoreBankAccounts(BankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]]= {
+  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]]= {
     Full(
-        BankIdAcountIds
+      bankIdAcountIds
         .map(bankIdAccountId =>
           getBankAccount(
             bankIdAccountId.bankId, 
             bankIdAccountId.accountId)
-            .openOrThrowException(ErrorMessages.BankAccountNotFound))
+            .openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
         .map(account =>
           CoreAccount(
             account.accountId.value, 
@@ -310,23 +310,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getCoreBankAccountsFuture(BankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = {
-    Future {
-      Full(
-        BankIdAcountIds
-          .map(bankIdAccountId =>
-            getBankAccount(
-              bankIdAccountId.bankId,
-              bankIdAccountId.accountId)
-              .openOrThrowException(ErrorMessages.BankAccountNotFound))
-          .map(account =>
-            CoreAccount(
-              account.accountId.value,
-              stringOrNull(account.label),
-              account.bankId.value,
-              AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress)))
-      )
-    }
+  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = {
+    Future {getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext])}
+  }
+  
+  override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[AccountHeld]]= {
+    Full(
+      bankIdAccountIds
+        .map(bankIdAccountId =>
+               getBankAccount(
+                 bankIdAccountId.bankId,
+                 bankIdAccountId.accountId)
+                 .openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
+        .map(account =>
+               AccountHeld(
+                 account.accountId.value,
+                 account.bankId.value,
+                 stringOrNull(account.number),
+                 AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress)))
+    )
+  }
+  
+  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
+    Future {getBankAccountsHeld(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext])}
   }
   
 
