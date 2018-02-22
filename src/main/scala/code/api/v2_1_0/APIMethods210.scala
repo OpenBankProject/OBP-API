@@ -804,7 +804,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
 
@@ -842,7 +842,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
 
@@ -880,7 +880,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 
@@ -1532,7 +1532,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canUpdateConsumerRedirectUrl))
     )
     
