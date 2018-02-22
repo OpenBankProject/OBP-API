@@ -296,7 +296,7 @@ trait APIMethods121 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at bank (Private, inc views).",
+      "Get accounts at bank (Private).",
       s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |

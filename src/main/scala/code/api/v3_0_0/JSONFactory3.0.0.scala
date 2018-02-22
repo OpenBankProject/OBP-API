@@ -233,6 +233,7 @@ case class CoreAccountJsonV300(
   account_routing: AccountRoutingJsonV121
 )
 case class CoreAccountsJsonV300(accounts: List[CoreAccount])
+case class CoreAccountsHeldJsonV300(accounts: List[AccountHeld])
 
 case class AccountIdJson(
   id: String
@@ -664,25 +665,13 @@ object JSONFactory300{
 
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts)
-
+  
+  def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =
+    CoreAccountsHeldJsonV300(accountsHeld)
+  
   def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
     AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))
 
-
-  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedAccountJsonV300 =  {
-    val bankName = account.bankName.getOrElse("")
-    ModeratedAccountJsonV300(
-      account.accountId.value,
-      stringOrNull(account.bankId.value),
-      stringOptionOrNull(account.label),
-      stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
-      stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      viewsAvailable,
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
-    )
-  }
   def createAccountRulesJSON(rules: List[AccountRule]): List[AccountRuleJsonV300] = {
     rules.map(i => AccountRuleJsonV300(scheme = i.scheme, value = i.value))
   }

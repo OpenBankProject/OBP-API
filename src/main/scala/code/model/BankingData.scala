@@ -877,6 +877,13 @@ case class CoreAccount(
   account_routing: AccountRouting
 )
 
+case class AccountHeld(
+  id: String,
+  bank_id: String,
+  number: String,
+  account_routing: AccountRouting
+)
+
 case class CounterpartyBespoke(
   key: String,
   value: String
