@@ -25,8 +25,6 @@ import dispatch.as.String.charset
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
 
-import scala.util.control.NoStackTrace
-
 
 class elasticsearch extends MdcLoggable {
 
