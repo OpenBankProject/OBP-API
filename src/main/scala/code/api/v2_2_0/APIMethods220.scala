@@ -371,7 +371,7 @@ trait APIMethods220 {
       messageDocsJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
+      List(apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {
@@ -851,7 +851,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi),
+      List(apiTagMetric, apiTagApi),
       Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {

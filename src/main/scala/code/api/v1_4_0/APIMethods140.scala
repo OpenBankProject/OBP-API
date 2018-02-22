@@ -753,7 +753,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         apiInfoJSON,
         List(UserNotLoggedIn, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        Nil)
+        List(apiTagDocumentation))
       }
 
 

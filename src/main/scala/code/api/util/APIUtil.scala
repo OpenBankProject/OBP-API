@@ -1129,6 +1129,8 @@ object APIUtil extends MdcLoggable {
   val apiTagDataWarehouse = ResourceDocTag("Data Warehouse")
   val apiTagFx = ResourceDocTag("FX")
   val apiTagMessage = ResourceDocTag("Message")
+  val apiTagMetric = ResourceDocTag("Metric")
+  val apiTagDocumentation = ResourceDocTag("Documentation")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 

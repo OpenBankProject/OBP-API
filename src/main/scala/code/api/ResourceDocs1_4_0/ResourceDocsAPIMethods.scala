@@ -322,7 +322,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi))
+      List(apiTagDocumentation))
 
 
     val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc))
@@ -365,7 +365,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson, //exampleResourceDocsJson
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
+      List(apiTagDocumentation, apiTagApi)
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
@@ -413,7 +413,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       UnknownError :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
+      List(apiTagDocumentation, apiTagApi)
     )
 
 
@@ -585,7 +585,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
         emptyObjectJson,
         UnknownError :: Nil,
         Catalogs(notCore, notPSD2, notOBWG),
-        List(apiTagApi))
+        List(apiTagDocumentation))
     }
 
 

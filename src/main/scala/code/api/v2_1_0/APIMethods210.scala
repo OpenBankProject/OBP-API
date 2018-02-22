@@ -105,7 +105,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagSandbox),
+      List(apiTagSandbox, apiTagApi),
       Some(List(canCreateSandbox)))
 
 
@@ -1613,7 +1613,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi),
+      List(apiTagMetric, apiTagApi),
       Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {

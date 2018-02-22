@@ -2261,7 +2261,7 @@ trait APIMethods200 {
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List(apiTagApi),
+        List(apiTagMetric, apiTagApi),
         Some(List(canSearchMetrics)))
 
     val esm = new elasticsearchMetrics
