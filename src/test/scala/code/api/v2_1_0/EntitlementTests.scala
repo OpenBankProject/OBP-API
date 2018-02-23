@@ -43,7 +43,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to get entitlements without login - getEntitlementsByBankAndUser") {
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "users" / resourceUser1.userId / "entitlements").GET
+      val requestGet = (v2_1Request / "banks" / testBankId1.value / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
@@ -55,7 +55,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to get entitlements without credentials - getEntitlementsByBankAndUser") {
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / testBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 403")
       responseGet.code should equal(403)
@@ -72,7 +72,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / testBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(200)
