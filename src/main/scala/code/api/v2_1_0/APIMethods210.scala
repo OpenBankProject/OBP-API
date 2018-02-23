@@ -411,7 +411,7 @@ trait APIMethods210 {
             _ <- Bank(bankId) ?~! {BankNotFound}
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
             _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! {ViewNotFound}
-            isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerView(fromAccount) == true ||
+            isOwnerOrHasEntitlement <- booleanToBox(u.hasThisAccountOwnerView(fromAccount) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
             _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
               s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
@@ -680,7 +680,7 @@ trait APIMethods210 {
               _ <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
               _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
-              _ <- booleanToBox(u.hasOwnerView(fromAccount), UserNoOwnerView)
+              _ <- booleanToBox(u.hasThisAccountOwnerView(fromAccount), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {

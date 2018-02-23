@@ -31,19 +31,19 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val customerPostJSON = createCustomerJson(mockCustomerNumber1)
       Then("User is linked to 0 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(0)
-      val requestPost = (v2_0Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
+      val requestPost = (v2_0Request / "banks" / testBankId1.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 403")
       responsePost.code should equal(403)
 
       When("We add one required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
       val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 403")
       responsePost1.code should equal(403)
 
       When("We add all required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val responsePost2 = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 201")
       responsePost2.code should equal(201)
@@ -51,7 +51,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val infoPost = responsePost2.body.extract[CustomerJsonV140]
 
       When("We make the request")
-      val requestGet = (v2_0Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
+      val requestGet = (v2_0Request / "banks" / testBankId1.value / "customer").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
@@ -79,7 +79,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       When("We try to make a request with changed customer number at same bank")
       val customerPostJSON3 = createCustomerJson(mockCustomerNumber2)
-      val requestPost3 = (v2_0Request / "banks" / mockBankId1.value / "customers").POST <@ (user1)
+      val requestPost3 = (v2_0Request / "banks" / testBankId1.value / "customers").POST <@ (user1)
       val responsePost3 = makePostRequest(requestPost3, write(customerPostJSON3))
       Then("We should get a 201")
       responsePost3.code should equal(201)
@@ -88,10 +88,10 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       When("We try to make a request with same customer number at different bank")
       Then("first we add all required entitlements")
-      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
-      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val customerPostJSON4 = createCustomerJson(mockCustomerNumber1)
-      val requestPost4 = (v2_0Request / "banks" / mockBankId2.value / "customers").POST <@ (user1)
+      val requestPost4 = (v2_0Request / "banks" / testBankId2.value / "customers").POST <@ (user1)
       val responsePost4 = makePostRequest(requestPost4, write(customerPostJSON4))
       Then("We should get a 201")
       responsePost4.code should equal(201)

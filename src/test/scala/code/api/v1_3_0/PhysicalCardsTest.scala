@@ -18,7 +18,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
   lazy val accountCurrency = "EUR"
   lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
 
-  def createCard(number : String) = new PhysicalCard(
+  def createCard(number : String) = PhysicalCard(
     bankId= bank.bankId.value,
     bankCardNumber = number,
     nameOnCard = "",

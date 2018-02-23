@@ -1,25 +1,22 @@
 package code.views
 
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.accountholder.MapperAccountHolders
 import code.api.APIFailure
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.APIUtil._
+import code.api.util.ApiRole
+import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
-import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
-import code.api.util.ErrorMessages._
 
 import scala.collection.immutable.List
-import code.util.Helper.MdcLoggable
-import net.liftweb.util.Props
-import code.api.util.ErrorMessages._
-import code.views.MapperViews.canUseFirehose
-
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
@@ -27,9 +24,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
-  
-  val ALLOW_PUBLIC_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_firehose_views", false)
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 
@@ -406,9 +400,7 @@ object MapperViews extends Views with MdcLoggable {
       Nil
     }
   }
-  def canUseFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehoseAtAnyBank.toString())
-  }
+ 
   /**
    * @param user
    * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)

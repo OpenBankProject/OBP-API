@@ -11,6 +11,7 @@ trait TestConnectorSetup {
 
   //TODO: implement these right here using Connector.connector.vend and get rid of specific connector setup files
   protected def createBank(id : String) : Bank
+  @deprecated("Please use `createAccountAndOwnerView` instead, we need owner view for each account! ","2018-02-23")
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
@@ -42,11 +43,16 @@ trait TestConnectorSetup {
       if (i==3) createBank("testBankWithoutBranches") else createBank("testBank"+i)
     }
   }
-
+  
+  /**
+    * This will create the test accounts for testBanks.
+    * It will also create ownerView, PublicView and RandomView ...
+    */
   final protected def createAccounts(banks : Traversable[Bank]) : Traversable[BankAccount] = {
+    val testAccountCurrency = "EUR"
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(None, bank.bankId, AccountId(randomString(4)), randomString(4))
+        createAccountAndOwnerView(None, bank.bankId, AccountId("testAccount"+i), testAccountCurrency)
       }
     })
 

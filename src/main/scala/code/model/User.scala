@@ -37,10 +37,13 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
+import code.api.util.APIUtil
 import code.views.Views
 import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
+import code.util.Helper.MdcLoggable
+import net.liftweb.mapper.By
 
 case class UserId(val value : Long) {
   override def toString = value.toString
@@ -49,7 +52,7 @@ case class UserId(val value : Long) {
 
 // TODO Document clearly the difference between this and AuthUser
 
-trait User {
+trait User extends MdcLoggable {
 
   def resourceUserId : UserId
   def userId: String
@@ -59,43 +62,46 @@ trait User {
   def emailAddress : String
   def name : String
   
-  /**
-    * This method is belong to User trait, checked the user permitted views for the input account.
-    * 
-    * @param bankAccount the bankAccount, checked all the views for this input account
-    *                    
-    * @return the account's permitted views for the user 
-    */
-  def permittedViews(bankAccount: BankAccount) : List[View] =
-    Views.views.vend.permittedViews(this, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
-
-  def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){
+  final def allViewsUserCanAccess: List[View] ={
+    val privateViewsUserCanAccess = ViewPrivileges.findAll(By(ViewPrivileges.user, this.resourceUserId.value)).map(_.view.obj.toList).flatten
+    val publicViewsUserCanAccess = if (APIUtil.ALLOW_PUBLIC_VIEWS)
+      ViewImpl
+        .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
+    else
+      Nil
+    (privateViewsUserCanAccess++publicViewsUserCanAccess).distinct
+    
+  }
+  final def hasThisView(v: View): Boolean = allViewsUserCanAccess.contains(v)
+  final def hasThisAccountOwnerView(bankAccount: BankAccount): Boolean ={
+    //find the bankAccount owner view object
+    val viewImplBox = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+    val viewImpl = viewImplBox match {
+      case Full(v) => v
+      case _ => 
+        logger.warn(s"It is strange. This bankAccount(${bankAccount.bankId}, ${bankAccount.accountId}) do not have `owner` view.")
+        return false
+    }
+    
+    //check the ViewPrivileges by user and viewImpl
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+  }
+  final def allViewsUserCanSeeForThisAccount(bankAccount: BankAccount) : List[View] =
+    allViewsUserCanAccess.filter(
+      view => 
+        view.bankId == bankAccount.bankId && 
+        view.accountId == bankAccount.accountId
+    )
+  
+  final def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
+    if(allViewsUserCanSeeForThisAccount(bankAccount).exists(_.canInitiateTransaction)){
       Full()
-    } 
+    }
     else {
       Failure("user doesn't have access to any view that allows initiating transactions")
     }
   }
   
-  /**
-    *  return all the views the user has the access to. 
-    */
-  def views: List[View]
-  /**
-    * Check the User have this `view` or not.
-    */
-  def permittedView(v: View): Boolean =
-    views.contains(v)
-  
-  /**
-    * This method is belong to the User trait, check if the user have access to the "owner" view for input account
-    * @param bankAccount The input bankAccount, check if it contains "owner" view. 
-    * @return  True: if the bankAccount contains the "owner". False, if no "owner"
-    */
-  def hasOwnerView(bankAccount: BankAccount): Boolean =
-    permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
-
   /**
   * @return the bank accounts where the user has at least access to a Private view (is_public==false)
   */

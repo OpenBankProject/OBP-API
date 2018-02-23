@@ -37,13 +37,12 @@ import java.text.SimpleDateFormat
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.APIUtil
-import code.model.BankId
+import code.model.{AccountId, BankId}
 import code.util.Helper.MdcLoggable
 import dispatch._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{DefaultFormats, ShortTypeHints}
-import net.liftweb.util.Props
 import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
@@ -71,11 +70,13 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse(exampleDateString)
   
-  val mockAccountId1 = "NEW_ACCOUNT_ID_01"
-  val mockAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
+  // @code.setup.TestConnectorSetup.createBanks we can know, the bankIds in test database.
+  val testBankId1 = BankId("testBank1")
+  val testBankId2 = BankId("testBank2")
   
-  val mockBankId1 = BankId("testBank1")
-  val mockBankId2 = BankId("testBank2")
+ // @code.setup.TestConnectorSetup.createAccounts we can know, the accountIds in test database.
+  val testAccountId1 = AccountId("testAccount1")
+  val testAccountId2 = AccountId("testAccount2")
   
   val mockCustomerNumber1 = "93934903201"
   val mockCustomerNumber2 = "93934903202"
