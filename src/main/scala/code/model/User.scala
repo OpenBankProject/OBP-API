@@ -41,6 +41,7 @@ import code.views.Views
 import code.entitlement.Entitlement
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.By
 
 case class UserId(val value : Long) {
@@ -50,7 +51,7 @@ case class UserId(val value : Long) {
 
 // TODO Document clearly the difference between this and AuthUser
 
-trait User {
+trait User extends MdcLoggable {
 
   def resourceUserId : UserId
   def userId: String
@@ -96,7 +97,14 @@ trait User {
     */
   def hasOwnerView(bankAccount: BankAccount): Boolean ={
     //find the bankAccount owner view object
-    val viewImpl = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId)).orNull
+    val viewImplBox = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+    val viewImpl = viewImplBox match {
+      case Full(v) => v
+      case _ => 
+        logger.warn(s"It is strange. This bankAccount(${bankAccount.bankId}, ${bankAccount.accountId}) do not have `owner` view.")
+        return false
+    }
+    
     //check the ViewPrivileges by user and viewImpl
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
