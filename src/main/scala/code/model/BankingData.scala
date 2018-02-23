@@ -398,7 +398,7 @@ trait BankAccount extends MdcLoggable {
       true
     else
       user match {
-        case Some(u) if view.isFirehose && MapperViews.canUseFirehose(u) =>
+        case Some(u) if view.isFirehose && APIUtil.canUseFirehose(u) =>
           true
         case Some(u) =>
           u.permittedView(view)

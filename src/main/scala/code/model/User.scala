@@ -32,16 +32,16 @@ Berlin 13359, Germany
 
 package code.model
 
-import code.util.Helper
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
-import code.views.Views
 import code.entitlement.Entitlement
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
+import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.views.Views
+import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
 
 case class UserId(val value : Long) {

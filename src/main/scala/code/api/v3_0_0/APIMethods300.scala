@@ -423,7 +423,7 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-               MapperViews.canUseFirehose(u)
+               canUseFirehose(u)
             }
             bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
             bank<- unboxFullAndWrapIntoFuture(bankBox)
@@ -475,7 +475,7 @@ trait APIMethods300 {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               u <- unboxFullAndWrapIntoFuture{ user }
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-               MapperViews.canUseFirehose(u)
+               canUseFirehose(u)
               }
               bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
