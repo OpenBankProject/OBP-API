@@ -631,7 +631,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
-      "/search/warehouse/INDEX_NAME/TOPIC_NAME",
+      "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
       s"""
         |Search warehouse data via Elastic Search.
@@ -650,10 +650,10 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
-        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE/THE_TOPIC_YOU_WANT_TO_USE
-        |or
-        |POST /search/warehouse/ALL/ALL
+        |POST /search/warehouse
+        |
         |{
+        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
         |  "es_body_part": {
         |    "query": {
         |      "range": {
@@ -683,15 +683,14 @@ trait APIMethods300 {
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
-      case "search" :: "warehouse" :: index :: topic :: Nil JsonPost json -> _ => {
-            
+      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = createElasticSearchUriPart(index, topic) //compactRender(json \ "es_uri_part")
+            val uriPart = compactRender(json \ "es_uri_part")
             val bodyPart = compactRender(json \ "es_body_part")
             successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
           }
