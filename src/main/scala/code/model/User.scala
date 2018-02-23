@@ -72,8 +72,8 @@ trait User extends MdcLoggable {
     (privateViewsUserCanAccess++publicViewsUserCanAccess).distinct
     
   }
-  final def hasThisView(v: View): Boolean = allViewsUserCanAccess.contains(v)
-  final def hasThisAccountOwnerView(bankAccount: BankAccount): Boolean ={
+  final def hasView(v: View): Boolean = allViewsUserCanAccess.contains(v)
+  final def hasOwnerView(bankAccount: BankAccount): Boolean ={
     //find the bankAccount owner view object
     val viewImplBox = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
     val viewImpl = viewImplBox match {

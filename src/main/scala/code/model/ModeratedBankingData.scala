@@ -128,7 +128,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { "User must be logged in"}
       tagList <- Box(tags) ?~ { "You must be able to see tags in order to delete them"}
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
-      deleteFunc <- if(tag.postedBy == user || u.hasThisAccountOwnerView(bankAccount))
+      deleteFunc <- if(tag.postedBy == user || u.hasOwnerView(bankAccount))
     	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
                     else
                       Failure("deleting tags not permitted for the current user")
@@ -145,7 +145,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { "User must be logged in"}
       imageList <- Box(images) ?~ { "You must be able to see images in order to delete them"}
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
-      deleteFunc <- if(image.postedBy == user || u.hasThisAccountOwnerView(bankAccount))
+      deleteFunc <- if(image.postedBy == user || u.hasOwnerView(bankAccount))
     	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
@@ -159,7 +159,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { "User must be logged in"}
       commentList <- Box(comments) ?~ {"You must be able to see comments in order to delete them"}
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
-      deleteFunc <- if(comment.postedBy == user || u.hasThisAccountOwnerView(bankAccount))
+      deleteFunc <- if(comment.postedBy == user || u.hasOwnerView(bankAccount))
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
                   else
                     Failure("Deleting comments not permitted for the current user")
@@ -173,7 +173,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { "User must be logged in"}
       whereTagOption <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
       whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
-      deleteFunc <- if(whereTag.postedBy == user || u.hasThisAccountOwnerView(bankAccount))
+      deleteFunc <- if(whereTag.postedBy == user || u.hasOwnerView(bankAccount))
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"
                     else
                       Failure("Deleting tags not permitted for the current user")
