@@ -248,7 +248,7 @@ trait APIMethods200 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank (Private, inc views).",
+      "Get Accounts at Bank (Private).",
       s"""Get accounts at one bank that the user has access to.
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
@@ -1000,7 +1000,7 @@ trait APIMethods200 {
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagUser, apiTagView, apiTagEntitlement)
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)
     )
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
@@ -1024,10 +1024,10 @@ trait APIMethods200 {
       apiVersion,
       "getPermissionForUserForBankAccount",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User.",
-      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
-        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -1036,17 +1036,17 @@ trait APIMethods200 {
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount, apiTagUser))
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet json => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
             bank <- Bank(bankId) ?~! BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permission <- account permission(u, providerId, userId)
+            permission <- account permission(u, provider, providerId)
           } yield {
             // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
             val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
@@ -1291,7 +1291,7 @@ trait APIMethods200 {
               _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
               _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
 
-              _ <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true , InsufficientAuthorisationToCreateTransactionRequest)
+              _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -2261,7 +2261,7 @@ trait APIMethods200 {
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List(apiTagApi),
+        List(apiTagMetric, apiTagApi),
         Some(List(canSearchMetrics)))
 
     val esm = new elasticsearchMetrics

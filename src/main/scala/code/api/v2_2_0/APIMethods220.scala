@@ -120,7 +120,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -333,7 +333,7 @@ trait APIMethods220 {
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount)
+      List(apiTagCounterparty, apiTagCounterpartyMetaData)
     )
   
     lazy val getCounterpartyById : OBPEndpoint = {
@@ -371,7 +371,7 @@ trait APIMethods220 {
       messageDocsJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi)
+      List(apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {
@@ -851,7 +851,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi),
+      List(apiTagMetric, apiTagApi),
       Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {

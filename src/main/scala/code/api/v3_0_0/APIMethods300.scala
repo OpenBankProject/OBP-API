@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.accountholder.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{canGetAtm, _}
@@ -146,7 +147,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
@@ -200,7 +201,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView)
+      List(apiTagView, apiTagAccount)
     )
 
     lazy val updateViewForBankAccount : OBPEndpoint = {
@@ -1880,9 +1881,43 @@ trait APIMethods300 {
         Full(successJsonResponse(Extraction.decompose(json)))
       }
     }
-
-
-
+  
+    resourceDocs += ResourceDoc(
+      getAccountsHeld,
+      implementedInApiVersion,
+      "getAccountsHeld",
+      "GET",
+      "/banks/BANK_ID/accounts-held",
+      "get Accounts Held",
+      s"""lists accounts for the current user where the current user is a holder but doesn't have the owner view
+        |
+        |${authenticationRequiredMessage(true)}
+      """,
+      emptyObjectJson,
+      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      List(UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount)
+    )
+  
+    lazy val getAccountsHeld : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts-held" ::  Nil JsonGet json => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bank <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ?~! BankNotFound)
+            }
+            availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
+            accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
+              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
+          }
+      }
+    }
 
 
     /* WIP

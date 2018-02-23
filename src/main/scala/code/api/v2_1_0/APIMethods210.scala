@@ -105,7 +105,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagSandbox),
+      List(apiTagSandbox, apiTagApi),
       Some(List(canCreateSandbox)))
 
 
@@ -411,7 +411,7 @@ trait APIMethods210 {
             _ <- Bank(bankId) ?~! {BankNotFound}
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
             _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! {ViewNotFound}
-            isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true ||
+            isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerView(fromAccount) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
             _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
               s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
@@ -680,7 +680,7 @@ trait APIMethods210 {
               _ <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
               _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
-              _ <- booleanToBox(u.ownerAccess(fromAccount), UserNoOwnerView)
+              _ <- booleanToBox(u.hasOwnerView(fromAccount), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {
@@ -804,7 +804,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
 
@@ -842,7 +842,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
 
@@ -880,7 +880,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 
@@ -1532,7 +1532,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagConsumer),
+      List(apiTagConsumer, apiTagApi),
       Some(List(canUpdateConsumerRedirectUrl))
     )
     
@@ -1613,7 +1613,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi),
+      List(apiTagMetric, apiTagApi),
       Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {

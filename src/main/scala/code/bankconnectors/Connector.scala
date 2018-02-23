@@ -255,6 +255,9 @@ trait Connector extends MdcLoggable{
 
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
   def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
+  
+  def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[AccountHeld]]= Failure(NotImplemented + currentMethodName)
+  def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, session: Option[CallContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
@@ -353,7 +356,7 @@ trait Connector extends MdcLoggable{
     for{
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -423,7 +426,7 @@ trait Connector extends MdcLoggable{
     val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
@@ -482,7 +485,7 @@ trait Connector extends MdcLoggable{
     // Always create a new Transaction Request
     val request = for {
       fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
        // isValidTransactionRequestType is checked at API layer. Maybe here too.
@@ -720,7 +723,7 @@ trait Connector extends MdcLoggable{
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       transactionRequests <- getTransactionRequestsImpl(fromAccount)
     } yield transactionRequests
 
@@ -781,7 +784,7 @@ trait Connector extends MdcLoggable{
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.hasOwnerView(fromAccount), "user does not have access to owner view")
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes
   }
