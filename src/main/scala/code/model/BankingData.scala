@@ -32,9 +32,9 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
@@ -45,7 +45,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.views.Views
+import code.views.{MapperViews, Views}
 import net.liftweb.common._
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JArray
@@ -181,7 +181,8 @@ trait Bank {
   //it's not entirely clear what this is/represents (BLZ in Germany?)
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
-
+  
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
@@ -324,7 +325,7 @@ trait BankAccount extends MdcLoggable {
   * */
   final def remove(user : User): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException("Attempted to open an empty Box."))
+      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId).openOrThrowException(attemptedToOpenAnEmptyBox))
     } else {
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
@@ -357,8 +358,15 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
-
+  private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
+  
+  /**
+    * 
+    * Check search for the bankaccount private views which the user have access to ++ public views.
+    * @param user a user
+    * @return a list of views, the user can access
+    *         
+    */
   final def permittedViews(user: Box[User]) : List[View] = {
     user match {
       case Full(u) => u.permittedViews(this)
@@ -389,8 +397,12 @@ trait BankAccount extends MdcLoggable {
       true
     else
       user match {
-        case Some(u) => u.permittedView(view)
-        case _ => false
+        case Some(u) if view.isFirehose && MapperViews.canUseFirehose(u) =>
+          true
+        case Some(u) =>
+          u.permittedView(view)
+        case _ =>
+          false
       }
   }
 
@@ -605,7 +617,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException("Attempted to open an empty Box.").map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**
@@ -621,15 +633,6 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
 
-  @deprecated(Helper.deprecatedJsonGenerationMessage)
-  final def overviewJson(user: Box[User]): JObject = {
-    val views = permittedViews(user)
-    ("number" -> number) ~
-    ("account_alias" -> label) ~
-    ("owner_description" -> "") ~
-    ("views_available" -> views.map(view => view.toJson)) ~
-    View.linksJson(views, accountId, bankId)
-  }
 }
 
 object BankAccount {
@@ -697,6 +700,7 @@ object BankAccount {
     }
   }
 
+  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)

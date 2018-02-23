@@ -45,6 +45,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.{Box, Full}
+import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
 
@@ -252,6 +253,10 @@ case class ModeratedCoreAccountJsonV300(
                                          account_rules: List[AccountRuleJsonV300]
 )
 
+case class ModeratedCoreAccountsJsonV300(
+  accounts: List[ModeratedCoreAccountJsonV300]
+)
+
 case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
 
 //ended -- account relevant case classes /////
@@ -385,11 +390,51 @@ case class CustomerJsonV300(
                              last_ok_date: Date)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
 
-case class EntitlementRequestJSON(entitlement_request_id: String, user_id: String, role_name: String, bank_id: String)
-case class EntitlementRequestJSONs(entitlement_requests: List[EntitlementRequestJSON])
+case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJsonV200, role_name: String, bank_id: String, created: Date)
+case class EntitlementRequestsJSON(entitlement_requests: List[EntitlementRequestJSON])
 case class CreateEntitlementRequestJSON(bank_id: String, role_name: String)
 
+
+
+case class GlossaryDescriptionJsonV300 (markdown: String, html: String)
+
+case class GlossaryItemJsonV300 (title: String,
+                                 description : GlossaryDescriptionJsonV300
+                                )
+
+case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
+
+
+
+import code.api.util.APIUtil.GlossaryItem
+
 object JSONFactory300{
+
+  // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+  // But we don't want to have to escape underscores (\_) in our documentation
+  // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+  // PegDown seems to be feature rich and ignores underscores in words by default.
+
+  // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+  // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
+  val PegDownProcessorTimeout: Long = 1000*20
+  val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
+
+
+
+  def createGlossaryItemsJsonV300(glossaryItems: List[GlossaryItem]) : GlossaryItemsJsonV300 = {
+    GlossaryItemsJsonV300(glossary_items = glossaryItems.map(createGlossaryItemJsonV300))
+  }
+
+  def createGlossaryItemJsonV300(glossaryItem : GlossaryItem) : GlossaryItemJsonV300 = {
+    GlossaryItemJsonV300(
+      title = glossaryItem.title,
+      description = GlossaryDescriptionJsonV300 (markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
+                                                  html = pegDownProcessor.markdownToHtml(glossaryItem.description.stripMargin).replaceAll("\n", "")
+      )
+    )
+  }
+
   //stated -- Transaction relevant methods /////
   def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
     TransactionsJsonV300(transactions.map(createTransactionJSON))
@@ -657,6 +702,25 @@ object JSONFactory300{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
+    )
+  }
+  
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : ModeratedCoreAccountsJsonV300 =  {
+    ModeratedCoreAccountsJsonV300(
+      accounts.map(
+        account => 
+          ModeratedCoreAccountJsonV300 (
+            account.accountId.value,
+            stringOrNull(account.bankId.value),
+            stringOptionOrNull(account.label),
+            stringOptionOrNull(account.number),
+            createOwnersJSON(account.owners.getOrElse(Set()), account.bankName.getOrElse("")),
+            stringOptionOrNull(account.accountType),
+            createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+            createAccountRoutingsJSON(account.accountRoutings),
+            createAccountRulesJSON(account.accountRules)
+          )
+      )
     )
   }
 
@@ -1016,12 +1080,14 @@ object JSONFactory300{
   def createEntitlementRequestJSON(e: EntitlementRequest): EntitlementRequestJSON = {
     EntitlementRequestJSON(
       entitlement_request_id = e.entitlementRequestId,
-      user_id = e.userId,
+      user = JSONFactory200.createUserJSON(e.user),
       role_name = e.roleName,
-      bank_id = e.bankId)
+      bank_id = e.bankId,
+      created = e.created
+    )
   }
-  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestJSONs = {
-    EntitlementRequestJSONs(list.map(createEntitlementRequestJSON))
+  def createEntitlementRequestsJSON(list : List[EntitlementRequest]) : EntitlementRequestsJSON = {
+    EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
 }

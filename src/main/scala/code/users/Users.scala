@@ -1,5 +1,6 @@
 package code.users
 
+import code.api.util.APIUtil
 import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
@@ -15,7 +16,7 @@ object Users  extends SimpleInjector {
   val users = new Inject(buildOne _) {}
 
   def buildOne: Users =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => LiftUsers
       case true => RemotedataUsers     // We will use Akka as a middleware
     }

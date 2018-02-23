@@ -35,7 +35,7 @@ Email: contact@tesobe.com
 package code.snippet
 
 import java.util.Date
-
+import code.api.util.ErrorMessages._
 import code.api.util.APIUtil
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
@@ -93,7 +93,7 @@ object OAuthAuthorisation {
         if (appToken.verifier.get.isEmpty) {
           val randomVerifier = Tokens.tokens.vend.gernerateVerifier(appToken.id.get)
           //the user is logged in so we have the current user
-          val authUser = AuthUser.currentUser.openOrThrowException("Attempted to open an empty Box.")
+          val authUser = AuthUser.currentUser.openOrThrowException(attemptedToOpenAnEmptyBox)
 
           //link the token with the concrete API User
           val saved = Users.users.vend.getResourceUserByResourceUserId(authUser.user.get).map {

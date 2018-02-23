@@ -310,7 +310,7 @@ We use jetty8 to run the API in production mode.
 * Now restart jetty8:
 
         sudo service jetty8 restart
-l
+
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 
@@ -330,7 +330,31 @@ the api will stop at boot up and ask for.
         keystore.path=/path/to/api.keystore.jks
         truststore.path=/path/to/api.truststore.jks
 
+## Using SSL Encryption with props file
 
+For SSL encryption we use jks keystores.
+Note that keystore (and all keys within) must have the same password for unlocking, for which the api will stop at boot up and ask for. 
+
+* Edit your props file(s) to contain:
+        
+        jwt.use.ssl=true
+        keystore.path=/path/to/api.keystore.jks
+        keystore.alias=SOME_KEYSTORE_ALIAS
+        
+A props key value, XXX, is considered encrypted if has an encryption property (XXX.is_encrypted) in addition to the regular props key name in the props file e.g:
+
+   *  db.url.is_encrypted=true
+   *  db.url=BASE64URL(SOME_ENCRYPTED_VALUE)
+   
+The Encrypt/Decrypt workflow is :
+1. Encrypt: Array[Byte]
+2. Helpers.base64Encode(encrypted)
+3. Props file: String
+4. Helpers.base64Decode(encryptedValue)
+5. Decrypt: Array[Byte]
+
+1st, 2nd and 3rd step can be done using an external tool
+   
 ## Scala / Lift
 
 * We use scala and liftweb http://www.liftweb.net/

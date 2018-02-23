@@ -3,7 +3,7 @@ package code.api.v1_2_1
 import java.net.URL
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
@@ -31,6 +31,7 @@ import scalacache.{memoization}
 import scalacache.memoization.memoizeSync
 import code.api.util.APIUtil._
 import code.util.Helper.booleanToBox
+import code.views.Views
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -66,7 +67,7 @@ trait APIMethods121 {
   private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] ={
     for {
       account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-      view <- View.fromUrl(viewId, account)
+      view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
     } yield metadata
@@ -103,7 +104,7 @@ trait APIMethods121 {
       "root",
       "GET",
       "/root",
-      "The root of the API",
+      "Get API Info",
       """Returns information about:
         |
         |* API version
@@ -193,34 +194,36 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
-      allAccountsAllBanks,
+      getPrivateAccountsAllBanks,
       apiVersion,
-      "allAccountsAllBanks",
+      "getPrivateAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts at all banks (Authenticated + Anonymous access).",
-      """Returns the list of accounts at that the user has access to at all banks.
+      "Get accounts at all banks (Private, inc views).",
+      s"""Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
-         |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-         |the user is authenticated, the list will contain Private accounts to which the user has access, in addition to
-         |all public accounts.
+         |This endpoint works with firehose.
          |
-         |Note for those upgrading from v1.2:
-         |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
-         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
-         |""",
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
-      List(UnknownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAllBanks : OBPEndpoint = {
+    //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
+    lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
       case "accounts" :: Nil JsonGet json => {
         cc =>
-          Full(successJsonResponse(bankAccountsListToJson(BankAccount.accounts(cc.user), cc.user)))
+          for {
+            u <- cc.user ?~  UserNotLoggedIn
+          } yield {
+            val availableAccounts = BankAccount.privateAccounts(u)
+            successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
+          }
       }
     }
 
@@ -234,7 +237,11 @@ trait APIMethods121 {
       """Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is required.""",
+        |Authentication via OAuth is required.
+        |
+        |This endpoint works with firehose
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
@@ -261,8 +268,13 @@ trait APIMethods121 {
       "GET",
       "/accounts/public",
       "Get public accounts at all banks (Anonymous access).",
-      """Returns the list of private accounts the user has access to at all banks.
-        |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
+      """
+        |Returns the list of private accounts the user has access to at all banks.
+        |For each account the API returns the ID and the available views. 
+        |Authentication via OAuth is required.
+        |
+        |This endpoint works with firehose.
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UnknownError),
@@ -279,20 +291,19 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
-      allAccountsAtOneBank,
+      getPrivateAccountsAtOneBank,
       apiVersion,
-      "allAccountsAtOneBank",
+      "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at bank (Autheneticated + Anonymous access).",
-      """Returns the list of accounts at BANK_ID that the user has access to.
+      "Get accounts at bank (Private, inc views).",
+      s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
-        |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
+        |This endpoint works with firehose.
         |
-        |Note for those upgrading from v1.2:
-        |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
-        |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
+        |${authenticationRequiredMessage(true)}
+        |
       """,
       emptyObjectJson,
       accountJSON,
@@ -300,14 +311,16 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
-    lazy val allAccountsAtOneBank : OBPEndpoint = {
+    //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same now.
+    lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         cc =>
           for{
+            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! BankNotFound
           } yield {
-            val availableAccounts = bank.accounts(cc.user)
+            val availableAccounts = bank.privateAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
           }
       }
@@ -323,7 +336,11 @@ trait APIMethods121 {
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -353,7 +370,11 @@ trait APIMethods121 {
       "Get public accounts at one bank (Anonymous access).",
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is not required.""",
+        |Authentication via OAuth is not required.
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -393,7 +414,11 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |
-         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+         |
+         |This endpoint works with firehose
+         |
+         |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJSON,
       List(UserNotLoggedIn, UnknownError, BankAccountNotFound),
@@ -407,7 +432,7 @@ trait APIMethods121 {
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             availableviews <- Full(account.permittedViews(cc.user))
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
@@ -588,7 +613,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
@@ -626,7 +651,7 @@ trait APIMethods121 {
           for {
             //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- View.fromUrl(viewId, accountId, bankId)?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             
             u <- cc.user ?~  UserNotLoggedIn
@@ -886,7 +911,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
             val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
@@ -917,7 +942,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {
             val otherBankAccountJson = JSONFactory.createOtherBankAccount(otherBankAccount)
@@ -949,7 +974,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           } yield {
@@ -986,7 +1011,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
@@ -1033,7 +1058,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
@@ -1077,7 +1102,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
@@ -1119,7 +1144,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
@@ -1158,7 +1183,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
@@ -1199,7 +1224,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
@@ -1243,7 +1268,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
@@ -1286,7 +1311,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
@@ -1326,7 +1351,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
@@ -1367,7 +1392,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
@@ -1407,7 +1432,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
@@ -1447,7 +1472,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
@@ -1488,7 +1513,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
@@ -1528,7 +1553,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
@@ -1567,7 +1592,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
@@ -1607,7 +1632,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
@@ -1641,7 +1666,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
@@ -1679,7 +1704,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
@@ -1720,7 +1745,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
@@ -1760,7 +1785,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
@@ -1800,7 +1825,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
@@ -1844,7 +1869,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
@@ -1886,7 +1911,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
@@ -1930,7 +1955,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
@@ -1975,7 +2000,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
@@ -2018,7 +2043,7 @@ trait APIMethods121 {
           for {
             u <- cc.user
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
             metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
             deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
@@ -2071,7 +2096,7 @@ trait APIMethods121 {
       for {
         params <- paramsBox
         bankAccount <- BankAccount(bankId, accountId)
-        view <- View.fromUrl(viewId, bankAccount)
+        view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
         transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)(None)
       } yield {
         val json = JSONFactory.createTransactionsJSON(transactions)
@@ -2119,7 +2144,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, cc.user)
           } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)
@@ -2667,6 +2692,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         UserNotLoggedIn,
         BankAccountNotFound,
         InvalidJsonFormat,
+        ViewNotFound,
         "view does not authorize metadata access",
         "the view does not allow adding a where tag",
         "Coordinates not possible",
@@ -2680,7 +2706,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             u <- cc.user
-            view <- View.fromUrl(viewId, accountId, bankId)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
@@ -2711,6 +2737,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         UserNotLoggedIn,
         BankAccountNotFound,
         InvalidJsonFormat,
+        ViewNotFound,
         "view does not authorize metadata access",
         "the view does not allow updating a where tag",
         "Coordinates not possible",
@@ -2724,7 +2751,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             u <- cc.user
-            view <- View.fromUrl(viewId, accountId, bankId)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
@@ -2771,7 +2798,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, bankAccount)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
             deleted <- metadata.deleteWhereTag(viewId, cc.user, bankAccount)
           } yield {
@@ -2805,7 +2832,7 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- View.fromUrl(viewId, account)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             transaction <- account.moderatedTransaction(transactionId, view, cc.user)
             moderatedOtherBankAccount <- transaction.otherBankAccount
           } yield {
@@ -2853,7 +2880,7 @@ Authentication via OAuth is required. The user must either have owner privileges
     lazy val makePayment : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
         sc
-          if (Props.getBool("payments_enabled", false)) {
+          if (APIUtil.getPropsAsBoolValue("payments_enabled", false)) {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}

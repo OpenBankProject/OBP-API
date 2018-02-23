@@ -1,9 +1,11 @@
 package code.consumer
 
+import code.api.util.APIUtil
 import code.model.{AppType, Consumer, MappedConsumersProvider}
 import code.remotedata.RemotedataConsumers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
 import scala.concurrent.Future
 
 object Consumers extends SimpleInjector {
@@ -11,7 +13,7 @@ object Consumers extends SimpleInjector {
   val consumers = new Inject(buildOne _) {}
 
   def buildOne: ConsumersProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
     case false  => MappedConsumersProvider
     case true => RemotedataConsumers     // We will use Akka as a middleware
   }

@@ -44,6 +44,8 @@ import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
+import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import code.util.Helper.MdcLoggable
 
@@ -111,7 +113,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case obj@Failure(msg, _, c) => {
-        val failuresMsg = Props.getBool("display_internal_errors").openOr(false) match {
+        val failuresMsg = APIUtil.getPropsAsBoolValue("display_internal_errors", false) match {
           case true => // Show all error in a chain
             obj.messageChain
           case false => // Do not display internal errors
@@ -179,7 +181,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     (nameOf(Implementations3_0_0.addEntitlementRequest), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getAllEntitlementRequests), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getEntitlementRequests), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.deleteEntitlementRequest), ApiVersion.v3_0_0.toString)
+    (nameOf(Implementations3_0_0.getEntitlementRequestsForCurrentUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getEntitlementsForCurrentUser), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.deleteEntitlementRequest), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.createViewForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.updateViewForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString)
   )
   /**
     * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
@@ -208,7 +216,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
       }
-    } else if (Props.getBool("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
         case Full(u) => fn(cc.copy(user = Full(u)))// Authentication is successful
         case _ => {
@@ -216,7 +224,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Full(errorJsonResponse(message, httpCode))
         }
       }
-    } else if (Props.getBool("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature

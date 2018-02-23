@@ -14,6 +14,7 @@ import Defaults._
 import net.liftweb.json
 import java.util.Date
 
+import code.api.util.APIUtil
 import org.elasticsearch.common.settings.Settings
 import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
@@ -45,7 +46,7 @@ class elasticsearch extends MdcLoggable {
 
   def searchProxy(userId: String, queryString: String): LiftResponse = {
     //println("-------------> " + esHost + ":" + esPortHTTP + "/" + esIndex + "/" + queryString)
-    if (Props.getBool("allow_elasticsearch", false) ) {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
       val request = constructQuery(userId, getParameters(queryString))
       val response = getAPIResponse(request)
       ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
@@ -55,7 +56,7 @@ class elasticsearch extends MdcLoggable {
   }
 
   def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): LiftResponse = {
-    if (Props.getBool("allow_elasticsearch", false) ) {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
       logger.debug(esUrl)
@@ -174,7 +175,7 @@ class elasticsearchMetrics extends elasticsearch {
 
   var client:TcpClient = null
 
-  if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
+  if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
     val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
     client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
     try {
@@ -198,7 +199,7 @@ class elasticsearchMetrics extends elasticsearch {
   }
 
   def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String) {
-    if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       try {
         client.execute {
           indexInto(esIndex / "request") fields (
@@ -227,7 +228,7 @@ class elasticsearchWarehouse extends elasticsearch {
   override val esPortHTTP = Props.get("es.warehouse.port.http","9200")
   override val esIndex    = Props.get("es.warehouse.index", "warehouse")
   var client:TcpClient = null
-  if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
+  if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_warehouse", false) ) {
     val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
     client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
   }
@@ -244,7 +245,7 @@ class elasticsearchOBP extends elasticsearch {
 
   var client:TcpClient = null
 
-  if (Props.getBool("allow_elasticsearch", false) ) {
+  if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
     client = TcpClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
 
     client.execute {
@@ -274,7 +275,7 @@ class elasticsearchOBP extends elasticsearch {
     // Index a Transaction
     // Put into a index that has the viewId and version in the name.
     def indexTransaction(viewId: String, transaction: TransactionJSON) {
-      if (Props.getBool("allow_elasticsearch", false) ) {
+      if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
         client.execute {
           index into transactionIndex / "transaction" fields (
             "viewId" -> viewId,
@@ -287,7 +288,7 @@ class elasticsearchOBP extends elasticsearch {
     // Index an Account
     // Put into a index that has the viewId and version in the name.
     def indexAccount(viewId: String, account: AccountJSON) {
-      if (Props.getBool("allow_elasticsearch", false) ) {
+      if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
         client.execute {
           index into accountIndex / "account" fields (
             "viewId" -> viewId,

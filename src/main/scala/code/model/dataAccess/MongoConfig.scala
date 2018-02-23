@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.api.util.APIUtil
 import code.metadata.narrative.OBPNarrativeInit
 import code.metadata.wheretags.OBPWhereTagInit
 import com.mongodb.MongoClient
@@ -49,7 +50,7 @@ object MongoConfig {
 
     val srvr = new ServerAddress(
        Props.get("mongo.host", "localhost"),
-       Props.getInt("mongo.port", 27017)
+       APIUtil.getPropsAsIntValue("mongo.port", 27017)
     )
     val defaultDatabase = Props.mode match {
         case Props.RunModes.Test  => "test"

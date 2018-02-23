@@ -7,6 +7,7 @@ import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import code.util.Helper.MdcLoggable
+import code.api.util.ErrorMessages._
 
 object TransactionInserter extends LiftActor with MdcLoggable {
 
@@ -60,7 +61,7 @@ object TransactionInserter extends LiftActor with MdcLoggable {
         toMatch.obp_transaction.this_account.number,
         toMatch.obp_transaction.details.value.amount,
         toMatch.obp_transaction.details.completed.`$dt`,
-        toMatch.obp_transaction.other_account.holder).openOrThrowException("Attempted to open an empty Box.")
+        toMatch.obp_transaction.other_account.holder).openOrThrowException(attemptedToOpenAnEmptyBox)
 
       //logger.info("Insert operation id " + insertID + " # of existing matches: " + existingMatches)
       val numberToInsert = identicalTransactions.size - existingMatches

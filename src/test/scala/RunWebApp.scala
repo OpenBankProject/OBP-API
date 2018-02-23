@@ -29,12 +29,13 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 */
 
+import code.api.util.APIUtil
 import net.liftweb.util.Props
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
 object RunWebApp extends App {
-  val server = new Server(Props.getInt("dev.port", 8080))
+  val server = new Server(APIUtil.getPropsAsIntValue("dev.port", 8080))
 
   val context = new WebAppContext()
   context.setServer(server)

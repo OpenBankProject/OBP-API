@@ -666,9 +666,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
-        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.lastUpdate match {
-          case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+          case Full(l) => now after time(l.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
         //if(outDatedTransactions && useMessageQueue) {
@@ -1084,7 +1084,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
-      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException("Attempted to open an empty Box.")
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
   
     Full(result.getOrElse(false))

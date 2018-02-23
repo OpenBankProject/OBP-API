@@ -139,7 +139,7 @@
 //      val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
 //      val response = for {
 //        bankAccount <- BankAccount(bankId, accountId)
-//        view <- View.fromUrl(viewName, bankAccount)
+//        view <- Views.views.vend.view(viewName, bankAccount)
 //        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params : _*)
 //      } yield {
 //        JsonResponse("transactions" -> transactions.map(t => t.toJson(view)))
@@ -164,7 +164,7 @@
 //      val moderatedTransactionAndView = for {
 //        bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
 //        account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
-//        view <- View.fromUrl(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
+//        view <- Views.views.vend.view(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
 //        moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorised" ~> 401
 //      } yield {
 //        (moderatedTransaction, view)
@@ -188,7 +188,7 @@
 //      val comments = for {
 //        bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
 //        account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
-//        view <- View.fromUrl(viewName,account) ?~ { "view "  + viewName + " not found for account"} ~> 404
+//        view <- Views.views.vend.view(viewName,account) ?~ { "view "  + viewName + " not found for account"} ~> 404
 //        moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorised" ~> 401
 //        comments <- Box(moderatedTransaction.metadata).flatMap(_.comments) ?~ "transaction metadata not authorised" ~> 401
 //      } yield comments
@@ -247,7 +247,7 @@
 //      val moderatedAccountAndViews = for {
 //        bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
 //      account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
-//      view <- View.fromUrl(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
+//      view <- Views.views.vend.view(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
 //      moderatedAccount <- account.moderatedBankAccount(view, user)  ?~ {"view/account not authorised"} ~> 401
 //      availableViews <- Full(account.permittedViews(user))
 //      } yield ModeratedAccountAndViews(moderatedAccount, availableViews)

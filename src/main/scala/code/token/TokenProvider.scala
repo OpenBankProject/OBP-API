@@ -2,10 +2,12 @@ package code.token
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.model.{MappedTokenProvider, Token, TokenType}
 import code.remotedata.RemotedataTokens
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
 import scala.concurrent.Future
 
 object Tokens extends SimpleInjector {
@@ -13,7 +15,7 @@ object Tokens extends SimpleInjector {
   val tokens = new Inject(buildOne _) {}
 
   def buildOne: TokensProvider =
-    Props.getBool("use_akka", false) match {
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedTokenProvider
       case true => RemotedataTokens     // We will use Akka as a middleware
     }

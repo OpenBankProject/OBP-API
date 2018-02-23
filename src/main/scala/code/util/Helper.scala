@@ -176,6 +176,18 @@ object Helper{
     val extractCleanURL = validRedirectURL.getOrElse("").split("/oauth")(0) 
     Full(extractCleanURL)
   }
+  
+  /**
+    * extract Oauth Token String from input value, because input may have some parameters, such as the following examples  <br/> 
+    * http://localhost:8082/oauthcallback?oauth_token=DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O&oauth_verifier=64465 
+    *   -->  DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O
+    * 
+    * @param input a long url with parameters 
+    * @return Oauth Token String
+    */
+  def extractOauthToken(input: String): Box[String] = {
+    Full(input.split("oauth_token=")(1).split("&")(0))
+  }
 
   /**
     * check the redirect url is valid with default values.
