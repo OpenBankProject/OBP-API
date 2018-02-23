@@ -39,8 +39,9 @@ import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
 import code.views.Views
 import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
+import net.liftweb.mapper.By
 
 case class UserId(val value : Long) {
   override def toString = value.toString
@@ -93,8 +94,12 @@ trait User {
     * @param bankAccount The input bankAccount, check if it contains "owner" view. 
     * @return  True: if the bankAccount contains the "owner". False, if no "owner"
     */
-  def hasOwnerView(bankAccount: BankAccount): Boolean =
-    permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
+  def hasOwnerView(bankAccount: BankAccount): Boolean ={
+    //find the bankAccount owner view object
+    val viewImpl = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId)).orNull
+    //check the ViewPrivileges by user and viewImpl
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+  }
 
   /**
   * @return the bank accounts where the user has at least access to a Private view (is_public==false)
