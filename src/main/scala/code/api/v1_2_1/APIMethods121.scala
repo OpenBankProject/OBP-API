@@ -45,7 +45,12 @@ trait APIMethods121 {
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
-      val views = account permittedViews user
+      //If user is full, it is the authorization User, show private views.
+      //If user is empty, just show the public views.
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[ViewJSONV121] =
         views.map( v => {
           JSONFactory.createViewJSON(v)
@@ -430,8 +435,9 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           for {
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            availableviews <- Full(account.permittedViews(cc.user))
+            availableviews <- Full(Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {

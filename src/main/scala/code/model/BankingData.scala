@@ -354,22 +354,6 @@ trait BankAccount extends MdcLoggable {
   private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
   
   /**
-    * 
-    * Check search for the bankaccount private views which the user have access to ++ public views.
-    * @param user a user
-    * @return a list of views, the user can access
-    *         
-    */
-  final def permittedViews(user: Box[User]) : List[View] = {
-    user match {
-      case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(this.bankId, this.accountId))
-      case _ =>{ //TODO, this is strange ?? do we really need show all the public views???
-        Views.views.vend.publicViews
-      }
-    }
-  }
-
-  /**
   * @param view the view that we want test the access to
   * @param user the user that we want to see if he has access to the view or not
   * @return true if the user is allowed to access this view, false otherwise

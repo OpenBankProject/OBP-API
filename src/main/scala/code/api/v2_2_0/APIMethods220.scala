@@ -1070,7 +1070,6 @@ trait APIMethods220 {
             _ <- Bank(bankId) ?~! BankNotFound
             account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! {AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            availableViews <- Full(account.permittedViews(cc.user))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")

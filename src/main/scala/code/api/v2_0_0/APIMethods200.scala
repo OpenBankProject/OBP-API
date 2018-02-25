@@ -72,7 +72,10 @@ trait APIMethods200 {
 
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
-      val views = account.permittedViews(user)
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
@@ -84,7 +87,10 @@ trait APIMethods200 {
 
   private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
-      val views = account.permittedViews(user)
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
@@ -871,14 +877,13 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
-            availableviews <- Full(account.permittedViews(cc.user))
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
-            val viewsAvailable = availableviews.map(JSONFactory121.createViewJSON)
-            val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount, viewsAvailable)
+            val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
             val response = successJsonResponse(Extraction.decompose(moderatedAccountJson))
             response
           }
@@ -977,7 +982,7 @@ trait APIMethods200 {
             u <- cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
-            availableViews <- Full(account.permittedViews(cc.user))
+            availableViews <- Full(Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
