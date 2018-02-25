@@ -311,51 +311,6 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseAccounts(user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
-
-  /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseViews(bankAccountId: BankIdAccountId, user : User): List[ViewImpl] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
-        By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
-      )
-    } else {
-      Nil
-    }
-  }
-
-  /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bank.bankId.value)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
- 
-  /**
    * @return the bank accounts where the user has at least access to a Private view (is_public==false)
    */
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {

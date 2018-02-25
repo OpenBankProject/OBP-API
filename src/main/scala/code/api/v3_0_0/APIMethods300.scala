@@ -263,9 +263,6 @@ trait APIMethods300 {
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-        |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJsonV300,
@@ -322,8 +319,6 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(false)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJsonV300,
@@ -375,8 +370,6 @@ trait APIMethods300 {
         |
         |
         |OAuth authentication is required
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -482,7 +475,7 @@ trait APIMethods300 {
             }
             bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
             bank<- unboxFullAndWrapIntoFuture(bankBox)
-            availableBankIdAccountIdList <- Future { MapperViews.getAllFirehoseAccounts(bank, u) }
+            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank, u) }
             moderatedAccounts = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
               //1 each accountId-> find a proper bankAccount object.

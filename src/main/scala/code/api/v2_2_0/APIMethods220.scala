@@ -277,9 +277,6 @@ trait APIMethods220 {
       s"""Get the counterparties for the account / view.
           |
           |${authenticationRequiredMessage(true)}
-          |
-          |This endpoint works with firehose.
-          |
           |""".stripMargin,
       emptyObjectJson,
       counterpartiesJsonV220,
@@ -326,9 +323,6 @@ trait APIMethods220 {
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
-         |
-         |This endpoint works with firehose.
-         |
          |""".stripMargin,
       emptyObjectJson,
       counterpartyWithMetadataJson,
@@ -1039,8 +1033,6 @@ trait APIMethods220 {
           |The view specified by VIEW_ID must have the canAddCounterparty permission
          |
           |${authenticationRequiredMessage(true)}
-          |
-          |This endpoint works with firehose.
           |
          |""".stripMargin,
       postCounterpartyJSON,

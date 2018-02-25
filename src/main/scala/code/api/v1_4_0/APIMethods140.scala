@@ -424,8 +424,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
         | 
-        | This endpoint works with firehose
-        | 
       """.stripMargin,
       emptyObjectJson,
       transactionRequestTypesJsonV140,
@@ -473,7 +471,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get all Transaction Requests.",
-      "This endpoint works with firehose. ",
+      "",
       emptyObjectJson,
       transactionRequest,
       List(
@@ -597,7 +595,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """
         |In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer. 
         |
-        |This endpoint works with firehose.
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequest,

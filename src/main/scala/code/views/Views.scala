@@ -1,6 +1,7 @@
 package code.views
 
 import code.api.util.APIUtil
+import code.api.util.APIUtil.canUseFirehose
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
@@ -74,6 +75,17 @@ trait Views {
   def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
   def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
+  final def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bank.bankId.value)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+  
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]

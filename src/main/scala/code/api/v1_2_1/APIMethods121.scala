@@ -208,8 +208,6 @@ trait APIMethods121 {
       s"""Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
-         |This endpoint works with firehose.
-         |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       emptyObjectJson,
@@ -244,8 +242,6 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.
         |
-        |This endpoint works with firehose
-        |
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -278,7 +274,6 @@ trait APIMethods121 {
         |For each account the API returns the ID and the available views. 
         |Authentication via OAuth is required.
         |
-        |This endpoint works with firehose.
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -304,8 +299,6 @@ trait APIMethods121 {
       "Get accounts at bank (Private).",
       s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
-        |
-        |This endpoint works with firehose.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -343,8 +336,6 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -376,8 +367,6 @@ trait APIMethods121 {
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -420,8 +409,6 @@ trait APIMethods121 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-         |
-         |This endpoint works with firehose
          |
          |""".stripMargin,
       emptyObjectJson,

@@ -140,8 +140,6 @@ trait APIMethods200 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |This endpoint works with firehose.
-         |
          |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -175,8 +173,6 @@ trait APIMethods200 {
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(true)}
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -221,8 +217,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(false)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -260,8 +254,6 @@ trait APIMethods200 {
       s"""Get accounts at one bank that the user has access to.
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
-        |
-        |This endpoint works with firehose.
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
@@ -315,8 +307,6 @@ trait APIMethods200 {
         |This call MAY have an alias /bank/accounts but ONLY if defaultBank is set in Props
         |
         |${authenticationRequiredMessage(true)}
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -384,8 +374,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -423,8 +411,6 @@ trait APIMethods200 {
       """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -860,8 +846,6 @@ trait APIMethods200 {
         |
         |OAuth authentication is required
         |      
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJSON,
@@ -964,8 +948,6 @@ trait APIMethods200 {
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -1252,8 +1234,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       transactionRequestBodyJsonV200,
       emptyObjectJson,
@@ -1328,8 +1308,6 @@ trait APIMethods200 {
       "Answer Transaction Request Challenge.",
       """ 
         |In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
-        |
-        |This endpoint works with firehose.
         |
       """.stripMargin,
       ChallengeAnswerJSON("89123812", "123345"),
@@ -1431,8 +1409,6 @@ trait APIMethods200 {
         |PSD2 Context: PSD2 requires transparency of charges to the customer.
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
-        |
-        |This endpoint works with firehose.
         |
       """.stripMargin,
       emptyObjectJson,
