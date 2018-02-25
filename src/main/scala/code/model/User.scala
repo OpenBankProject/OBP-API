@@ -91,15 +91,6 @@ trait User extends MdcLoggable {
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
-  /**
-  * @return the bank accounts where the user has at least access to a Private view (is_public==false)
-  */
-  def privateAccounts : List[BankAccount] = {
-    Views.views.vend.getPrivateBankAccounts(this).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
-  }
-
   def assignedEntitlements : List[Entitlement] = {
     Entitlement.entitlement.vend.getEntitlementsByUserId(userId) match {
       case Full(l) => l.sortWith(_.roleName < _.roleName)
