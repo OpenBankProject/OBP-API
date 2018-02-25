@@ -1,9 +1,11 @@
 package code.views
 
 import code.api.util.APIUtil
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
 import net.liftweb.common.Box
+import net.liftweb.mapper.By
 import net.liftweb.util.{Props, SimpleInjector}
 
 import scala.collection.immutable.List
@@ -40,10 +42,28 @@ trait Views {
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
+  
   def views(bankAccountId : BankIdAccountId) : List[View]
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
   def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
 
+  final def allViewsUserCanAccess(user: User): List[View] ={
+    val privateViewsUserCanAccess = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten
+    val publicViewsUserCanAccess = if (APIUtil.ALLOW_PUBLIC_VIEWS)
+      ViewImpl
+        .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
+    else
+      Nil
+    (privateViewsUserCanAccess++publicViewsUserCanAccess).distinct
+  }
+  
+  final def allViewsUserCanAccessForAccount(user: User, bankAccount: BankAccount) : List[View] =
+    Views.views.vend.allViewsUserCanAccess(user).filter(
+      view =>
+        view.bankId == bankAccount.bankId &&
+          view.accountId == bankAccount.accountId
+    )
+  
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
   @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")

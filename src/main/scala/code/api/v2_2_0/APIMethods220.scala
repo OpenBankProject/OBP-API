@@ -302,7 +302,7 @@ trait APIMethods220 {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -345,7 +345,7 @@ trait APIMethods220 {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
           } yield {
@@ -1071,7 +1071,7 @@ trait APIMethods220 {
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             availableViews <- Full(account.permittedViews(cc.user))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
-            _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             _ <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)

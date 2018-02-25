@@ -283,7 +283,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(x ?~! ViewNotFound)
               } map { unboxFull(_) }
               _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-                (u.hasViewPrivilege(view))
+                (u.hasViewAccess(view))
               }
             } yield {
               for {
@@ -396,7 +396,7 @@ trait APIMethods300 {
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
               x => fullBoxOrException(x ?~! ViewNotFound)
             } map { unboxFull(_) }
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewPrivilege(view))} 
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))} 
           } yield {
             for {
               moderatedAccount <- account.moderatedBankAccount(view, user)

@@ -62,46 +62,37 @@ trait User extends MdcLoggable {
   def emailAddress : String
   def name : String
   
-  final def allViewsUserCanAccess: List[View] ={
-    val privateViewsUserCanAccess = ViewPrivileges.findAll(By(ViewPrivileges.user, this.resourceUserId.value)).map(_.view.obj.toList).flatten
-    val publicViewsUserCanAccess = if (APIUtil.ALLOW_PUBLIC_VIEWS)
-      ViewImpl
-        .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-    else
-      Nil
-    (privateViewsUserCanAccess++publicViewsUserCanAccess).distinct
-    
-  }
-  final def hasOwnerView(bankAccount: BankAccount): Boolean ={
+  /**
+    * Also see @`hasViewAccess(view: View): Boolean`
+    * Here only need the bankIdAccountId, it will search for the `owner` view internally.
+    * And than call the `hasViewAccess(view: View): Boolean` method
+    * @return if the user have the account owner view access return true, otherwise false.
+    */
+  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean ={
     //find the bankAccount owner view object
-    val viewImplBox = ViewImpl.find(ViewId("owner"),BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
-    val viewImpl = viewImplBox match {
-      case Full(v) => v
+    val viewImplBox = Views.views.vend.view(ViewId("owner"), bankIdAccountId)
+    viewImplBox match {
+      case Full(v) => hasViewAccess(v)
       case _ => 
-        logger.warn(s"It is strange. This bankAccount(${bankAccount.bankId}, ${bankAccount.accountId}) do not have `owner` view.")
+        logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
         return false
     }
-    
-    //check the ViewPrivileges by user and viewImpl
-    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   /**
-    * The use have viewPrivilege, only check the `ViewPrivileges` table. 
+    * Also see @`hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean`
+    * Here we need the `view` object, so we need check the exsitence before call this method.
+    * In the method, we will check if the view and user have the record in ViewPrileges table.
+    * If it is, return true, otherwise false.
+    * @param view the view object, need check the exsitence before calling the method
+    * @return if has the input view access, return true, otherwise false.
     */
-  final def hasViewPrivilege(view: View): Boolean ={
+  final def hasViewAccess(view: View): Boolean ={
     val viewImpl = view.asInstanceOf[ViewImpl]
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
-  final def allViewsUserCanAccessForAccount(bankAccount: BankAccount) : List[View] =
-    allViewsUserCanAccess.filter(
-      view => 
-        view.bankId == bankAccount.bankId && 
-        view.accountId == bankAccount.accountId
-    )
-  
   final def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(allViewsUserCanAccessForAccount(bankAccount).exists(_.canInitiateTransaction)){
+    if(Views.views.vend.allViewsUserCanAccessForAccount(this,bankAccount).exists(_.canInitiateTransaction)){
       Full()
     }
     else {

@@ -453,7 +453,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
-              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
               transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
@@ -496,7 +496,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
-              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
@@ -631,7 +631,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
-              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)

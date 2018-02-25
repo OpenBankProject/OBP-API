@@ -979,7 +979,7 @@ trait APIMethods200 {
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(cc.user))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
-            _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
@@ -1291,7 +1291,7 @@ trait APIMethods200 {
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
-              _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -1358,7 +1358,7 @@ trait APIMethods200 {
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
-              _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
@@ -1445,7 +1445,7 @@ trait APIMethods200 {
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
-              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
               yield {
