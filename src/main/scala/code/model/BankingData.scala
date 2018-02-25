@@ -382,7 +382,7 @@ trait BankAccount extends MdcLoggable {
   * @param user the user that we want to see if he has access to the view or not
   * @return true if the user is allowed to access this view, false otherwise
   */
-  final def authorizedAccess(view: View, user: Option[User]) : Boolean = {
+  final def hasAccess(view: View, user: Option[User]) : Boolean = {
     if(view.isPublic)
       true
     else
@@ -395,7 +395,32 @@ trait BankAccount extends MdcLoggable {
           false
       }
   }
+  
+  final def hasPrivateAccess(view: View, user: Option[User]) : Boolean = {
+    user match {
+      case Some(u) =>
+        u.hasViewPrivilege(view)
+      case _ =>
+        false
+    }
+  }
 
+  final def hasPublicAccess(view: View) : Boolean = {
+    if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
+    else false
+  }
+  
+  final def hasFirehoseAccess(view: View, user: Option[User]) : Boolean = {
+    if(view.isFirehose && APIUtil.ALLOW_FIREHOSE_VIEWS)
+      user match {
+        case Some(u) if hasEntitlement("", u.userId, ApiRole.canUseFirehoseAtAnyBank) =>
+          true
+        case _ =>
+          false
+      }
+    else false
+  }
+  
   /**
   * @param user a user requesting to see the other users' permissions
   * @return a Box of all the users' permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
@@ -557,7 +582,7 @@ trait BankAccount extends MdcLoggable {
   }
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
-    if(authorizedAccess(view, user))
+    if(hasAccess(view, user))
       Connector.connector.vend.getTransaction(bankId, accountId, transactionId).flatMap(view.moderate)
     else
       viewNotAllowed(view)
@@ -569,7 +594,7 @@ trait BankAccount extends MdcLoggable {
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[CallContext]): Box[List[ModeratedTransaction]] = {
-    if(authorizedAccess(view, user)) {
+    if(hasAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactions(bankId, accountId, session, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
@@ -580,7 +605,7 @@ trait BankAccount extends MdcLoggable {
   
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactionsCore(user : Box[User], view : View, queryParams: OBPQueryParam*)(session: Option[CallContext]): Box[List[ModeratedTransactionCore]] = {
-    if(authorizedAccess(view, user)) {
+    if(hasAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactionsCore(bankId, accountId, session, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! "Server error"
@@ -590,7 +615,7 @@ trait BankAccount extends MdcLoggable {
   }
 
   final def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
-    if(authorizedAccess(view, user))
+    if(hasAccess(view, user))
       //implicit conversion from option to box
       view.moderate(this)
     else
@@ -604,7 +629,7 @@ trait BankAccount extends MdcLoggable {
   *  accounts that have at least one transaction in common with this bank account
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
-    if(authorizedAccess(view, user))
+    if(hasAccess(view, user))
       Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
@@ -616,7 +641,7 @@ trait BankAccount extends MdcLoggable {
   *  account that have at least one transaction in common with this bank account
   */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
-    if(authorizedAccess(view, user))
+    if(hasAccess(view, user))
       Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
