@@ -390,7 +390,7 @@ trait BankAccount extends MdcLoggable {
         case Some(u) if view.isFirehose && APIUtil.canUseFirehose(u) =>
           true
         case Some(u) =>
-          u.hasView(view)
+          u.hasViewPrivilege(view)
         case _ =>
           false
       }
