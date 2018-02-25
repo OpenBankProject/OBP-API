@@ -369,7 +369,7 @@ trait BankAccount extends MdcLoggable {
     */
   final def permittedViews(user: Box[User]) : List[View] = {
     user match {
-      case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, this)
+      case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(this.bankId, this.accountId))
       case _ =>{ //TODO, this is strange ?? do we really need show all the public views???
         Views.views.vend.publicViews
       }

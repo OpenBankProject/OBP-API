@@ -277,33 +277,6 @@ object MapperViews extends Views with MdcLoggable {
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
 
-  /**
-    * This method is belong to Views trait, check the permitted views of input account for input user.
-    * Select all the views by user and bankAccountUID.
-    *
-    * @param user the user need to be checked for the views
-    * @param bankAccountId the bankAccountUID, the account will be checked the views.
-    * @return if find, return the view list. or return Nil.
-    */
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] = {
-    //TODO: do this more efficiently?
-    //select all views by user.
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    //select the Private views by BankAccountUid
-    val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
-      p.view.obj match {
-        case Full(v) => if(
-            v.isPrivate &&
-            v.bankId == bankAccountId.bankId&&
-            v.accountId == bankAccountId.accountId){
-          Some(v)
-        } else None
-        case _ => None
-      }
-    })
-    // merge the Private and public views
-    (userPrivateViewsForAccount ++ publicViews ++ getAllFirehoseViews(bankAccountId, user)).distinct
-  }
 
   def publicViews: List[View] = {
     if (APIUtil.ALLOW_PUBLIC_VIEWS)

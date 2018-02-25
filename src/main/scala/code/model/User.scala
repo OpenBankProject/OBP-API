@@ -91,15 +91,6 @@ trait User extends MdcLoggable {
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
-  final def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(Views.views.vend.viewsUserCanAccessForAccount(this, bankAccount).exists(_.canInitiateTransaction)){
-      Full()
-    }
-    else {
-      Failure("user doesn't have access to any view that allows initiating transactions")
-    }
-  }
-  
   /**
   * @return the bank accounts where the user has at least access to a Private view (is_public==false)
   */

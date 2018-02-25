@@ -52,9 +52,6 @@ object RemotedataViews extends ObpActorInit with Views {
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] =
     extractFuture(actor ? cc.views(bankAccountId))
 
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] =
-    extractFuture(actor ? cc.permittedViews(user, bankAccountId))
-
   def publicViews : List[View] =
     extractFuture(actor ? cc.publicViews())
 

@@ -54,19 +54,17 @@ trait Views {
     */
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
-
   final def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
   
   final def privateViewsUserCanAccess(user: User): List[View] ={
     ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
   }
   
-  final def viewsUserCanAccessForAccount(user: User, bankAccount: BankAccount) : List[View] =
+  final def viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId) : List[View] =
     Views.views.vend.viewsUserCanAccess(user).filter(
       view =>
-        view.bankId == bankAccount.bankId &&
-          view.accountId == bankAccount.accountId
+        view.bankId == bankAccountId.bankId &&
+          view.accountId == bankAccountId.accountId
     )
   
   def getAllPublicAccounts : List[BankIdAccountId]
@@ -114,7 +112,6 @@ class RemotedataViewsCaseClasses {
   case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class views(bankAccountId: BankIdAccountId)
-  case class permittedViews(user: User, bankAccountId: BankIdAccountId)
   case class publicViews()
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
