@@ -55,18 +55,9 @@ trait Views {
     */
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
-  final def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
-  
-  final def privateViewsUserCanAccess(user: User): List[View] ={
-    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
-  }
-  
-  final def viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId) : List[View] =
-    Views.views.vend.viewsUserCanAccess(user).filter(
-      view =>
-        view.bankId == bankAccountId.bankId &&
-          view.accountId == bankAccountId.accountId
-    )
+  def viewsUserCanAccess(user: User): List[View] 
+  def privateViewsUserCanAccess(user: User): List[View]
+  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
@@ -75,16 +66,7 @@ trait Views {
   def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
   def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
-  final def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bank.bankId.value)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId]
   
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
@@ -119,7 +101,11 @@ class RemotedataViewsCaseClasses {
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
-  case class views(bankAccountId: BankIdAccountId)
+  case class viewsForAccount(bankAccountId: BankIdAccountId)
+  case class viewsUserCanAccess(user: User)
+  case class privateViewsUserCanAccess(user: User)
+  case class viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
+  case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)

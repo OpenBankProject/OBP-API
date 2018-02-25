@@ -276,7 +276,8 @@ object MapperViews extends Views with MdcLoggable {
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
-
+  
+  def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
 
   def publicViews: List[View] = {
     if (APIUtil.ALLOW_PUBLIC_VIEWS)
@@ -284,6 +285,17 @@ object MapperViews extends Views with MdcLoggable {
     else
       Nil
   }
+  
+  def privateViewsUserCanAccess(user: User): List[View] ={
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
+  }
+  
+  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
+    Views.views.vend.viewsUserCanAccess(user).filter(
+      view =>
+        view.bankId == bankIdAccountId.bankId &&
+          view.accountId == bankIdAccountId.accountId
+    )
 
 
   /**
@@ -349,7 +361,18 @@ object MapperViews extends Views with MdcLoggable {
       getPrivateBankAccounts(user, bankId)
     }
   }
-
+  
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bank.bankId.value)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+  
   /**
     * @param bankIdAccountId the IncomingAccount from Kafka
     * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support
