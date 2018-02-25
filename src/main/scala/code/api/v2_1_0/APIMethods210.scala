@@ -680,7 +680,8 @@ trait APIMethods210 {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerView(fromAccount), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }

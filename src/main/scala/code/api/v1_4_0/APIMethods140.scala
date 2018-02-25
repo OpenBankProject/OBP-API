@@ -8,6 +8,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.usercustomerlinks.UserCustomerLink
+import code.views.Views
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
@@ -451,7 +452,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
               transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
@@ -493,7 +495,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
@@ -627,7 +630,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
