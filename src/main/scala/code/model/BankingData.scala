@@ -369,7 +369,7 @@ trait BankAccount extends MdcLoggable {
     */
   final def permittedViews(user: Box[User]) : List[View] = {
     user match {
-      case Full(u) => u.allViewsUserCanSeeForThisAccount(this)
+      case Full(u) => u.allViewsUserCanAccessForAccount(this)
       case _ =>{
         //logger.debug("No user was passed to permittedViews")
         Views.views.vend.publicViewsForAccount(BankIdAccountId(this.bankId, this.accountId))

@@ -94,7 +94,7 @@ trait User extends MdcLoggable {
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
-  final def allViewsUserCanSeeForThisAccount(bankAccount: BankAccount) : List[View] =
+  final def allViewsUserCanAccessForAccount(bankAccount: BankAccount) : List[View] =
     allViewsUserCanAccess.filter(
       view => 
         view.bankId == bankAccount.bankId && 
@@ -102,7 +102,7 @@ trait User extends MdcLoggable {
     )
   
   final def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(allViewsUserCanSeeForThisAccount(bankAccount).exists(_.canInitiateTransaction)){
+    if(allViewsUserCanAccessForAccount(bankAccount).exists(_.canInitiateTransaction)){
       Full()
     }
     else {
