@@ -310,27 +310,16 @@ object MapperViews extends Views with MdcLoggable {
       }
     })
     // merge the Private and public views
-    (userPrivateViewsForAccount ++ publicViews(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
+    (userPrivateViewsForAccount ++ publicViewsForAccount(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
   }
 
-  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
-    Future {
-      permittedViews(user, bankAccountId)
-    }
-  }
-
-  def publicViews(bankAccountId : BankIdAccountId) : List[View] = {
+  def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     if(ALLOW_PUBLIC_VIEWS)
       ViewImpl.findAll(By(ViewImpl.isPublic_,true)::ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
     else
       Nil
   }
 
-  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]] = {
-    Future {
-      publicViews(bankAccountId)
-    }
-  }
 
   /**
     * An account is considered public if it contains a public view

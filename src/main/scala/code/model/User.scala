@@ -86,6 +86,14 @@ trait User extends MdcLoggable {
     //check the ViewPrivileges by user and viewImpl
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
+  /**
+    * The use have viewPrivilege, only check the `ViewPrivileges` table. 
+    */
+  final def hasViewPrivilege(view: View): Boolean ={
+    val viewImpl = view.asInstanceOf[ViewImpl]
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+  }
+  
   final def allViewsUserCanSeeForThisAccount(bankAccount: BankAccount) : List[View] =
     allViewsUserCanAccess.filter(
       view => 

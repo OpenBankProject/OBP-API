@@ -71,9 +71,9 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("permittedViews(" + user +", " + bankAccountId +")")
       sender ! extractResult(mapper.permittedViews(user, bankAccountId))
 
-    case cc.publicViews(bankAccountId : BankIdAccountId) =>
+    case cc.publicViewsForAccount(bankAccountId : BankIdAccountId) =>
       logger.debug("publicViews(" + bankAccountId +")")
-      sender ! extractResult(mapper.publicViews(bankAccountId))
+      sender ! extractResult(mapper.publicViewsForAccount(bankAccountId))
 
     case cc.getAllPublicAccounts() =>
       logger.debug("getAllPublicAccounts()")

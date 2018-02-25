@@ -7,6 +7,7 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
@@ -27,6 +28,7 @@ import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
+import code.util.Helper.booleanToBox
 import code.views.Views
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
@@ -972,11 +974,12 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           for {
+            u <- cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(cc.user))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
-            _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
+            _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
@@ -1287,10 +1290,7 @@ trait APIMethods200 {
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
-              availableViews <- Full(fromAccount.permittedViews(cc.user))
-              _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
-              _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
-
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
               _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -1352,13 +1352,13 @@ trait APIMethods200 {
         cc =>
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
-              _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
-
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
@@ -1444,7 +1444,8 @@ trait APIMethods200 {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewPrivilege(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
               yield {

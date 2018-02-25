@@ -239,9 +239,9 @@ trait APIMethods300 {
     }
 
     resourceDocs += ResourceDoc(
-      accountById,
+      getPrivateAccountById,
       implementedInApiVersion,
-      "accountById",
+      "getPrivateAccountById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
@@ -265,33 +265,85 @@ trait APIMethods300 {
         |
         |""".stripMargin,
       emptyObjectJson,
-      moderatedAccountJsonV300,
+      moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
-    lazy val accountById : OBPEndpoint = {
-      //get account by id
+    lazy val getPrivateAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           val res =
             for {
               (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
                 x => fullBoxOrException(x ?~! ViewNotFound)
               } map { unboxFull(_) }
-              availableViews <- (account.permittedViewsFuture(user))
               _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-                (availableViews.contains(view))
+                (u.hasViewPrivilege(view))
               }
             } yield {
               for {
                 moderatedAccount <- account.moderatedBankAccount(view, user)
               } yield {
-                val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON).sortBy(_.short_name)
-                (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), callContext)
+                (createCoreBankAccountJSON(moderatedAccount), callContext)
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      getPublicAccountById,
+      implementedInApiVersion,
+      "getPublicAccountById",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account/public",
+      "Get Account by Id (Full, Public)",
+      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authenticaiton using OAuth.
+        |
+        |${authenticationRequiredMessage(false)}
+        |
+        |This endpoint works with firehose.
+        |
+        |""".stripMargin,
+      emptyObjectJson,
+      moderatedCoreAccountJsonV300,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagAccount ::  Nil)
+    
+    lazy val getPublicAccountById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: "public" :: Nil JsonGet json => {
+        cc =>
+          val res =
+            for {
+              account <- Future { BankAccount(bankId, accountId) } map {
+                x => fullBoxOrException(x ?~! BankAccountNotFound)
+              } map { unboxFull(_) }
+              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
+                x => fullBoxOrException(x ?~! ViewNotFound)
+              } map { unboxFull(_) }
+            } yield {
+              for {
+                moderatedAccount <- account.moderatedBankAccount(view, Empty) //No user, so use Empty.
+              } yield {
+                (createCoreBankAccountJSON(moderatedAccount), None)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -336,20 +388,20 @@ trait APIMethods300 {
           val res =
             for {
             (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
             account <- Future { BankAccount(bankId, accountId, callContext) } map {
               x => fullBoxOrException(x ?~! BankAccountNotFound)
             } map { unboxFull(_) }
-            availableViews <- (account.permittedViewsFuture(user))
             // Assume owner view was requested
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
               x => fullBoxOrException(x ?~! ViewNotFound)
             } map { unboxFull(_) }
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewPrivilege(view))} 
           } yield {
             for {
               moderatedAccount <- account.moderatedBankAccount(view, user)
             } yield {
-              val viewsAvailable = availableViews.map(JSONFactory300.createViewJSON)
-              (createCoreBankAccountJSON(moderatedAccount, viewsAvailable), callContext)
+              (createCoreBankAccountJSON(moderatedAccount), callContext)
             }
           }
           res map { fullBoxOrException(_) } map { unboxFull(_) }

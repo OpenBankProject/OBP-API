@@ -581,7 +581,8 @@ trait APIMethods210 {
               fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${InvalidTransactionRequestId} : $transReqId"

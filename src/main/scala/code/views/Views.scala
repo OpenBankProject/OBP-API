@@ -42,9 +42,7 @@ trait Views {
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def views(bankAccountId : BankIdAccountId) : List[View]
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
-  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]]
-  def publicViews(bankAccountId : BankIdAccountId) : List[View]
-  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]]
+  def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
 
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
@@ -92,7 +90,7 @@ class RemotedataViewsCaseClasses {
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class views(bankAccountId: BankIdAccountId)
   case class permittedViews(user: User, bankAccountId: BankIdAccountId)
-  case class publicViews(bankAccountId: BankIdAccountId)
+  case class publicViewsForAccount(bankAccountId: BankIdAccountId)
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
   case class getAllAccountsUserCanSee(pars: Any*) {

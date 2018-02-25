@@ -372,18 +372,8 @@ trait BankAccount extends MdcLoggable {
       case Full(u) => u.allViewsUserCanSeeForThisAccount(this)
       case _ =>{
         //logger.debug("No user was passed to permittedViews")
-        publicViews
+        Views.views.vend.publicViewsForAccount(BankIdAccountId(this.bankId, this.accountId))
       }
-    }
-  }
-
-  final def permittedViewsFuture(user: Box[User]) : Future[List[View]] = {
-    val acc = BankIdAccountId(this.bankId, this.accountId)
-    user match {
-      case Full(u) =>
-        Views.views.vend.permittedViewsFuture(u, acc)
-      case _ =>
-        Views.views.vend.publicViewsFuture(acc)
     }
   }
 
@@ -565,8 +555,6 @@ trait BankAccount extends MdcLoggable {
       deleted
     }
   }
-
-  final def publicViews : List[View] = Views.views.vend.publicViews(BankIdAccountId(this.bankId,this.accountId))
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
