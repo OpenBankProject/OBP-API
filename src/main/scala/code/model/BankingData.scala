@@ -524,18 +524,6 @@ trait BankAccount extends MdcLoggable {
   }
 
 
-  /*
-   views
-  */
-
-  final def views(user : User) : Box[List[View]] = {
-    //check if the user has access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(this.bankId,this.accountId))) {
-      Full(Views.views.vend.views(BankIdAccountId(this.bankId,this.accountId))) }
-    else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
-  }
-
   final def createView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
     if(!userDoingTheCreate.hasOwnerViewAccess(BankIdAccountId(this.bankId,this.accountId))) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})

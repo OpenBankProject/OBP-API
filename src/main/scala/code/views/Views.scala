@@ -47,16 +47,16 @@ trait Views {
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
   def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
 
-  final def allViewsUserCanAccess(user: User): List[View] ={
-    val privateViewsUserCanAccess = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten
-    val publicViewsUserCanAccess = if (APIUtil.ALLOW_PUBLIC_VIEWS)
-      ViewImpl
-        .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
+  final def allViewsUserCanAccess(user: User): List[View] = (allPrivateViewsUserCanAccess(user: User) ++ allPublicViewsUserCanAccess).distinct
+  final def allPrivateViewsUserCanAccess(user: User): List[View] ={
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
+  }
+  final def allPublicViewsUserCanAccess: List[View] ={
+    if (APIUtil.ALLOW_PUBLIC_VIEWS)
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
     else
       Nil
-    (privateViewsUserCanAccess++publicViewsUserCanAccess).distinct
   }
-  
   final def allViewsUserCanAccessForAccount(user: User, bankAccount: BankAccount) : List[View] =
     Views.views.vend.allViewsUserCanAccess(user).filter(
       view =>

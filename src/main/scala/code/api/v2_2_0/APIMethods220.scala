@@ -129,7 +129,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~ UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId)
+            views <- Full(Views.views.vend.views(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))

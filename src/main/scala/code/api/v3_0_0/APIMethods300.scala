@@ -102,9 +102,12 @@ trait APIMethods300 {
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ?~! BankAccountNotFound)
               } map { unboxFull(_) }
+              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId) {
+                u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+              }
             } yield {
               for {
-                views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+                views <- Full(Views.views.vend.views(BankIdAccountId(account.bankId, account.accountId)))
               } yield {
                 (createViewsJSON(views), callContext)
               }
