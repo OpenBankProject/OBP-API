@@ -61,22 +61,6 @@ object RemotedataViews extends ObpActorInit with Views {
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId] =
     extractFuture(actor ? cc.getPublicBankAccounts(bank))
 
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId] =
-    user match {
-      case Full(theUser) => {
-        extractFuture(actor ? cc.getAllAccountsUserCanSee(theUser))
-      }
-      case _ => getAllPublicAccounts()
-    }
-
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId] =
-    user match {
-      case Full(theUser) => {
-        extractFuture(actor ? cc.getAllAccountsUserCanSee(bank, theUser))
-      }
-      case _ => getPublicBankAccounts(bank)
-    }
-
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] =
     extractFuture(actor ? cc.getPrivateBankAccounts(user))
 

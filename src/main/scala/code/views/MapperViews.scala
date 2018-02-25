@@ -356,60 +356,6 @@ object MapperViews extends Views with MdcLoggable {
   }
  
   /**
-   * @param user
-   * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
-   */
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId] = {
-    user match {
-      case Full(user) => {
-        val publicViewBankAndAccounts=
-          if (ALLOW_PUBLIC_VIEWS)
-            ViewImpl
-              .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-              .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-          else
-            Nil
-
-        val privateViewBankAndAccounts = ViewPrivileges
-          .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(_.isPrivate) //select all the Private views
-          .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-
-        //we remove duplicates here, because some accounts, has public, фирехосе and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(user)).distinct
-      }
-      case _ => getAllPublicAccounts()
-    }
-  }
-
-  /**
-   * @param user
-   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
-   */
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId] = {
-    user match {
-      case Full(user) => {
-        val publicViewBankAndAccounts=
-          if (ALLOW_PUBLIC_VIEWS)
-            ViewImpl
-              .findAll(By(ViewImpl.isPublic_, true),By(ViewImpl.bankPermalink, bank.bankId.value)) // find all the public view in ViewImpl table, it has no relevant with user, all the user can get the public view.
-              .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-          else
-            Nil
-
-        val privateViewBankAndAccounts = ViewPrivileges
-          .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(v => v.isPrivate && v.bankId ==bank.bankId) //select all the Private views according to bankId
-          .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-
-        //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(bank, user)).distinct
-      }
-      case _ => getPublicBankAccounts(bank)
-    }
-  }
-
-  /**
    * @return the bank accounts where the user has at least access to a Private view (is_public==false)
    */
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {

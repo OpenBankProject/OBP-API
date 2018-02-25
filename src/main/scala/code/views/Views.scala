@@ -69,10 +69,6 @@ trait Views {
   
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
   def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
@@ -115,10 +111,6 @@ class RemotedataViewsCaseClasses {
   case class publicViews()
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
-  case class getAllAccountsUserCanSee(pars: Any*) {
-    def apply(user: Box[User]): List[(BankId, AccountId)] = this (user)
-    def apply(bankId: BankId, user: Box[User]): List[(BankId, AccountId)] = this (bankId, user)
-  }
   case class getPrivateBankAccounts(pars: Any*) {
     def apply(user: User): List[(BankId, AccountId)] = this (user)
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)

@@ -79,22 +79,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getPublicBankAccounts(" + bank +")")
       sender ! extractResult(mapper.getPublicBankAccounts(bank))
 
-    case cc.getAllAccountsUserCanSee(user : Box[User]) =>
-      logger.debug("getAllAccountsUserCanSee(" + user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(user))
-
-    case cc.getAllAccountsUserCanSee(user : User) =>
-      logger.debug("getAllAccountsUserCanSee(" + user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(Full(user)))
-
-    case cc.getAllAccountsUserCanSee(bank: Bank, user : Box[User]) =>
-      logger.debug("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(bank, user))
-
-    case cc.getAllAccountsUserCanSee(bank: Bank, user : User) =>
-      logger.debug("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(bank, Full(user)))
-
     case cc.getPrivateBankAccounts(user: User, bankId: BankId) =>
       logger.debug("getPrivateBankAccounts(" + user +", "+ bankId +")")
       sender ! extractResult(mapper.getPrivateBankAccounts(user, bankId))

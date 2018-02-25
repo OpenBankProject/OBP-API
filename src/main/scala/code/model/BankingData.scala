@@ -183,13 +183,6 @@ trait Bank {
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
   
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
-  }
-
   //This was the behaviour in v1.2 and earlier which has since been changed
   @deprecated
   def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
@@ -696,13 +689,6 @@ object BankAccount {
   
   def publicAccounts : List[BankAccount] = {
     Views.views.vend.getAllPublicAccounts.flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
-  }
-
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }
