@@ -43,22 +43,27 @@ trait Views {
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   
-  def views(bankAccountId : BankIdAccountId) : List[View]
+  /**
+    * This will return all the public views, no requirements for accountId or userId.
+    * Because the public views are totally open for everyone. 
+    */
+  def publicViews: List[View]
+  /**
+    * This will return all the views belong to the bankAccount, its own Public + Private views.
+    * Do not contain any other account public views.
+    */
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
+  
   def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
-  def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
 
-  final def allViewsUserCanAccess(user: User): List[View] = (allPrivateViewsUserCanAccess(user: User) ++ allPublicViewsUserCanAccess).distinct
-  final def allPrivateViewsUserCanAccess(user: User): List[View] ={
+  final def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
+  
+  final def privateViewsUserCanAccess(user: User): List[View] ={
     ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
   }
-  final def allPublicViewsUserCanAccess: List[View] ={
-    if (APIUtil.ALLOW_PUBLIC_VIEWS)
-      ViewImpl.findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-    else
-      Nil
-  }
-  final def allViewsUserCanAccessForAccount(user: User, bankAccount: BankAccount) : List[View] =
-    Views.views.vend.allViewsUserCanAccess(user).filter(
+  
+  final def viewsUserCanAccessForAccount(user: User, bankAccount: BankAccount) : List[View] =
+    Views.views.vend.viewsUserCanAccess(user).filter(
       view =>
         view.bankId == bankAccount.bankId &&
           view.accountId == bankAccount.accountId
@@ -110,7 +115,7 @@ class RemotedataViewsCaseClasses {
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class views(bankAccountId: BankIdAccountId)
   case class permittedViews(user: User, bankAccountId: BankIdAccountId)
-  case class publicViewsForAccount(bankAccountId: BankIdAccountId)
+  case class publicViews()
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
   case class getAllAccountsUserCanSee(pars: Any*) {

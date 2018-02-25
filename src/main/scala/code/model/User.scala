@@ -92,7 +92,7 @@ trait User extends MdcLoggable {
   }
   
   final def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(Views.views.vend.allViewsUserCanAccessForAccount(this,bankAccount).exists(_.canInitiateTransaction)){
+    if(Views.views.vend.viewsUserCanAccessForAccount(this, bankAccount).exists(_.canInitiateTransaction)){
       Full()
     }
     else {

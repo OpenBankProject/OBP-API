@@ -4,7 +4,7 @@ import bootstrap.liftweb.ToSchemify
 import code.accountholder.MapperAccountHolders
 import code.api.APIFailure
 import code.api.util.APIUtil._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
@@ -273,16 +273,8 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  /**
-    * Get the view list by bankAccountUUID.
-    * @param bankAccountId find the views by this bankaccountUUID.
-    * @return if find, return the view list. Or return the Nil.
-    */
-  def views(bankAccountId : BankIdAccountId) : List[View] = {
-    if (ALLOW_PUBLIC_VIEWS)
-      ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
-    else
-      ViewImpl.findAll(By(ViewImpl.isPublic_, false):: ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
 
   /**
@@ -310,12 +302,12 @@ object MapperViews extends Views with MdcLoggable {
       }
     })
     // merge the Private and public views
-    (userPrivateViewsForAccount ++ publicViewsForAccount(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
+    (userPrivateViewsForAccount ++ publicViews ++ getAllFirehoseViews(bankAccountId, user)).distinct
   }
 
-  def publicViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
-    if(ALLOW_PUBLIC_VIEWS)
-      ViewImpl.findAll(By(ViewImpl.isPublic_,true)::ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+  def publicViews: List[View] = {
+    if (APIUtil.ALLOW_PUBLIC_VIEWS)
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true))
     else
       Nil
   }

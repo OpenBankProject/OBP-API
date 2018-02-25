@@ -107,7 +107,7 @@ trait APIMethods300 {
               }
             } yield {
               for {
-                views <- Full(Views.views.vend.views(BankIdAccountId(account.bankId, account.accountId)))
+                views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
               } yield {
                 (createViewsJSON(views), callContext)
               }

@@ -130,7 +130,7 @@ trait APIMethods220 {
             u <- cc.user ?~ UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId)
-            views <- Full(Views.views.vend.views(BankIdAccountId(account.bankId, account.accountId)))
+            views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
