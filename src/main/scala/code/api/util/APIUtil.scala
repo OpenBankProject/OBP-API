@@ -181,6 +181,9 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
+  // OAuth 2
+  val Oauth2IsNotAllowed = "OBP-20201: OAuth 2 is not allowed at this instance."
+
 
 
 

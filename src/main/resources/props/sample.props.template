@@ -417,3 +417,10 @@ use_akka=false
 # }
 display_internal_errors=false
 # -------------------------------------- Display internal errors --
+
+
+# -- OAuth 2 ------------------------------------------
+# Enable/Disable OAuth 2 workflow at a server instance
+# In case isn't defined default value is false
+# allow_oauth2_login=false
+# -------------------------------------- OAuth 2 ------

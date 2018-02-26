@@ -217,8 +217,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ => Failure("oauth error")
       }
     } else if (hasAnOAuth2Header(authorization)) {
-      val (usr, _) = OAuth2Handshake.getUserFromOAuth2Header(cc)
-      usr match {
+      val (user, _) = OAuth2Handshake.getUserFromOAuth2Header(cc)
+      user match {
         case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)

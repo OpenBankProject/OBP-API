@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api
 
-import code.api.util.{CallContext, JwtUtil}
+import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
 import code.model.User
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -54,27 +54,33 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     Method for Old Style Endpoints
    */
   def getUserFromOAuth2Header(sc: CallContext): (Box[User], Option[CallContext]) = {
+    APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
+      case true =>
+        val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
+        (Users.users.vend.getUserByUserName(username), Some(sc))
+      case false =>
+        (Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc))
+    }
 
-    val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
 
-    (Users.users.vend.getUserByUserName(username), Some(sc))
 
   }
   /*
     Method for New Style Endpoints
    */
   def getUserFromOAuth2HeaderFuture(sc: CallContext): Future[(Box[User], Option[CallContext])] = {
-
-    val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
-
-    (Users.users.vend.getUserByUserName(username), Some(sc))
-
-    for {
-      user <- Users.users.vend.getUserByUserNameFuture(username)
-    } yield {
-      (user, Some(sc))
+    APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
+      case true =>
+        val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
+        (Users.users.vend.getUserByUserName(username), Some(sc))
+        for {
+          user <- Users.users.vend.getUserByUserNameFuture(username)
+        } yield {
+          (user, Some(sc))
+        }
+      case false =>
+        Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc)))
     }
-
   }
 
 
