@@ -414,7 +414,7 @@ object APIUtil extends MdcLoggable {
        Host: example.com
        Authorization: Bearer mF_9.B5f-4.1JqM
    */
-  def hasAnOAut2hHeader(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
+  def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
 
