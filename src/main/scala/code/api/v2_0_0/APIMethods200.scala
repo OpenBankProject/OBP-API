@@ -833,7 +833,7 @@ trait APIMethods200 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
-      """Information returned about the account specified by ACCOUNT_ID:
+      s"""Information returned about the account specified by ACCOUNT_ID:
         |
         |* Number
         |* Owners
@@ -844,7 +844,7 @@ trait APIMethods200 {
         |This call returns the owner view and requires access to that view.
         |
         |
-        |OAuth authentication is required
+        |${authenticationRequiredMessage(true)}
         |      
         |""".stripMargin,
       emptyObjectJson,
@@ -933,7 +933,7 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
-      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
         |
         |* Number
         |* Owners
@@ -947,7 +947,7 @@ trait APIMethods200 {
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
-        |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |${authenticationRequiredMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -983,9 +983,12 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
-      """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)}
+        |and the user needs to have access to the owner view.
+        |
+        |""",
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),

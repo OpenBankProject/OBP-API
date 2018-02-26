@@ -88,7 +88,7 @@ trait APIMethods220 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account.",
-      """#Views
+      s"""#Views
         |
         |
         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
@@ -111,7 +111,7 @@ trait APIMethods220 {
         |
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV220,
       List(
@@ -146,9 +146,9 @@ trait APIMethods220 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """#Create a view on bank account
+      s"""#Create a view on bank account
         |
-        | OAuth authentication is required and the user needs to have access to the owner view.
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
@@ -199,9 +199,9 @@ trait APIMethods220 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Update View.",
-      """Update an existing view on a bank account
+      s"""Update an existing view on a bank account
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",

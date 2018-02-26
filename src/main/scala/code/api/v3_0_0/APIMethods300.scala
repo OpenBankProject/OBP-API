@@ -57,7 +57,7 @@ trait APIMethods300 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account.",
-      """#Views
+      s"""#Views
         |
         |
         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
@@ -80,7 +80,7 @@ trait APIMethods300 {
         |
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJsonV300,
       List(
@@ -124,9 +124,9 @@ trait APIMethods300 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """Create a view on bank account
+      s"""Create a view on bank account
         |
-        | OAuth authentication is required and the user needs to have access to the owner view.
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
@@ -188,9 +188,9 @@ trait APIMethods300 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Update View.",
-      """Update an existing view on a bank account
+      s"""Update an existing view on a bank account
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
@@ -301,7 +301,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "getPublicAccountById",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account/public",
+      "/banks/BANK_ID/public/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full, Public)",
       s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
         |
@@ -310,7 +310,6 @@ trait APIMethods300 {
         |* Type
         |* Balance
         |* IBAN
-        |* Available views (sorted by short_name)
         |
         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
@@ -327,7 +326,7 @@ trait APIMethods300 {
       apiTagAccount ::  Nil)
     
     lazy val getPublicAccountById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: "public" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           val res =
             for {
@@ -356,7 +355,7 @@ trait APIMethods300 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
-      """Information returned about the account specified by ACCOUNT_ID:
+      s"""Information returned about the account specified by ACCOUNT_ID:
         |
         |* Number - The human readable account number given by the bank that identifies the account.
         |* Label - A label given by the owner of the account
@@ -369,7 +368,7 @@ trait APIMethods300 {
         |This call returns the owner view and requires access to that view.
         |
         |
-        |OAuth authentication is required
+        |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
       emptyObjectJson,
