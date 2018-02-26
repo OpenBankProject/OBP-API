@@ -33,7 +33,7 @@ package code.api.v2_0_0
 
 import java.util.Date
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJsonV121}
+import code.api.v1_2_1.AccountRoutingJsonV121
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
@@ -49,6 +49,7 @@ import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
 import code.model._
 import code.socialmedia.SocialMedia
+import code.views.Views
 import net.liftweb.json.JsonAST.JValue
 
 
@@ -356,21 +357,12 @@ object JSONFactory200{
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
-
-// If we use this we would not use basic views json etc.
-//  def createFullAccountJSON(account : BankAccount, viewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
-//    new BasicAccountJSON(
-//      account.accountId.value,
-//      stringOrNull(account.label),
-//      viewsAvailable,
-//      account.bankId.value
-//    )
-//  }
-
-
   def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
-      val views = account permittedViews user
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           createBasicViewJSON(v)
@@ -679,7 +671,7 @@ object JSONFactory200{
 
 
 
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON121]) : ModeratedCoreAccountJSON =  {
+  def createCoreBankAccountJSON(account : ModeratedBankAccount) : ModeratedCoreAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJSON (
       account.accountId.value,

@@ -49,42 +49,29 @@ object RemotedataViews extends ObpActorInit with Views {
   def permissions(account : BankIdAccountId) : List[Permission] =
     extractFuture(actor ? cc.permissions(account))
 
-  def views(bankAccountId : BankIdAccountId) : List[View] =
-    extractFuture(actor ? cc.views(bankAccountId))
-
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] =
-    extractFuture(actor ? cc.permittedViews(user, bankAccountId))
-
-  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] =
-    (actor ? cc.permittedViews(user, bankAccountId)).mapTo[List[View]]
-
-  def publicViews(bankAccountId : BankIdAccountId) : List[View] =
-    extractFuture(actor ? cc.publicViews(bankAccountId))
-
-  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]] =
-    (actor ? cc.publicViews(bankAccountId)).mapTo[List[View]]
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] =
+    extractFuture(actor ? cc.viewsForAccount(bankAccountId))
+  
+  def viewsUserCanAccess(user: User): List[View] =
+    extractFuture(actor ? cc.viewsUserCanAccess(user: User))
+  
+  def privateViewsUserCanAccess(user: User): List[View] =
+    extractFuture(actor ? cc.privateViewsUserCanAccess(user: User))
+  
+  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] =
+    extractFuture(actor ? cc.viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId))
+  
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] =
+    extractFuture(actor ? cc.getAllFirehoseAccounts(bank: Bank, user : User))
+  
+  def publicViews : List[View] =
+    extractFuture(actor ? cc.publicViews())
 
   def getAllPublicAccounts() : List[BankIdAccountId] =
     extractFuture(actor ? cc.getAllPublicAccounts())
 
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId] =
     extractFuture(actor ? cc.getPublicBankAccounts(bank))
-
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId] =
-    user match {
-      case Full(theUser) => {
-        extractFuture(actor ? cc.getAllAccountsUserCanSee(theUser))
-      }
-      case _ => getAllPublicAccounts()
-    }
-
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId] =
-    user match {
-      case Full(theUser) => {
-        extractFuture(actor ? cc.getAllAccountsUserCanSee(bank, theUser))
-      }
-      case _ => getPublicBankAccounts(bank)
-    }
 
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] =
     extractFuture(actor ? cc.getPrivateBankAccounts(user))

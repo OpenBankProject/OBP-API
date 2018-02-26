@@ -45,7 +45,12 @@ trait APIMethods121 {
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
-      val views = account permittedViews user
+      //If user is full, it is the authorization User, show private views.
+      //If user is empty, just show the public views.
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[ViewJSONV121] =
         views.map( v => {
           JSONFactory.createViewJSON(v)
@@ -203,8 +208,6 @@ trait APIMethods121 {
       s"""Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
-         |This endpoint works with firehose.
-         |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       emptyObjectJson,
@@ -239,8 +242,6 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.
         |
-        |This endpoint works with firehose
-        |
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -273,7 +274,6 @@ trait APIMethods121 {
         |For each account the API returns the ID and the available views. 
         |Authentication via OAuth is required.
         |
-        |This endpoint works with firehose.
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -299,8 +299,6 @@ trait APIMethods121 {
       "Get accounts at bank (Private).",
       s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
-        |
-        |This endpoint works with firehose.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -338,8 +336,6 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       accountJSON,
@@ -371,8 +367,6 @@ trait APIMethods121 {
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -416,8 +410,6 @@ trait APIMethods121 {
          |
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
          |
-         |This endpoint works with firehose
-         |
          |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJSON,
@@ -430,8 +422,9 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           for {
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            availableviews <- Full(account.permittedViews(cc.user))
+            availableviews <- Full(Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
@@ -480,7 +473,7 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account.",
-      """#Views
+      s"""#Views
          |
          |
          |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
@@ -503,7 +496,7 @@ trait APIMethods121 {
          |
          |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
          |
-         |OAuth authentication is required and the user needs to have access to the owner view.""",
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
@@ -517,7 +510,8 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId)
+            views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
@@ -532,9 +526,9 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """#Create a view on bank account
+      s"""#Create a view on bank account
         |
-        | OAuth authentication is required and the user needs to have access to the owner view.
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
@@ -583,9 +577,9 @@ trait APIMethods121 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Update View.",
-      """Update an existing view on a bank account
+      s"""Update an existing view on a bank account
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
@@ -668,9 +662,9 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
-      """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, UnknownError),
@@ -700,10 +694,10 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
-      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
+      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV121,
       List(
@@ -782,11 +776,11 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
       "Grant User access to View.",
-      """Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+      s"""Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
           |
           |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER and PROVIDER_ID.
           |
-          |OAuth authentication is required and the user needs to have access to the owner view.
+          |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
           |
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
@@ -824,11 +818,11 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Revoke access to one View.",
-      """Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+      s"""Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
         |
         |Revoking a user access to a public view will return an error message.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -861,9 +855,9 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Revoke access to all Views on Account",
-      """Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to all the views at BANK_ID for account ACCOUNT_ID.
+      s"""Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to all the views at BANK_ID for account ACCOUNT_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -995,7 +989,7 @@ trait APIMethods121 {
       "Get public alias of other bank account.",
       s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
         |${authenticationRequiredMessage(false)}
-        |OAuth authentication is required if the view is not public.""",
+        |${authenticationRequiredMessage(true)} if the view is not public.""",
       emptyObjectJson,
       aliasJSON,
       List(

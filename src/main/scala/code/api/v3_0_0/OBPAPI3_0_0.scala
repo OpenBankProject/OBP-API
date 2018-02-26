@@ -233,7 +233,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 3.0.0
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
-                          Implementations3_0_0.accountById ::
+                          Implementations3_0_0.getPrivateAccountById ::
+                          Implementations3_0_0.getPublicAccountById ::
                           Implementations3_0_0.getCoreAccountById ::
                           Implementations3_0_0.getViewsForBankAccount ::
                           Implementations3_0_0.createViewForBankAccount ::

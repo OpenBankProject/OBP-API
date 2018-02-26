@@ -7,6 +7,7 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
@@ -27,6 +28,7 @@ import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
+import code.util.Helper.booleanToBox
 import code.views.Views
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
@@ -70,7 +72,10 @@ trait APIMethods200 {
 
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
-      val views = account.permittedViews(user)
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
@@ -82,7 +87,10 @@ trait APIMethods200 {
 
   private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
-      val views = account.permittedViews(user)
+      val views = user match {
+        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+        case _ => Views.views.vend.publicViews
+      }
       val viewsAvailable : List[BasicViewJson] =
         views.map( v => {
           JSONFactory200.createBasicViewJSON(v)
@@ -132,8 +140,6 @@ trait APIMethods200 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |This endpoint works with firehose.
-         |
          |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -167,8 +173,6 @@ trait APIMethods200 {
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(true)}
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -213,8 +217,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(false)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -252,8 +254,6 @@ trait APIMethods200 {
       s"""Get accounts at one bank that the user has access to.
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
-        |
-        |This endpoint works with firehose.
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
@@ -307,8 +307,6 @@ trait APIMethods200 {
         |This call MAY have an alias /bank/accounts but ONLY if defaultBank is set in Props
         |
         |${authenticationRequiredMessage(true)}
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -376,8 +374,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
@@ -415,8 +411,6 @@ trait APIMethods200 {
       """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.
-        |
-        |This endpoint works with firehose.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -839,7 +833,7 @@ trait APIMethods200 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
-      """Information returned about the account specified by ACCOUNT_ID:
+      s"""Information returned about the account specified by ACCOUNT_ID:
         |
         |* Number
         |* Owners
@@ -850,10 +844,8 @@ trait APIMethods200 {
         |This call returns the owner view and requires access to that view.
         |
         |
-        |OAuth authentication is required
+        |${authenticationRequiredMessage(true)}
         |      
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJSON,
@@ -869,14 +861,13 @@ trait APIMethods200 {
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
-            availableviews <- Full(account.permittedViews(cc.user))
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
-            val viewsAvailable = availableviews.map(JSONFactory121.createViewJSON)
-            val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount, viewsAvailable)
+            val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
             val response = successJsonResponse(Extraction.decompose(moderatedAccountJson))
             response
           }
@@ -942,7 +933,7 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
-      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
         |
         |* Number
         |* Owners
@@ -956,9 +947,7 @@ trait APIMethods200 {
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
         |
-        |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-        |
-        |This endpoint works with firehose.
+        |${authenticationRequiredMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |
         |""".stripMargin,
       emptyObjectJson,
@@ -972,11 +961,12 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         cc =>
           for {
+            u <- cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
-            availableViews <- Full(account.permittedViews(cc.user))
+            availableViews <- Full(Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
-            _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
@@ -993,9 +983,12 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
-      """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)}
+        |and the user needs to have access to the owner view.
+        |
+        |""",
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
@@ -1244,8 +1237,6 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |This endpoint works with firehose.
-        |
         |""".stripMargin,
       transactionRequestBodyJsonV200,
       emptyObjectJson,
@@ -1287,11 +1278,8 @@ trait APIMethods200 {
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
-              availableViews <- Full(fromAccount.permittedViews(cc.user))
-              _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
-              _ <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
-
-              _ <- booleanToBox(u.hasOwnerView(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -1324,8 +1312,6 @@ trait APIMethods200 {
       """ 
         |In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
-        |This endpoint works with firehose.
-        |
       """.stripMargin,
       ChallengeAnswerJSON("89123812", "123345"),
       transactionRequestWithChargeJson,
@@ -1352,13 +1338,13 @@ trait APIMethods200 {
         cc =>
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
-              _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
-
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
@@ -1427,8 +1413,6 @@ trait APIMethods200 {
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
         |
-        |This endpoint works with firehose.
-        |
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargesJson,
@@ -1444,7 +1428,8 @@ trait APIMethods200 {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
               yield {
