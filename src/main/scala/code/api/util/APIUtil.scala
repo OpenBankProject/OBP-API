@@ -406,8 +406,24 @@ object APIUtil extends MdcLoggable {
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
+  /*
+     The OAuth 2.0 Authorization Framework: Bearer Token
+     For example, the "bearer" token type defined in [RFC6750] is utilized
+     by simply including the access token string in the request:
+       GET /resource/1 HTTP/1.1
+       Host: example.com
+       Authorization: Bearer mF_9.B5f-4.1JqM
+   */
+  def hasAnOAut2hHeader(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
+
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
 
+  /**
+    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
+    * @param `type` Type of an authentication scheme
+    * @param authorization "Authorization" request header field defined by HTTP/1.1 [RFC2617]
+    * @return True or False i.e. does the "Authorization" request header field has the Type of the authentication scheme
+    */
   def hasHeader(`type`: String, authorization: Box[String]) : Boolean = {
     authorization match {
       case Full(a) if a.contains(`type`) => true
