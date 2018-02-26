@@ -411,7 +411,7 @@ trait APIMethods210 {
             _ <- Bank(bankId) ?~! {BankNotFound}
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
             _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! {ViewNotFound}
-            isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerView(fromAccount) == true ||
+            isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
             _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
               s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
@@ -534,8 +534,6 @@ trait APIMethods210 {
         |
         |4) `answer` : is `challenge.answer` can be any Interge in sandbox mode.  
         |
-        |This endpoint works with firehose.
-        |
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
@@ -581,7 +579,8 @@ trait APIMethods210 {
               fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {UserNoPermissionAccessView}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Check transReqId is valid
               existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${InvalidTransactionRequestId} : $transReqId"
@@ -655,8 +654,6 @@ trait APIMethods210 {
         |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
         |The customer can proceed with the Transaction by answering the security challenge.
         |
-        |This endpoint works with firehose.
-        |
       """.stripMargin,
       emptyObjectJson,
       transactionRequestWithChargeJSONs210,
@@ -679,8 +676,9 @@ trait APIMethods210 {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-              _ <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~! {UserHasMissingRoles + viewId}
-              _ <- booleanToBox(u.hasOwnerView(fromAccount), UserNoOwnerView)
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
             }
               yield {

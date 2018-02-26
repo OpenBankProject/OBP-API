@@ -37,7 +37,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       var viewPublic = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdPublic)
       var viewAccountant = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAccountant)
       var viewAuditor = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAuditor)
-      var allExistingViewsForOneAccount = MapperViews.views(bankIdAccountId)
+      var allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
       
       Then("Check the result from database. it should have 4 views and with the right viewId")
       viewOwner.head.viewId.value should equal("Owner".toLowerCase())
@@ -51,7 +51,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       viewPublic = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdPublic)
       viewAccountant = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAccountant)
       viewAuditor = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAuditor)
-      allExistingViewsForOneAccount = MapperViews.views(bankIdAccountId)
+      allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
   
       Then("Check the result from database again. it should have four views and with the right viewId, there should be not changed.")
       viewOwner.head.viewId.value should equal("Owner".toLowerCase())

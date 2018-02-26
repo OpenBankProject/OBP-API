@@ -63,17 +63,26 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("premissions(" + bankAccountId +")")
       sender ! extractResult(mapper.permissions(bankAccountId))
 
-    case cc.views(bankAccountId : BankIdAccountId) =>
-      logger.debug("views(" + bankAccountId +")")
-      sender ! extractResult(mapper.views(bankAccountId))
+    case cc.viewsForAccount(bankAccountId : BankIdAccountId) =>
+      logger.debug("viewsForAccount(" + bankAccountId +")")
+      sender ! extractResult(mapper.viewsForAccount(bankAccountId))
 
-    case cc.permittedViews(user: User, bankAccountId: BankIdAccountId) =>
-      logger.debug("permittedViews(" + user +", " + bankAccountId +")")
-      sender ! extractResult(mapper.permittedViews(user, bankAccountId))
+    case cc.viewsUserCanAccess(user: User) =>
+      logger.debug("viewsUserCanAccess(" + user +")")
+      sender ! extractResult(mapper.viewsUserCanAccess(user: User))
 
-    case cc.publicViews(bankAccountId : BankIdAccountId) =>
-      logger.debug("publicViews(" + bankAccountId +")")
-      sender ! extractResult(mapper.publicViews(bankAccountId))
+    case cc.privateViewsUserCanAccess(user: User) =>
+      logger.debug("privateViewsUserCanAccess(" + user +")")
+      sender ! extractResult(mapper.privateViewsUserCanAccess(user: User))
+
+    case cc.viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId)=>
+      logger.debug("viewsUserCanAccessForAccount(" + user +"bankAccountId"+bankAccountId+")")
+      sender ! extractResult(mapper.viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId))
+      
+      
+    case cc.publicViews() =>
+      logger.debug("publicViews()")
+      sender ! extractResult(mapper.publicViews)
 
     case cc.getAllPublicAccounts() =>
       logger.debug("getAllPublicAccounts()")
@@ -82,22 +91,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.getPublicBankAccounts(bank : Bank) =>
       logger.debug("getPublicBankAccounts(" + bank +")")
       sender ! extractResult(mapper.getPublicBankAccounts(bank))
-
-    case cc.getAllAccountsUserCanSee(user : Box[User]) =>
-      logger.debug("getAllAccountsUserCanSee(" + user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(user))
-
-    case cc.getAllAccountsUserCanSee(user : User) =>
-      logger.debug("getAllAccountsUserCanSee(" + user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(Full(user)))
-
-    case cc.getAllAccountsUserCanSee(bank: Bank, user : Box[User]) =>
-      logger.debug("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(bank, user))
-
-    case cc.getAllAccountsUserCanSee(bank: Bank, user : User) =>
-      logger.debug("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! extractResult(mapper.getAllAccountsUserCanSee(bank, Full(user)))
 
     case cc.getPrivateBankAccounts(user: User, bankId: BankId) =>
       logger.debug("getPrivateBankAccounts(" + user +", "+ bankId +")")
