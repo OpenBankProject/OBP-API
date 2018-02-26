@@ -2079,6 +2079,8 @@ Versions are groups of endpoints in a file
     val res =
     if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
+    } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
+      OAuth2Handshake.getUserFromOAuth2HeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
