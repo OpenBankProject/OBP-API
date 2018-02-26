@@ -37,10 +37,13 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
+import code.api.util.APIUtil
 import code.views.Views
 import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
+import code.util.Helper.MdcLoggable
+import net.liftweb.mapper.By
 
 case class UserId(val value : Long) {
   override def toString = value.toString
@@ -49,7 +52,7 @@ case class UserId(val value : Long) {
 
 // TODO Document clearly the difference between this and AuthUser
 
-trait User {
+trait User extends MdcLoggable {
 
   def resourceUserId : UserId
   def userId: String
@@ -60,51 +63,34 @@ trait User {
   def name : String
   
   /**
-    * This method is belong to User trait, checked the user permitted views for the input account.
-    * 
-    * @param bankAccount the bankAccount, checked all the views for this input account
-    *                    
-    * @return the account's permitted views for the user 
+    * Also see @`hasViewAccess(view: View): Boolean`
+    * Here only need the bankIdAccountId, it will search for the `owner` view internally.
+    * And than call the `hasViewAccess(view: View): Boolean` method
+    * @return if the user have the account owner view access return true, otherwise false.
     */
-  def permittedViews(bankAccount: BankAccount) : List[View] =
-    Views.views.vend.permittedViews(this, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
-
-  def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
-    if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){
-      Full()
-    } 
-    else {
-      Failure("user doesn't have access to any view that allows initiating transactions")
+  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean ={
+    //find the bankAccount owner view object
+    val viewImplBox = Views.views.vend.view(ViewId("owner"), bankIdAccountId)
+    viewImplBox match {
+      case Full(v) => hasViewAccess(v)
+      case _ => 
+        logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
+        return false
     }
   }
-  
   /**
-    *  return all the views the user has the access to. 
+    * Also see @`hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean`
+    * Here we need the `view` object, so we need check the exsitence before call this method.
+    * In the method, we will check if the view and user have the record in ViewPrileges table.
+    * If it is, return true, otherwise false.
+    * @param view the view object, need check the exsitence before calling the method
+    * @return if has the input view access, return true, otherwise false.
     */
-  def views: List[View]
-  /**
-    * Check the User have this `view` or not.
-    */
-  def permittedView(v: View): Boolean =
-    views.contains(v)
-  
-  /**
-    * This method is belong to the User trait, check if the user have access to the "owner" view for input account
-    * @param bankAccount The input bankAccount, check if it contains "owner" view. 
-    * @return  True: if the bankAccount contains the "owner". False, if no "owner"
-    */
-  def hasOwnerView(bankAccount: BankAccount): Boolean =
-    permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
-
-  /**
-  * @return the bank accounts where the user has at least access to a Private view (is_public==false)
-  */
-  def privateAccounts : List[BankAccount] = {
-    Views.views.vend.getPrivateBankAccounts(this).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
+  final def hasViewAccess(view: View): Boolean ={
+    val viewImpl = view.asInstanceOf[ViewImpl]
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
-
+  
   def assignedEntitlements : List[Entitlement] = {
     Entitlement.entitlement.vend.getEntitlementsByUserId(userId) match {
       case Full(l) => l.sortWith(_.roleName < _.roleName)

@@ -1,9 +1,12 @@
 package code.views
 
 import code.api.util.APIUtil
+import code.api.util.APIUtil.canUseFirehose
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
 import net.liftweb.common.Box
+import net.liftweb.mapper.By
 import net.liftweb.util.{Props, SimpleInjector}
 
 import scala.collection.immutable.List
@@ -40,23 +43,31 @@ trait Views {
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
-  def views(bankAccountId : BankIdAccountId) : List[View]
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View]
-  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]]
-  def publicViews(bankAccountId : BankIdAccountId) : List[View]
-  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]]
-
+  
+  /**
+    * This will return all the public views, no requirements for accountId or userId.
+    * Because the public views are totally open for everyone. 
+    */
+  def publicViews: List[View]
+  /**
+    * This will return all the views belong to the bankAccount, its own Public + Private views.
+    * Do not contain any other account public views.
+    */
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
+  
+  def viewsUserCanAccess(user: User): List[View] 
+  def privateViewsUserCanAccess(user: User): List[View]
+  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
+  
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId]
-  @deprecated("This method will mix public and private, not clear for Apps.","2018-02-18")
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
   def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
   def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId]
 
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId]
+  
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
@@ -90,15 +101,14 @@ class RemotedataViewsCaseClasses {
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
-  case class views(bankAccountId: BankIdAccountId)
-  case class permittedViews(user: User, bankAccountId: BankIdAccountId)
-  case class publicViews(bankAccountId: BankIdAccountId)
+  case class viewsForAccount(bankAccountId: BankIdAccountId)
+  case class viewsUserCanAccess(user: User)
+  case class privateViewsUserCanAccess(user: User)
+  case class viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
+  case class getAllFirehoseAccounts(bank: Bank, user : User)
+  case class publicViews()
   case class getAllPublicAccounts()
   case class getPublicBankAccounts(bank: Bank)
-  case class getAllAccountsUserCanSee(pars: Any*) {
-    def apply(user: Box[User]): List[(BankId, AccountId)] = this (user)
-    def apply(bankId: BankId, user: Box[User]): List[(BankId, AccountId)] = this (bankId, user)
-  }
   case class getPrivateBankAccounts(pars: Any*) {
     def apply(user: User): List[(BankId, AccountId)] = this (user)
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)

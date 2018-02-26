@@ -46,7 +46,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
     def thenCheckAccountCreated(user: User) = {
       Then("An account with the proper parameters should be created")
-      val userAccounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
+      val userAccounts = Views.views.vend.getPrivateBankAccounts(user)
       userAccounts.size should equal(1)
       val createdAccount = userAccounts(0)
 
@@ -70,7 +70,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         val user = getTestUser()
 
         Given("The account doesn't already exist")
-        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
+        Views.views.vend.getPrivateBankAccounts(user).size should equal(0)
 
         And("The bank in question doesn't already exist")
         Connector.connector.vend.getBank(BankId(expectedBankId)).isDefined should equal(false)
@@ -99,7 +99,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       scenario("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {
         val user = getTestUser()
         Given("The account doesn't already exist")
-        Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
+        Views.views.vend.getPrivateBankAccounts(user).size should equal(0)
 
         And("The bank in question already exists")
         val createdBank = createBank(expectedBankId)

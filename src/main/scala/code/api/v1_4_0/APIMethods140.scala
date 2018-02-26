@@ -8,6 +8,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.usercustomerlinks.UserCustomerLink
+import code.views.Views
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
@@ -423,8 +424,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
         | 
-        | This endpoint works with firehose
-        | 
       """.stripMargin,
       emptyObjectJson,
       transactionRequestTypesJsonV140,
@@ -451,7 +450,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
               transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
@@ -471,7 +471,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get all Transaction Requests.",
-      "This endpoint works with firehose. ",
+      "",
       emptyObjectJson,
       transactionRequest,
       List(
@@ -493,7 +493,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
@@ -594,7 +595,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """
         |In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer. 
         |
-        |This endpoint works with firehose.
       """.stripMargin,
       challengeAnswerJSON,
       transactionRequest,
@@ -627,7 +627,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-              view <- tryo(fromAccount.permittedViews(cc.user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)

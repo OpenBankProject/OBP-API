@@ -88,7 +88,7 @@ trait APIMethods220 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account.",
-      """#Views
+      s"""#Views
         |
         |
         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
@@ -111,7 +111,7 @@ trait APIMethods220 {
         |
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       viewsJSONV220,
       List(
@@ -129,7 +129,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~ UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
+            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId)
+            views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
@@ -145,9 +146,9 @@ trait APIMethods220 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
-      """#Create a view on bank account
+      s"""#Create a view on bank account
         |
-        | OAuth authentication is required and the user needs to have access to the owner view.
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
@@ -198,9 +199,9 @@ trait APIMethods220 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Update View.",
-      """Update an existing view on a bank account
+      s"""Update an existing view on a bank account
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
@@ -276,9 +277,6 @@ trait APIMethods220 {
       s"""Get the counterparties for the account / view.
           |
           |${authenticationRequiredMessage(true)}
-          |
-          |This endpoint works with firehose.
-          |
           |""".stripMargin,
       emptyObjectJson,
       counterpartiesJsonV220,
@@ -302,7 +300,7 @@ trait APIMethods220 {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            _ <- Full(account.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -325,9 +323,6 @@ trait APIMethods220 {
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
-         |
-         |This endpoint works with firehose.
-         |
          |""".stripMargin,
       emptyObjectJson,
       counterpartyWithMetadataJson,
@@ -341,11 +336,11 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet json => {
         cc =>
           for {
-            _ <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
-            _ <- Full(account.permittedViews(cc.user).find(_ == viewId)) ?~! UserNoPermissionAccessView
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
           } yield {
@@ -1039,8 +1034,6 @@ trait APIMethods220 {
          |
           |${authenticationRequiredMessage(true)}
           |
-          |This endpoint works with firehose.
-          |
          |""".stripMargin,
       postCounterpartyJSON,
       counterpartyWithMetadataJson,
@@ -1069,9 +1062,8 @@ trait APIMethods220 {
             _ <- Bank(bankId) ?~! BankNotFound
             account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! {AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            availableViews <- Full(account.permittedViews(cc.user))
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ViewNotFound}
-            _ <- tryo(availableViews.find(_ == viewId)) ?~! {"Current user does not have access to the view " + viewId}
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
+            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             _ <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)

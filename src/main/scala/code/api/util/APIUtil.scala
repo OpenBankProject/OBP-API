@@ -33,9 +33,8 @@
 package code.api.util
 
 import java.io.InputStream
-import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util
 import java.util.{Date, UUID}
 
 import code.api.Constant._
@@ -2275,5 +2274,47 @@ Versions are groups of endpoints in a file
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
+  
+  
+  
+  val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
+  def canUseFirehose(user: User): Boolean = {
+    ALLOW_FIREHOSE_VIEWS && hasEntitlement("", user.userId, ApiRole.canUseFirehoseAtAnyBank)
+  }
+  /**
+    * This will accept all kinds of view and user.
+    * Depends on the public, private and firehose, check the different view access.
 
+    * @param view view object,
+    * @param user Option User, can be Empty(No Authentication), or Login user.
+    *             
+    */
+  def hasAccess(view: View, user: Option[User]) : Boolean = {
+    if(hasPublicAccess(view: View))// No need for the Login user and public access 
+      true
+    else
+      user match {
+        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access 
+        case Some(u) if u.hasViewAccess(view)=> true     // Login User and check view access
+        case _ =>
+          false
+      }
+  }
+  /**
+    * This view public is true and set `allow_public_views=ture` in props
+    */
+  def hasPublicAccess(view: View) : Boolean = {
+    if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
+    else false
+  }
+  /**
+    * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role
+    */
+  def hasFirehoseAccess(view: View, user: User) : Boolean = {
+    if(view.isFirehose && canUseFirehose(user)) true
+    else false
+  }
+  
+  
 }

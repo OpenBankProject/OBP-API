@@ -6,6 +6,7 @@ import code.api.util.ErrorMessages
 import code.model.dataAccess.MappedBankAccount
 import code.model._
 import code.views.Views
+import code.views.Views._
 import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.util.Helpers.tryo
@@ -88,7 +89,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     }
   }
   def getPhysicalCards(user: User) = {
-    val accounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
+    val accounts = views.vend.getPrivateBankAccounts(user)
     val allCards: List[MappedPhysicalCard] = MappedPhysicalCard.findAll()
     val cards = for {
       account <- accounts
@@ -102,7 +103,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
   def getPhysicalCardsForBank(bank: Bank, user: User) = {
     val allCards: List[MappedPhysicalCard] = MappedPhysicalCard.findAll()
     val cards = for {
-      account <- bank.accounts(Full(user))
+      account <- views.vend.getPrivateBankAccounts(user, bank.bankId)
       card <- allCards if account.accountId.value == card.account.accountId.value
     } yield {
        card

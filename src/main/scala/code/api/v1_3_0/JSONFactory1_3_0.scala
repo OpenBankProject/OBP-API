@@ -5,6 +5,7 @@ import code.model._
 import code.model.CardReplacementInfo
 import code.model.PhysicalCard
 import code.model.PinResetInfo
+import code.views.Views
 
 case class PhysicalCardsJSON(
   cards : List[PhysicalCardJSON])
@@ -94,7 +95,7 @@ object JSONFactory1_3_0 {
   }
 
   def createAccountJson(bankAccount : BankAccount, user : User) : code.api.v1_2_1.AccountJSON = {
-    val views = bankAccount.views(user).getOrElse(Nil)
+    val views = Views.views.vend.viewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
     val viewsJson = views.map(code.api.v1_2_1.JSONFactory.createViewJSON)
     code.api.v1_2_1.JSONFactory.createAccountJSON(bankAccount, viewsJson)
   }

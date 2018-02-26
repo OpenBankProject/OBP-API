@@ -1,25 +1,22 @@
 package code.views
 
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.accountholder.MapperAccountHolders
 import code.api.APIFailure
+import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiRole}
+import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
-import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
-import code.api.util.ErrorMessages._
 
 import scala.collection.immutable.List
-import code.util.Helper.MdcLoggable
-import net.liftweb.util.Props
-import code.api.util.ErrorMessages._
-import code.views.MapperViews.canUseFirehose
-
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
@@ -27,9 +24,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
-  
-  val ALLOW_PUBLIC_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = APIUtil.getPropsAsBoolValue("allow_firehose_views", false)
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 
@@ -279,64 +273,30 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  /**
-    * Get the view list by bankAccountUUID.
-    * @param bankAccountId find the views by this bankaccountUUID.
-    * @return if find, return the view list. Or return the Nil.
-    */
-  def views(bankAccountId : BankIdAccountId) : List[View] = {
-    if (ALLOW_PUBLIC_VIEWS)
-      ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
-    else
-      ViewImpl.findAll(By(ViewImpl.isPublic_, false):: ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
+  
+  def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
 
-  /**
-    * This method is belong to Views trait, check the permitted views of input account for input user.
-    * Select all the views by user and bankAccountUID.
-    *
-    * @param user the user need to be checked for the views
-    * @param bankAccountId the bankAccountUID, the account will be checked the views.
-    * @return if find, return the view list. or return Nil.
-    */
-  def permittedViews(user: User, bankAccountId: BankIdAccountId): List[View] = {
-    //TODO: do this more efficiently?
-    //select all views by user.
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    //select the Private views by BankAccountUid
-    val userPrivateViewsForAccount = allUserPrivs.flatMap(p => {
-      p.view.obj match {
-        case Full(v) => if(
-            v.isPrivate &&
-            v.bankId == bankAccountId.bankId&&
-            v.accountId == bankAccountId.accountId){
-          Some(v)
-        } else None
-        case _ => None
-      }
-    })
-    // merge the Private and public views
-    (userPrivateViewsForAccount ++ publicViews(bankAccountId) ++ getAllFirehoseViews(bankAccountId, user)).distinct
-  }
-
-  def permittedViewsFuture(user: User, bankAccountId: BankIdAccountId): Future[List[View]] = {
-    Future {
-      permittedViews(user, bankAccountId)
-    }
-  }
-
-  def publicViews(bankAccountId : BankIdAccountId) : List[View] = {
-    if(ALLOW_PUBLIC_VIEWS)
-      ViewImpl.findAll(By(ViewImpl.isPublic_,true)::ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+  def publicViews: List[View] = {
+    if (APIUtil.ALLOW_PUBLIC_VIEWS)
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true))
     else
       Nil
   }
-
-  def publicViewsFuture(bankAccountId : BankIdAccountId) : Future[List[View]] = {
-    Future {
-      publicViews(bankAccountId)
-    }
+  
+  def privateViewsUserCanAccess(user: User): List[View] ={
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
   }
+  
+  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
+    Views.views.vend.viewsUserCanAccess(user).filter(
+      view =>
+        view.bankId == bankIdAccountId.bankId &&
+          view.accountId == bankIdAccountId.accountId
+    )
+
 
   /**
     * An account is considered public if it contains a public view
@@ -360,107 +320,6 @@ object MapperViews extends Views with MdcLoggable {
           .distinct //we remove duplicates here
       else
         Nil
-  }
-
-  /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseAccounts(user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
-
-  /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseViews(bankAccountId: BankIdAccountId, user : User): List[ViewImpl] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
-        By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
-      )
-    } else {
-      Nil
-    }
-  }
-
-  /**
-    * An account is considered firehose if it contains a firehose view
-    * @return the list of all bankAccountUUIDs which contains a firehose view
-    */
-  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bank.bankId.value)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
-  def canUseFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && user.assignedEntitlements.map(_.roleName).contains(ApiRole.canUseFirehoseAtAnyBank.toString())
-  }
-  /**
-   * @param user
-   * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
-   */
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankIdAccountId] = {
-    user match {
-      case Full(user) => {
-        val publicViewBankAndAccounts=
-          if (ALLOW_PUBLIC_VIEWS)
-            ViewImpl
-              .findAll(By(ViewImpl.isPublic_, true)) // find all the public view in ViewImpl table, it has no relevent with user, all the user can get the public view.
-              .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-          else
-            Nil
-
-        val privateViewBankAndAccounts = ViewPrivileges
-          .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(_.isPrivate) //select all the Private views
-          .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-
-        //we remove duplicates here, because some accounts, has public, фирехосе and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(user)).distinct
-      }
-      case _ => getAllPublicAccounts()
-    }
-  }
-
-  /**
-   * @param user
-   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
-   */
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankIdAccountId] = {
-    user match {
-      case Full(user) => {
-        val publicViewBankAndAccounts=
-          if (ALLOW_PUBLIC_VIEWS)
-            ViewImpl
-              .findAll(By(ViewImpl.isPublic_, true),By(ViewImpl.bankPermalink, bank.bankId.value)) // find all the public view in ViewImpl table, it has no relevant with user, all the user can get the public view.
-              .map(v => {BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-          else
-            Nil
-
-        val privateViewBankAndAccounts = ViewPrivileges
-          .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-          .map(_.view.obj).flatten.filter(v => v.isPrivate && v.bankId ==bank.bankId) //select all the Private views according to bankId
-          .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-
-        //we remove duplicates here, because some accounts, has both public views and Private views
-        (publicViewBankAndAccounts ++ privateViewBankAndAccounts ++ getAllFirehoseAccounts(bank, user)).distinct
-      }
-      case _ => getPublicBankAccounts(bank)
-    }
   }
 
   /**
@@ -502,7 +361,18 @@ object MapperViews extends Views with MdcLoggable {
       getPrivateBankAccounts(user, bankId)
     }
   }
-
+  
+  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bank.bankId.value)
+      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
+    } else {
+      Nil
+    }
+  }
+  
   /**
     * @param bankIdAccountId the IncomingAccount from Kafka
     * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support

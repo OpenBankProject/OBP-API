@@ -679,7 +679,7 @@ object JSONFactory300{
     routings.map(i => AccountRoutingJsonV121(scheme = i.scheme, address = i.address))
   }
 
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJsonV300]) : ModeratedCoreAccountJsonV300 =  {
+  def createCoreBankAccountJSON(account : ModeratedBankAccount) : ModeratedCoreAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJsonV300 (
       account.accountId.value,
