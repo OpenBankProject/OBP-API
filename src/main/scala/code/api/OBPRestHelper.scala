@@ -204,8 +204,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
-    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now)).copy(authReqHeaderField = authorization)
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {

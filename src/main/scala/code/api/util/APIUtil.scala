@@ -467,12 +467,12 @@ object APIUtil extends MdcLoggable {
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
             val consumer =
-              if (hasAnOAuthHeader(cc.authorization)) {
+              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
                 getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
                 DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
@@ -2071,18 +2071,17 @@ Versions are groups of endpoints in a file
     */
   def getUserAndSessionContextFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     val s = S
-    val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
-    if (hasAnOAuthHeader(authorization)) {
+    if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -2135,8 +2134,6 @@ Versions are groups of endpoints in a file
       x => (x._1, x._2.map(_.copy(url = url)))
     } map {
       x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
-    } map {
-      x => (x._1, x._2.map(_.copy(authorization = authorization)))
     }
 
   }
