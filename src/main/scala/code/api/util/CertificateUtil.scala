@@ -4,6 +4,7 @@ import java.io.FileInputStream
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.security.{PublicKey, _}
 import javax.crypto.Cipher
+import com.nimbusds.jose.jwk.RSAKey
 
 import code.api.util.CryptoSystem.CryptoSystem
 import com.nimbusds.jose.crypto.RSAEncrypter
@@ -169,7 +170,11 @@ object CertificateUtil extends MdcLoggable {
     System.out.println("Decrypted token with private key:") // This is a secret message
     System.out.println(new String(decryptedToken)) // This is a secret message
 
+    // Convert to JWK format
+    val jwk: RSAKey = new RSAKey.Builder(publicKey.asInstanceOf[RSAPublicKey]).privateKey(privateKey.asInstanceOf[RSAPrivateKey]).keyID("rsa1").build // Give the key some ID (optional)
 
+    // Output
+    println(jwk.toJSONObject.toJSONString)
   }
 
 

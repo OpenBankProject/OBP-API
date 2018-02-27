@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE Ltd.
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -32,6 +32,7 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.util.Props
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,20 +51,33 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
       .trim()
     valueOfAuthReqHeaderField
   }
+
+  private def verifyJwt(jwt: String) = {
+    Props.getBool("oauth2.jwt.use.ssl", false) match {
+      case true =>
+        JwtUtil.verifyRsaSignedJwt(jwt)
+      case false =>
+        JwtUtil.verifyHmacSignedJwt(jwt)
+    }
+  }
+
   /*
     Method for Old Style Endpoints
    */
   def getUserFromOAuth2Header(sc: CallContext): (Box[User], Option[CallContext]) = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
-        val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
-        (Users.users.vend.getUserByUserName(username), Some(sc))
+        val value = getValueOfOAuh2HeaderField(sc)
+        verifyJwt(value) match {
+          case true =>
+            val username = JwtUtil.getSubject(value).getOrElse("")
+            (Users.users.vend.getUserByUserName(username), Some(sc))
+          case false =>
+            (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc))
+        }
       case false =>
         (Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc))
     }
-
-
-
   }
   /*
     Method for New Style Endpoints
@@ -71,12 +85,18 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   def getUserFromOAuth2HeaderFuture(sc: CallContext): Future[(Box[User], Option[CallContext])] = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
-        val username = JwtUtil.getSubject(getValueOfOAuh2HeaderField(sc)).getOrElse("")
-        (Users.users.vend.getUserByUserName(username), Some(sc))
-        for {
-          user <- Users.users.vend.getUserByUserNameFuture(username)
-        } yield {
-          (user, Some(sc))
+        val value = getValueOfOAuh2HeaderField(sc)
+        verifyJwt(value) match {
+          case true =>
+            val username = JwtUtil.getSubject(value).getOrElse("")
+            (Users.users.vend.getUserByUserName(username), Some(sc))
+            for {
+              user <- Users.users.vend.getUserByUserNameFuture(username)
+            } yield {
+              (user, Some(sc))
+            }
+          case false =>
+            Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc)))
         }
       case false =>
         Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc)))
