@@ -50,6 +50,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
+import code.model.dataAccess.SystemPublicView
 import code.sanitycheck.SanityCheck
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
@@ -2316,5 +2317,16 @@ Versions are groups of endpoints in a file
     else false
   }
   
+  /**
+    * Check if the viewId is the SystemPublicView or not. 
+    * See also @`code.model.dataAccess.SystemPublicView#viewId()`
+    * For SystemPublicView, there is no bankId, AccountId . 
+    * Only compare the fixed ViewId("public") is enough for now. 
+    * 
+    * 
+    * @param viewId
+    * @return
+    */
+  def isSystemPublicView(viewId : ViewId): Boolean = viewId == SystemPublicView.viewId
   
 }

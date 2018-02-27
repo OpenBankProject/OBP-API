@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{SystemPublicView, ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
@@ -199,11 +199,18 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
-    val view = ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
-
-    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-
-    view
+    //TODO, this is not finished, we will add more system views guards and than refactor it later. 
+    if(isSystemPublicView(viewId) && !ALLOW_PUBLIC_VIEWS)
+      Failure(PublicViewsNotAllowedOnThisInstance)
+    else if(isSystemPublicView(viewId))
+      Full(SystemPublicView)
+    else {
+      val view = ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
+      if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS)
+        Failure(PublicViewsNotAllowedOnThisInstance)
+      else
+        view
+    }
   }
 
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = {
