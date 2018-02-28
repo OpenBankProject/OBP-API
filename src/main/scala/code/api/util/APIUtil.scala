@@ -103,6 +103,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
   val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
+  val NoValidElasticsearchIndicesConfigured = "OBP-00010: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -157,8 +158,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
 
   val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
-
-
+  
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
   val InvalidCustomViewFormat = "OBP-20020: View name must start with `_`. eg: _work, _life "
@@ -180,6 +180,12 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
   val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
+
+
+
+
+  val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
+  val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
 
 
 

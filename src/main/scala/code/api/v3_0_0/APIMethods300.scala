@@ -23,9 +23,10 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.{MapperViews, Views}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.S
+import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -678,7 +679,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
-      "/search/warehouse",
+      "/search/warehouse/INDEX",
       "Search Warehouse Data Via Elasticsearch",
       s"""
         |Search warehouse data via Elastic Search.
@@ -697,11 +698,10 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
-        |POST /search/warehouse
+        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE/
         |
         |{
-        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
-        |  "es_body_part": {
+        | |  "es_body_part": {
         |    "query": {
         |      "range": {
         |        "postDate": {
@@ -713,11 +713,11 @@ trait APIMethods300 {
         |  }
         |}
         |
-        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
         |
-        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
         |
-        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
         |
         |
         """,
@@ -730,17 +730,20 @@ trait APIMethods300 {
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
-      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: index :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
           } yield {
             import net.liftweb.json._
-            val uriPart = compactRender(json \ "es_uri_part")
             val bodyPart = compactRender(json \ "es_body_part")
-            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
-          }
+            getElasticSearchUri(index) match {
+              case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, x, bodyPart, false)))
+              case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\":" + ElasticSearchIndexNotFound + "}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+            }
+            
+        }
       }
     }
     resourceDocs += ResourceDoc(
@@ -748,10 +751,10 @@ trait APIMethods300 {
       implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
-      "/aggregate/warehouse",
-      "Search Warehouse Data Via Elasticsearch and return only stats aggregation",
+      "/search/warehouse/statistics/FIELD",
+      "Search Warehouse Data Via Elasticsearch and return only stats aggregation over one specific numeric field",
       s"""
-         |Search warehouse data via Elastic Search.
+         |Aggregate warehouse data via Elastic Search.
          |
         |${authenticationRequiredMessage(true)}
          |
@@ -767,7 +770,9 @@ trait APIMethods300 {
         |
         |Example of usage:
          |
-        |POST /search/warehouse/statistics/INDEX/TOPIC/FIELD
+        |POST /search/warehouse/statistics/INDEX/FIELD
+         |
+        |POST /search/warehouse/statistics/ALL/FIELD|
          |
         |{
          | 
@@ -783,11 +788,11 @@ trait APIMethods300 {
          |  }
          |}
          |
-        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
+         |         |
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
          |
-        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
-         |
-        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
          |
         |
         """,
@@ -797,16 +802,19 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDataWarehouse))
     lazy val aggregateWarehouse: OBPEndpoint = {
-      case "search" :: "warehouse" :: "statistics" :: field :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
           } yield {
             import net.liftweb.json._
-            val uriPart =  compactRender(json \ "es_uri_part") //createElasticSearchUriPart(index, topic)
             val bodyPart = compactRender(json \ "es_body_part")
-            successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, uriPart,bodyPart, field) ))
+            getElasticSearchUri(index) match {
+              case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, x, bodyPart, field)))
+              case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\": \"" + ElasticSearchIndexNotFound + "\"}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+
+            }
           }
       }
     }
@@ -819,6 +827,30 @@ trait APIMethods300 {
       if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
       val addTopic = if (topic == "ALL") "" else "/" + topic
       "/" + realIndex + addTopic + "/_search"
+    }
+    
+    def getElasticSearchUri(indexString: String): Box[String] = {
+      val validIndices: List[String] = Props.get("es.warehouse.allowed.indices").getOrElse(
+        throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
+      {
+        case List("ALL") => List("")
+        case x => x
+      }
+      checkIndicesValidity(indexString, validIndices) match {
+        case x: Failure => Failure("IndicesNotValid")
+        case Full(y) => Full("/" + y + "/_search")
+        case Empty => Full("/_search")          
+      }
+    }
+    
+    def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] ={
+      indexString match {
+        case "ALL" => Empty
+        case x => x match {
+          case y if !y.split(",").toSet.subsetOf(validIndices.toSet) => Failure("")
+          case y   => Full(y)
+        }
+      }
     }
     
     

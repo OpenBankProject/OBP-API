@@ -17,6 +17,7 @@ import net.liftweb.json
 import java.util.Date
 
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import org.elasticsearch.common.settings.Settings
 import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
@@ -69,7 +70,7 @@ class elasticsearch extends MdcLoggable {
          if (statsOnly) ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
          else ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
-      JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+      JsonResponse(json.JsonParser.parse("""{"error":"indices not found"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
     }
   }
 
@@ -87,11 +88,12 @@ class elasticsearch extends MdcLoggable {
   }
   
   private def privacyCheckStatistics(body: JValue): JValue = {
+    println("Enter privacyCheckStatistics")
     logger.debug(body)
     val result = extractStatistics(body)
-    val count = (result \\ "count" \\ classOf[JInt]).headOption.getOrElse(throw new RuntimeException with NoStackTrace).toInt
+    val count: Int = (result \\ "count" \\ classOf[JInt]).headOption.getOrElse(throw new RuntimeException with NoStackTrace).toInt
     if (count > 9) result
-    else json.JsonParser.parse("""{"error":"Not enough results "}""")
+    else json.JsonParser.parse("{\"error\": \"" + NotEnoughtSearchStatisticsResults + "\"}")
   }
   
   private def getAPIResponse(req: Req): APIResponse = {
