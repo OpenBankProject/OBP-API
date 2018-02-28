@@ -184,6 +184,9 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   // OAuth 2
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
   val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
+  val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
+  val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
+  val Oauth2ParseException = "OBP-20205: Parse error. "
 
 
 

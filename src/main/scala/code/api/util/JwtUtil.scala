@@ -101,7 +101,7 @@ object JwtUtil {
     // OAuth 2.0 server's JWK set, published at a well-known URL. The RemoteJWKSet
     // object caches the retrieved keys to speed up subsequent look-ups and can
     // also gracefully handle key-rollover
-    val keySource: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(("http://localhost:8080/openid-connect-server-webapp/jwk")))
+    val keySource: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(remoteJWKSetUrl))
 
     // The expected JWS algorithm of the access tokens (agreed out-of-band)
     val expectedJWSAlg = JWSAlgorithm.RS256
@@ -118,8 +118,8 @@ object JwtUtil {
       val claimsSet = jwtProcessor.process(accessToken, ctx)
       Full(claimsSet)
     } catch {
-      case e: BadJWTException => Failure(e.getMessage, Full(e), Empty)
-      case e: ParseException  => Failure(e.getMessage, Full(e), Empty)
+      case e: BadJWTException => Failure(ErrorMessages.Oauth2BadJWTException + e.getMessage, Full(e), Empty)
+      case e: ParseException  => Failure(ErrorMessages.Oauth2ParseException + e.getMessage, Full(e), Empty)
       case e: Exception       => Failure(e.getMessage, Full(e), Empty)
     }
   }

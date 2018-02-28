@@ -419,7 +419,7 @@ display_internal_errors=false
 # -------------------------------------- Display internal errors --
 
 
-# -- OAuth 2 -----------------------------------------------
+# -- OAuth 2 --------------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
 # In case isn't defined default value is false
 # allow_oauth2_login=false
@@ -428,4 +428,6 @@ display_internal_errors=false
 # If set to true must set paths for the keystore locations
 # In case isn't defined default value is false
 # oauth2.jwt.use.ssl=false
-# -------------------------------------- OAuth 2 -----------
+# URL of Public server JWK set used for validating bearer JWT access tokens
+# oauth2.jwk_set.url=http://localhost:8080/openid-connect-server-webapp/jwk.json
+# ----------------------------------------------------------- OAuth 2 -----------

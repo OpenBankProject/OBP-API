@@ -32,10 +32,9 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Props
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -53,11 +52,24 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   }
 
   private def verifyJwt(jwt: String) = {
-    Props.getBool("oauth2.jwt.use.ssl", false) match {
+    APIUtil.getPropsAsBoolValue("oauth2.jwt.use.ssl", false) match {
       case true =>
         JwtUtil.verifyRsaSignedJwt(jwt)
       case false =>
         JwtUtil.verifyHmacSignedJwt(jwt)
+    }
+  }
+
+  private def validateAccessToken(accessToken: String) = {
+    APIUtil.getPropsValue("oauth2.jwk_set.url") match {
+      case Full(url) =>
+        JwtUtil.validateAccessToken(accessToken, url)
+      case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+        ParamFailure(a, b, c, apiFailure : APIFailure)
+      case Failure(msg, t, c) =>
+        Failure(msg, t, c)
+      case _ =>
+        Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
     }
   }
 
@@ -68,11 +80,15 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(sc)
-        verifyJwt(value) match {
-          case true =>
+        validateAccessToken(value) match {
+          case Full(_) =>
             val username = JwtUtil.getSubject(value).getOrElse("")
             (Users.users.vend.getUserByUserName(username), Some(sc))
-          case false =>
+          case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+            (ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc))
+          case Failure(msg, t, c) =>
+            (Failure(msg, t, c), Some(sc))
+          case _ =>
             (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc))
         }
       case false =>
@@ -86,8 +102,8 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(sc)
-        verifyJwt(value) match {
-          case true =>
+        validateAccessToken(value) match {
+          case Full(_) =>
             val username = JwtUtil.getSubject(value).getOrElse("")
             (Users.users.vend.getUserByUserName(username), Some(sc))
             for {
@@ -95,7 +111,11 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
             } yield {
               (user, Some(sc))
             }
-          case false =>
+          case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+            Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc)))
+          case Failure(msg, t, c) =>
+            Future((Failure(msg, t, c), Some(sc)))
+          case _ =>
             Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc)))
         }
       case false =>
