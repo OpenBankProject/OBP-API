@@ -181,6 +181,13 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
+  // OAuth 2
+  val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
+  val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
+  val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
+  val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
+  val Oauth2ParseException = "OBP-20205: Parse error. "
+
 
 
 
@@ -406,8 +413,24 @@ object APIUtil extends MdcLoggable {
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
+  /*
+     The OAuth 2.0 Authorization Framework: Bearer Token
+     For example, the "bearer" token type defined in [RFC6750] is utilized
+     by simply including the access token string in the request:
+       GET /resource/1 HTTP/1.1
+       Host: example.com
+       Authorization: Bearer mF_9.B5f-4.1JqM
+   */
+  def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
+
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
 
+  /**
+    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
+    * @param `type` Type of an authentication scheme
+    * @param authorization "Authorization" request header field defined by HTTP/1.1 [RFC2617]
+    * @return True or False i.e. does the "Authorization" request header field has the Type of the authentication scheme
+    */
   def hasHeader(`type`: String, authorization: Box[String]) : Boolean = {
     authorization match {
       case Full(a) if a.contains(`type`) => true
@@ -451,12 +474,12 @@ object APIUtil extends MdcLoggable {
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
             val consumer =
-              if (hasAnOAuthHeader(cc.authorization)) {
+              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
                 getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
                 DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
@@ -2055,18 +2078,19 @@ Versions are groups of endpoints in a file
     */
   def getUserAndSessionContextFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     val s = S
-    val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
     val res =
-    if (hasAnOAuthHeader(authorization)) {
+    if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
+      OAuth2Handshake.getUserFromOAuth2HeaderFuture(cc)
+    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -2119,8 +2143,6 @@ Versions are groups of endpoints in a file
       x => (x._1, x._2.map(_.copy(url = url)))
     } map {
       x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
-    } map {
-      x => (x._1, x._2.map(_.copy(authorization = authorization)))
     }
 
   }

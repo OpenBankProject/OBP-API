@@ -204,13 +204,21 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   }
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
-    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now)).copy(authReqHeaderField = authorization)
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {
       val usr = getUser
       usr match {
+        case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
+        case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
+        case Failure(msg, t, c) => Failure(msg, t, c)
+        case _ => Failure("oauth error")
+      }
+    } else if (hasAnOAuth2Header(authorization)) {
+      val (user, _) = OAuth2Handshake.getUserFromOAuth2Header(cc)
+      user match {
         case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
