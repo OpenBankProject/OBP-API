@@ -2127,6 +2127,19 @@ object SwaggerDefinitionsJSON {
   //ended -- Transaction relevant case classes /////
   
   //stated -- account relevant case classes /////
+  
+  
+  val accountHeld = AccountHeld(
+    id = "String",
+    bank_id = "String",
+    number = "String",
+    account_routing = accountRouting
+  )
+  
+  
+  val coreAccountsHeldJsonV300 = CoreAccountsHeldJsonV300(
+    accounts= List(accountHeld)
+  )
   val moderatedAccountJsonV300 = ModeratedAccountJsonV300(
     id= "String",
     bank_id = "String",
