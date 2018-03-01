@@ -23,6 +23,7 @@ import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.ElasticDsl._
 import dispatch.as.String.charset
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
 
@@ -165,6 +166,40 @@ class elasticsearch extends MdcLoggable {
     } toMap
 
     res
+  }
+
+  def createElasticSearchUriPart(index: String, topic: String): String = {
+    val validIndices = Props.get("es.warehouse.allowed.indices", "").split(",").toSet
+    val realIndex =
+      if (index == "" || index == "ALL") Props.get("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
+      else index
+    if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
+    val addTopic = if (topic == "ALL") "" else "/" + topic
+    "/" + realIndex + addTopic + "/_search"
+  }
+
+  def getElasticSearchUri(indexString: String): Box[String] = {
+    val validIndices: List[String] = Props.get("es.warehouse.allowed.indices").getOrElse(
+      throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
+    {
+      case List("ALL") => List("")
+      case x => x
+    }
+    checkIndicesValidity(indexString, validIndices) match {
+      case x: Failure => Failure("IndicesNotValid")
+      case Full(y) => Full("/" + y + "/_search")
+      case Empty => Full("/_search")
+    }
+  }
+
+  def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] ={
+    indexString match {
+      case "ALL" => Empty
+      case x => x match {
+        case y if !y.split(",").toSet.subsetOf(validIndices.toSet) => Failure("")
+        case y   => Full(y)
+      }
+    }
   }
 
 }

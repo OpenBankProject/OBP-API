@@ -26,7 +26,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -35,8 +34,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.control.NoStackTrace
-
 
 
 
@@ -738,7 +735,7 @@ trait APIMethods300 {
           } yield {
             import net.liftweb.json._
             val bodyPart = compactRender(json \ "es_body_part")
-            getElasticSearchUri(index) match {
+            esw.getElasticSearchUri(index) match {
               case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, x, bodyPart, false)))
               case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\":" + ElasticSearchIndexNotFound + "}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
             }
@@ -746,6 +743,8 @@ trait APIMethods300 {
         }
       }
     }
+    
+    
     resourceDocs += ResourceDoc(
       aggregateWarehouse,
       implementedInApiVersion,
@@ -810,7 +809,7 @@ trait APIMethods300 {
           } yield {
             import net.liftweb.json._
             val bodyPart = compactRender(json \ "es_body_part")
-            getElasticSearchUri(index) match {
+            esw.getElasticSearchUri(index) match {
               case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, x, bodyPart, field)))
               case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\": \"" + ElasticSearchIndexNotFound + "\"}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
 
@@ -818,41 +817,6 @@ trait APIMethods300 {
           }
       }
     }
-    
-    def createElasticSearchUriPart(index: String, topic: String): String = {
-      val validIndices = Props.get("es.warehouse.allowed.indices", "").split(",").toSet
-      val realIndex =
-        if (index == "" || index == "ALL") Props.get("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
-        else index
-      if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
-      val addTopic = if (topic == "ALL") "" else "/" + topic
-      "/" + realIndex + addTopic + "/_search"
-    }
-    
-    def getElasticSearchUri(indexString: String): Box[String] = {
-      val validIndices: List[String] = Props.get("es.warehouse.allowed.indices").getOrElse(
-        throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
-      {
-        case List("ALL") => List("")
-        case x => x
-      }
-      checkIndicesValidity(indexString, validIndices) match {
-        case x: Failure => Failure("IndicesNotValid")
-        case Full(y) => Full("/" + y + "/_search")
-        case Empty => Full("/_search")          
-      }
-    }
-    
-    def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] ={
-      indexString match {
-        case "ALL" => Empty
-        case x => x match {
-          case y if !y.split(",").toSet.subsetOf(validIndices.toSet) => Failure("")
-          case y   => Full(y)
-        }
-      }
-    }
-    
     
 
     resourceDocs += ResourceDoc(
