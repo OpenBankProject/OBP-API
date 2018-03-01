@@ -911,7 +911,7 @@ trait APIMethods200 {
         cc =>
 
           for {
-            params <- getTransactionParams(req)
+            params <- getTransactionParams(req.request.headers)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))

@@ -533,7 +533,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(req)
+                params <- getTransactionParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -595,7 +595,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(req)
+                params <- getTransactionParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(callContext)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -660,7 +660,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(req)
+                params <- getTransactionParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
               } yield {
                 (createTransactionsJson(transactions), callContext)

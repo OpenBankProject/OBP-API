@@ -57,6 +57,7 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
@@ -860,8 +861,20 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-   def getSortDirection(req: Req): Box[OBPOrder] = {
-    req.header("obp_sort_direction") match {
+  private def getHeader(requestHeaders: List[HTTPParam], name: String ) ={
+    val headers: List[(String, String)] =
+      for (h <- requestHeaders;
+           p <- h.values
+      ) yield (h.name, p)
+
+    headers.filter(_._1.equalsIgnoreCase(name)).map(_._2) match {
+      case x :: _ => Full(x)
+      case _ => Empty
+    }
+  }
+
+   def getSortDirection(headers: List[HTTPParam]): Box[OBPOrder] = {
+     getHeader(headers, "obp_sort_direction") match {
       case Full(v) => {
         if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
           Full(OBPOrder(Some(v.toLowerCase)))
@@ -874,8 +887,8 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-   def getFromDate(req: Req): Box[OBPFromDate] = {
-    val date: Box[Date] = req.header("obp_from_date") match {
+   def getFromDate(headers: List[HTTPParam]): Box[OBPFromDate] = {
+    val date: Box[Date] = getHeader(headers, "obp_from_date") match {
       case Full(d) => {
         DateParser.parse(d)
       }
@@ -887,8 +900,8 @@ object APIUtil extends MdcLoggable {
     date.map(OBPFromDate(_))
   }
 
-   def getToDate(req: Req): Box[OBPToDate] = {
-    val date: Box[Date] = req.header("obp_to_date") match {
+   def getToDate(headers: List[HTTPParam]): Box[OBPToDate] = {
+    val date: Box[Date] = getHeader(headers, "obp_to_date") match {
       case Full(d) => {
         DateParser.parse(d)
       }
@@ -903,16 +916,16 @@ object APIUtil extends MdcLoggable {
     date.map(OBPToDate(_))
   }
 
-   def getOffset(req: Req): Box[OBPOffset] = {
-    getPaginationParam(req, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
+   def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
+    getPaginationParam(headers, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
   }
 
-   def getLimit(req: Req): Box[OBPLimit] = {
-    getPaginationParam(req, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
+   def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
+    getPaginationParam(headers, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
   }
 
-   def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
-    req.header(paramName) match {
+   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
+     getHeader(headers, paramName) match {
       case Full(v) => {
         tryo{
           v.toInt
@@ -932,13 +945,13 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
+  def getTransactionParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
-      sortDirection <- getSortDirection(req)
-      fromDate <- getFromDate(req)
-      toDate <- getToDate(req)
-      limit <- getLimit(req)
-      offset <- getOffset(req)
+      sortDirection <- getSortDirection(headers)
+      fromDate <- getFromDate(headers)
+      toDate <- getToDate(headers)
+      limit <- getLimit(headers)
+      offset <- getOffset(headers)
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -2083,6 +2096,7 @@ Versions are groups of endpoints in a file
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
+    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =
     if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
@@ -2143,6 +2157,8 @@ Versions are groups of endpoints in a file
       x => (x._1, x._2.map(_.copy(url = url)))
     } map {
       x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
+    } map {
+      x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     }
 
   }
