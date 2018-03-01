@@ -166,6 +166,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
 
 
+
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
@@ -186,6 +187,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
+  val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
 
 
 

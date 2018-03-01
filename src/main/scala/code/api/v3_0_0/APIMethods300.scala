@@ -26,7 +26,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
+import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
@@ -695,16 +695,18 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
-        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE/
+        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE 
+        |POST /search/warehouse/INDEX1,INDEX2 
+        |POST /search/warehouse/All 
+        |
         |
         |{
-        | |  "es_body_part": {
         |    "query": {
         |      "range": {
         |        "postDate": {
         |          "from": "2011-12-10",
         |          "to": "2011-12-12"
-        |        }
+        |        
         |      }
         |    }
         |  }
@@ -732,17 +734,15 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
+            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
+            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
+            result <- esw.searchProxyV300(u.userId, indexPart, bodyPart)
           } yield {
-            import net.liftweb.json._
-            val bodyPart = compactRender(json \ "es_body_part")
-            esw.getElasticSearchUri(index) match {
-              case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, x, bodyPart, false)))
-              case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\":" + ElasticSearchIndexNotFound + "}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
-            }
-            
-        }
+            successJsonResponse(Extraction.decompose(result))
+          }
       }
     }
+  
     
     
     resourceDocs += ResourceDoc(
@@ -773,9 +773,8 @@ trait APIMethods300 {
          |
         |POST /search/warehouse/statistics/ALL/FIELD|
          |
-        |{
          | 
-         |  "es_body_part": {
+         |{  
          |    "query": {
          |      "range": {
          |        "postDate": {
@@ -784,8 +783,8 @@ trait APIMethods300 {
          |        }
          |      }
          |    }
-         |  }
          |}
+         |
          |
         |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
          |         |
@@ -806,16 +805,13 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
+            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
+            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
+            result <- esw.searchProxyStatsV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            import net.liftweb.json._
-            val bodyPart = compactRender(json \ "es_body_part")
-            esw.getElasticSearchUri(index) match {
-              case Full(x)  => successJsonResponse(Extraction.decompose(esw.searchProxyStatsV300(u.userId, x, bodyPart, field)))
-              case y: Failure =>JsonResponse(net.liftweb.json.parse("{\"error\": \"" + ElasticSearchIndexNotFound + "\"}"), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
-
+            successJsonResponse(Extraction.decompose(result))
             }
           }
-      }
     }
     
 

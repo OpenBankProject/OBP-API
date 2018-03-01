@@ -60,7 +60,7 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
-  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): LiftResponse = {
+  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Box[LiftResponse] = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
@@ -68,15 +68,15 @@ class elasticsearch extends MdcLoggable {
       logger.debug(body)
       val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
-         if (statsOnly) ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
-         else ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+         if (statsOnly) Full(ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
+         else Full(ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
     } else {
-      JsonResponse(json.JsonParser.parse("""{"error":"indices not found"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+      Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
     }
   }
 
 
-  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): LiftResponse = {
+  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): Box[LiftResponse] = {
     searchProxyV300(userId, uriPart, addAggregation(bodyPart,field), true)
   }
 
@@ -186,7 +186,7 @@ class elasticsearch extends MdcLoggable {
       case x => x
     }
     checkIndicesValidity(indexString, validIndices) match {
-      case x: Failure => Failure("IndicesNotValid")
+      case x: Failure => Failure("InvalidIndices")
       case Full(y) => Full("/" + y + "/_search")
       case Empty => Full("/_search")
     }
