@@ -1697,6 +1697,14 @@ Returns a string showed to the developer
     * @return - the source port of the client or last seen proxy.
     */
   def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
+  /**
+    * @return - the server port
+    */
+  def getServerPort(): Int = S.containerRequest.map(_.serverPort).openOr(0)
+  /**
+    * @return - the host name of the server
+    */
+  def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
 
 
   /**
