@@ -556,11 +556,11 @@ trait APIMethods300 {
         |
         |Possible custom headers for pagination:
         |
-        |* obp_sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* obp_limit=NUMBER ==> default value: 50
-        |* obp_offset=NUMBER ==> default value: 0
-        |* obp_from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
-        |* obp_to_date=DATE => default value: 3049-01-01
+        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
+        |* limit=NUMBER ==> default value: 50
+        |* offset=NUMBER ==> default value: 0
+        |* from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
+        |* to_date=DATE => default value: 3049-01-01
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -621,11 +621,11 @@ trait APIMethods300 {
         |
         |Possible custom headers for pagination:
         |
-        |* obp_sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* obp_limit=NUMBER ==> default value: 50
-        |* obp_offset=NUMBER ==> default value: 0
-        |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* obp_to_date=DATE => default value: 3049-01-01
+        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
+        |* limit=NUMBER ==> default value: 50
+        |* offset=NUMBER ==> default value: 0
+        |* from_date=DATE => default value: date of the oldest transaction registered (format below)
+        |* to_date=DATE => default value: 3049-01-01
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,

@@ -874,37 +874,45 @@ object APIUtil extends MdcLoggable {
   }
 
    def getSortDirection(headers: List[HTTPParam]): Box[OBPOrder] = {
-     getHeader(headers, "obp_sort_direction") match {
-      case Full(v) => {
-        if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
-          Full(OBPOrder(Some(v.toLowerCase)))
-        }
-        else{
-          Failure(FilterSortDirectionError)
-        }
-      }
+
+     def validate(v: String) = {
+       if (v.toLowerCase == "desc" || v.toLowerCase == "asc") {
+         Full(OBPOrder(Some(v.toLowerCase)))
+       }
+       else {
+         Failure(FilterSortDirectionError)
+       }
+     }
+
+     (getHeader(headers, "sort_direction"), getHeader(headers, "obp_sort_direction")) match {
+      case (Full(left), _) =>
+        validate(left)
+      case (_, Full(r)) =>
+        validate(r)
       case _ => Full(OBPOrder(None))
     }
+
   }
 
    def getFromDate(headers: List[HTTPParam]): Box[OBPFromDate] = {
-    val date: Box[Date] = getHeader(headers, "obp_from_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
-      case _ => {
+    val date: Box[Date] = (getHeader(headers, "from_date"), getHeader(headers, "obp_from_date")) match {
+      case (Full(left),_) =>
+        DateParser.parse(left)
+      case (_, Full(right)) =>
+        DateParser.parse(right)
+      case _ =>
         Full(new Date(0))
-      }
     }
 
     date.map(OBPFromDate(_))
   }
 
    def getToDate(headers: List[HTTPParam]): Box[OBPToDate] = {
-    val date: Box[Date] = getHeader(headers, "obp_to_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
+    val date: Box[Date] = (getHeader(headers, "to_date"), getHeader(headers, "obp_to_date")) match {
+      case (Full(left),_) =>
+        DateParser.parse(left)
+      case (_, Full(right)) =>
+        DateParser.parse(right)
       case _ => {
         // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
         // (Else caching is invlidated by constantly changing date)
@@ -917,14 +925,24 @@ object APIUtil extends MdcLoggable {
   }
 
    def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
-    getPaginationParam(headers, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
+    getPaginationParam(headers, "offset", None, 0, FilterOffersetError) match {
+      case Full(o) =>
+        Full(OBPOffset(o))
+      case _ =>
+        getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError).map(OBPOffset(_))
+    }
   }
 
    def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
-    getPaginationParam(headers, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
+    getPaginationParam(headers, "limit", None, 1, FilterLimitError) match {
+      case Full(l) =>
+        Full(OBPLimit(l))
+      case _ =>
+        getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError).map(OBPLimit(_))
+    }
   }
 
-   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
+   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
      getHeader(headers, paramName) match {
       case Full(v) => {
         tryo{
@@ -941,7 +959,11 @@ object APIUtil extends MdcLoggable {
           case _ => Failure(errorMsg)
         }
       }
-      case _ => Full(defaultValue)
+      case _ =>
+        defaultValue match {
+          case Some(default) => Full(default)
+          case _ => Empty
+        }
     }
   }
 
