@@ -204,7 +204,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     )
 
     lazy val getBranches : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet req => {
         cc =>{
           for {
             u <- if(getBranchesIsPublic)
@@ -270,7 +270,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     )
 
     lazy val getAtms : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet req => {
         cc =>{
           for {
           // Get atms from the active provider
@@ -760,7 +760,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
 
     def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
-      case "dummy" :: Nil JsonGet json => {
+      case "dummy" :: Nil JsonGet req => {
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")

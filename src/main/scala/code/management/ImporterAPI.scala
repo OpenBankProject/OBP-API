@@ -113,7 +113,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
 
   serve {
     
-    case "obp_transactions_saver" :: "api" :: "transactions" :: Nil JsonPost json => {
+    case "obp_transactions_saver" :: "api" :: "transactions" :: Nil JsonPost req => {
 
       def savetransactions = {
         def updateBankAccountBalance(insertedTransactions : List[Transaction]) = {
@@ -128,9 +128,9 @@ object ImporterAPI extends RestHelper with MdcLoggable {
           }
         }
 
-        val ipAddress = json._2.remoteAddr
+        val ipAddress = req._2.remoteAddr
 
-        val rawTransactions = json._1.children
+        val rawTransactions = req._1.children
 
         logger.info("Received " + rawTransactions.size +
           " json transactions to insert from ip address " + ipAddress)
