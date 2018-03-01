@@ -1861,7 +1861,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
       """,
       emptyObjectJson,
-      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
