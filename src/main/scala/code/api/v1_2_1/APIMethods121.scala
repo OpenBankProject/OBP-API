@@ -122,8 +122,8 @@ trait APIMethods121 {
       apiTagApi :: Nil)
 
     def root(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
-      case "root" :: Nil JsonGet json => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
-      case Nil JsonGet json => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case "root" :: Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }
 
 
@@ -149,7 +149,7 @@ trait APIMethods121 {
 
     lazy val getBanks : OBPEndpoint = {
       //get banks
-      case "banks" :: Nil JsonGet json => {
+      case "banks" :: Nil JsonGet req => {
         cc =>
           def banksToJson(banksList: List[Bank]): JValue = {
             val banksJSON: List[BankJSON] = banksList.map(b => {
@@ -186,7 +186,7 @@ trait APIMethods121 {
 
     lazy val bankById : OBPEndpoint = {
       //get bank by id
-      case "banks" :: BankId(bankId) :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: Nil JsonGet req => {
         cc =>
           def bankToJson(bank : Bank) : JValue = {
             val bankJSON = JSONFactory.createBankJSON(bank)
@@ -219,7 +219,7 @@ trait APIMethods121 {
     //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
-      case "accounts" :: Nil JsonGet json => {
+      case "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -251,7 +251,7 @@ trait APIMethods121 {
 
     lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
-      case "accounts" :: "private" :: Nil JsonGet json => {
+      case "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -283,7 +283,7 @@ trait APIMethods121 {
 
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
-      case "accounts" :: "public" :: Nil JsonGet json => {
+      case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           val publicAccountsJson = bankAccountsListToJson(BankAccount.publicAccounts, Empty)
           Full(successJsonResponse(publicAccountsJson))
@@ -312,7 +312,7 @@ trait APIMethods121 {
     //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same now.
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
-      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -345,7 +345,7 @@ trait APIMethods121 {
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -377,7 +377,7 @@ trait APIMethods121 {
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
             bank <- Bank(bankId)?~! BankNotFound
@@ -419,7 +419,7 @@ trait APIMethods121 {
 
     lazy val accountById : OBPEndpoint = {
       //get account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -505,7 +505,7 @@ trait APIMethods121 {
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -640,7 +640,7 @@ trait APIMethods121 {
     lazy val deleteViewForBankAccount: OBPEndpoint = {
       //deletes a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId
-      ) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+      ) :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
             //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
@@ -674,7 +674,7 @@ trait APIMethods121 {
   
     lazy val getPermissionsForBankAccount: OBPEndpoint = {
       //get access
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -713,7 +713,7 @@ trait APIMethods121 {
   
     lazy val getPermissionForUserForBankAccount: OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -837,7 +837,7 @@ trait APIMethods121 {
 
     lazy val removePermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //delete access for specific user to one view
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -871,7 +871,7 @@ trait APIMethods121 {
 
     lazy val removePermissionForUserForBankAccountForAllViews : OBPEndpoint = {
       //delete access for specific user to all the views
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonDelete req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -903,7 +903,7 @@ trait APIMethods121 {
 
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
@@ -934,7 +934,7 @@ trait APIMethods121 {
 
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       //get one other account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
@@ -966,7 +966,7 @@ trait APIMethods121 {
 
     lazy val getOtherAccountMetadata : OBPEndpoint = {
       //get metadata of one other account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
@@ -1003,7 +1003,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyPublicAlias : OBPEndpoint = {
       //get public alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
@@ -1175,7 +1175,7 @@ trait APIMethods121 {
 
     lazy val getOtherAccountPrivateAlias : OBPEndpoint = {
       //get private alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
@@ -2102,8 +2102,8 @@ trait APIMethods121 {
   
     lazy val getTransactionsForBankAccount : OBPEndpoint =  {
       //get transactions
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
-        val paramsBox: Box[List[OBPQueryParam]] = getTransactionParams(json)
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
+        val paramsBox: Box[List[OBPQueryParam]] = getTransactionParams(req)
         cc => getTransactionsForBankAccountCached(
           paramsBox:  Box[List[OBPQueryParam]],
           cc.user: Box[User],
@@ -2136,7 +2136,7 @@ trait APIMethods121 {
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
@@ -2171,7 +2171,7 @@ trait APIMethods121 {
 
     lazy val getTransactionNarrative : OBPEndpoint = {
       //get narrative
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet req => {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
@@ -2322,7 +2322,7 @@ trait APIMethods121 {
 
     lazy val getCommentsForViewOnTransaction : OBPEndpoint = {
       //get comments
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet req => {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
@@ -2436,7 +2436,7 @@ trait APIMethods121 {
 
     lazy val getTagsForViewOnTransaction : OBPEndpoint = {
       //get tags
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
@@ -2543,7 +2543,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 
     lazy val getImagesForViewOnTransaction : OBPEndpoint = {
       //get images
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet req => {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
@@ -2657,7 +2657,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 
     lazy val getWhereTagForViewOnTransaction : OBPEndpoint = {
       //get where tag
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet req => {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user)
@@ -2824,7 +2824,7 @@ Authentication via OAuth is required. The user must either have owner privileges
 
     lazy val getOtherAccountForTransaction : OBPEndpoint = {
       //get other account of a transaction
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet req => {
         cc =>
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound

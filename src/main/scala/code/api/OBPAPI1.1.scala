@@ -248,7 +248,7 @@ case class SuccessMessage(
 //
 //  serve("obp" / "v1.1" prefix {
 //
-//    case Nil JsonGet json => {
+//    case Nil JsonGet req => {
 //      logAPICall
 //
 //      def gitCommit : String = {
@@ -278,7 +278,7 @@ case class SuccessMessage(
 //      JsonResponse(apiDetails)
 //    }
 //
-//    case "banks" :: Nil JsonGet json => {
+//    case "banks" :: Nil JsonGet req => {
 //      logAPICall
 //      def bankToJson( b : Bank) = {
 //        ("bank" ->
@@ -295,7 +295,7 @@ case class SuccessMessage(
 //
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: Nil JsonGet req => {
 //      logAPICall
 //
 //      def bankToJson( b : Bank) = {
@@ -315,7 +315,7 @@ case class SuccessMessage(
 //  })
 //
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -382,7 +382,7 @@ case class SuccessMessage(
 //  })
 //
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
 //      logAPICall
 //      val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //      val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
@@ -441,7 +441,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
 //      import code.api.util.APIUtil.getTransactionParams
 //
 //      //log the API call
@@ -466,7 +466,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -500,7 +500,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -614,7 +614,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix{
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -709,7 +709,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -810,7 +810,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -907,7 +907,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -1044,7 +1044,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "other_account" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -1085,7 +1085,7 @@ case class SuccessMessage(
 //    }
 //  })
 //  serve("obp" / "v1.1" prefix {
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_ID :: "metadata" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_ID :: "metadata" :: Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //

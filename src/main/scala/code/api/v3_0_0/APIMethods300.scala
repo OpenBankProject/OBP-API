@@ -93,7 +93,7 @@ trait APIMethods300 {
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -270,7 +270,7 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
     lazy val getPrivateAccountById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -326,7 +326,7 @@ trait APIMethods300 {
       apiTagAccount ::  Nil)
     
     lazy val getPublicAccountById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -378,7 +378,7 @@ trait APIMethods300 {
       apiTagAccount ::  Nil)
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -430,7 +430,7 @@ trait APIMethods300 {
 
     lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
-      case "my" :: "accounts" :: Nil JsonGet json => {
+      case "my" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -464,7 +464,7 @@ trait APIMethods300 {
   
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet json => {
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -515,7 +515,7 @@ trait APIMethods300 {
   
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -533,7 +533,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(json)
+                params <- getTransactionParams(req)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -580,7 +580,7 @@ trait APIMethods300 {
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -595,7 +595,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(json)
+                params <- getTransactionParams(req)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, params: _*)(callContext)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -645,7 +645,7 @@ trait APIMethods300 {
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
           val res =
             for {
@@ -660,7 +660,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(json)
+                params <- getTransactionParams(req)
                 transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -1169,7 +1169,7 @@ trait APIMethods300 {
       List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(cc)
@@ -1219,7 +1219,7 @@ trait APIMethods300 {
       List(apiTagATM)
     )
     lazy val getAtms : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet req => {
         cc => {
           val limit = S.param("limit")
           val offset = S.param("offset")
@@ -1407,7 +1407,7 @@ trait APIMethods300 {
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1448,7 +1448,7 @@ trait APIMethods300 {
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "account_ids" :: "private"::Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1484,7 +1484,7 @@ trait APIMethods300 {
       List(apiTagCounterparty, apiTagAccount))
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
@@ -1515,7 +1515,7 @@ trait APIMethods300 {
       List(apiTagCounterparty, apiTagAccount))
   
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
         cc =>
           for {
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
@@ -1843,7 +1843,7 @@ trait APIMethods300 {
       apiTagApi :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
-      case "api" :: "glossary" :: Nil JsonGet json => _ => {
+      case "api" :: "glossary" :: Nil JsonGet req => _ => {
         val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
         Full(successJsonResponse(Extraction.decompose(json)))
       }
@@ -1868,7 +1868,7 @@ trait APIMethods300 {
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts-held" ::  Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts-held" ::  Nil JsonGet req => {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -1910,7 +1910,7 @@ trait APIMethods300 {
 
         lazy val getOtherAccountsForBank : OBPEndpoint = {
           //get other accounts for one account
-          case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet json => {
+          case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet req => {
             cc =>
               for {
                 _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
