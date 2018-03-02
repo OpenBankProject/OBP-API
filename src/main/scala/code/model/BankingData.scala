@@ -183,28 +183,14 @@ trait Bank {
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
   
-  //This was the behaviour in v1.2 and earlier which has since been changed
-  @deprecated
-  def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
-    user match {
-      case Full(u) => {
-        Full(privateAccounts(u))
-      }
-      case _ => {
-        Full(publicAccounts)
-      }
-    }
-  }
-
-  def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getPublicBankAccounts(this).flatMap { a =>
+  def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
+    publicViewsForBank.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }
 
-  def privateAccounts(user : User) : List[BankAccount] = {
-
-    Views.views.vend.getPrivateBankAccounts(user, bankId).flatMap { a =>
+  def privateAccounts(privateViewsUserCanAccessAtOneBank : List[View]) : List[BankAccount] = {
+    privateViewsUserCanAccessAtOneBank.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
 
@@ -629,14 +615,14 @@ object BankAccount {
       )
   }
   
-  def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getAllPublicAccounts.flatMap { a =>
+  def publicAccounts(publicViews: List[View]) : List[BankAccount] = {
+    publicViews.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }
 
-  def privateAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getPrivateBankAccounts(user).flatMap { a =>
+  def privateAccounts(privateViewsUserCanAccess: List[View]) : List[BankAccount] = {
+    privateViewsUserCanAccess.flatMap { a =>
       BankAccount(a.bankId, a.accountId)
     }
   }

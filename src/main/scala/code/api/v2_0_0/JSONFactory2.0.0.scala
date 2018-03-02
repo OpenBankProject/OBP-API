@@ -357,11 +357,10 @@ object JSONFactory200{
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
-  def privateBankAccountsListToJson(bankAccounts: List[BankAccount], user : User): JValue = {
+  def privateBankAccountsListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): JValue = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
-      val views = Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
       val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
+        privateViewsUserCanAccess.map( v => {
           createBasicViewJSON(v)
         })
       createBasicAccountJSON(account,viewsAvailable)

@@ -284,8 +284,16 @@ object MapperViews extends Views with MdcLoggable {
       Nil
   }
   
+  def publicViewsForBank(bankId: BankId): List[View] ={
+    if (ALLOW_PUBLIC_VIEWS)
+      ViewImpl
+        .findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bankId.value))
+    else
+      Nil
+  }
+  
   def privateViewsUserCanAccess(user: User): List[View] ={
-    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj).flatten.filter(_.isPrivate)
   }
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
@@ -297,36 +305,10 @@ object MapperViews extends Views with MdcLoggable {
 
 
   /**
-    * An account is considered public if it contains a public view
-    * @return the list of all bankAccountUUIDs which contains a public view
-    */
-  def getAllPublicAccounts() : List[BankIdAccountId] = {
-    if (ALLOW_PUBLIC_VIEWS)
-      ViewImpl
-        .findAll(By(ViewImpl.isPublic_, true)) //find all the public views
-        .map(v =>BankIdAccountId(v.bankId, v.accountId)) //generate the BankAccountUID
-        .distinct //we remove duplicates here
-    else
-      Nil
-  }
-
-  def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId] = {
-      if (ALLOW_PUBLIC_VIEWS)
-        ViewImpl
-          .findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.bankId.value)) //find all the public views
-          .map(v => {BankIdAccountId(bank.bankId, v.accountId) }) //generate the BankAccountUID
-          .distinct //we remove duplicates here
-      else
-        Nil
-  }
-
-  /**
    * @return the bank accounts where the user has at least access to a Private view (is_public==false)
    */
   def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {
-    ViewPrivileges
-    .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(_.isPrivate) //select all the Private views
+    Views.views.vend.privateViewsUserCanAccess(user)
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }
@@ -344,9 +326,8 @@ object MapperViews extends Views with MdcLoggable {
    * @return the bank accounts where the user has at least access to a Private view (is_public==false) for a specific bank
    */
   def getPrivateBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] = {
-    ViewPrivileges
-      .findAll(By(ViewPrivileges.user, user.resourceUserId.value)) // find all the views link to the user, means the views that user can access.
-      .map(_.view.obj).flatten.filter(v => v.isPrivate && v.bankId == bankId) //select all the Private views according to bankId
+    Views.views.vend.privateViewsUserCanAccess(user)
+      .filter(_.bankId == bankId) //select all the Private views according to bankId
       .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
       .distinct//we remove duplicates here
   }

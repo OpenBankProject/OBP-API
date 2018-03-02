@@ -49,6 +49,7 @@ trait Views {
     * Because the public views are totally open for everyone. 
     */
   def publicViews: List[View]
+  def publicViewsForBank(bankId: BankId): List[View]
   /**
     * This will return all the views belong to the bankAccount, its own Public + Private views.
     * Do not contain any other account public views.
@@ -58,8 +59,6 @@ trait Views {
   def privateViewsUserCanAccess(user: User): List[View]
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
-  def getAllPublicAccounts : List[BankIdAccountId]
-  def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
   def getPrivateBankAccounts(user : User) : List[BankIdAccountId]
   def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]]
   def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]]
@@ -106,8 +105,7 @@ class RemotedataViewsCaseClasses {
   case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()
-  case class getAllPublicAccounts()
-  case class getPublicBankAccounts(bank: Bank)
+  case class publicViewsForBank(bankId: BankId)
   case class getPrivateBankAccounts(pars: Any*) {
     def apply(user: User): List[(BankId, AccountId)] = this (user)
     def apply(user: User, bankId: BankId): List[(BankId, AccountId)] = this (user, bankId)
