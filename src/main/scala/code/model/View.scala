@@ -91,6 +91,26 @@ case class UpdateViewJSON(
 
 
 
+/**
+  * This Trait only contain the Ids to identity the AccountView.
+  * It will separate the `view Definition` and `view Identification`
+  * From now, we have system views(public, owner, private ...) and developer views (_home, _work ....)
+  * The System views will have the `view Definition` in scala code, can not be modified by developer.
+  * 
+  * @define bankId The bank where the account is held
+  * @define accountId The account that the view moderates
+  * @define viewId A short url friendly, (singular) human readable name for the view. e.g. "team", "auditor" or "public". Note: "owner" is a default and reserved name. Other reserved names should include "public", "accountant" and "auditor"
+  */
+trait AccountSystemView {
+  //these ids are used together to uniquely identify a view
+  def viewId : ViewId
+  def accountId : AccountId
+  def bankId : BankId
+  
+  //and here is the unique identifier
+  def uid : ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
+}
+
 /** Views moderate access to an Account. That is, they are used to:
   * 1) Show/hide fields on the account, its transactions and related counterparties
   * 2) Store/partition meta data  - e.g. comments posted on a "team" view are not visible via a "public" view and visa versa.
@@ -98,9 +118,6 @@ case class UpdateViewJSON(
   * Users can be granted access to one or more Views
   * Each View has a set of entitlements aka permissions which hide / show data fields and enable / disable operations on the account
   *
-  * @define viewId A short url friendly, (singular) human readable name for the view. e.g. "team", "auditor" or "public". Note: "owner" is a default and reserved name. Other reserved names should include "public", "accountant" and "auditor"
-  * @define accountId The account that the view moderates
-  * @define bankId The bank where the account is held
   * @define name The name of the view
   * @define description A description of the view
   * @define isPublic Set to True if the view should be open to the public (no authorisation required!) Set to False to require authorisation
@@ -188,9 +205,7 @@ case class UpdateViewJSON(
 
 
   */
-
-
-trait View {
+trait SystemViewDefinition {
 
   val viewLogger = Logger(classOf[View])
   //e.g. "Public", "Authorities", "Our Network", etc.
@@ -202,16 +217,8 @@ trait View {
   def isSystem : Boolean
   def isFirehose : Boolean
   def isPublic : Boolean
-  def isPrivate : Boolean
+  def isPrivate : Boolean = !isPublic
   
-  //these ids are used together to uniquely identify a view
-  def viewId : ViewId
-  def accountId : AccountId
-  def bankId : BankId
-
-  //and here is the unique identifier
-  def uid : ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
-
   def name: String
   def description : String
   def users: List[User]
@@ -309,7 +316,10 @@ trait View {
   def canAddTransactionRequestToOwnAccount: Boolean   //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean  
   def canSeeBankAccountCreditLimit: Boolean
+}
 
+//This the developer created views, it contains both in the database.
+trait View extends AccountSystemView with SystemViewDefinition{
   def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
     moderate(transaction, moderate(transaction.thisAccount))
   }
