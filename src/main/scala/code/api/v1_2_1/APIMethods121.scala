@@ -58,12 +58,12 @@ trait APIMethods121 {
   }
   
   private def publicBankAccountsListToJson(bankAccounts: List[BankAccount]): JValue = {
+    val views = Views.views.vend.publicViews
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
-      val views = Views.views.vend.publicViews
       val viewsAvailable : List[ViewJSONV121] =
-        views.map( v => {
-          JSONFactory.createViewJSON(v)
-        })
+        views
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)
+          .map(v => JSONFactory.createViewJSON(v)).distinct
       JSONFactory.createAccountJSON(account,viewsAvailable)
     })
     

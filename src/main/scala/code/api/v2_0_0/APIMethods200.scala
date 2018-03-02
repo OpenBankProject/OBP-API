@@ -87,12 +87,12 @@ trait APIMethods200 {
   }
   
   private def publicBasicBankAccountList(bankAccounts: List[BankAccount]): List[BasicAccountJSON] = {
+    val views = Views.views.vend.publicViews
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
-      val views = Views.views.vend.publicViews
       val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
-          JSONFactory200.createBasicViewJSON(v)
-        })
+        views
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)
+          .map(v => JSONFactory200.createBasicViewJSON(v))
       JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
     })
     accJson
