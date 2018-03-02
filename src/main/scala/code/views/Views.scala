@@ -55,9 +55,8 @@ trait Views {
     */
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
-  def viewsUserCanAccess(user: User): List[View] 
   def privateViewsUserCanAccess(user: User): List[View]
-  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
+  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   def getAllPublicAccounts : List[BankIdAccountId]
   def getPublicBankAccounts(bank : Bank) : List[BankIdAccountId]
@@ -104,7 +103,7 @@ class RemotedataViewsCaseClasses {
   case class viewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)
-  case class viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
+  case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()
   case class getAllPublicAccounts()

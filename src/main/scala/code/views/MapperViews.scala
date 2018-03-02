@@ -277,8 +277,6 @@ object MapperViews extends Views with MdcLoggable {
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
   
-  def viewsUserCanAccess(user: User): List[View] = (privateViewsUserCanAccess(user: User) ++ publicViews).distinct
-
   def publicViews: List[View] = {
     if (APIUtil.ALLOW_PUBLIC_VIEWS)
       ViewImpl.findAll(By(ViewImpl.isPublic_, true))
@@ -290,8 +288,8 @@ object MapperViews extends Views with MdcLoggable {
     ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj.toList).flatten.filter(_.isPrivate)
   }
   
-  def viewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
-    Views.views.vend.viewsUserCanAccess(user).filter(
+  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
+    Views.views.vend.privateViewsUserCanAccess(user).filter(
       view =>
         view.bankId == bankIdAccountId.bankId &&
           view.accountId == bankIdAccountId.accountId
