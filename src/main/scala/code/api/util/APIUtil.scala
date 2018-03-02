@@ -104,6 +104,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
   val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
+  val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -2495,6 +2496,12 @@ Versions are groups of endpoints in a file
     if(view.isFirehose && canUseFirehose(user)) true
     else false
   }
+
+  /**
+    *  This function is used to get property which is used for documenting at Resource Doc
+    * @return Value of property documented_root_url
+    */
+  def getDocumentedRootUrl: String = getPropsValue("documented_root_url").openOr(MissingPropsValueAtThisInstance + "documented_root_url")
   
   
 }
