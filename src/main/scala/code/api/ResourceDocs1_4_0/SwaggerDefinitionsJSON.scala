@@ -1498,7 +1498,9 @@ object SwaggerDefinitionsJSON {
     implemented_by_partial_function = "getBanks",
     implemented_in_version = "v210",
     consumer_id = "123",
-    verb = "get"
+    verb = "get",
+    correlationId = "v8ho6h5ivel3uq7a5zcnv0w1",
+    duration = 39
   )
 
   val resourceUserJSON = ResourceUserJSON(
