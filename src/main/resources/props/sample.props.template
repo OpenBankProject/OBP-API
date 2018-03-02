@@ -431,3 +431,7 @@ display_internal_errors=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
 # oauth2.jwk_set.url=http://localhost:8080/openid-connect-server-webapp/jwk.json
 # ----------------------------------------------------------- OAuth 2 -----------
+
+## This property is used for documenting at Resource Doc
+## (this needs to be a URL)
+documented_root_url=https://openbankproject.com
