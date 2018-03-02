@@ -15,6 +15,11 @@ Please reference Issue Numbers in your commits.
 
 Please comment your code ! :-) Imagine an engineer is trying to fix a production issue: she is working on a tiny screen, via a dodgy mobile Internet connection, in a sandstorm - Your code is fresh in your mind. Your comments could help her!
 
+## Code style
+
+When naming variables use strict camel case e.g. use myUrl not myURL. This is so we can automatically convert from camelCase to snake_case for JSON output.
+
+
 ## Issues
 
 If would like to report an issue or suggest any kind of improvement please use Github Issues.

@@ -1242,6 +1242,8 @@ object APIUtil extends MdcLoggable {
 
 
 
+
+
   glossaryItems += GlossaryItem(
     title = "Account",
     description =
@@ -1365,7 +1367,7 @@ object APIUtil extends MdcLoggable {
   glossaryItems += GlossaryItem(
     title = "Direct Login",
     description =
-      """
+      s"""
         |## TL;DR
         |
         |Direct Login is a simple authentication process to be used at hackathons and trusted environments:
@@ -1373,7 +1375,10 @@ object APIUtil extends MdcLoggable {
         |
         |### 1) Get your App key
         |
-        |On the OBP API portal click the **Get App Key** button. You may need to register/login first.
+        |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
+        |
+        |Register your App key [HERE]($getServerUrl/consumer-registration)
+        |
         |Copy and paste the consumer key for step two below.
         |
         |### 2) Authenticate
@@ -1381,7 +1386,7 @@ object APIUtil extends MdcLoggable {
         |
         |Using your favorite http client:
         |
-        |	POST OBP-HOST/my/logins/direct
+        |	POST $getServerUrl/my/logins/direct
         |
         |Body
         |
@@ -1399,10 +1404,9 @@ object APIUtil extends MdcLoggable {
         |
         |Here is it all together:
         |
-        |	POST /my/logins/direct HTTP/1.1
+        |	POST $getServerUrl/my/logins/direct HTTP/1.1
         |	Authorization: DirectLogin username="janeburel",   password="686876",  consumer_key="GET-YOUR-OWN-API-KEY-FROM-THE-OBP"
         |	Content-Type: application/json
-        |	Cookie: JSESSIONID=7h1ssu6d7j151u08p37a6tsx1
         |	Host: 127.0.0.1:8080
         |	Connection: close
         |	User-Agent: Paw/2.3.3 (Macintosh; OS X/10.11.3) GCDHTTPRequest
@@ -1424,7 +1428,7 @@ object APIUtil extends MdcLoggable {
         |
         |Action:
         |
-        |	PUT /obp/v2.0.0/banks/obp-bankx-n/accounts/my-new-account-id
+        |	PUT $getObpApiRoot/v2.0.0/banks/obp-bankx-n/accounts/my-new-account-id
         |
         |Body:
         |
@@ -1438,7 +1442,7 @@ object APIUtil extends MdcLoggable {
         |
         |Here is another example:
         |
-        |	PUT /obp/v2.0.0/banks/enbd-egy--p3/accounts/newaccount1 HTTP/1.1
+        |	PUT $getObpApiRoot/v2.0.0/banks/enbd-egy--p3/accounts/newaccount1 HTTP/1.1
         |	Authorization: DirectLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyIiOiIifQ.C8hJZNPDI59OOu78pYs4BWp0YY_21C6r4A9VbgfZLMA"
         |	Content-Type: application/json
         |	Cookie: JSESSIONID=7h1ssu6d7j151u08p37a6tsx1
@@ -1463,7 +1467,7 @@ object APIUtil extends MdcLoggable {
         |
         |       consumer_key
         |         The application identifier. Generated on OBP side via
-        |         /consumer-registration endpoint.
+        |         $getServerUrl/consumer-registration endpoint.
         |
         |
         |  Each parameter MUST NOT appear more than once per request.
@@ -2366,39 +2370,39 @@ Versions are groups of endpoints in a file
         throw new Exception("Only Full Box is allowed at function unboxFull")
     }
   }
-  
+
   /**
-    * This method is used for cache in connector level. 
+    * This method is used for cache in connector level.
     * eg: KafkaMappedConnector_vJune2017.bankTTL
-    * The default cache time unit is second.  
+    * The default cache time unit is second.
     */
   def getSecondsCache(cacheType: String) : Int = {
     if(cacheType =="getOrCreateMetadata")
       Props.get(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt  // 3600s --> 1h
     else
-      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
+      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt
   }
-  
+
   /**
     * Normally, we create the AccountId, BankId automatically in database. Because they are the UUIDString in the table.
-    * We also can create the Id manually. 
-    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields. 
+    * We also can create the Id manually.
+    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields.
     */
   def createOBPId(in:String)= {
     import java.security.MessageDigest
 
     import net.liftweb.util.SecurityHelpers._
     def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
-    
+
     base64EncodedSha256(in)
   }
-  
+
   /**
     *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
     *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
     */
   def createExplicitCounterpartyId()= UUID.randomUUID().toString
-  
+
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
     * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can generate the `counterpartyName`
@@ -2408,7 +2412,7 @@ Versions are groups of endpoints in a file
     thisAccountId : String,
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
-  
+
   val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   /**
@@ -2455,9 +2459,9 @@ Versions are groups of endpoints in a file
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
-  
-  
-  
+
+
+
   val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
   val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
   def canUseFirehose(user: User): Boolean = {
@@ -2469,14 +2473,14 @@ Versions are groups of endpoints in a file
 
     * @param view view object,
     * @param user Option User, can be Empty(No Authentication), or Login user.
-    *             
+    *
     */
   def hasAccess(view: View, user: Option[User]) : Boolean = {
-    if(hasPublicAccess(view: View))// No need for the Login user and public access 
+    if(hasPublicAccess(view: View))// No need for the Login user and public access
       true
     else
       user match {
-        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access 
+        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasViewAccess(view)=> true     // Login User and check view access
         case _ =>
           false
@@ -2498,10 +2502,12 @@ Versions are groups of endpoints in a file
   }
 
   /**
-    *  This function is used to get property which is used for documenting at Resource Doc
-    * @return Value of property documented_root_url
+    *  This value is used to construct some urls in Resource Docs
+    *  Its the root of the server as opposed to the root of the api
     */
-  def getDocumentedRootUrl: String = getPropsValue("documented_root_url").openOr(MissingPropsValueAtThisInstance + "documented_root_url")
-  
+  def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
+
+  // All OBP REST end points start with /obp
+  def getObpApiRoot: String = s"$getServerUrl/obp"
   
 }
