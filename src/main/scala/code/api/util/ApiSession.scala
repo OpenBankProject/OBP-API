@@ -6,6 +6,7 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
 import code.model.User
 import net.liftweb.common.{Box, Empty}
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 
 case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
@@ -19,10 +20,11 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
-                       authorization: Box[String] = Empty,
+                       authReqHeaderField: Box[String] = Empty,
                        directLoginParams: Map[String, String] = Map(),
                        oAuthParams: Map[String, String] = Map(),
-                       httpCode: Option[Int] = None
+                       httpCode: Option[Int] = None,
+                       requestHeaders: List[HTTPParam] = Nil
                       )
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam

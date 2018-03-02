@@ -150,7 +150,7 @@ trait APIMethods200 {
 
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
-      case "accounts" :: Nil JsonGet json => {
+      case "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -189,7 +189,7 @@ trait APIMethods200 {
 
         lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
           //get private accounts for all banks
-          case "my" :: "accounts" :: Nil JsonGet json => {
+          case "my" :: "accounts" :: Nil JsonGet req => {
             cc =>
               for {
                 u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -231,7 +231,7 @@ trait APIMethods200 {
 
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
-      case "accounts" :: "public" :: Nil JsonGet json => {
+      case "accounts" :: "public" :: Nil JsonGet req => {
         _ =>
           for {
             publicAccountsJson <- tryo{bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)} ?~! "Could not get accounts."
@@ -267,7 +267,7 @@ trait APIMethods200 {
     //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same accounts, only different json body.
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
-      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -323,7 +323,7 @@ trait APIMethods200 {
     // The second path is experimental
     lazy val corePrivateAccountsAtOneBank : OBPEndpoint = {
       // get private accounts for a single bank
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -334,7 +334,7 @@ trait APIMethods200 {
           }
       }
       // Also we support accounts/private to maintain compatibility with 1.4.0
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -345,7 +345,7 @@ trait APIMethods200 {
           }
       }
       // Supports idea of default bank
-      case "bank" :: "accounts" :: Nil JsonGet json => {
+      case "bank" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -384,7 +384,7 @@ trait APIMethods200 {
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
@@ -421,7 +421,7 @@ trait APIMethods200 {
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         _ =>
           for {
             bank <- Bank(bankId)
@@ -855,7 +855,7 @@ trait APIMethods200 {
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
 
         cc =>
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
@@ -907,11 +907,11 @@ trait APIMethods200 {
     //The only difference here is "Core implies 'owner' view" 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       //get transactions
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet req => {
         cc =>
 
           for {
-            params <- getTransactionParams(json)
+            params <- getTransactionParams(req.request.headers)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
@@ -958,7 +958,7 @@ trait APIMethods200 {
 
     lazy val accountById : OBPEndpoint = {
       //get account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
@@ -998,7 +998,7 @@ trait APIMethods200 {
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
       //get access
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
@@ -1033,7 +1033,7 @@ trait APIMethods200 {
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)

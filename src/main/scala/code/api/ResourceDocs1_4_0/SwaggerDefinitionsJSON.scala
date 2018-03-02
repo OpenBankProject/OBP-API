@@ -1498,7 +1498,9 @@ object SwaggerDefinitionsJSON {
     implemented_by_partial_function = "getBanks",
     implemented_in_version = "v210",
     consumer_id = "123",
-    verb = "get"
+    verb = "get",
+    correlationId = "v8ho6h5ivel3uq7a5zcnv0w1",
+    duration = 39
   )
 
   val resourceUserJSON = ResourceUserJSON(
@@ -2127,6 +2129,19 @@ object SwaggerDefinitionsJSON {
   //ended -- Transaction relevant case classes /////
   
   //stated -- account relevant case classes /////
+  
+  
+  val accountHeld = AccountHeld(
+    id = "String",
+    bank_id = "String",
+    number = "String",
+    account_routing = accountRouting
+  )
+  
+  
+  val coreAccountsHeldJsonV300 = CoreAccountsHeldJsonV300(
+    accounts= List(accountHeld)
+  )
   val moderatedAccountJsonV300 = ModeratedAccountJsonV300(
     id= "String",
     bank_id = "String",

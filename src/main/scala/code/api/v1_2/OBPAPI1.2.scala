@@ -88,7 +88,7 @@
 //    } yield metadata
 //
 //  oauthServe(apiPrefix {
-//    case Nil JsonGet json => {
+//    case Nil JsonGet req => {
 //      cc =>
 //        val apiDetails: JValue = {
 //          val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
@@ -102,7 +102,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get banks
-//    case "banks" :: Nil JsonGet json => {
+//    case "banks" :: Nil JsonGet req => {
 //      cc =>
 //        def banksToJson(banksList: List[Bank]): JValue = {
 //          val banksJSON: List[BankJSON] = banksList.map(b => {
@@ -118,7 +118,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get bank by id
-//    case "banks" :: BankId(bankId) :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: Nil JsonGet req => {
 //      cc =>
 //        def bankToJson(bank : Bank) : JValue = {
 //          val bankJSON = JSONFactory.createBankJSON(bank)
@@ -136,7 +136,7 @@
 //   */
 //  oauthServe(apiPrefix {
 //  //get accounts for a single bank
-//    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
 //      cc =>
 //        for{
 //         bank <- Bank(bankId)
@@ -147,7 +147,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get private accounts for a single bank
-//    case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          u <- user ?~ "user not found"
@@ -161,7 +161,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get public accounts for a single bank
-//    case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          bank <- Bank(bankId)
@@ -174,7 +174,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get account by id
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -191,7 +191,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get the available views on an bank account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -238,7 +238,7 @@
 //
 //  oauthServe(apiPrefix {
 //    //deletes a view on an bank account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
 //      cc =>
 //        for {
 //          u <- user ?~ "user not found"
@@ -250,7 +250,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get access
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -265,7 +265,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get access for specific user
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          u <- user ?~ "user not found"
@@ -311,7 +311,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //delete access for specific user to one view
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -324,7 +324,7 @@
 //
 //  oauthServe(apiPrefix{
 //    //delete access for specific user to all the views
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: "views" :: Nil JsonDelete json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: userId :: "views" :: Nil JsonDelete req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -337,7 +337,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get other accounts for one account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -352,7 +352,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get one other account by id
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -367,7 +367,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get metadata of one other account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -383,7 +383,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get public alias of other bank account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -455,7 +455,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get private alias of other bank account
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -887,7 +887,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get transactions
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
 //      cc =>
 //      import code.api.util.APIUtil.getTransactionParams
 //
@@ -905,7 +905,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get transaction by id
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)
@@ -920,7 +920,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get narrative
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -982,7 +982,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get comments
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1026,7 +1026,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get tags
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1072,7 +1072,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get images
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1117,7 +1117,7 @@
 //
 //  oauthServe(apiPrefix {
 //  //get where tag
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1185,7 +1185,7 @@
 //
 //  oauthServe(apiPrefix{
 //  //get other account of a transaction
-//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
+//    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet req => {
 //      cc =>
 //        for {
 //          account <- BankAccount(bankId, accountId)

@@ -57,6 +57,7 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
@@ -103,7 +104,8 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
   val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
-  val NoValidElasticsearchIndicesConfigured = "OBP-00010: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
+  val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
+  val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -158,12 +160,12 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
 
   val UserNoPermissionAccessView = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
-  
+
+
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
   val InvalidCustomViewFormat = "OBP-20020: View name must start with `_`. eg: _work, _life "
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
-
 
 
 
@@ -182,16 +184,20 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
-
-
-
   val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
   val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
 
+  // OAuth 2
+  val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
+  val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
+  val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
+  val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
+  val Oauth2ParseException = "OBP-20205: Parse error. "
 
 
 
+  
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
@@ -414,8 +420,24 @@ object APIUtil extends MdcLoggable {
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
+  /*
+     The OAuth 2.0 Authorization Framework: Bearer Token
+     For example, the "bearer" token type defined in [RFC6750] is utilized
+     by simply including the access token string in the request:
+       GET /resource/1 HTTP/1.1
+       Host: example.com
+       Authorization: Bearer mF_9.B5f-4.1JqM
+   */
+  def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
+
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
 
+  /**
+    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
+    * @param `type` Type of an authentication scheme
+    * @param authorization "Authorization" request header field defined by HTTP/1.1 [RFC2617]
+    * @return True or False i.e. does the "Authorization" request header field has the Type of the authentication scheme
+    */
   def hasHeader(`type`: String, authorization: Box[String]) : Boolean = {
     authorization match {
       case Full(a) if a.contains(`type`) => true
@@ -459,12 +481,12 @@ object APIUtil extends MdcLoggable {
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
             val consumer =
-              if (hasAnOAuthHeader(cc.authorization)) {
+              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
                 getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authorization)) {
+              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
                 DirectLogin.getConsumer(cc) match {
                   case Full(c) => Full(c)
                   case _ => Empty
@@ -662,7 +684,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
+    val jsonAst = ApiSession.processJson((Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
       case Some(c) if c.httpCode.isDefined =>
@@ -845,38 +867,58 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-   def getSortDirection(req: Req): Box[OBPOrder] = {
-    req.header("obp_sort_direction") match {
-      case Full(v) => {
-        if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
-          Full(OBPOrder(Some(v.toLowerCase)))
-        }
-        else{
-          Failure(FilterSortDirectionError)
-        }
-      }
-      case _ => Full(OBPOrder(None))
+  private def getHeader(requestHeaders: List[HTTPParam], name: String ) ={
+    val headers: List[(String, String)] =
+      for (h <- requestHeaders;
+           p <- h.values
+      ) yield (h.name, p)
+
+    headers.filter(_._1.equalsIgnoreCase(name)).map(_._2) match {
+      case x :: _ => Full(x)
+      case _ => Empty
     }
   }
 
-   def getFromDate(req: Req): Box[OBPFromDate] = {
-    val date: Box[Date] = req.header("obp_from_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
-      case _ => {
+   def getSortDirection(headers: List[HTTPParam]): Box[OBPOrder] = {
+
+     def validate(v: String) = {
+       if (v.toLowerCase == "desc" || v.toLowerCase == "asc") {
+         Full(OBPOrder(Some(v.toLowerCase)))
+       }
+       else {
+         Failure(FilterSortDirectionError)
+       }
+     }
+
+     (getHeader(headers, "sort_direction"), getHeader(headers, "obp_sort_direction")) match {
+      case (Full(left), _) =>
+        validate(left)
+      case (_, Full(r)) =>
+        validate(r)
+      case _ => Full(OBPOrder(None))
+    }
+
+  }
+
+   def getFromDate(headers: List[HTTPParam]): Box[OBPFromDate] = {
+    val date: Box[Date] = (getHeader(headers, "from_date"), getHeader(headers, "obp_from_date")) match {
+      case (Full(left),_) =>
+        DateParser.parse(left)
+      case (_, Full(right)) =>
+        DateParser.parse(right)
+      case _ =>
         Full(new Date(0))
-      }
     }
 
     date.map(OBPFromDate(_))
   }
 
-   def getToDate(req: Req): Box[OBPToDate] = {
-    val date: Box[Date] = req.header("obp_to_date") match {
-      case Full(d) => {
-        DateParser.parse(d)
-      }
+   def getToDate(headers: List[HTTPParam]): Box[OBPToDate] = {
+    val date: Box[Date] = (getHeader(headers, "to_date"), getHeader(headers, "obp_to_date")) match {
+      case (Full(left),_) =>
+        DateParser.parse(left)
+      case (_, Full(right)) =>
+        DateParser.parse(right)
       case _ => {
         // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
         // (Else caching is invlidated by constantly changing date)
@@ -888,16 +930,36 @@ object APIUtil extends MdcLoggable {
     date.map(OBPToDate(_))
   }
 
-   def getOffset(req: Req): Box[OBPOffset] = {
-    getPaginationParam(req, "obp_offset", 0, 0, FilterOffersetError).map(OBPOffset(_))
+   def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
+     (getPaginationParam(headers, "offset", None, 0, FilterOffersetError), getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+       case (Full(left), _) =>
+         Full(OBPOffset(left))
+       case (Failure(m, e, c), _) =>
+         Failure(m, e, c)
+       case (_, Full(right)) =>
+         Full(OBPOffset(right))
+       case (_, Failure(m, e, c)) =>
+         Failure(m, e, c)
+       case _ => Full(OBPOffset(0))
+     }
   }
 
-   def getLimit(req: Req): Box[OBPLimit] = {
-    getPaginationParam(req, "obp_limit", 50, 1, FilterLimitError).map(OBPLimit(_))
+   def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
+     (getPaginationParam(headers, "limit", None, 1, FilterLimitError), getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError)) match {
+       case (Full(left), _) =>
+         Full(OBPLimit(left))
+       case (Failure(m, e, c), _) =>
+         Failure(m, e, c)
+       case (_, Full(right)) =>
+         Full(OBPLimit(right))
+       case (_, Failure(m, e, c)) =>
+         Failure(m, e, c)
+       case _ => Full(OBPLimit(50))
+     }
   }
 
-   def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
-    req.header(paramName) match {
+   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
+     getHeader(headers, paramName) match {
       case Full(v) => {
         tryo{
           v.toInt
@@ -913,17 +975,21 @@ object APIUtil extends MdcLoggable {
           case _ => Failure(errorMsg)
         }
       }
-      case _ => Full(defaultValue)
+      case _ =>
+        defaultValue match {
+          case Some(default) => Full(default)
+          case _ => Empty
+        }
     }
   }
 
-  def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
+  def getTransactionParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
-      sortDirection <- getSortDirection(req)
-      fromDate <- getFromDate(req)
-      toDate <- getToDate(req)
-      limit <- getLimit(req)
-      offset <- getOffset(req)
+      sortDirection <- getSortDirection(headers)
+      fromDate <- getFromDate(headers)
+      toDate <- getToDate(headers)
+      limit <- getLimit(headers)
+      offset <- getOffset(headers)
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -1191,6 +1257,8 @@ object APIUtil extends MdcLoggable {
 
 
 
+
+
   glossaryItems += GlossaryItem(
     title = "Account",
     description =
@@ -1311,8 +1379,122 @@ object APIUtil extends MdcLoggable {
         |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
       """)
 
+  glossaryItems += GlossaryItem(
+    title = "Direct Login",
+    description =
+      s"""
+        |## TL;DR
+        |
+        |Direct Login is a simple authentication process to be used at hackathons and trusted environments:
+        |
+        |
+        |### 1) Get your App key
+        |
+        |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
+        |
+        |Register your App key [HERE]($getServerUrl/consumer-registration)
+        |
+        |Copy and paste the consumer key for step two below.
+        |
+        |### 2) Authenticate
+        |
+        |
+        |Using your favorite http client:
+        |
+        |	POST $getServerUrl/my/logins/direct
+        |
+        |Body
+        |
+        |	Leave Empty!
+        |
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |
+        |    Authorization: DirectLogin username="janeburel",
+        |                    password="the-password-of-jane",
+        |                    consumer_key="your-consumer-key-from-step-one"
+        |
+        |Here is it all together:
+        |
+        |	POST $getServerUrl/my/logins/direct HTTP/1.1
+        |	Authorization: DirectLogin username="janeburel",   password="686876",  consumer_key="GET-YOUR-OWN-API-KEY-FROM-THE-OBP"
+        |	Content-Type: application/json
+        |	Host: 127.0.0.1:8080
+        |	Connection: close
+        |	User-Agent: Paw/2.3.3 (Macintosh; OS X/10.11.3) GCDHTTPRequest
+        |	Content-Length: 0
+        |
+        |
+        |
+        |
+        |You should receive a token:
+        |
+        |	{"token":"a-long-token-string"}
+        |
+        |### 3) Make authenticated API calls
+        |
+        |In subsequent calls you can use the token received in step 2
+        |
+        |e.g.
+        |
+        |
+        |Action:
+        |
+        |	PUT $getObpApiRoot/v2.0.0/banks/obp-bankx-n/accounts/my-new-account-id
+        |
+        |Body:
+        |
+        |	{  "type":"CURRENT",  "balance":{    "currency":"USD",    "amount":"0"  }}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-2"
+        |
+        |Here is another example:
+        |
+        |	PUT $getObpApiRoot/v2.0.0/banks/enbd-egy--p3/accounts/newaccount1 HTTP/1.1
+        |	Authorization: DirectLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyIiOiIifQ.C8hJZNPDI59OOu78pYs4BWp0YY_21C6r4A9VbgfZLMA"
+        |	Content-Type: application/json
+        |	Cookie: JSESSIONID=7h1ssu6d7j151u08p37a6tsx1
+        |	Host: 127.0.0.1:8080
+        |	Connection: close
+        |	User-Agent: Paw/2.3.3 (Macintosh; OS X/10.11.3) GCDHTTPRequest
+        |	Content-Length: 60
+        |
+        |	{"type":"CURRENT","balance":{"currency":"USD","amount":"0"}}
+        |
+        |
+        |### More information
+        |
+        |   Parameter names and values are case sensitive.
+        |   The following parameters must be sent by the client to the server:
+        |
+        |       username
+        |         The name of the user to authenticate.
+        |
+        |       password
+        |         The password used to authenticate user. Alphanumeric string.
+        |
+        |       consumer_key
+        |         The application identifier. Generated on OBP side via
+        |         $getServerUrl/consumer-registration endpoint.
+        |
+        |
+        |  Each parameter MUST NOT appear more than once per request.
+        |
+      """)
+
+
+
+
+
   def getGlossaryItems : List[GlossaryItem] = {
-    glossaryItems.toList
+    glossaryItems.toList.sortBy(_.title)
   }
 
 
@@ -1647,6 +1829,14 @@ Returns a string showed to the developer
     * @return - the source port of the client or last seen proxy.
     */
   def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
+  /**
+    * @return - the server port
+    */
+  def getServerPort(): Int = S.containerRequest.map(_.serverPort).openOr(0)
+  /**
+    * @return - the host name of the server
+    */
+  def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
 
 
   /**
@@ -2063,18 +2253,20 @@ Versions are groups of endpoints in a file
     */
   def getUserAndSessionContextFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     val s = S
-    val authorization = S.request.map(_.header("Authorization")).flatten
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
+    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =
-    if (hasAnOAuthHeader(authorization)) {
+    if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
+      OAuth2Handshake.getUserFromOAuth2HeaderFuture(cc)
+    } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       Props.get("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -2128,7 +2320,7 @@ Versions are groups of endpoints in a file
     } map {
       x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
     } map {
-      x => (x._1, x._2.map(_.copy(authorization = authorization)))
+      x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     }
 
   }
@@ -2193,39 +2385,39 @@ Versions are groups of endpoints in a file
         throw new Exception("Only Full Box is allowed at function unboxFull")
     }
   }
-  
+
   /**
-    * This method is used for cache in connector level. 
+    * This method is used for cache in connector level.
     * eg: KafkaMappedConnector_vJune2017.bankTTL
-    * The default cache time unit is second.  
+    * The default cache time unit is second.
     */
   def getSecondsCache(cacheType: String) : Int = {
     if(cacheType =="getOrCreateMetadata")
       Props.get(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt  // 3600s --> 1h
     else
-      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt 
+      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt
   }
-  
+
   /**
     * Normally, we create the AccountId, BankId automatically in database. Because they are the UUIDString in the table.
-    * We also can create the Id manually. 
-    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields. 
+    * We also can create the Id manually.
+    * eg: CounterpartyId, because we use this Id both for Counterparty and counterpartyMetaData by some input fields.
     */
   def createOBPId(in:String)= {
     import java.security.MessageDigest
 
     import net.liftweb.util.SecurityHelpers._
     def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
-    
+
     base64EncodedSha256(in)
   }
-  
+
   /**
     *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
     *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
     */
   def createExplicitCounterpartyId()= UUID.randomUUID().toString
-  
+
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
     * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can generate the `counterpartyName`
@@ -2235,7 +2427,7 @@ Versions are groups of endpoints in a file
     thisAccountId : String,
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
-  
+
   val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   /**
@@ -2282,9 +2474,9 @@ Versions are groups of endpoints in a file
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
-  
-  
-  
+
+
+
   val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
   val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
   def canUseFirehose(user: User): Boolean = {
@@ -2296,14 +2488,14 @@ Versions are groups of endpoints in a file
 
     * @param view view object,
     * @param user Option User, can be Empty(No Authentication), or Login user.
-    *             
+    *
     */
   def hasAccess(view: View, user: Option[User]) : Boolean = {
-    if(hasPublicAccess(view: View))// No need for the Login user and public access 
+    if(hasPublicAccess(view: View))// No need for the Login user and public access
       true
     else
       user match {
-        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access 
+        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasViewAccess(view)=> true     // Login User and check view access
         case _ =>
           false
@@ -2323,6 +2515,14 @@ Versions are groups of endpoints in a file
     if(view.isFirehose && canUseFirehose(user)) true
     else false
   }
-  
+
+  /**
+    *  This value is used to construct some urls in Resource Docs
+    *  Its the root of the server as opposed to the root of the api
+    */
+  def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
+
+  // All OBP REST end points start with /obp
+  def getObpApiRoot: String = s"$getServerUrl/obp"
   
 }

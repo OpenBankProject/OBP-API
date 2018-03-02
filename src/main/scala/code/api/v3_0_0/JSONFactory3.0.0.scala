@@ -475,7 +475,7 @@ object JSONFactory300{
   def createThisAccountJSON(bankAccount : ModeratedBankAccount) : ThisAccountJsonV300 = {
     ThisAccountJsonV300(
       id = bankAccount.accountId.value,
-      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
       account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
       holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
     )
@@ -498,7 +498,7 @@ object JSONFactory300{
     OtherAccountJsonV300(
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
-      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
       account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
@@ -538,7 +538,7 @@ object JSONFactory300{
     CoreCounterpartyJsonV300(
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
-      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
       account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))
     )
   }
