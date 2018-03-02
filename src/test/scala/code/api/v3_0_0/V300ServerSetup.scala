@@ -1,7 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
-import code.api.v1_2_1.BanksJSON
+import code.api.v1_2_1.{AccountJSON, AccountsJSON, BanksJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
 import dispatch.Req
@@ -41,22 +41,35 @@ trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
     val bank = banksJson.banks(randomPosition)
     bank.id
   }
-  
-  
+
+  def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v3_0Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken) //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V200-privateAccountsAtOneBank
+    makeGetRequest(request)
+  }
+
   def randomPrivateAccountId(bankId : String) : String = {
-    
-    def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-      val request = v3_0Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken) //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V200-privateAccountsAtOneBank
-      makeGetRequest(request)
-    }
-
-
-    
     val accountsJson = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts //TODO, how to make this map automatically.
-    println("accountsJson******************* " + accountsJson)
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition).id
-  
+  }
+
+  def randomPrivateAccount(bankId : String): AccountJSON = {
+    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts //TODO, how to make this map automatically.
+    val randomPosition = nextInt(accountsJson.size)
+    accountsJson(randomPosition)
+  }
+
+  def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
+    val request = v3_0Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    val reply = makeGetRequest(request)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true)
+    val randomPosition = nextInt(possibleViewsPermalinks.size)
+    possibleViewsPermalinks(randomPosition).id
+  }
+
+  def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
+    val request = v3_0Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
+    makeGetRequest(request, params)
   }
   
   /**

@@ -679,7 +679,7 @@ object APIUtil extends MdcLoggable {
   }
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val jsonAst = ApiSession.processJson(snakify(Extraction.decompose(cc)), callContext)
+    val jsonAst = ApiSession.processJson((Extraction.decompose(cc)), callContext)
     logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
       case Some(c) if c.httpCode.isDefined =>
@@ -926,21 +926,31 @@ object APIUtil extends MdcLoggable {
   }
 
    def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
-    getPaginationParam(headers, "offset", None, 0, FilterOffersetError) match {
-      case Full(o) =>
-        Full(OBPOffset(o))
-      case _ =>
-        getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError).map(OBPOffset(_))
-    }
+     (getPaginationParam(headers, "offset", None, 0, FilterOffersetError), getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+       case (Full(left), _) =>
+         Full(OBPOffset(left))
+       case (Failure(m, e, c), _) =>
+         Failure(m, e, c)
+       case (_, Full(right)) =>
+         Full(OBPOffset(right))
+       case (_, Failure(m, e, c)) =>
+         Failure(m, e, c)
+       case _ => Full(OBPOffset(0))
+     }
   }
 
    def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
-    getPaginationParam(headers, "limit", None, 1, FilterLimitError) match {
-      case Full(l) =>
-        Full(OBPLimit(l))
-      case _ =>
-        getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError).map(OBPLimit(_))
-    }
+     (getPaginationParam(headers, "limit", None, 1, FilterLimitError), getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError)) match {
+       case (Full(left), _) =>
+         Full(OBPLimit(left))
+       case (Failure(m, e, c), _) =>
+         Failure(m, e, c)
+       case (_, Full(right)) =>
+         Full(OBPLimit(right))
+       case (_, Failure(m, e, c)) =>
+         Failure(m, e, c)
+       case _ => Full(OBPLimit(50))
+     }
   }
 
    def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
