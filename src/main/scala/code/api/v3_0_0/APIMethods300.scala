@@ -474,7 +474,7 @@ trait APIMethods300 {
             }
             bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
             bank<- unboxFullAndWrapIntoFuture(bankBox)
-            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank, u) }
+            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank.bankId, u) }
             moderatedAccounts = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
               //1 each accountId-> find a proper bankAccount object.

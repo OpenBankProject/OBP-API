@@ -58,26 +58,14 @@ object RemotedataViews extends ObpActorInit with Views {
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] =
     extractFuture(actor ? cc.privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId))
   
-  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] =
-    extractFuture(actor ? cc.getAllFirehoseAccounts(bank: Bank, user : User))
-  
   def publicViews : List[View] =
     extractFuture(actor ? cc.publicViews())
   
   def publicViewsForBank(bankId: BankId) : List[View] =
     extractFuture(actor ? cc.publicViewsForBank(bankId: BankId))
   
-  def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] =
-    extractFuture(actor ? cc.getPrivateBankAccounts(user))
-
-  def getPrivateBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] =
-    (actor ? cc.getPrivateBankAccounts(user)).mapTo[List[BankIdAccountId]]
-
-  def getPrivateBankAccountsFuture(user : User, bankId : BankId) :  Future[List[BankIdAccountId]] =
-    (actor ? cc.getPrivateBankAccounts(user, bankId)).mapTo[List[BankIdAccountId]]
-
-  def getPrivateBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] =
-    extractFuture(actor ? cc.getPrivateBankAccounts(user, bankId))
+  def firehoseViewsForBank(bankId: BankId, user : User): List[View] =
+    extractFuture(actor ? cc.firehoseViewsForBank(bankId: BankId, user : User))
 
   def grantAccessToView(user : User, view : View): Boolean =
     extractFuture(actor ? cc.grantAccessToView(user, view))

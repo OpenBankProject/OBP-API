@@ -292,6 +292,17 @@ object MapperViews extends Views with MdcLoggable {
       Nil
   }
   
+  def firehoseViewsForBank(bankId: BankId, user : User): List[View] ={
+    if (canUseFirehose(user)) {
+      ViewImpl.findAll(
+        By(ViewImpl.isFirehose_, true),
+        By(ViewImpl.bankPermalink, bankId.value)
+      )
+    }else{
+      Nil
+    }
+  }
+  
   def privateViewsUserCanAccess(user: User): List[View] ={
     ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj).flatten.filter(_.isPrivate)
   }
@@ -303,55 +314,6 @@ object MapperViews extends Views with MdcLoggable {
           view.accountId == bankIdAccountId.accountId
     )
 
-
-  /**
-   * @return the bank accounts where the user has at least access to a Private view (is_public==false)
-   */
-  def getPrivateBankAccounts(user : User) :  List[BankIdAccountId] = {
-    Views.views.vend.privateViewsUserCanAccess(user)
-      .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-      .distinct//we remove duplicates here
-  }
-
-  /**
-    * @return the bank accounts where the user has at least access to a Private view (is_public==false)
-    */
-  def getPrivateBankAccountsFuture(user : User) :  Future[List[BankIdAccountId]] = {
-    Future {
-      getPrivateBankAccounts(user)
-    }
-  }
-
-  /**
-   * @return the bank accounts where the user has at least access to a Private view (is_public==false) for a specific bank
-   */
-  def getPrivateBankAccounts(user : User, bankId : BankId) :  List[BankIdAccountId] = {
-    Views.views.vend.privateViewsUserCanAccess(user)
-      .filter(_.bankId == bankId) //select all the Private views according to bankId
-      .map(v => { BankIdAccountId(v.bankId, v.accountId)}) //generate the BankAccountUID
-      .distinct//we remove duplicates here
-  }
-
-  /**
-    * @return the bank accounts where the user has at least access to a Private view (is_public==false) for a specific bank
-    */
-  def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = {
-    Future {
-      getPrivateBankAccounts(user, bankId)
-    }
-  }
-  
-  def getAllFirehoseAccounts(bank: Bank, user : User) : List[BankIdAccountId] = {
-    if (canUseFirehose(user)) {
-      ViewImpl.findAll(
-        By(ViewImpl.isFirehose_, true),
-        By(ViewImpl.bankPermalink, bank.bankId.value)
-      ).map(v => {BankIdAccountId(v.bankId, v.accountId)})
-    } else {
-      Nil
-    }
-  }
-  
   /**
     * @param bankIdAccountId the IncomingAccount from Kafka
     * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support
