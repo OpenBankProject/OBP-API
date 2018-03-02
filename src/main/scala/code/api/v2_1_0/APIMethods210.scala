@@ -1582,25 +1582,39 @@ trait APIMethods210 {
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
+        |5 sort_by (defaults to date field) eg: sort_by=date
+        |  possible values:
+        |    "url",
+        |    "date",
+        |    "user_name",
+        |    "app_name",
+        |    "developer_email",
+        |    "implemented_by_partial_function",
+        |    "implemented_in_version",
+        |    "consumer_id",
+        |    "verb"
+        |
+        |6 direction (defaults to date desc) eg: direction=desc
+        |
         |eg: /management/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
         |
         |Other filters:
         |
-        |5 consumer_id  (if null ignore)
+        |7 consumer_id  (if null ignore)
         |
-        |6 user_id (if null ignore)
+        |8 user_id (if null ignore)
         |
-        |7 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
         |
-        |8 url (if null ignore), note: can not contain '&'. 
+        |10 url (if null ignore), note: can not contain '&'.
         |
-        |9 app_name (if null ignore)
+        |11 app_name (if null ignore)
         |
-        |10 implemented_by_partial_function (if null ignore),
+        |12 implemented_by_partial_function (if null ignore),
         |
-        |11 implemented_in_version (if null ignore)
+        |13 implemented_in_version (if null ignore)
         |
-        |12 verb (if null ignore)
+        |14 verb (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1644,7 +1658,14 @@ trait APIMethods210 {
                       ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
             // default0, start from page 0
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~! s"${InvalidNumber } offset:${S.param("offset").get }"
-  
+            sortBy <- tryo(S.param("sort_by").getOrElse("date"))
+            direction <- tryo(
+              S.param("direction") match {
+                case Full(sort) if sort.toLowerCase == "asc"  => OBPAscending
+                case Full(sort) if sort.toLowerCase == "desc" => OBPDescending
+                case _                                        => OBPDescending
+              }
+            )
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
             //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
@@ -1665,7 +1686,7 @@ trait APIMethods210 {
             }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate))
+            _ <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate) += OBPOrdering(Some(sortBy), direction))
 
 
             // TODO check / comment this logic
