@@ -234,7 +234,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPublicData))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
 
 
@@ -263,10 +263,11 @@ trait APIMethods200 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank (Private).",
+      "Get Accounts at Bank.",
       s"""Get accounts at one bank that the user has access to.
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
+        |Each account must have at least one private View.
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
@@ -419,17 +420,17 @@ trait APIMethods200 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get Accounts at Bank (Public)",
-      """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
+      "Get Public Accounts at Bank",
+      s"""Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is not required.
+        |${authenticationRequiredMessage(false)}
         |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPublicData))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank

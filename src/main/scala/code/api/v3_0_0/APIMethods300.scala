@@ -302,16 +302,18 @@ trait APIMethods300 {
       "getPublicAccountById",
       "GET",
       "/banks/BANK_ID/public/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (Full, Public)",
-      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      "Get Public Account by Id",
+      s"""
+        |Returns information about an account that has a public view.
+        |
+        |The account is specified by ACCOUNT_ID. The information is moderated by the view specified by VIEW_ID.
         |
         |* Number
         |* Owners
         |* Type
         |* Balance
-        |* IBAN
+        |* Routing
         |
-        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
         |This call provides balance and other account information via delegated authenticaiton using OAuth.
@@ -323,7 +325,7 @@ trait APIMethods300 {
       moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagAccount ::  Nil)
+      apiTagAccountPublic :: apiTagAccount ::  Nil)
     
     lazy val getPublicAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
@@ -409,8 +411,8 @@ trait APIMethods300 {
       "corePrivateAccountsAllBanks",
       "GET",
       "/my/accounts",
-      "Get Accounts at all Banks (Private)",
-      s"""Get private accounts at all banks (Authenticated access)
+      "Get Accounts at all Banks (My)",
+      s"""Get private accounts at all banks.
          |Returns the list of accounts containing private views for the user at all banks.
          |For each account the API returns the ID and the available views.
          |
@@ -449,9 +451,16 @@ trait APIMethods300 {
       "getFirehoseAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
-      "Get Firehose Accounts at one Bank (Firehose)",
+      "Get Firehose Accounts at Bank",
       s"""
-         |Get firehose accounts at one bank. 
+         |Get Accounts which have a firehose view assigned to them.
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |Requires the canUseFirehoseAtAnyBank Role
+         |
+         |To be shown on the list, each Account must have a firehose View linked to it.
+         |
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -460,7 +469,7 @@ trait APIMethods300 {
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData),
+      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
       Some(List(canUseFirehoseAtAnyBank))
     )
   
@@ -502,9 +511,13 @@ trait APIMethods300 {
       "getFirehoseTransactionsForBankAccount",
       "GET",
       "/banks/BANK_ID/firehose/accounts/ACCOUNT_ID/views/VIEW_ID/transactions",
-      "Get Firehose Transactions for Account (Firehose)",
+      "Get Firehose Transactions for Account",
       s"""
-         |Get firehose transactions for Account. 
+         |Get Transactions for an Account that has a firehose View.
+         |
+         |Allows bulk access to accounts and their transactions.
+         |
+         |User must have the canUseFirehoseAtAnyBank Role
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -513,7 +526,7 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData),
+      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
       Some(List(canUseFirehoseAtAnyBank)))
   
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
@@ -1392,15 +1405,15 @@ trait APIMethods300 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank.",
-      s"""Returns the list of private accounts at BANK_ID that the user has access to.
+      "Get Accounts at Bank (Minimal).",
+      s"""Returns the minimal list of private accounts at BANK_ID that the user has access to.
          |For each account the API returns the ID and the available views.
          |
-        |If you want to see more information on the Views, use the Account Detail call.
+         |If you want to see more information on the Views, use the Account Detail call.
          |If you want less information about the account, use the /my accounts call
          |
-        |
-        |${authenticationRequiredMessage(true)}""",
+         |
+         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
@@ -1434,9 +1447,12 @@ trait APIMethods300 {
       "getPrivateAccountIdsbyBankId",
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
-      "Get private accounts ids at one bank.",
-      s"""Returns the list of private accounts ids at BANK_ID that the user has access to.
-         |For each account the API returns the ID
+      "Get Accounts at Bank (IDs only).",
+      s"""Returns only the list of accounts ids at BANK_ID that the user has access to.
+         |
+         |Each account must have at least one private View.
+         |
+         |For each account the API returns its account ID.
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
@@ -1858,8 +1874,11 @@ trait APIMethods300 {
       "getAccountsHeld",
       "GET",
       "/banks/BANK_ID/accounts-held",
-      "get Accounts Held",
-      s"""lists accounts for the current user where the current user is a holder but doesn't have the owner view
+      "Get Accounts Held",
+      s"""Get Accounts held by the current User if even the User has not been assigned the owner View yet.
+        |
+        |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.
+        |
         |
         |${authenticationRequiredMessage(true)}
       """,
@@ -1867,7 +1886,7 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount)
+      List(apiTagAccount, apiTagView)
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {

@@ -391,7 +391,7 @@ trait APIMethods121 {
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagAccount :: apiTagPublicData ::  Nil)
+      apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  Nil)
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
