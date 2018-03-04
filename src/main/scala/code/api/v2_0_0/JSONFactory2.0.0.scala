@@ -361,8 +361,9 @@ object JSONFactory200{
     val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
       val viewsAvailable : List[BasicViewJson] =
         privateViewsUserCanAccess
-          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)//filter the view for this account.
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId && v.isPrivate)//filter the view for this account.
           .map(createBasicViewJSON(_))
+          .distinct
       createBasicAccountJSON(account,viewsAvailable)
     })
     val accounts = new BasicAccountsJSON(accJson)
