@@ -438,7 +438,9 @@ case class MetricJson(
                        implemented_by_partial_function: String,
                        implemented_in_version: String,
                        consumer_id: String,
-                       verb: String
+                       verb: String,
+                       correlationId: String,
+                       duration: Long
                      )
 case class MetricsJson(metrics: List[MetricJson])
 
@@ -649,7 +651,9 @@ object JSONFactory210{
       consumer_id = metric.getConsumerId(),
       verb = metric.getVerb(),
       implemented_in_version = metric.getImplementedInVersion(),
-      implemented_by_partial_function = metric.getImplementedByPartialFunction()
+      implemented_by_partial_function = metric.getImplementedByPartialFunction(),
+      correlationId = metric.getCorrelationId(),
+      duration = metric.getDuration()
     )
   }
   def createMetricsJson(metrics : List[APIMetric]) : MetricsJson = {
