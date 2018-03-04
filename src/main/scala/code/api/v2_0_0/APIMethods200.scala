@@ -61,12 +61,12 @@ trait APIMethods200 {
 
 
   // shows a small representation of View
-  private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount]): JValue = {
-    Extraction.decompose(publicBasicBankAccountList(bankAccounts))
+  private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
+    Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))
   }
   
-  private def privateBankAccountBasicListToJson(bankAccounts: List[BankAccount], user : User): JValue = {
-    Extraction.decompose(privateBasicBankAccountList(bankAccounts, user))
+  private def privateBankAccountBasicListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): JValue = {
+    Extraction.decompose(privateBasicBankAccountList(bankAccounts, privateViewsUserCanAccessAtOneBank))
   }
   
   // Shows accounts without view
@@ -74,23 +74,21 @@ trait APIMethods200 {
     Extraction.decompose(coreBankAccountList(callerContext, codeContext, user, bankAccounts, privateViewsUserCanAccess))
   }
 
-  private def privateBasicBankAccountList(bankAccounts: List[BankAccount], user : User): List[BasicAccountJSON] = {
+  private def privateBasicBankAccountList(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
-      val views = Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
       val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
-          JSONFactory200.createBasicViewJSON(v)
-        })
+        privateViewsUserCanAccessAtOneBank
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)//filter the view for this account.
+          .map(JSONFactory200.createBasicViewJSON(_))
       JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
     })
     accJson
   }
   
-  private def publicBasicBankAccountList(bankAccounts: List[BankAccount]): List[BasicAccountJSON] = {
-    val views = Views.views.vend.publicViews
+  private def publicBasicBankAccountList(bankAccounts: List[BankAccount], publicViews: List[View]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
       val viewsAvailable : List[BasicViewJson] =
-        views
+        publicViews
           .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)
           .map(v => JSONFactory200.createBasicViewJSON(v))
       JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
@@ -101,9 +99,9 @@ trait APIMethods200 {
   private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val viewsAvailable : List[BasicViewJson] =
-        privateViewsUserCanAccess.map( v => {
-          JSONFactory200.createBasicViewJSON(v)
-        })
+        privateViewsUserCanAccess
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)//filter the view for this account.
+          .map(JSONFactory200.createBasicViewJSON(_))
 
       val dataContext = DataContext(Full(user), Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
 
@@ -246,7 +244,7 @@ trait APIMethods200 {
         _ =>
           for {
             publicViews <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccount.publicAccounts(publicViews))} ?~! "Could not get accounts."
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccount.publicAccounts(publicViews), publicViews)} ?~! "Could not get accounts."
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
@@ -287,7 +285,7 @@ trait APIMethods200 {
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availableAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            successJsonResponse(privateBankAccountBasicListToJson(availableAccounts, u))
+            successJsonResponse(privateBankAccountBasicListToJson(availableAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
     }
@@ -438,7 +436,7 @@ trait APIMethods200 {
             bank <- Bank(bankId)
             publicViewsForBank <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
           } yield {
-            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank))
+            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank), publicViewsForBank)
             successJsonResponse(publicAccountsJson)
           }
       }

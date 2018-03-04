@@ -46,9 +46,9 @@ trait APIMethods121 {
   private def privateBankAccountsListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccess: List[View]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val viewsAvailable : List[ViewJSONV121] =
-        privateViewsUserCanAccess.map( v => {
-          JSONFactory.createViewJSON(v)
-        })
+        privateViewsUserCanAccess
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId)//filter the view for this account.
+          .map(JSONFactory.createViewJSON(_))
       JSONFactory.createAccountJSON(account,viewsAvailable)
     })
 
