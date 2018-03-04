@@ -435,8 +435,8 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, callContext)}
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), callContext)
           }
@@ -460,7 +460,9 @@ trait APIMethods300 {
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData))
+      List(apiTagAccount, apiTagFirehoseData),
+      Some(List(canUseFirehoseAtAnyBank))
+    )
   
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
@@ -474,7 +476,7 @@ trait APIMethods300 {
             }
             bankBox <- Future { Bank(bankId) } map {x => fullBoxOrException(x ?~! BankNotFound)}
             bank<- unboxFullAndWrapIntoFuture(bankBox)
-            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank, u) }
+            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank.bankId, u) }
             moderatedAccounts = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
               //1 each accountId-> find a proper bankAccount object.
@@ -511,7 +513,8 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData))
+      List(apiTagAccount, apiTagFirehoseData),
+      Some(List(canUseFirehoseAtAnyBank)))
   
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
@@ -1415,8 +1418,8 @@ trait APIMethods300 {
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ?~! BankNotFound)
             }
-            availableAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availableAccounts, callContext) map {
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
             } map { unboxFull(_) }
           } yield {
