@@ -460,7 +460,9 @@ trait APIMethods300 {
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData))
+      List(apiTagAccount, apiTagFirehoseData),
+      Some(List(canUseFirehoseAtAnyBank))
+    )
   
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
@@ -511,7 +513,8 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagFirehoseData))
+      List(apiTagAccount, apiTagFirehoseData),
+      Some(List(canUseFirehoseAtAnyBank)))
   
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
