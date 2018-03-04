@@ -462,17 +462,22 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Update Account Label.",
-      "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
       updateAccountJSON,
       successMessage,
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagCounterpartyMetaData)
+      List(apiTagAccount)
     )
 
     lazy val updateAccountLabel : OBPEndpoint = {
       //change account label
-      // TODO Use PATCH instead? Remove BANK_ID AND ACCOUNT_ID from the body? (duplicated in URL)
+      // TODO Remove BANK_ID AND ACCOUNT_ID from the body? (duplicated in URL)
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
