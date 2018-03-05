@@ -1685,7 +1685,7 @@ trait APIMethods210 {
             appName <- tryo(S.param("app_name").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPAppName(x))
             implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
             implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
-            verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
+            verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
             _ <- Full(
