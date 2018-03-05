@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
@@ -43,6 +43,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 import net.liftweb.util.{Helpers, Props}
 import code.api.Constant._
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -205,13 +206,22 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
     val authorization = S.request.map(_.header("Authorization")).flatten
-    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now)).copy(authReqHeaderField = authorization)
+    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+    val url = S.uriAndQueryString.getOrElse("")
+    val correlationId = getCorrelationId()
+    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
+      .copy(authReqHeaderField = authorization)
+      .copy(implementedInVersion = implementedInVersion)
+      .copy(verb = verb)
+      .copy(correlationId = correlationId)
+      .copy(url = url)
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {
-      val usr = getUser
+      val (usr, callContext) = getUserAndCallContext(cc)
       usr match {
-        case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
+        case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
