@@ -332,6 +332,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val KafkaExecutionException = "OBP-50007: Kafka execution exception."
   val KafkaStreamTimeoutException = "OBP-50008: Akka Kafka stream timeout exception."
   val KafkaUnknownError = "OBP-50009: Kafka unknown error."
+  val ScalaEmptyBoxToLiftweb = "OBP-50010: Scala return Empty box to Liftweb."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
