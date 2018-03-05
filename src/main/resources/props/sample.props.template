@@ -435,3 +435,4 @@ display_internal_errors=false
 ## This property is used for documenting at Resource Doc. It may include the port also (but not /obp)
 ## (this needs to be a URL)
 documented_server_url=https://apisandbox.openbankproject.com
+organisation_website = https://www.tesobe.com
