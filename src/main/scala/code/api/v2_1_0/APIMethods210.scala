@@ -1672,41 +1672,36 @@ trait APIMethods210 {
   
             //Filters Part 2. -- the optional varibles:
             //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            consumerId <- Full(S.param("consumer_id")) //(if null ignore)
-            userId <- Full(S.param("user_id")) //(if null ignore)
             anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-            url <- Full(S.param("url")) // (if null ignore)
-            appName <- Full(S.param("app_name")) // (if null ignore)
-            implementedByPartialFunction <- Full(S.param("implemented_by_partial_function")) //(if null ignore)           
-            implementedInVersion <- Full(S.param("implemented_in_version")) // (if null ignore)
-            verb <- Full(S.param("verb")) // (if null ignore)
-
             _ <- tryo(if (!anon.isEmpty) {
               assert(anon.get.equals("true") || anon.get.equals("false"))
             }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
 
+            consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
+            userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
+            url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
+            appName <- tryo(S.param("app_name").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPAppName(x))
+            implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
+            implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
+            verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
+
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate) += OBPOrdering(Some(sortBy), direction))
-
-
-            // TODO check / comment this logic
-
-            setFilterPart2 <- if (!consumerId.isEmpty)
-              Full(parameters += OBPConsumerId(consumerId.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!userId.isEmpty)
-              Full(parameters += OBPUserId(userId.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!url.isEmpty)
-              Full(parameters += OBPUrl(url.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!appName.isEmpty)
-              Full(parameters += OBPAppName(appName.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!implementedInVersion.isEmpty)
-              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!implementedByPartialFunction.isEmpty)
-              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!verb.isEmpty)
-              Full(parameters += OBPVerb(verb.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else
-              Full(parameters)
+            _ <- Full(
+              parameters
+                += OBPLimit(limit)
+                += OBPOffset(offset)
+                += OBPFromDate(startDate)
+                += OBPToDate(endDate)
+                += consumerId
+                += userId
+                += userId
+                += url
+                += appName
+                += implementedByPartialFunction
+                += implementedInVersion
+                += verb
+                += OBPOrdering(Some(sortBy) , direction)
+            )
             
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
      
