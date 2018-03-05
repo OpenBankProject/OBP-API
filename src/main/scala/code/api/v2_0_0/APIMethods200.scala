@@ -13,7 +13,7 @@ import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
-import code.api.v2_0_0.JSONFactory200.{bankAccountsListToJson, _}
+import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
@@ -61,42 +61,52 @@ trait APIMethods200 {
 
 
   // shows a small representation of View
-  private def bankAccountBasicListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(basicBankAccountList(bankAccounts, user))
+  private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
+    Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))
   }
-
+  
+  private def privateBankAccountBasicListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): JValue = {
+    Extraction.decompose(privateBasicBankAccountList(bankAccounts, privateViewsUserCanAccessAtOneBank))
+  }
+  
   // Shows accounts without view
-  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(coreBankAccountList(callerContext, codeContext, bankAccounts, user))
+  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): JValue = {
+    Extraction.decompose(coreBankAccountList(callerContext, codeContext, user, bankAccounts, privateViewsUserCanAccess))
   }
 
-  private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
+  private def privateBasicBankAccountList(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
-      val views = user match {
-        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-        case _ => Views.views.vend.publicViews
-      }
       val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
-          JSONFactory200.createBasicViewJSON(v)
-        })
+        privateViewsUserCanAccessAtOneBank
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId && v.isPrivate)//filter the view for this account.
+          .map(JSONFactory200.createBasicViewJSON(_))
+          .distinct
+      JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
+    })
+    accJson
+  }
+  
+  private def publicBasicBankAccountList(bankAccounts: List[BankAccount], publicViews: List[View]): List[BasicAccountJSON] = {
+    val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
+      val viewsAvailable : List[BasicViewJson] =
+        publicViews
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId && v.isPublic)
+          .map(v => JSONFactory200.createBasicViewJSON(v))
+          .distinct
       JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
     })
     accJson
   }
 
-  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
+  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
-      val views = user match {
-        case Full(u) =>Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-        case _ => Views.views.vend.publicViews
-      }
       val viewsAvailable : List[BasicViewJson] =
-        views.map( v => {
-          JSONFactory200.createBasicViewJSON(v)
-        })
+        privateViewsUserCanAccess
+          .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId && v.isPrivate)//filter the view for this account.
+          .map(JSONFactory200.createBasicViewJSON(_))
+          .distinct
 
-      val dataContext = DataContext(user, Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
+      val dataContext = DataContext(Full(user), Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
 
       val links = code.api.util.APIUtil.getHalLinks(callerContext, codeContext, dataContext)
 
@@ -150,13 +160,14 @@ trait APIMethods200 {
 
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
       //get accounts for all banks (private + public)
-      case "accounts" :: Nil JsonGet json => {
+      case "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
+            privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            privateAccounts <- Full(BankAccount.privateAccounts(privateViewsUserCanAccess))
           } yield {
-            val availableAccounts = BankAccount.privateAccounts(u)
-            successJsonResponse(bankAccountsListToJson(availableAccounts, cc.user))
+            successJsonResponse(privateBankAccountsListToJson(privateAccounts, privateViewsUserCanAccess ))
           }
       }
     }
@@ -189,13 +200,14 @@ trait APIMethods200 {
 
         lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
           //get private accounts for all banks
-          case "my" :: "accounts" :: Nil JsonGet json => {
+          case "my" :: "accounts" :: Nil JsonGet req => {
             cc =>
               for {
                 u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+                privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+                privateAccounts <- Full(BankAccount.privateAccounts(privateViewsUserCanAccess))
               } yield {
-                val availableAccounts = BankAccount.privateAccounts(u)
-                val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, availableAccounts, Full(u))
+                val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, u, privateAccounts, privateViewsUserCanAccess)
                 val response = successJsonResponse(coreBankAccountListJson)
                 response
               }
@@ -222,7 +234,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPublicData))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
 
 
@@ -231,10 +243,11 @@ trait APIMethods200 {
 
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
-      case "accounts" :: "public" :: Nil JsonGet json => {
+      case "accounts" :: "public" :: Nil JsonGet req => {
         _ =>
           for {
-            publicAccountsJson <- tryo{bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)} ?~! "Could not get accounts."
+            publicViews <- Full(Views.views.vend.publicViews)
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccount.publicAccounts(publicViews), publicViews)} ?~! "Could not get accounts."
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
@@ -250,10 +263,11 @@ trait APIMethods200 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank (Private).",
+      "Get Accounts at Bank.",
       s"""Get accounts at one bank that the user has access to.
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
+        |Each account must have at least one private View.
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
@@ -267,29 +281,21 @@ trait APIMethods200 {
     //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same accounts, only different json body.
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
-      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
           } yield {
-            val availableAccounts = bank.privateAccounts(u)
-            successJsonResponse(bankAccountBasicListToJson(availableAccounts, cc.user))
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            successJsonResponse(privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
     }
 
-
-
-
-    def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
-      val availableAccounts = bank.privateAccounts(u)
-      successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
-    }
-
-    def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext, bank: Bank, u: User) = {
-      val availableAccounts = bank.privateAccounts(u)
-      successJsonResponse(coreBankAccountListToJson(callerContext, codeContext, availableAccounts, Full(u)))
+    def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext,  user: User, privateAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]) ={
+      successJsonResponse(coreBankAccountListToJson(callerContext, codeContext,  user: User, privateAccounts, privateViewsUserCanAccess))
     }
 
     resourceDocs += ResourceDoc(
@@ -323,35 +329,41 @@ trait APIMethods200 {
     // The second path is experimental
     lazy val corePrivateAccountsAtOneBank : OBPEndpoint = {
       // get private accounts for a single bank
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)
 
           } yield {
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, bank, u)
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
           }
       }
       // Also we support accounts/private to maintain compatibility with 1.4.0
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)
 
           } yield {
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, bank, u)
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
           }
       }
       // Supports idea of default bank
-      case "bank" :: "accounts" :: Nil JsonGet json => {
+      case "bank" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(BankId(defaultBankId))
           } yield {
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, bank, u)
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
           }
       }
 
@@ -384,14 +396,15 @@ trait APIMethods200 {
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! BankNotFound
           } yield {
-            val availableAccounts = bank.privateAccounts(u)
-            successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
     }
@@ -407,26 +420,27 @@ trait APIMethods200 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get Accounts at Bank (Public)",
-      """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
+      "Get Public Accounts at Bank",
+      s"""Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is not required.
+        |${authenticationRequiredMessage(false)}
         |
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPublicData))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         _ =>
           for {
             bank <- Bank(bankId)
+            publicViewsForBank <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
           } yield {
-            val publicAccountsJson = bankAccountBasicListToJson(bank.publicAccounts, Empty)
+            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank), publicViewsForBank)
             successJsonResponse(publicAccountsJson)
           }
       }
@@ -855,7 +869,7 @@ trait APIMethods200 {
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
 
         cc =>
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
@@ -907,11 +921,11 @@ trait APIMethods200 {
     //The only difference here is "Core implies 'owner' view" 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       //get transactions
-      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet req => {
         cc =>
 
           for {
-            params <- getTransactionParams(json)
+            params <- getTransactionParams(req.request.headers)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
@@ -958,13 +972,13 @@ trait APIMethods200 {
 
     lazy val accountById : OBPEndpoint = {
       //get account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
-            availableViews <- Full(Views.views.vend.viewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
+            availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
@@ -998,7 +1012,7 @@ trait APIMethods200 {
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
       //get access
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
@@ -1033,7 +1047,7 @@ trait APIMethods200 {
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)

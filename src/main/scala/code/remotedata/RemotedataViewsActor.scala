@@ -67,46 +67,26 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("viewsForAccount(" + bankAccountId +")")
       sender ! extractResult(mapper.viewsForAccount(bankAccountId))
 
-    case cc.viewsUserCanAccess(user: User) =>
-      logger.debug("viewsUserCanAccess(" + user +")")
-      sender ! extractResult(mapper.viewsUserCanAccess(user: User))
-
     case cc.privateViewsUserCanAccess(user: User) =>
       logger.debug("privateViewsUserCanAccess(" + user +")")
       sender ! extractResult(mapper.privateViewsUserCanAccess(user: User))
 
-    case cc.viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId)=>
+    case cc.privateViewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId)=>
       logger.debug("viewsUserCanAccessForAccount(" + user +"bankAccountId"+bankAccountId+")")
-      sender ! extractResult(mapper.viewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId))
+      sender ! extractResult(mapper.privateViewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId))
       
       
     case cc.publicViews() =>
       logger.debug("publicViews()")
       sender ! extractResult(mapper.publicViews)
 
-    case cc.getAllPublicAccounts() =>
-      logger.debug("getAllPublicAccounts()")
-      sender ! extractResult(mapper.getAllPublicAccounts)
-
-    case cc.getPublicBankAccounts(bank : Bank) =>
-      logger.debug("getPublicBankAccounts(" + bank +")")
-      sender ! extractResult(mapper.getPublicBankAccounts(bank))
-
-    case cc.getPrivateBankAccounts(user: User, bankId: BankId) =>
-      logger.debug("getPrivateBankAccounts(" + user +", "+ bankId +")")
-      sender ! extractResult(mapper.getPrivateBankAccounts(user, bankId))
-
-    case cc.getPrivateBankAccounts(user: User) =>
-      logger.debug("getPrivateBankAccounts(" + user +")")
-      sender ! extractResult(mapper.getPrivateBankAccounts(user))
-
-    case cc.getPrivateBankAccountsFuture(user: User) =>
-      logger.debug("getPrivateBankAccountsFuture(" + user +")")
-      sender ! (mapper.getPrivateBankAccounts(user))
-
-    case cc.getPrivateBankAccountsFuture(user: User, bankId: BankId) =>
-      logger.debug("getPrivateBankAccountsFuture("+ user +", "+ bankId +")")
-      sender ! (mapper.getPrivateBankAccounts(user, bankId))
+    case cc.firehoseViewsForBank(bankId: BankId, user : User) =>
+      logger.debug(s"firehoseViewsForBank($bankId, $user)")
+      sender ! extractResult(mapper.firehoseViewsForBank(bankId: BankId, user : User))
+      
+    case cc.publicViewsForBank(bankId: BankId) =>
+      logger.debug("publicViews()")
+      sender ! extractResult(mapper.publicViewsForBank(bankId: BankId))
 
     case cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String) =>
       logger.debug("getOrCreateAccountView(" + BankIdAccountId +", "+ viewId +")")

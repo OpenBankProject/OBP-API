@@ -57,7 +57,7 @@ case class APICallsPerDay(
 object Metrics extends RestHelper {
 
 //  serve("obp" / "metrics" prefix {
-//    case "demo-bar" :: Nil JsonGet json => {
+//    case "demo-bar" :: Nil JsonGet req => {
 //
 //      def byUsage(x : APICallAmount, y : APICallAmount) =
 //        x.amount > y.amount
@@ -67,7 +67,7 @@ object Metrics extends RestHelper {
 //      JsonResponse(Extraction.decompose(results))
 //    }
 //
-//    case "demo-line" :: Nil JsonGet json => {
+//    case "demo-line" :: Nil JsonGet req => {
 //
 //      def byOldestDate(x : APICallsForDay, y :  APICallsForDay) : Boolean =
 //        x.date before y.date

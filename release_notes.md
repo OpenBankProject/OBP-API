@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+02/03/2018    6f9ad08       Added Props documented_server_url which is required for some glossary items
 19/02/2018                  Added possibility of Encryption/Decryption of properties in the props file over SSL Private/Public key infrastructure
 19/01/2018    189942e       Added 2 way SSL authentication to kafka connection
 12/11/2017    9529c3b       Make Payments in 1.2.1 disabled. Internal Accounts API disabled.
@@ -26,3 +27,6 @@ Date          Commit        Action
 17/07/2017    1530231       added account_id.length=64, this will set all relevant accountid length to 64, when create new sandbox.  
 
 ```
+
+
+6f9ad08

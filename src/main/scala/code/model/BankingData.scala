@@ -183,38 +183,16 @@ trait Bank {
   @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
   def nationalIdentifier : String
   
-  //This was the behaviour in v1.2 and earlier which has since been changed
-  @deprecated
-  def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
-    user match {
-      case Full(u) => {
-        Full(privateAccounts(u))
-      }
-      case _ => {
-        Full(publicAccounts)
-      }
-    }
+  def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
+    publicViewsForBank
+      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+      .flatMap(a => BankAccount(a.bankId, a.accountId))
   }
 
-  def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getPublicBankAccounts(this).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
-  }
-
-  def privateAccounts(user : User) : List[BankAccount] = {
-
-    Views.views.vend.getPrivateBankAccounts(user, bankId).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
-
-    // Note: An alternative to the above implmentation (which will call BankAccount (e.g. Kafka) once for each
-    // account) - could be:
-    // 1) Get the accounts / view the user should have access to:
-    // Views.views.vend.getPrivateBankAccounts(user, bankId)
-    // 2) Get all accounts for User
-    // 3) Return just the accounts found in step 1.
-    // 4) If any accounts are missing (because they belong to another user), call BankAccount for the missing accounts.
+  def privateAccounts(privateViewsUserCanAccessAtOneBank : List[View]) : List[BankAccount] = {
+    privateViewsUserCanAccessAtOneBank
+      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+      .flatMap(a => BankAccount(a.bankId, a.accountId))
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -629,16 +607,16 @@ object BankAccount {
       )
   }
   
-  def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getAllPublicAccounts.flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
+  def publicAccounts(publicViews: List[View]) : List[BankAccount] = {
+    publicViews
+      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+      .flatMap(a => BankAccount(a.bankId, a.accountId))
   }
 
-  def privateAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getPrivateBankAccounts(user).flatMap { a =>
-      BankAccount(a.bankId, a.accountId)
-    }
+  def privateAccounts(privateViewsUserCanAccess: List[View]) : List[BankAccount] = {
+    privateViewsUserCanAccess
+      .map(v => BankIdAccountId(v.bankId,v.accountId)).distinct.
+      flatMap(a => BankAccount(a.bankId, a.accountId))
   }
 }
 

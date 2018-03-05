@@ -46,34 +46,46 @@ object MappedMetrics extends APIMetrics {
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
     val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedMetric.date, date) }.headOption
     val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedMetric.date, Ascending)
-          case OBPDescending => OrderBy(MappedMetric.date, Descending)
+      case OBPOrdering(field, dir) =>
+        val direction = dir match {
+          case OBPAscending => Ascending
+          case OBPDescending => Descending
+        }
+        field match {
+          case Some(s) if s == "user_id" => OrderBy(MappedMetric.userId, direction)
+          case Some(s) if s == "user_name" => OrderBy(MappedMetric.userName, direction)
+          case Some(s) if s == "developer_email" => OrderBy(MappedMetric.developerEmail, direction)
+          case Some(s) if s == "app_name" => OrderBy(MappedMetric.appName, direction)
+          case Some(s) if s == "url" => OrderBy(MappedMetric.url, direction)
+          case Some(s) if s == "date" => OrderBy(MappedMetric.date, direction)
+          case Some(s) if s == "consumer_id" => OrderBy(MappedMetric.consumerId, direction)
+          case Some(s) if s == "verb" => OrderBy(MappedMetric.verb, direction)
+          case Some(s) if s == "implemented_in_version" => OrderBy(MappedMetric.implementedInVersion, direction)
+          case Some(s) if s == "implemented_by_partial_function" => OrderBy(MappedMetric.implementedByPartialFunction, direction)
+          case _ => OrderBy(MappedMetric.date, Descending)
         }
     }
-    // the optional variables:
-    val toConsumerId = queryParams.collect {case OBPConsumerId(value) => By(MappedMetric.consumerId, value)}.headOption
-    val toUserId = queryParams.collect {case OBPUserId(value) => By(MappedMetric.userId, value)}.headOption
-    val toUrl = queryParams.collect {case OBPUrl(value) => By(MappedMetric.url, value)}.headOption
-    val toAppName = queryParams.collect {case OBPAppName(value) => By(MappedMetric.appName, value)}.headOption
-    val toImplementedInVersion = queryParams.collect {case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value)}.headOption
-    val toImplementedByPartialFunction = queryParams.collect {case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value)}.headOption
-    val toVerb = queryParams.collect {case OBPVerb(value) => By(MappedMetric.verb, value)}.headOption
-    
-    val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(
-      offset.toSeq, 
-      fromDate.toSeq, 
-      toDate.toSeq, 
+    // he optional variables:
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => By(MappedMetric.consumerId, value) }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
+    val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
+    val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
+    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value) }.headOption
+    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value) }.headOption
+    val verb = queryParams.collect { case OBPVerb(value) => By(MappedMetric.verb, value) }.headOption
+
+    val optionalParams: Seq[QueryParam[MappedMetric]] = Seq(
+      offset.toSeq,
+      fromDate.toSeq,
+      toDate.toSeq,
       ordering,
-      toConsumerId.toSeq, 
-      toUserId.toSeq,
-      toUrl.toSeq,
-      toAppName.toSeq,
-      toImplementedInVersion.toSeq,
-      toImplementedByPartialFunction.toSeq,
-      toVerb.toSeq,
+      consumerId.toSeq,
+      userId.toSeq,
+      url.toSeq,
+      appName.toSeq,
+      implementedInVersion.toSeq,
+      implementedByPartialFunction.toSeq,
+      verb.toSeq,
       limit.toSeq
     ).flatten
 

@@ -66,7 +66,7 @@
 //
 //  serve("obp" / "v1.0" prefix {
 //
-//    case Nil JsonGet json => {
+//    case Nil JsonGet req => {
 //      //log the API call
 //      logAPICall
 //
@@ -99,7 +99,7 @@
 //      JsonResponse(apiDetails)
 //    }
 //
-//    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: ViewId(viewName) :: Nil JsonGet json => {
+//    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: ViewId(viewName) :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -153,7 +153,7 @@
 //    }
 //
 //    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-//      TransactionId(transactionId) :: "transaction" :: ViewId(viewName) :: Nil JsonGet  json => {
+//      TransactionId(transactionId) :: "transaction" :: ViewId(viewName) :: Nil JsonGet  req => {
 //
 //      //log the API call
 //      logAPICall
@@ -177,7 +177,7 @@
 //    }
 //
 //    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-//      TransactionId(transactionId) :: "comments" :: ViewId(viewName) :: Nil JsonGet json => {
+//      TransactionId(transactionId) :: "comments" :: ViewId(viewName) :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -199,7 +199,7 @@
 //                        ("links" -> links)))
 //    }
 //
-//    case BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+//    case BankId(bankId) :: "accounts" :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -233,7 +233,7 @@
 //      }
 //    }
 //
-//    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: ViewId(viewName) :: Nil JsonGet json => {
+//    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: ViewId(viewName) :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -267,7 +267,7 @@
 //      moderatedAccountAndViews.map(mv => JsonResponse("account" -> mv.account.toJson ~ bankAccountMetaData(mv)))
 //    }
 //
-//    case BankId(bankId) :: "offices" :: Nil JsonGet json => {
+//    case BankId(bankId) :: "offices" :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -277,7 +277,7 @@
 //      JsonResponse("offices" -> offices)
 //    }
 //
-//    case BankId(bankId) :: "bank" :: Nil JsonGet json => {
+//    case BankId(bankId) :: "bank" :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall
@@ -307,7 +307,7 @@
 //      bank.map(b => JsonResponse(b.detailedJson ~ ("links" -> links)))
 //    }
 //
-//    case "banks" :: Nil JsonGet json => {
+//    case "banks" :: Nil JsonGet req => {
 //
 //      //log the API call
 //      logAPICall

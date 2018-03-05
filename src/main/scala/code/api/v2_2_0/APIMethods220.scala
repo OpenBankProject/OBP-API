@@ -124,7 +124,7 @@ trait APIMethods220 {
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
@@ -252,7 +252,7 @@ trait APIMethods220 {
       List(apiTagFx))
 
     lazy val getCurrentFxRate: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet req => {
         cc =>
           for {
             _ <- Bank(bankId)?~! BankNotFound
@@ -293,7 +293,7 @@ trait APIMethods220 {
 
     lazy val getCounterpartiesForAccount : OBPEndpoint = {
       //get other accounts for one account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
@@ -333,7 +333,7 @@ trait APIMethods220 {
   
     lazy val getCounterpartyById : OBPEndpoint = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
@@ -1127,7 +1127,7 @@ trait APIMethods220 {
 
     lazy val getCustomerViewsForAccount : OBPEndpoint = {
       //get account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet req => {
         cc =>
           for {
             bank <- Bank(bankId) ?~ BankNotFound

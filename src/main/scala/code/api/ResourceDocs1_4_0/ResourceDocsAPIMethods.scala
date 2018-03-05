@@ -98,7 +98,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         classOf[CanDeleteEntitlementRequestsAtOneBank],
         classOf[CanDeleteEntitlementRequestsAtAnyBank],
         classOf[CanGetEntitlementRequestsAtOneBank],
-        classOf[CanGetEntitlementRequestsAtAnyBank])
+        classOf[CanGetEntitlementRequestsAtAnyBank],
+        classOf[CanUseFirehoseAtAnyBank])
       )
     }
 
@@ -591,7 +592,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 
     def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
-      case "dummy" :: Nil JsonGet json => {
+      case "dummy" :: Nil JsonGet req => {
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
