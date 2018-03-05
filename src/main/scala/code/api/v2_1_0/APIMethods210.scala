@@ -1672,11 +1672,13 @@ trait APIMethods210 {
 
             //Filters Part 2. -- the optional varibles:
             //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            anon <- (S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-            _ <- tryo(
-              assert(anon == ("true") || anon == ("false"))
-            ) ?~! s"value anon:${anon} is Wrong . anon only have two value true or false or omit anon field"
-
+            anon <- tryo(
+              S.param("anon") match {
+                case Full(x) if x.toLowerCase == "true"  => OBPAnon(x)
+                case Full(x) if x.toLowerCase == "false" => OBPAnon(x)
+                case _                                   => OBPEmpty()
+              }
+            )
             consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
             userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
             url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
@@ -1700,7 +1702,7 @@ trait APIMethods210 {
                 += implementedByPartialFunction
                 += implementedInVersion
                 += verb
-                += OBPAnon(anon)
+                += anon
                 += OBPOrdering(Some(sortBy) , direction)
             )
 
