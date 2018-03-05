@@ -327,7 +327,8 @@ object SwaggerDefinitionsJSON {
   val hostedBy = HostedBy(
     organisation = "String",
     email = "String",
-    phone = "String"
+    phone = "String",
+    organisation_website = "String"
   )
   val akka = Akka(
     remote_data_secret_matched = Option(true)
