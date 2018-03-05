@@ -1634,14 +1634,14 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadMetrics), UserHasMissingRoles + CanReadMetrics )
-  
+
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
-  
+
             inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
             // set the long,long ago as the default date.
             defautStartDate <- Full("0000-00-00")
             tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
-  
+
             //(defaults to one week before current date
             startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
               s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
@@ -1669,13 +1669,13 @@ trait APIMethods210 {
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
             //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
-  
+
             //Filters Part 2. -- the optional varibles:
             //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-            _ <- tryo(if (!anon.isEmpty) {
-              assert(anon.get.equals("true") || anon.get.equals("false"))
-            }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
+            anon <- (S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
+            _ <- tryo(
+              assert(anon == ("true") || anon == ("false"))
+            ) ?~! s"value anon:${anon} is Wrong . anon only have two value true or false or omit anon field"
 
             consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
             userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
@@ -1700,18 +1700,14 @@ trait APIMethods210 {
                 += implementedByPartialFunction
                 += implementedInVersion
                 += verb
+                += OBPAnon(anon)
                 += OBPOrdering(Some(sortBy) , direction)
             )
-            
+
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
-     
-            // the anon field is not in database, so here use different way to filer it.
-            filterByFields: List[APIMetric] = metrics
-              .filter(m => (if (!anon.isEmpty && anon.get.equals("true")) (m.getUserId().equals("null")) else true))
-              .filter(m => (if (!anon.isEmpty && anon.get.equals("false")) (!m.getUserId().equals("null")) else true))
             
           } yield {
-            val json = JSONFactory210.createMetricsJson(filterByFields)
+            val json = JSONFactory210.createMetricsJson(metrics)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
           }
         }
