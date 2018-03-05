@@ -73,6 +73,10 @@ object MappedMetrics extends APIMetrics {
     val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value) }.headOption
     val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value) }.headOption
     val verb = queryParams.collect { case OBPVerb(value) => By(MappedMetric.verb, value) }.headOption
+    val anon = queryParams.collect {
+      case OBPAnon(value) if value == "true" => By(MappedMetric.userId, "null")
+      case OBPAnon(value) if value == "false" => NotBy(MappedMetric.userId, "null")
+    }.headOption
 
     val optionalParams: Seq[QueryParam[MappedMetric]] = Seq(
       offset.toSeq,
@@ -86,7 +90,8 @@ object MappedMetrics extends APIMetrics {
       implementedInVersion.toSeq,
       implementedByPartialFunction.toSeq,
       verb.toSeq,
-      limit.toSeq
+      limit.toSeq,
+      anon.toSeq
     ).flatten
 
     MappedMetric.findAll(optionalParams: _*)
