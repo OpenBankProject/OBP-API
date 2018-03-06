@@ -99,7 +99,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         classOf[CanDeleteEntitlementRequestsAtAnyBank],
         classOf[CanGetEntitlementRequestsAtOneBank],
         classOf[CanGetEntitlementRequestsAtAnyBank],
-        classOf[CanUseFirehoseAtAnyBank])
+        classOf[CanUseFirehoseAtAnyBank],
+        classOf[CanSearchWarehouseStatistics]
+        )
       )
     }
 

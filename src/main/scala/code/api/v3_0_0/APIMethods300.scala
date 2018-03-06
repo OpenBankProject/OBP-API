@@ -814,7 +814,9 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDataWarehouse))
+      List(apiTagDataWarehouse),
+      Some(List(canSearchWarehouseStatistics))
+    )
     lazy val aggregateWarehouse: OBPEndpoint = {
       case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
