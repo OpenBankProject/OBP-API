@@ -23,10 +23,10 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.{MapperViews, Views}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.S
+import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
+import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
@@ -34,7 +34,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 
 
@@ -693,7 +692,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "elasticSearchWarehouseV300",
       "POST",
-      "/search/warehouse",
+      "/search/warehouse/INDEX",
       "Search Warehouse Data Via Elasticsearch",
       s"""
         |Search warehouse data via Elastic Search.
@@ -712,27 +711,28 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
-        |POST /search/warehouse
+        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE 
+        |POST /search/warehouse/INDEX1,INDEX2 
+        |POST /search/warehouse/All 
+        |
         |
         |{
-        |  "es_uri_part": "/THE_INDEX_YOU_WANT_TO_USE/_search?pretty=true",
-        |  "es_body_part": {
         |    "query": {
         |      "range": {
         |        "postDate": {
         |          "from": "2011-12-10",
         |          "to": "2011-12-12"
-        |        }
+        |        
         |      }
         |    }
         |  }
         |}
         |
-        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-uri-request.html
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
         |
-        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-filter-context.html
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
         |
-        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/5.3/search-aggregations.html
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
         |
         |
         """,
@@ -745,20 +745,91 @@ trait APIMethods300 {
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouseV300: OBPEndpoint = {
-      case "search" :: "warehouse" :: Nil JsonPost json -> _ => {
+      case "search" :: "warehouse" :: index :: Nil JsonPost json -> _ => {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
+            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
+            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
+            result <- esw.searchProxyV300(u.userId, indexPart, bodyPart)
           } yield {
-            import net.liftweb.json._
-            val uriPart = compactRender(json \ "es_uri_part")
-            val bodyPart = compactRender(json \ "es_body_part")
-            successJsonResponse(Extraction.decompose(esw.searchProxyV300(u.userId, uriPart, bodyPart)))
+            successJsonResponse(Extraction.decompose(result))
           }
       }
     }
-
+  
+    
+    
+    resourceDocs += ResourceDoc(
+      aggregateWarehouse,
+      implementedInApiVersion,
+      "elasticSearchWarehouseV300",
+      "POST",
+      "/search/warehouse/statistics/FIELD",
+      "Search Warehouse Data Via Elasticsearch and return only stats aggregation over one specific numeric field",
+      s"""
+         |Aggregate warehouse data via Elastic Search.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+        |CanSearchWarehouseStats entitlement is required to search warehouse data!
+         |
+        |Send your email, name, project name and user_id to the admins to get access.
+         |
+        |Elastic (search) is used in the background. See links below for syntax.
+         |
+        |This version differs from v2.0.0
+         |
+        |
+        |
+        |Example of usage:
+         |
+        |POST /search/warehouse/statistics/INDEX/FIELD
+         |
+        |POST /search/warehouse/statistics/ALL/FIELD|
+         |
+         | 
+         |{  
+         |    "query": {
+         |      "range": {
+         |        "postDate": {
+         |          "from": "2011-12-10",
+         |          "to": "2011-12-12"
+         |        }
+         |      }
+         |    }
+         |}
+         |
+         |
+        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
+         |         |
+        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
+         |
+        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
+         |
+        |
+        """,
+      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      emptyObjectJson, //TODO what is output here?
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDataWarehouse))
+    lazy val aggregateWarehouse: OBPEndpoint = {
+      case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
+            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
+            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
+            result <- esw.searchProxyStatsV300(u.userId, indexPart, bodyPart, field)
+          } yield {
+            successJsonResponse(Extraction.decompose(result))
+            }
+          }
+    }
+    
 
     resourceDocs += ResourceDoc(
       getUser,

@@ -17,13 +17,17 @@ import net.liftweb.json
 import java.util.Date
 
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import org.elasticsearch.common.settings.Settings
 import com.sksamuel.elastic4s.TcpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.ElasticDsl._
 import dispatch.as.String.charset
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
+
+import scala.util.control.NoStackTrace
 
 
 class elasticsearch extends MdcLoggable {
@@ -56,7 +60,7 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
-  def searchProxyV300(userId: String, uri: String, body: String): LiftResponse = {
+  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Box[LiftResponse] = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
@@ -64,12 +68,35 @@ class elasticsearch extends MdcLoggable {
       logger.debug(body)
       val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
-      ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+         if (statsOnly) Full(ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
+         else Full(ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
     } else {
-      JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+      Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
     }
   }
 
+
+  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): Box[LiftResponse] = {
+    searchProxyV300(userId, uriPart, addAggregation(bodyPart,field), true)
+  }
+
+  private def addAggregation(bodyPart: String, field: String): String = {
+    bodyPart.dropRight(1).concat(",\"aggs\":{\"" + field + "\":{\"stats\":{\"field\":\""+ field + "\"}}}}")
+  }
+  
+  private def extractStatistics(body: JValue): JValue = {
+    body \  "aggregations" 
+  }
+  
+  private def privacyCheckStatistics(body: JValue): JValue = {
+    println("Enter privacyCheckStatistics")
+    logger.debug(body)
+    val result = extractStatistics(body)
+    val count: Int = (result \\ "count" \\ classOf[JInt]).headOption.getOrElse(throw new RuntimeException with NoStackTrace).toInt
+    if (count > 9) result
+    else json.JsonParser.parse("{\"error\": \"" + NotEnoughtSearchStatisticsResults + "\"}")
+  }
+  
   private def getAPIResponse(req: Req): APIResponse = {
     Await.result(
       for (response <- Http(req > as.Response(p => p)))
@@ -139,6 +166,40 @@ class elasticsearch extends MdcLoggable {
     } toMap
 
     res
+  }
+
+  def createElasticSearchUriPart(index: String, topic: String): String = {
+    val validIndices = Props.get("es.warehouse.allowed.indices", "").split(",").toSet
+    val realIndex =
+      if (index == "" || index == "ALL") Props.get("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
+      else index
+    if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
+    val addTopic = if (topic == "ALL") "" else "/" + topic
+    "/" + realIndex + addTopic + "/_search"
+  }
+
+  def getElasticSearchUri(indexString: String): Box[String] = {
+    val validIndices: List[String] = Props.get("es.warehouse.allowed.indices").getOrElse(
+      throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
+    {
+      case List("ALL") => List("")
+      case x => x
+    }
+    checkIndicesValidity(indexString, validIndices) match {
+      case x: Failure => Failure("InvalidIndices")
+      case Full(y) => Full("/" + y + "/_search")
+      case Empty => Full("/_search")
+    }
+  }
+
+  def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] ={
+    indexString match {
+      case "ALL" => Empty
+      case x => x match {
+        case y if !y.split(",").toSet.subsetOf(validIndices.toSet) => Failure("")
+        case y   => Full(y)
+      }
+    }
   }
 
 }

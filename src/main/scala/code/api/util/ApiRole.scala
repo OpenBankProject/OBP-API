@@ -19,6 +19,9 @@ object ApiRole {
   case class CanSearchWarehouse(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchWarehouse = CanSearchWarehouse()
 
+  case class CanSearchWarehouseStatistics(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSearchWarehouseStatistics = CanSearchWarehouseStatistics()
+
   case class CanSearchMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchMetrics = CanSearchMetrics()
 
@@ -150,6 +153,7 @@ object ApiRole {
     canSearchAllAccounts ::
     canQueryOtherUser ::
     canSearchWarehouse ::
+    canSearchWarehouseStatistics ::
     canSearchMetrics ::
     canCreateCustomer ::
     canCreateCustomerAtAnyBank ::
