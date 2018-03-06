@@ -110,7 +110,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.debug("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.error("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case obj@Failure(msg, _, c) => {

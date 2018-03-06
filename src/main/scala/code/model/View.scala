@@ -35,6 +35,7 @@ package code.model
 
 import java.util.Date
 
+import code.api.util.ErrorMessages
 import code.metadata.counterparties.Counterparties
 import code.util.Helper
 import net.liftweb.common._
@@ -574,7 +575,7 @@ trait View {
     }
   }
 
-  def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {
+  def moderate(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
     if(canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
@@ -620,11 +621,11 @@ trait View {
       )
     }
     else
-      None
+      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${this.viewId.value})")
   }
 
   // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
-  def moderate(otherBankAccount : Counterparty) : Option[ModeratedOtherBankAccount] = {
+  def moderate(otherBankAccount : Counterparty) : Box[ModeratedOtherBankAccount] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
@@ -743,10 +744,10 @@ trait View {
       )
     }
     else
-      None
+      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
   }
   
-  def moderateCore(counterpartyCore : CounterpartyCore) : Option[ModeratedOtherBankAccountCore] = {
+  def moderateCore(counterpartyCore : CounterpartyCore) : Box[ModeratedOtherBankAccountCore] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
@@ -792,6 +793,6 @@ trait View {
       )
     }
     else
-      None
+      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
   }
 }
