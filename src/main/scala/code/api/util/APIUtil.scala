@@ -105,6 +105,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
   val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
+  val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -183,6 +184,10 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
   val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
 
+  val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
+  val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
+  val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
+
   // OAuth 2
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
   val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
@@ -192,7 +197,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
 
 
-
+  
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."

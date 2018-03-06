@@ -906,6 +906,16 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     if(httpCode== 200) getUser(httpCode, oAuthParameters.get("oauth_token"))
     else ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
   }
+  def getUserAndCallContext(cc: CallContext) : (Box[User], CallContext)  = {
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
+    val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
+
+    if(httpCode== 200) (getUser(httpCode, oAuthParameters.get("oauth_token")), cc.copy(oAuthParams = oAuthParameters))
+    else (ParamFailure(message, Empty, Empty, APIFailure(message, httpCode)), cc)
+  }
 
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
     if(httpCode==200)
