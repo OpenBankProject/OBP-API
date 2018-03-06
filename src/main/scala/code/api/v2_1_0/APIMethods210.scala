@@ -1634,14 +1634,14 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadMetrics), UserHasMissingRoles + CanReadMetrics )
-  
+
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
-  
+
             inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
             // set the long,long ago as the default date.
             defautStartDate <- Full("0000-00-00")
             tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
-  
+
             //(defaults to one week before current date
             startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
               s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
@@ -1669,54 +1669,47 @@ trait APIMethods210 {
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
             // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
             //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
-  
+
             //Filters Part 2. -- the optional varibles:
             //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            consumerId <- Full(S.param("consumer_id")) //(if null ignore)
-            userId <- Full(S.param("user_id")) //(if null ignore)
-            anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-            url <- Full(S.param("url")) // (if null ignore)
-            appName <- Full(S.param("app_name")) // (if null ignore)
-            implementedByPartialFunction <- Full(S.param("implemented_by_partial_function")) //(if null ignore)           
-            implementedInVersion <- Full(S.param("implemented_in_version")) // (if null ignore)
-            verb <- Full(S.param("verb")) // (if null ignore)
-
-            _ <- tryo(if (!anon.isEmpty) {
-              assert(anon.get.equals("true") || anon.get.equals("false"))
-            }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
+            anon <- tryo(
+              S.param("anon") match {
+                case Full(x) if x.toLowerCase == "true"  => OBPAnon(x)
+                case Full(x) if x.toLowerCase == "false" => OBPAnon(x)
+                case _                                   => OBPEmpty()
+              }
+            )
+            consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
+            userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
+            url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
+            appName <- tryo(S.param("app_name").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPAppName(x))
+            implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
+            implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
+            verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(parameters += OBPLimit(limit) +=OBPOffset(offset) += OBPFromDate(startDate)+= OBPToDate(endDate) += OBPOrdering(Some(sortBy), direction))
+            _ <- Full(
+              parameters
+                += OBPLimit(limit)
+                += OBPOffset(offset)
+                += OBPFromDate(startDate)
+                += OBPToDate(endDate)
+                += consumerId
+                += userId
+                += userId
+                += url
+                += appName
+                += implementedByPartialFunction
+                += implementedInVersion
+                += verb
+                += anon
+                += OBPOrdering(Some(sortBy) , direction)
+            )
 
-
-            // TODO check / comment this logic
-
-            setFilterPart2 <- if (!consumerId.isEmpty)
-              Full(parameters += OBPConsumerId(consumerId.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!userId.isEmpty)
-              Full(parameters += OBPUserId(userId.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!url.isEmpty)
-              Full(parameters += OBPUrl(url.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!appName.isEmpty)
-              Full(parameters += OBPAppName(appName.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!implementedInVersion.isEmpty)
-              Full(parameters += OBPImplementedInVersion(implementedInVersion.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!implementedByPartialFunction.isEmpty)
-              Full(parameters += OBPImplementedByPartialFunction(implementedByPartialFunction.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else if (!verb.isEmpty)
-              Full(parameters += OBPVerb(verb.openOrThrowException(attemptedToOpenAnEmptyBox)))
-            else
-              Full(parameters)
-            
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
-     
-            // the anon field is not in database, so here use different way to filer it.
-            filterByFields: List[APIMetric] = metrics
-              .filter(m => (if (!anon.isEmpty && anon.get.equals("true")) (m.getUserId().equals("null")) else true))
-              .filter(m => (if (!anon.isEmpty && anon.get.equals("false")) (!m.getUserId().equals("null")) else true))
             
           } yield {
-            val json = JSONFactory210.createMetricsJson(filterByFields)
+            val json = JSONFactory210.createMetricsJson(metrics)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
           }
         }

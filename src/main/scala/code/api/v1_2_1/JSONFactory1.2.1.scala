@@ -47,7 +47,8 @@ case class APIInfoJSON(
 case class HostedBy(
   organisation : String,
   email : String,
-  phone : String
+  phone : String,
+  organisation_website: String
 )
 case class Akka(remote_data_secret_matched: Option[Boolean])
 case class ErrorMessage(

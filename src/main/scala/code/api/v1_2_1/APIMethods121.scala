@@ -93,10 +93,11 @@ trait APIMethods121 {
       val organisation = Props.get("hosted_by.organisation", "TESOBE")
       val email = Props.get("hosted_by.email", "contact@tesobe.com")
       val phone = Props.get("hosted_by.phone", "+49 (0)30 8145 3994")
+      val organisationWebsite = Props.get("organisation_website", "https://www.tesobe.com")
 
       val connector = Props.get("connector").openOrThrowException("no connector set")
 
-      val hostedBy = new HostedBy(organisation, email, phone)
+      val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
       val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
       Extraction.decompose(apiInfoJSON)
     }
