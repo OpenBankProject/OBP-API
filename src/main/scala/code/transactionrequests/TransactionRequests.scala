@@ -84,7 +84,7 @@ object TransactionRequests extends SimpleInjector {
   val transactionRequestProvider = new Inject(buildOne _) {}
 
   def buildOne: TransactionRequestProvider  =
-    Props.get("transactionRequests_connector", "mapped") match {
+    APIUtil.getPropsValue("transactionRequests_connector", "mapped") match {
       case "mapped" => APIUtil.getPropsAsBoolValue("use_akka", false) match {
         case false  => MappedTransactionRequestProvider
         case true => RemotedataTransactionRequests     // We will use Akka as a middleware

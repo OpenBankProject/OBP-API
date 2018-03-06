@@ -1727,7 +1727,7 @@ Returns a string showed to the developer
   }
 
   def isSuperAdmin(user_id: String) : Boolean = {
-    val user_ids = Props.get("super_admin_user_ids") match {
+    val user_ids = APIUtil.getPropsValue("super_admin_user_ids") match {
       case Full(v) =>
         v.split(",").map(_.trim).toList
       case _ =>
@@ -1772,7 +1772,7 @@ Returns a string showed to the developer
   }
 
   def getAutocompleteValue: String = {
-    Props.get("autocomplete_at_login_form_enabled", "false") match {
+    APIUtil.getPropsValue("autocomplete_at_login_form_enabled", "false") match {
       case "true"  => "on"
       case "false" => "off"
       case _       => "off"
@@ -1804,7 +1804,7 @@ Returns a string showed to the developer
   def akkaSanityCheck (): Box[Boolean] = {
     getPropsAsBoolValue("use_akka", false) match {
       case true =>
-        val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+        val remotedataSecret = APIUtil.getPropsValue("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
         SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
       case false => Empty
     }
@@ -1981,15 +1981,15 @@ Returns a string showed to the developer
   }
 
 
-  def getDisabledVersions() : List[String] = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints() : List[String] = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
 
-  def getEnabledVersions() : List[String] = Props.get("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpoints() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2294,7 +2294,7 @@ Versions are groups of endpoints in a file
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
-      Props.get("gateway.host") match {
+      APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
@@ -2457,7 +2457,7 @@ Versions are groups of endpoints in a file
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
 
-  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+  val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   /**
     * This function is implemented in order to support encrypted values in props file.
@@ -2486,6 +2486,9 @@ Versions are groups of endpoints in a file
         logger.error(cannotDecryptValueOfProperty + nameOfProperty)
         Failure(cannotDecryptValueOfProperty + nameOfProperty)
     }
+  }
+  def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
+    getPropsValue(nameOfProperty) openOr(defaultValue)
   }
 
   def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {

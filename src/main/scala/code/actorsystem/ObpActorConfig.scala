@@ -1,18 +1,18 @@
 package code.actorsystem
 
+import code.api.util.APIUtil
 import code.util.Helper
-import net.liftweb.util.Props
 
 
 object ObpActorConfig {
 
-  val remoteHostname = Props.get("remotedata.hostname").openOr("127.0.0.1")
-  val remotePort = Props.get("remotedata.port").openOr("2662")
+  val remoteHostname = APIUtil.getPropsValue("remotedata.hostname").openOr("127.0.0.1")
+  val remotePort = APIUtil.getPropsValue("remotedata.port").openOr("2662")
 
   val localHostname = "127.0.0.1"
   val localPort = Helper.findAvailablePort()
 
-  val akka_loglevel = Props.get("remotedata.loglevel").openOr("INFO")
+  val akka_loglevel = APIUtil.getPropsValue("remotedata.loglevel").openOr("INFO")
 
   val commonConf = 
   """

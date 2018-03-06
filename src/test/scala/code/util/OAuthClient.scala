@@ -34,9 +34,9 @@ package code.util
 
 import java.net.{URI, URLDecoder}
 
+import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.util.Props
 import oauth.signpost.basic.{DefaultOAuthConsumer, DefaultOAuthProvider}
 import oauth.signpost.{OAuthConsumer, OAuthProvider}
 import org.apache.http.client.utils.URLEncodedUtils
@@ -67,7 +67,7 @@ sealed trait Provider {
 trait DefaultProvider extends Provider {
   val name = "The Open Bank Project Demo"
 
-  val baseUrl = Props.get("target_api_hostname", "")
+  val baseUrl = APIUtil.getPropsValue("target_api_hostname", "")
   val apiBaseUrl = baseUrl + "/obp"
   val requestTokenUrl = baseUrl + "/oauth/initiate"
   val accessTokenUrl = baseUrl + "/oauth/token"
@@ -76,8 +76,8 @@ trait DefaultProvider extends Provider {
 
   lazy val oAuthProvider : OAuthProvider = new DefaultOAuthProvider(requestTokenUrl, accessTokenUrl, authorizeUrl)
 
-  val consumerKey = Props.get("obp_consumer_key", "")
-  val consumerSecret = Props.get("obp_secret_key", "")
+  val consumerKey = APIUtil.getPropsValue("obp_consumer_key", "")
+  val consumerSecret = APIUtil.getPropsValue("obp_secret_key", "")
 }
 
 object OBPDemo extends DefaultProvider

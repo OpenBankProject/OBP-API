@@ -5,11 +5,10 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
 object TestServer {
-  import net.liftweb.util.Props
 
   val host = "localhost"
   val port = APIUtil.getPropsAsIntValue("tests.port",8000)
-  val externalHost = Props.get("external.hostname")
+  val externalHost = APIUtil.getPropsValue("external.hostname")
   val externalPort = APIUtil.getPropsAsIntValue("external.port")
   val server = new Server(port)
 

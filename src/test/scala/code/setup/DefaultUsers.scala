@@ -42,7 +42,7 @@ trait DefaultUsers {
   lazy val tokenDuration = weeks(expiration)
   
   // Create resource user, need provider 
-  val defaultProvider = Props.get("hostname", "")
+  val defaultProvider = APIUtil.getPropsValue("hostname", "")
   
   // create some resource user for test purposes
   lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)

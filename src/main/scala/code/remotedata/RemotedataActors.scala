@@ -3,10 +3,11 @@ package code.remotedata
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
-import akka.routing.RoundRobinPool
 import bootstrap.liftweb.ToSchemify
 import code.actorsystem.ObpActorConfig
+import code.api.util.APIUtil
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
 import net.liftweb.db.StandardDBVendor
@@ -16,7 +17,6 @@ import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import code.util.Helper.MdcLoggable
 
 
 object RemotedataActors extends MdcLoggable {
@@ -64,15 +64,15 @@ object RemotedataActors extends MdcLoggable {
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
         Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => Props.get("remotedata.db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("remotedata.db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
             new StandardDBVendor(driver,
-              Props.get("remotedata.db.url") openOr "jdbc:h2:./lift_proto.remotedata.db;AUTO_SERVER=TRUE",
-              Props.get("remotedata.db.user"), Props.get("remotedata.db.password"))
+              APIUtil.getPropsValue("remotedata.db.url") openOr "jdbc:h2:./lift_proto.remotedata.db;AUTO_SERVER=TRUE",
+              APIUtil.getPropsValue("remotedata.db.user"), APIUtil.getPropsValue("remotedata.db.password"))
           case _ =>
             new StandardDBVendor(
               driver,

@@ -45,21 +45,21 @@ package com.tesobe.model{
 
 package code.model.dataAccess {
 
-  import com.rabbitmq.client.{ConnectionFactory,Channel}
-  import net.liftmodules.amqp.{AMQPSender,AMQPMessage}
-  import net.liftweb.util._
+  import code.api.util.APIUtil
   import code.util.Helper.MdcLoggable
+  import com.rabbitmq.client.{Channel, ConnectionFactory}
   import com.tesobe.model.UpdateBankAccount
+  import net.liftmodules.amqp.{AMQPMessage, AMQPSender}
 
 
 
   object UpdatesRequestSender extends MdcLoggable {
     private val factory = new ConnectionFactory {
       import ConnectionFactory._
-      setHost(Props.get("connection.host", "localhost"))
+      setHost(APIUtil.getPropsValue("connection.host", "localhost"))
       setPort(DEFAULT_AMQP_PORT)
-      setUsername(Props.get("connection.user", DEFAULT_USER))
-      setPassword(Props.get("connection.password", DEFAULT_PASS))
+      setUsername(APIUtil.getPropsValue("connection.user", DEFAULT_USER))
+      setPassword(APIUtil.getPropsValue("connection.password", DEFAULT_PASS))
       setVirtualHost(DEFAULT_VHOST)
     }
 

@@ -116,7 +116,7 @@ trait APIMethods210 {
           for {
             importData <- tryo {json.extract[SandboxDataImport]} ?~! {InvalidJsonFormat}
             u <- cc.user ?~! UserNotLoggedIn
-            allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
+            allowDataImportProp <- APIUtil.getPropsValue("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
             _ <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
             _ <- booleanToBox(hasEntitlement("", u.userId, canCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
             _ <- OBPDataImport.importer.vend.importData(importData)
@@ -158,7 +158,7 @@ trait APIMethods210 {
               cc.user ?~! UserNotLoggedIn
             _ <- Bank(bankId) ?~! {BankNotFound}
             // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-            transactionRequestTypes <- tryo(Props.get("transactionRequests_supported_types", ""))
+            transactionRequestTypes <- tryo(APIUtil.getPropsValue("transactionRequests_supported_types", ""))
           } yield {
             // Format the data as json
             val json = JSONFactory210.createTransactionRequestTypeJSON(transactionRequestTypes.split(",").toList)
@@ -413,7 +413,7 @@ trait APIMethods210 {
             _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! {ViewNotFound}
             isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
-            _ <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
+            _ <- tryo(assert(APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
               s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
 
             // Check the input JSON format, here is just check the common parts of all four tpyes

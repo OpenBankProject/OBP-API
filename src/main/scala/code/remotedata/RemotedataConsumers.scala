@@ -2,17 +2,17 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.api.util.APIUtil
 import code.consumer.{ConsumersProvider, RemotedataConsumersCaseClasses}
 import code.model._
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
-import net.liftweb.util.Props
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scalacache.{Flags, ScalaCache}
 import scalacache.guava.GuavaCache
 import scalacache.memoization.{cacheKeyExclude, memoizeSync}
+import scalacache.{Flags, ScalaCache}
 
 
 object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
@@ -20,7 +20,7 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
 
-  val getConsumerTTL  = Props.get("connector.cache.ttl.seconds.getConsumer", "6000").toInt * 1000 // Miliseconds
+  val getConsumerTTL  = APIUtil.getPropsValue("connector.cache.ttl.seconds.getConsumer", "6000").toInt * 1000 // Miliseconds
 
   val cc = RemotedataConsumersCaseClasses
 

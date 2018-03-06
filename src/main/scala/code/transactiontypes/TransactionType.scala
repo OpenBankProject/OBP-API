@@ -1,13 +1,12 @@
 package code.TransactionTypes
 
 
-import java.util.Date
-
+import code.api.util.APIUtil
 import code.api.v2_0_0.TransactionTypeJsonV200
 import code.model._
 import code.transaction_types.MappedTransactionTypeProvider
 import net.liftweb.common.{Box, Logger}
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 
 // See http://simply.liftweb.net/index-8.2.html for info about "vend" and SimpleInjector
@@ -44,7 +43,7 @@ object TransactionType extends SimpleInjector {
   val TransactionTypeProvider = new Inject(buildOne _) {}
 
   def buildOne: TransactionTypeProvider  =
-    Props.get("TransactionTypes_connector", "mapped") match {
+    APIUtil.getPropsValue("TransactionTypes_connector", "mapped") match {
       case "mapped" => MappedTransactionTypeProvider
       case ttc: String => throw new IllegalArgumentException("No such connector for Transaction Types: " + ttc)
     }
