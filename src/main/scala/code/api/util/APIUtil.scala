@@ -2179,8 +2179,20 @@ Versions are groups of endpoints in a file
     RestContinuation.async(reply => {
       in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
-        case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
-        case _                  => reply.apply(errorJsonResponse("Error"))
+        case Failure(msg, _, _) =>
+          try {
+            parse(msg).extractOpt[APIFailureNewStyle] match {
+              case Some(af) =>
+                (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+              case _ =>
+                (reply.apply(errorJsonResponse(msg)))
+            }
+          } catch {
+            case _: Exception =>
+              (reply.apply(errorJsonResponse(msg)))
+          }
+        case _                  =>
+          reply.apply(errorJsonResponse("Error"))
       }
     })
   }
@@ -2208,8 +2220,20 @@ Versions are groups of endpoints in a file
     RestContinuation.async(reply => {
       in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
-        case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
-        case _                  => Full(reply.apply(errorJsonResponse("Error")))
+        case Failure(msg, _, _) =>
+          try {
+            parse(msg).extractOpt[APIFailureNewStyle] match {
+              case Some(af) =>
+                Full(reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+              case _ =>
+                Full(reply.apply(errorJsonResponse(msg)))
+            }
+          } catch {
+            case _: Exception =>
+              Full(reply.apply(errorJsonResponse(msg)))
+          }
+        case _ =>
+          Full(reply.apply(errorJsonResponse("Error")))
       }
     })
   }
@@ -2350,6 +2374,8 @@ Versions are groups of endpoints in a file
         Full(v)
       case Empty => // Just forwarding
         throw new Exception("Empty Box not allowed")
+      case ParamFailure(_,_,_,af: APIFailureNewStyle) =>
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(af)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>

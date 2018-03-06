@@ -3,6 +3,7 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
+import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
@@ -98,11 +99,11 @@ object Helper{
     * @return In case the statement is false the function returns Future[Failure(failMsg)].
     *         Otherwise returns Future[Full()].
     */
-  def booleanToFuture(failMsg: String)(statement: => Boolean): Future[Box[Unit]] = {
+  def booleanToFuture(failMsg: String, failCode: Int = 400)(statement: => Boolean): Future[Box[Unit]] = {
     Future{
       booleanToBox(statement)
     } map {
-      x => fullBoxOrException(x ?~! failMsg)
+      x => fullBoxOrException(x ~> APIFailureNewStyle(failMsg, failCode))
     }
   }
 

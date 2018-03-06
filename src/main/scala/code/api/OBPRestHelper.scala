@@ -62,6 +62,11 @@ object APIFailure {
   }
 }
 
+case class APIFailureNewStyle(failMsg: String, failCode: Int) extends APIFailure {
+  val msg: String = failMsg
+  val responseCode: Int = failCode
+}
+
 //if you change this, think about backwards compatibility! All existing
 //versions of the API return this failure message, so if you change it, make sure
 //that all stable versions retain the same behavior
