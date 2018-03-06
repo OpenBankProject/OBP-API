@@ -2157,6 +2157,21 @@ Versions are groups of endpoints in a file
     laf
   }
 
+
+  def extractAPIFailureNewStyle(msg: String): Option[APIFailureNewStyle] = {
+    try {
+      parse(msg).extractOpt[APIFailureNewStyle] match {
+        case Some(af) =>
+          Some(af)
+        case _ =>
+          None
+      }
+    } catch {
+      case _: Exception =>
+        None
+    }
+  }
+
   /**
     * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
     * @return value of type JsonResponse
@@ -2180,15 +2195,10 @@ Versions are groups of endpoints in a file
       in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       in.onFail {
         case Failure(msg, _, _) =>
-          try {
-            parse(msg).extractOpt[APIFailureNewStyle] match {
-              case Some(af) =>
-                (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
-              case _ =>
-                (reply.apply(errorJsonResponse(msg)))
-            }
-          } catch {
-            case _: Exception =>
+          extractAPIFailureNewStyle(msg) match {
+            case Some(af) =>
+              (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+            case _ =>
               (reply.apply(errorJsonResponse(msg)))
           }
         case _                  =>
@@ -2221,16 +2231,11 @@ Versions are groups of endpoints in a file
       in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       in.onFail {
         case Failure(msg, _, _) =>
-          try {
-            parse(msg).extractOpt[APIFailureNewStyle] match {
-              case Some(af) =>
-                Full(reply.apply(errorJsonResponse(af.msg, af.responseCode)))
-              case _ =>
-                Full(reply.apply(errorJsonResponse(msg)))
-            }
-          } catch {
-            case _: Exception =>
-              Full(reply.apply(errorJsonResponse(msg)))
+          extractAPIFailureNewStyle(msg) match {
+            case Some(af) =>
+              (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+            case _ =>
+              (reply.apply(errorJsonResponse(msg)))
           }
         case _ =>
           Full(reply.apply(errorJsonResponse("Error")))
