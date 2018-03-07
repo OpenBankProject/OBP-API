@@ -47,27 +47,22 @@ TESOBE (http://www.tesobe.com/)
 * into your props file.
 * */
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
+import code.api.util.APIUtil
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.util.ObpJson._
-import code.api._
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
+import code.api.v2_1_0.{CustomerCreditRatingJSON, PostCustomerJsonV210}
 import code.setup.SendServerRequests
+import code.util.ObpJson._
 import code.util.{OAuthClient, ObpGet, ObpPost}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.RequestVar
 import net.liftweb.json._
-import net.liftweb.util.Props
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
-
-import code.api.v2_1_0.{PostCustomerJsonV210, CustomerCreditRatingJSON, CustomerJsonV210}
-
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-
-import code.api.v2_0_0.JSONFactory200.UserJsonV200
 
 
 case class CustomerFullJson(customer_number : String,
@@ -96,14 +91,14 @@ object PostCustomer extends SendServerRequests {
     // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
     implicit val formats = DefaultFormats // Brings in default date formats etc.
 
-    val adminUserUsername = Props.get("import.admin_user.username").getOrElse("ERROR")
+    val adminUserUsername = APIUtil.getPropsValue("import.admin_user.username").getOrElse("ERROR")
     println(s"adminUserUsername is $adminUserUsername")
 
-    val adminUserPassword = Props.get("import.admin_user.password").getOrElse("ERROR")
+    val adminUserPassword = APIUtil.getPropsValue("import.admin_user.password").getOrElse("ERROR")
     println(s"adminUserPassword is $adminUserPassword")
 
     //load json for customers
-    val customerDataPath = Props.get("import.customer_data_path")
+    val customerDataPath = APIUtil.getPropsValue("import.customer_data_path")
 
     println(s"customerDataPath is $customerDataPath")
 
@@ -128,7 +123,7 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = Props.get("import.main_data_path")
+    val mainDataPath = APIUtil.getPropsValue("import.main_data_path")
 
     println(s"mainDataPath is $mainDataPath")
 

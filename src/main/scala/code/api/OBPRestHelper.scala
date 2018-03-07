@@ -62,6 +62,11 @@ object APIFailure {
   }
 }
 
+case class APIFailureNewStyle(failMsg: String, failCode: Int) extends APIFailure {
+  val msg: String = failMsg
+  val responseCode: Int = failCode
+}
+
 //if you change this, think about backwards compatibility! All existing
 //versions of the API return this failure message, so if you change it, make sure
 //that all stable versions retain the same behavior
@@ -210,12 +215,15 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
-    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
-      .copy(authReqHeaderField = authorization)
-      .copy(implementedInVersion = implementedInVersion)
-      .copy(verb = verb)
-      .copy(correlationId = correlationId)
-      .copy(url = url)
+    val cc = CallContext(
+      resourceDocument = rd,
+      startTime = Some(Helpers.now),
+      authReqHeaderField = authorization,
+      implementedInVersion = implementedInVersion,
+      verb = verb,
+      correlationId = correlationId,
+      url = url
+    )
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {
@@ -244,7 +252,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       }
     } else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
-      Props.get("gateway.host") match {
+      APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val s = S
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)

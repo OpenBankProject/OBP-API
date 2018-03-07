@@ -1,11 +1,9 @@
 package code.yearlycustomercharges
 
-import code.bankconnectors.{KafkaMappedConnector, LocalRecordConnector, LocalMappedConnector}
-
-
-import code.model.{CustomerId, BankId}
+import code.api.util.APIUtil
+import code.model.{BankId, CustomerId}
 import net.liftweb.common.Logger
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 object YearlyCharge extends SimpleInjector {
 
@@ -14,7 +12,7 @@ object YearlyCharge extends SimpleInjector {
 
   // This determines the provider we use
   def buildOne: YearlyChargeProvider =
-    Props.get("provider.thing").openOr("mapped") match {
+    APIUtil.getPropsValue("provider.thing").openOr("mapped") match {
       case "mapped" => MappedYearlyChargeProvider
       case _ => MappedYearlyChargeProvider
     }

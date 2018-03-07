@@ -160,7 +160,7 @@ class Boot extends MdcLoggable {
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
         Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => Props.get("db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
@@ -168,7 +168,7 @@ class Boot extends MdcLoggable {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
             new StandardDBVendor(driver,
               APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-              Props.get("db.user"), APIUtil.getPropsValue("db.password"))
+              APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
           case _ =>
             new StandardDBVendor(
               driver,
@@ -184,8 +184,8 @@ class Boot extends MdcLoggable {
     
     print("Enter the Password for the SSL Certificate Stores: ")
     //As most IDEs do not provide a Console, we fall back to readLine
-    code.api.util.APIUtil.initPasswd =  if (Props.get("kafka.use.ssl").getOrElse("") == "true" ||
-      Props.get("jwt.use.ssl").getOrElse("") == "true") {
+    code.api.util.APIUtil.initPasswd =  if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("") == "true" ||
+      APIUtil.getPropsValue("jwt.use.ssl").getOrElse("") == "true") {
       try {
         System.console.readPassword().toString
       } catch {
@@ -194,7 +194,7 @@ class Boot extends MdcLoggable {
     } else {"notused"}
 
     // ensure our relational database's tables are created/fit the schema
-    val connector = Props.get("connector").openOrThrowException("no connector set")
+    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
     if(connector != "mongodb")
       schemifyAll()
 
@@ -458,12 +458,12 @@ class Boot extends MdcLoggable {
     val currentTime = now.toString
     val stackTrace = new String(outputStream.toByteArray)
     val error = currentTime + ": " + stackTrace
-    val host = Props.get("hostname", "unknown host")
+    val host = APIUtil.getPropsValue("hostname", "unknown host")
 
     val mailSent = for {
-      from <- Props.get("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+      from <- APIUtil.getPropsValue("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
       // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
-      toAddressesString <- Props.get("mail.exception.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
+      toAddressesString <- APIUtil.getPropsValue("mail.exception.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
     } yield {
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com

@@ -49,7 +49,7 @@ object MongoConfig {
 
 
     val srvr = new ServerAddress(
-       Props.get("mongo.host", "localhost"),
+       APIUtil.getPropsValue("mongo.host", "localhost"),
        APIUtil.getPropsAsIntValue("mongo.port", 27017)
     )
     val defaultDatabase = Props.mode match {
@@ -57,7 +57,7 @@ object MongoConfig {
         case _ => "OBP006"
       }
 
-    MongoDB.defineDb(DefaultConnectionIdentifier, new MongoClient(srvr), Props.get("mongo.dbName", defaultDatabase))
+    MongoDB.defineDb(DefaultConnectionIdentifier, new MongoClient(srvr), APIUtil.getPropsValue("mongo.dbName", defaultDatabase))
     MongoDB.defineDb(AdminDb, new MongoClient(srvr), "admin")
 
 

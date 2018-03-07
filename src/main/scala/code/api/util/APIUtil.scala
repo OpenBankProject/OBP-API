@@ -1732,7 +1732,7 @@ Returns a string showed to the developer
   }
 
   def isSuperAdmin(user_id: String) : Boolean = {
-    val user_ids = Props.get("super_admin_user_ids") match {
+    val user_ids = APIUtil.getPropsValue("super_admin_user_ids") match {
       case Full(v) =>
         v.split(",").map(_.trim).toList
       case _ =>
@@ -1777,7 +1777,7 @@ Returns a string showed to the developer
   }
 
   def getAutocompleteValue: String = {
-    Props.get("autocomplete_at_login_form_enabled", "false") match {
+    APIUtil.getPropsValue("autocomplete_at_login_form_enabled", "false") match {
       case "true"  => "on"
       case "false" => "off"
       case _       => "off"
@@ -1806,10 +1806,29 @@ Returns a string showed to the developer
     result
   }
 
+  def logEndpointTiming[R](callContext: Option[CallContext])(blockOfCode: => R): R = {
+    val result = blockOfCode
+    // call-by-name
+    callContext match {
+      case Some(cc) =>
+        cc.resourceDocument match {
+          case Some(rd) =>
+            val time = System.currentTimeMillis() - cc.startTime.get.getTime()
+            val msg = "Endpoint (" + rd.requestVerb + ") " + rd.requestUrl + " implemented in API version " + rd.implementedInApiVersion
+            logger.info(msg + " took " + time + " Milliseconds")
+          case _ =>
+            // There are no enough information for logging
+        }
+      case _ =>
+        // There are no enough information for logging
+    }
+    result
+  }
+
   def akkaSanityCheck (): Box[Boolean] = {
     getPropsAsBoolValue("use_akka", false) match {
       case true =>
-        val remotedataSecret = Props.get("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
+        val remotedataSecret = APIUtil.getPropsValue("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
         SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
       case false => Empty
     }
@@ -1986,15 +2005,15 @@ Returns a string showed to the developer
   }
 
 
-  def getDisabledVersions() : List[String] = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints() : List[String] = Props.get("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
 
-  def getEnabledVersions() : List[String] = Props.get("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getEnabledEndpoints() : List[String] = Props.get("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpoints() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2162,6 +2181,21 @@ Versions are groups of endpoints in a file
     laf
   }
 
+
+  def extractAPIFailureNewStyle(msg: String): Option[APIFailureNewStyle] = {
+    try {
+      parse(msg).extractOpt[APIFailureNewStyle] match {
+        case Some(af) =>
+          Some(af)
+        case _ =>
+          None
+      }
+    } catch {
+      case _: Exception =>
+        None
+    }
+  }
+
   /**
     * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
     * @return value of type JsonResponse
@@ -2182,10 +2216,19 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(
+        t => logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      )
       in.onFail {
-        case Failure(msg, _, _) => reply.apply(errorJsonResponse(msg))
-        case _                  => reply.apply(errorJsonResponse("Error"))
+        case Failure(msg, _, _) =>
+          extractAPIFailureNewStyle(msg) match {
+            case Some(af) =>
+              reply.apply(errorJsonResponse(af.msg, af.responseCode))
+            case _ =>
+              reply.apply(errorJsonResponse(msg))
+          }
+        case _                  =>
+          reply.apply(errorJsonResponse("Error"))
       }
     })
   }
@@ -2211,10 +2254,19 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(
+        t => Full(logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      )
       in.onFail {
-        case Failure(msg, _, _) => Full(reply.apply(errorJsonResponse(msg)))
-        case _                  => Full(reply.apply(errorJsonResponse("Error")))
+        case Failure(msg, _, _) =>
+          extractAPIFailureNewStyle(msg) match {
+            case Some(af) =>
+              (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+            case _ =>
+              (reply.apply(errorJsonResponse(msg)))
+          }
+        case _ =>
+          Full(reply.apply(errorJsonResponse("Error")))
       }
     })
   }
@@ -2270,7 +2322,7 @@ Versions are groups of endpoints in a file
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
-      Props.get("gateway.host") match {
+      APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
@@ -2355,6 +2407,8 @@ Versions are groups of endpoints in a file
         Full(v)
       case Empty => // Just forwarding
         throw new Exception("Empty Box not allowed")
+      case ParamFailure(_,_,_,af: APIFailureNewStyle) =>
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(af)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
@@ -2431,7 +2485,7 @@ Versions are groups of endpoints in a file
     counterpartyName: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
 
-  val isSandboxMode: Boolean = (Props.get("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+  val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   /**
     * This function is implemented in order to support encrypted values in props file.
@@ -2460,6 +2514,9 @@ Versions are groups of endpoints in a file
         logger.error(cannotDecryptValueOfProperty + nameOfProperty)
         Failure(cannotDecryptValueOfProperty + nameOfProperty)
     }
+  }
+  def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
+    getPropsValue(nameOfProperty) openOr(defaultValue)
   }
 
   def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {

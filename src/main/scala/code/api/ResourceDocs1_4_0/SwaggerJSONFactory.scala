@@ -194,7 +194,7 @@ object SwaggerJSONFactory {
     val infoContact = InfoContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
-    val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
+    val host = APIUtil.getPropsValue("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = "/"
     val schemas = List("http", "https")
     // Paths Object

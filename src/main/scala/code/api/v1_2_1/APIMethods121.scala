@@ -39,7 +39,7 @@ trait APIMethods121 {
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val apiMethods121GetTransactionsTTL = Props.get("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
+  val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
   
   // helper methods begin here
 
@@ -90,12 +90,12 @@ trait APIMethods121 {
   private def getApiInfoJSON(apiVersion : String, apiVersionStatus : String) = {
     val apiDetails: JValue = {
 
-      val organisation = Props.get("hosted_by.organisation", "TESOBE")
-      val email = Props.get("hosted_by.email", "contact@tesobe.com")
-      val phone = Props.get("hosted_by.phone", "+49 (0)30 8145 3994")
-      val organisationWebsite = Props.get("organisation_website", "https://www.tesobe.com")
+      val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
+      val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
+      val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+      val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
 
-      val connector = Props.get("connector").openOrThrowException("no connector set")
+      val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
       val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))

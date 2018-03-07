@@ -3,13 +3,14 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
+import code.api.util.APIUtil
+import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -98,11 +99,11 @@ object Helper{
     * @return In case the statement is false the function returns Future[Failure(failMsg)].
     *         Otherwise returns Future[Full()].
     */
-  def booleanToFuture(failMsg: String)(statement: => Boolean): Future[Box[Unit]] = {
+  def booleanToFuture(failMsg: String, failCode: Int = 400)(statement: => Boolean): Future[Box[Unit]] = {
     Future{
       booleanToBox(statement)
     } map {
-      x => fullBoxOrException(x ?~! failMsg)
+      x => fullBoxOrException(x ~> APIFailureNewStyle(failMsg, failCode))
     }
   }
 
@@ -240,7 +241,7 @@ object Helper{
   }
 
   def getHostname(): String = {
-    Props.get("hostname", "") match {
+    APIUtil.getPropsValue("hostname", "") match {
       case s: String if s.nonEmpty => s.split(":").lift(1) match {
         case Some(s) => s.replaceAll("\\/", "").replaceAll("\\.", "-")
         case None => "unknown"
@@ -250,7 +251,7 @@ object Helper{
   }
 
   def getRemotedataHostname(): String = {
-    Props.get("remotedata.hostname", "") match {
+    APIUtil.getPropsValue("remotedata.hostname", "") match {
       case s: String if s.nonEmpty => s.replaceAll("\\/", "").replaceAll("\\.", "-")
       case _ => "unknown"
     }

@@ -89,7 +89,7 @@ class Login {
   // Used to display custom message to users when they login.
   // For instance we can use it to display example login on a sandbox
     def customiseLogin : CssSel = {
-      val specialLoginInstructions  = scala.xml.Unparsed(Props.get("webui_login_page_special_instructions", ""))
+      val specialLoginInstructions  = scala.xml.Unparsed(APIUtil.getPropsValue("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
       implicit val formats = net.liftweb.json.DefaultFormats
       "#login-special-instructions *" #> specialLoginInstructions

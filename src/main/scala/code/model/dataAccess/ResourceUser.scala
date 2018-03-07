@@ -31,12 +31,10 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.api.util.APIUtil
+import code.model.{User, UserId}
 import code.util.MappedUUID
 import net.liftweb.mapper._
-import net.liftweb.util.Props
-import code.model.{BankIdAccountId, User, UserId, View}
-import code.views.Views
-import net.liftweb.common.Full
 
 /**
   * Refer to AuthUser, see the difference between AuthUser and ResourceUser
@@ -54,7 +52,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     override def defaultValue = ""
   }
   object provider_ extends MappedString(this, 100){
-    override def defaultValue = Props.get("hostname","")
+    override def defaultValue = APIUtil.getPropsValue("hostname","")
   }
 
   /**

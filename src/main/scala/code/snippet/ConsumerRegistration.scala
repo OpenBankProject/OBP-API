@@ -56,11 +56,11 @@ class ConsumerRegistration extends MdcLoggable {
 
 
   // Can be used to show link to an online form to collect more information about the App / Startup
-  val registrationMoreInfoUrl = Props.get("webui_post_consumer_registration_more_info_url", "")
+  val registrationMoreInfoUrl = APIUtil.getPropsValue("webui_post_consumer_registration_more_info_url", "")
 
   val registrationMoreInfoText : String = registrationMoreInfoUrl match {
     case "" => ""
-    case _  =>  Props.get("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
+    case _  =>  APIUtil.getPropsValue("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
   }
 
   
@@ -90,8 +90,8 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     def showResults(consumer : Consumer) = {
-      val urlOAuthEndpoint = Props.get("hostname", "") + "/oauth/initiate"
-      val urlDirectLoginEndpoint = Props.get("hostname", "") + "/my/logins/direct"
+      val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
+      val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
       "#app-consumer_id *" #> consumer.id.get &
       "#app-name *" #> consumer.name.get &
@@ -197,8 +197,8 @@ class ConsumerRegistration extends MdcLoggable {
     import net.liftweb.util.Mailer._
 
     val mailSent = for {
-      send : String <- Props.get("mail.api.consumer.registered.notification.send") if send.equalsIgnoreCase("true")
-      from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+      send : String <- APIUtil.getPropsValue("mail.api.consumer.registered.notification.send") if send.equalsIgnoreCase("true")
+      from <- APIUtil.getPropsValue("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
     } yield {
 
       // Only send consumer key / secret by email if we explicitly want that.
@@ -206,7 +206,7 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
-      val thisApiInstance = Props.get("hostname", "unknown host")
+      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
@@ -248,12 +248,12 @@ class ConsumerRegistration extends MdcLoggable {
 
     val mailSent = for {
       // e.g mail.api.consumer.registered.sender.address=no-reply@example.com
-      from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+      from <- APIUtil.getPropsValue("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
       // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
-      toAddressesString <- Props.get("mail.api.consumer.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
+      toAddressesString <- APIUtil.getPropsValue("mail.api.consumer.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
     } yield {
 
-      val thisApiInstance = Props.get("hostname", "unknown host")
+      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
       		s"Email: ${registered.developerEmail.get} \n" +
       		s"App name: ${registered.name.get} \n" +

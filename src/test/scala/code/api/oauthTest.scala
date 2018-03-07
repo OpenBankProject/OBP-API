@@ -33,26 +33,26 @@ Berlin 13359, Germany
 package code.api
 
 import java.util.ResourceBundle
-import code.api.util.ErrorMessages._
+
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.setup.ServerSetup
+import code.util.Helper.MdcLoggable
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 import org.scalatest._
 import org.scalatest.selenium._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import code.util.Helper.MdcLoggable
 
 case class OAuthResponse(
   code: Int,
@@ -64,7 +64,7 @@ class OAuthTest extends ServerSetup {
   def oauthRequest = baseRequest / "oauth"
 
   //a url that will be guaranteed to resolve when the oauth redirects us to it
-  val selfCallback = Props.get("hostname").openOrThrowException("hostname not set")
+  val selfCallback = APIUtil.getPropsValue("hostname").openOrThrowException("hostname not set")
 
   val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 

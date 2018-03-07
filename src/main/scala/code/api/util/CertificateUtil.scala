@@ -24,10 +24,10 @@ object CertificateUtil extends MdcLoggable {
   lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
       getKeyPair(
-        jkspath = Props.get("keystore.path").getOrElse(""),
-        jkspasswd = Props.get("keystore.password").getOrElse(APIUtil.initPasswd),
-        keypasswd = Props.get("keystore.passphrase").getOrElse(APIUtil.initPasswd),
-        alias = Props.get("keystore.alias").getOrElse("")
+        jkspath = APIUtil.getPropsValue("keystore.path").getOrElse(""),
+        jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd),
+        keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd),
+        alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
       )
     case false =>
       val keyPair = buildKeyPair(CryptoSystem.RSA)
@@ -146,8 +146,8 @@ object CertificateUtil extends MdcLoggable {
     print("Enter the Password for the SSL Certificate Stores: ")
     //As most IDEs do not provide a Console, we fall back to readLine
     code.api.util.APIUtil.initPasswd =
-      if (Props.get("kafka.use.ssl").getOrElse("") == "true" ||
-          Props.get("jwt.use.ssl").getOrElse("") == "true")
+      if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("") == "true" ||
+          APIUtil.getPropsValue("jwt.use.ssl").getOrElse("") == "true")
       {
         try {
           System.console.readPassword().toString

@@ -84,9 +84,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   def sandboxApiPrefix = baseRequest / "obp" / "vsandbox"
 
   //users should automatically be assigned the "hostname" as a provider (for now at least)
-  val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
+  val defaultProvider = APIUtil.getPropsValue("hostname").openOrThrowException("no hostname set")
 
-  val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
+  val theImportToken = APIUtil.getPropsValue("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
 
   override def beforeEach() = {
     //drop database tables before
