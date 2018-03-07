@@ -1616,9 +1616,9 @@ trait APIMethods210 {
         |
         |14 verb (if null ignore)
         |
-        |14 correlationId (if null ignore)
+        |15 correlationId (if null ignore)
         |
-        |15 duration (if null ignore)
+        |16 duration (if null ignore) non digit chars will be silently omitted
         |
       """.stripMargin,
       emptyObjectJson,
