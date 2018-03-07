@@ -215,12 +215,15 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = S.uriAndQueryString.getOrElse("")
     val correlationId = getCorrelationId()
-    val cc = CallContext(resourceDocument = rd, startTime = Some(Helpers.now))
-      .copy(authReqHeaderField = authorization)
-      .copy(implementedInVersion = implementedInVersion)
-      .copy(verb = verb)
-      .copy(correlationId = correlationId)
-      .copy(url = url)
+    val cc = CallContext(
+      resourceDocument = rd,
+      startTime = Some(Helpers.now),
+      authReqHeaderField = authorization,
+      implementedInVersion = implementedInVersion,
+      verb = verb,
+      correlationId = correlationId,
+      url = url
+    )
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (hasAnOAuthHeader(authorization)) {

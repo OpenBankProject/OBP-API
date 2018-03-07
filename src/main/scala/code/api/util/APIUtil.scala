@@ -1806,6 +1806,25 @@ Returns a string showed to the developer
     result
   }
 
+  def logEndpointTiming[R](callContext: Option[CallContext])(blockOfCode: => R): R = {
+    val result = blockOfCode
+    // call-by-name
+    callContext match {
+      case Some(cc) =>
+        cc.resourceDocument match {
+          case Some(rd) =>
+            val time = System.currentTimeMillis() - cc.startTime.get.getTime()
+            val msg = "Endpoint (" + rd.requestVerb + ") " + rd.requestUrl + " implemented in API version " + rd.implementedInApiVersion
+            logger.info(msg + " took " + time + " Milliseconds")
+          case _ =>
+            // There are no enough information for logging
+        }
+      case _ =>
+        // There are no enough information for logging
+    }
+    result
+  }
+
   def akkaSanityCheck (): Box[Boolean] = {
     getPropsAsBoolValue("use_akka", false) match {
       case true =>
@@ -2197,14 +2216,16 @@ Versions are groups of endpoints in a file
     */
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      in.onSuccess(
+        t => logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+      )
       in.onFail {
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
-              (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+              reply.apply(errorJsonResponse(af.msg, af.responseCode))
             case _ =>
-              (reply.apply(errorJsonResponse(msg)))
+              reply.apply(errorJsonResponse(msg))
           }
         case _                  =>
           reply.apply(errorJsonResponse("Error"))
@@ -2233,7 +2254,9 @@ Versions are groups of endpoints in a file
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(t => Full(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      in.onSuccess(
+        t => Full(logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+      )
       in.onFail {
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
