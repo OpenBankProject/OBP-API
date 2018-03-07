@@ -1616,6 +1616,8 @@ trait APIMethods210 {
         |
         |14 verb (if null ignore)
         |
+        |14 correlationId (if null ignore)
+        |
       """.stripMargin,
       emptyObjectJson,
       metricsJson,
@@ -1686,6 +1688,7 @@ trait APIMethods210 {
             implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
             implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
             verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
+            correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
             _ <- Full(
@@ -1703,6 +1706,7 @@ trait APIMethods210 {
                 += implementedInVersion
                 += verb
                 += anon
+                += correlationId
                 += OBPOrdering(Some(sortBy) , direction)
             )
 
