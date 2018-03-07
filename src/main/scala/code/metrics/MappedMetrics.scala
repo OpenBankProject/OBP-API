@@ -63,6 +63,7 @@ object MappedMetrics extends APIMetrics {
           case Some(s) if s == "implemented_in_version" => OrderBy(MappedMetric.implementedInVersion, direction)
           case Some(s) if s == "implemented_by_partial_function" => OrderBy(MappedMetric.implementedByPartialFunction, direction)
           case Some(s) if s == "correlationId" => OrderBy(MappedMetric.correlationId, direction)
+          case Some(s) if s == "duration" => OrderBy(MappedMetric.duration, direction)
           case _ => OrderBy(MappedMetric.date, Descending)
         }
     }
@@ -75,6 +76,7 @@ object MappedMetrics extends APIMetrics {
     val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value) }.headOption
     val verb = queryParams.collect { case OBPVerb(value) => By(MappedMetric.verb, value) }.headOption
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedMetric.correlationId, value) }.headOption
+    val duration = queryParams.collect { case OBPDuration(value) => By(MappedMetric.duration, value) }.headOption
     val anon = queryParams.collect {
       case OBPAnon(value) if value == "true" => By(MappedMetric.userId, "null")
       case OBPAnon(value) if value == "false" => NotBy(MappedMetric.userId, "null")
@@ -94,6 +96,7 @@ object MappedMetrics extends APIMetrics {
       verb.toSeq,
       limit.toSeq,
       correlationId.toSeq,
+      duration.toSeq,
       anon.toSeq
     ).flatten
 
