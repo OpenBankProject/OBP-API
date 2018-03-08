@@ -1955,7 +1955,7 @@ trait APIMethods300 {
       emptyObjectJson,
       coreAccountsHeldJsonV300,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagView)
     )
   
