@@ -26,7 +26,45 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
                        oAuthParams: Map[String, String] = Map(),
                        httpCode: Option[Int] = None,
                        requestHeaders: List[HTTPParam] = Nil
-                      )
+                      ) {
+  def toLight: CallContextLight = {
+    CallContextLight(
+      gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
+      gatewayLoginResponseHeader = this.gatewayLoginResponseHeader,
+      user = this.user.toOption,
+      spelling = this.spelling,
+      startTime = this.startTime,
+      endTime = this.endTime,
+      correlationId = this.correlationId,
+      url = this.url,
+      verb = this.verb,
+      implementedInVersion = this.implementedInVersion,
+      httpCode = this.httpCode,
+      authReqHeaderField = this.authReqHeaderField.toOption,
+      partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
+      directLoginToken = this.directLoginParams.get("token").getOrElse(""),
+      oAuthToken = this.oAuthParams.get("oauth_token").getOrElse("")
+    )
+  }
+}
+
+case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
+                            gatewayLoginResponseHeader: Option[String] = None,
+                            user: Option[User] = None,
+                            spelling: Option[String] = None,
+                            startTime: Option[Date] = Some(Helpers.now),
+                            endTime: Option[Date] = None,
+                            correlationId: String = "",
+                            url: String = "",
+                            verb: String = "",
+                            implementedInVersion: String = "",
+                            httpCode: Option[Int] = None,
+                            authReqHeaderField: Option[String] = None,
+                            partialFunctionName: String,
+                            directLoginToken: String,
+                            oAuthToken: String
+                           )
+
 trait GatewayLoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends GatewayLoginParam
 case class GatewayLoginResponseHeader(jwt: Option[String]) extends GatewayLoginParam

@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
@@ -62,10 +62,10 @@ object APIFailure {
   }
 }
 
-case class APIFailureNewStyle(failMsg: String, failCode: Int) extends APIFailure {
-  val msg: String = failMsg
-  val responseCode: Int = failCode
-}
+case class APIFailureNewStyle(failMsg: String,
+                              failCode: Int = 400,
+                              ccl: Option[CallContextLight] = None
+                             )
 
 //if you change this, think about backwards compatibility! All existing
 //versions of the API return this failure message, so if you change it, make sure
