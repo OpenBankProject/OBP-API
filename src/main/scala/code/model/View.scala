@@ -621,7 +621,7 @@ trait View {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${this.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${this.viewId.value})")
   }
 
   // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
@@ -744,7 +744,7 @@ trait View {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
   }
   
   def moderateCore(counterpartyCore : CounterpartyCore) : Box[ModeratedOtherBankAccountCore] = {
@@ -793,6 +793,6 @@ trait View {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewNotAllowedThisAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
   }
 }
