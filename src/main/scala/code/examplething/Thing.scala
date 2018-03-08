@@ -2,12 +2,10 @@ package code.examplething
 
 
 // Need to import these one by one because in same package!
-import code.bankconnectors.{KafkaMappedConnector, LocalRecordConnector, LocalMappedConnector}
-
-
-import code.model.{BankId}
+import code.api.util.APIUtil
+import code.model.BankId
 import net.liftweb.common.Logger
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 object Thing extends SimpleInjector {
 
@@ -17,7 +15,7 @@ object Thing extends SimpleInjector {
 
   // This determines the provider we use
   def buildOne: ThingProvider =
-    Props.get("provider.thing").openOr("mapped") match {
+    APIUtil.getPropsValue("provider.thing").openOr("mapped") match {
       case "mapped" => MappedThingProvider
       case _ => MappedThingProvider
     }

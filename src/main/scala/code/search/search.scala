@@ -206,17 +206,17 @@ class elasticsearch extends MdcLoggable {
 
 
 class elasticsearchMetrics extends elasticsearch {
-  override val esHost     = Props.get("es.metrics.host","localhost")
-  override val esPortTCP  = Props.get("es.metrics.port.tcp","9300")
-  override val esPortHTTP = Props.get("es.metrics.port.http","9200")
-  override val esIndex    = Props.get("es.metrics.index", "metrics")
+  override val esHost     = APIUtil.getPropsValue("es.metrics.host","localhost")
+  override val esPortTCP  = APIUtil.getPropsValue("es.metrics.port.tcp","9300")
+  override val esPortHTTP = APIUtil.getPropsValue("es.metrics.port.http","9200")
+  override val esIndex    = APIUtil.getPropsValue("es.metrics.index", "metrics")
 
   if (esIndex.contains(",")) throw new RuntimeException("Props error: es.metrics.index can not be a list")
 
   var client:TcpClient = null
 
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
-    val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
+    val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
     client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
     try {
       client.execute {
@@ -263,23 +263,23 @@ class elasticsearchMetrics extends elasticsearch {
 }
 
 class elasticsearchWarehouse extends elasticsearch {
-  override val esHost     = Props.get("es.warehouse.host","localhost")
-  override val esPortTCP  = Props.get("es.warehouse.port.tcp","9300")
-  override val esPortHTTP = Props.get("es.warehouse.port.http","9200")
-  override val esIndex    = Props.get("es.warehouse.index", "warehouse")
+  override val esHost     = APIUtil.getPropsValue("es.warehouse.host","localhost")
+  override val esPortTCP  = APIUtil.getPropsValue("es.warehouse.port.tcp","9300")
+  override val esPortHTTP = APIUtil.getPropsValue("es.warehouse.port.http","9200")
+  override val esIndex    = APIUtil.getPropsValue("es.warehouse.index", "warehouse")
   var client:TcpClient = null
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_warehouse", false) ) {
-    val settings = Settings.builder().put("cluster.name", Props.get("es.cluster.name", "elasticsearch")).build()
+    val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
     client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
   }
 }
 
 /*
 class elasticsearchOBP extends elasticsearch {
-  override val esHost = Props.get("es.obp.host","localhost")
-  override val esPortTCP = Props.get("es.obp.port.tcp","9300")
-  override val esPortHTTP = Props.get("es.obp.port.tcp","9200")
-  override val esIndex = Props.get("es.obp.index", "obp")
+  override val esHost = APIUtil.getPropsValue("es.obp.host","localhost")
+  override val esPortTCP = APIUtil.getPropsValue("es.obp.port.tcp","9300")
+  override val esPortHTTP = APIUtil.getPropsValue("es.obp.port.tcp","9200")
+  override val esIndex = APIUtil.getPropsValue("es.obp.index", "obp")
   val accountIndex     = "account_v1.2.1"
   val transactionIndex = "transaction_v1.2.1"
 

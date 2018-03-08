@@ -48,6 +48,7 @@ TESOBE (http://www.tesobe.com/)
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.v2_2_0.FXRateJsonV220
 import code.setup.SendServerRequests
 import code.util.ObpJson._
@@ -79,10 +80,10 @@ object PutFX extends SendServerRequests {
     // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
     implicit val formats = DefaultFormats // Brings in default date formats etc.
 
-    val adminUserUsername = Props.get("import.admin_user.username").getOrElse("ERROR")
+    val adminUserUsername = APIUtil.getPropsValue("import.admin_user.username").getOrElse("ERROR")
     println(s"adminUserUsername is $adminUserUsername")
 
-    val adminUserPassword = Props.get("import.admin_user.password").getOrElse("ERROR")
+    val adminUserPassword = APIUtil.getPropsValue("import.admin_user.password").getOrElse("ERROR")
     println(s"adminUserPassword is $adminUserPassword")
 
     //println("Got " + customers.length + " records")
@@ -133,7 +134,7 @@ object PutFX extends SendServerRequests {
       val url = s"/v3.0.0/banks/${b.id}/fx"
 
       //load json for fx rates
-      val fxDataPath = Props.get("import.fx_data_path")
+      val fxDataPath = APIUtil.getPropsValue("import.fx_data_path")
 
       println(s"fxDataPath is $fxDataPath")
 

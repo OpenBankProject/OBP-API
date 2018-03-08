@@ -30,18 +30,19 @@ import java.net.HttpURLConnection
 import java.util.Date
 import javax.net.ssl.HttpsURLConnection
 
-import code.token.Tokens
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.model.User
 import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.token.Tokens
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.json
 import net.liftweb.json.{JObject, JValue}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props}
-import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
 
@@ -63,14 +64,14 @@ case class OpenIdConnectConfig( clientSecret: String,
 object OpenIdConnectConfig {
   def get() = {
     OpenIdConnectConfig(
-      Props.get("openidconnect.clientSecret").openOrThrowException("no openidconnect.clientSecret set"),
-      Props.get("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
-      Props.get("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set"),
-      Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
-      Props.get("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
-      Props.get("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set"),
-      Props.get("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set"),
-      Props.get("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
+      APIUtil.getPropsValue("openidconnect.clientSecret").openOrThrowException("no openidconnect.clientSecret set"),
+      APIUtil.getPropsValue("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
+      APIUtil.getPropsValue("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set"),
+      APIUtil.getPropsValue("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
+      APIUtil.getPropsValue("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
+      APIUtil.getPropsValue("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set"),
+      APIUtil.getPropsValue("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set"),
+      APIUtil.getPropsValue("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
     )
   }
 }

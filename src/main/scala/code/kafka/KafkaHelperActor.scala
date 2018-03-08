@@ -5,10 +5,10 @@ import java.util.{Properties, UUID}
 
 import akka.actor.Actor
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
+import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JValue}
-import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.errors.WakeupException
@@ -24,11 +24,11 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
 
   implicit val formats = DefaultFormats
 
-  val requestTopic = Props.get("kafka.request_topic").openOr("Request")
-  val responseTopic = Props.get("kafka.response_topic").openOr("Response")
+  val requestTopic = APIUtil.getPropsValue("kafka.request_topic").openOr("Request")
+  val responseTopic = APIUtil.getPropsValue("kafka.response_topic").openOr("Response")
 
   val producerProps = new Properties()
-  producerProps.put("bootstrap.servers", Props.get("kafka.bootstrap_hosts")openOr("localhost:9092"))
+  producerProps.put("bootstrap.servers", APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092"))
   producerProps.put("acks", "all")
   producerProps.put("retries", "0")
   producerProps.put("batch.size", "16384")
@@ -38,7 +38,7 @@ class KafkaHelperActor extends Actor with ObpActorInit with ObpActorHelper with 
   producerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
   val consumerProps = new Properties()
-  consumerProps.put("bootstrap.servers", Props.get("kafka.bootstrap_hosts")openOr("localhost:9092"))
+  consumerProps.put("bootstrap.servers", APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092"))
   consumerProps.put("enable.auto.commit", "false")
   consumerProps.put("group.id", UUID.randomUUID.toString)
   consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")

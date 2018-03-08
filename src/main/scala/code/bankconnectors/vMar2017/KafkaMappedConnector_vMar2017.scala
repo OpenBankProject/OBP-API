@@ -68,7 +68,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   implicit override val nameOfConnector = KafkaMappedConnector_vMar2017.getClass.getSimpleName
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "10").toInt
+  val cacheTTL              = APIUtil.getPropsValue("connector.cache.ttl.seconds", "10").toInt
   val cachedUser            = TTLCache[InboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[InboundBank](cacheTTL)
   val cachedAccount         = TTLCache[InboundAccount](cacheTTL)

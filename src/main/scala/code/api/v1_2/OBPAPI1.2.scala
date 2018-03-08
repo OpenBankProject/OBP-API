@@ -61,7 +61,7 @@
 //  //we now identify users by a combination of auth provider and the id given to them by their auth provider
 //  // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both
 //  //provider and id from the provider as arguments, we just use this value here as the provider.
-//  val authProvider = Props.get("hostname","")
+//  val authProvider = APIUtil.getPropsValue("hostname","")
 //  val version = "1.2"
 //  val versionStatus = "DEPRECIATED"
 //

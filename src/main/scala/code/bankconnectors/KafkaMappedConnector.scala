@@ -64,7 +64,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   implicit override val nameOfConnector = KafkaMappedConnector.getClass.getSimpleName
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "10").toInt
+  val cacheTTL              = APIUtil.getPropsValue("connector.cache.ttl.seconds", "10").toInt
   val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)

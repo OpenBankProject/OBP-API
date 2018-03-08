@@ -9,19 +9,19 @@ import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
+import code.api.util.APIUtil
 import code.api.util.APIUtil.initPasswd
+import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
-import net.liftweb.util.Props
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
-import code.api.util.ErrorMessages._
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
 
@@ -41,7 +41,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     */
   private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
 
-  private val consumerSettings = if (Props.get("kafka.use.ssl").getOrElse("false") == "true") {
+  private val consumerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
       .withBootstrapServers(bootstrapServers)
       .withGroupId(groupId)
@@ -49,9 +49,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withMaxWakeups(maxWakeups)
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
       .withProperty("security.protocol","SSL")
-      .withProperty("ssl.truststore.location", Props.get("truststore.path").getOrElse(""))
+      .withProperty("ssl.truststore.location", APIUtil.getPropsValue("truststore.path").getOrElse(""))
       .withProperty("ssl.truststore.password", initPasswd)
-      .withProperty("ssl.keystore.location",Props.get("keystore.path").getOrElse(""))
+      .withProperty("ssl.keystore.location",APIUtil.getPropsValue("keystore.path").getOrElse(""))
       .withProperty("ssl.keystore.password", initPasswd)
   } else {
     ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
@@ -68,15 +68,15 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .completionTimeout(completionTimeout)
   }
 
-  private val producerSettings = if (Props.get("kafka.use.ssl").getOrElse("false") == "true") {
+  private val producerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ProducerSettings(system, new StringSerializer, new StringSerializer)
       .withBootstrapServers(bootstrapServers)
       .withProperty("batch.size", "0")
       .withParallelism(3)
       .withProperty("security.protocol","SSL")
-      .withProperty("ssl.truststore.location", Props.get("truststore.path").getOrElse(""))
+      .withProperty("ssl.truststore.location", APIUtil.getPropsValue("truststore.path").getOrElse(""))
       .withProperty("ssl.truststore.password", initPasswd)
-      .withProperty("ssl.keystore.location",Props.get("keystore.path").getOrElse(""))
+      .withProperty("ssl.keystore.location",APIUtil.getPropsValue("keystore.path").getOrElse(""))
       .withProperty("ssl.keystore.password", initPasswd)
   } else {
     ProducerSettings(system, new StringSerializer, new StringSerializer)
@@ -139,7 +139,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     super.preStart()
     val conn = {
 
-      val c = Props.get("connector").openOr("June2017")
+      val c = APIUtil.getPropsValue("connector").openOr("June2017")
       if (c.contains("_")) c.split("_")(1) else c
     }
     //configuration optimization is postponed
@@ -229,8 +229,8 @@ object Topics {
     * Request : North is producer, South is the consumer. North --> South
     * Response: South is producer, North is the consumer. South --> North
     */
-  private val requestTopic = Props.get("kafka.request_topic").openOr("Request")
-  private val responseTopic = Props.get("kafka.response_topic").openOr("Response")
+  private val requestTopic = APIUtil.getPropsValue("kafka.request_topic").openOr("Request")
+  private val responseTopic = APIUtil.getPropsValue("kafka.response_topic").openOr("Response")
   
   /**
     * set in props, we have two topics: Request and Response
@@ -247,7 +247,7 @@ object Topics {
       *     connectorVersion = June2017
       */
     val connectorVersion = {
-      val connectorNameFromProps = Props.get("connector").openOr("June2017")
+      val connectorNameFromProps = APIUtil.getPropsValue("connector").openOr("June2017")
       val c = if (connectorNameFromProps.contains("_")) connectorNameFromProps.split("_")(1) else connectorNameFromProps
       c.replaceFirst("v", "")
     }

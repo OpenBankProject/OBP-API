@@ -32,7 +32,7 @@ import java.util.{Date, Locale, UUID}
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages._
-import code.api.util.{ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
@@ -66,7 +66,6 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.MappingException
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Seq}
 import scala.concurrent.duration._
@@ -86,17 +85,17 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getBankTTL                            = Props.get("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
-  val getBanksTTL                           = Props.get("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
-  val getUserTTL                            = Props.get("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
-  val updateUserAccountViewsTTL             = Props.get("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
-  val getAccountTTL                         = Props.get("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
-  val getAccountHolderTTL                   = Props.get("connector.cache.ttl.seconds.getAccountHolderTTL", "0").toInt * 1000 // Miliseconds
-  val getAccountsTTL                        = Props.get("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
-  val getTransactionTTL                     = Props.get("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
-  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
-  val getCounterpartyFromTransactionTTL     = Props.get("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
-  val getCounterpartiesFromTransactionTTL   = Props.get("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
+  val getBankTTL                            = APIUtil.getPropsValue("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
+  val getBanksTTL                           = APIUtil.getPropsValue("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
+  val getUserTTL                            = APIUtil.getPropsValue("connector.cache.ttl.seconds.getUser", "0").toInt * 1000 // Miliseconds
+  val updateUserAccountViewsTTL             = APIUtil.getPropsValue("connector.cache.ttl.seconds.updateUserAccountViews", "0").toInt * 1000 // Miliseconds
+  val getAccountTTL                         = APIUtil.getPropsValue("connector.cache.ttl.seconds.getAccount", "0").toInt * 1000 // Miliseconds
+  val getAccountHolderTTL                   = APIUtil.getPropsValue("connector.cache.ttl.seconds.getAccountHolderTTL", "0").toInt * 1000 // Miliseconds
+  val getAccountsTTL                        = APIUtil.getPropsValue("connector.cache.ttl.seconds.getAccounts", "0").toInt * 1000 // Miliseconds
+  val getTransactionTTL                     = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransaction", "0").toInt * 1000 // Miliseconds
+  val getTransactionsTTL                    = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
+  val getCounterpartyFromTransactionTTL     = APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
+  val getCounterpartiesFromTransactionTTL   = APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
   
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 

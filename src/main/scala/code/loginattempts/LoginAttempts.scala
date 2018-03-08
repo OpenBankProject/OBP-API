@@ -1,14 +1,14 @@
 package code.loginattempts
 
+import code.api.util.APIUtil
+import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
-import code.util.Helper.MdcLoggable
 
 object LoginAttempt extends MdcLoggable {
 
-  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "5"
+  val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
   
   def incrementBadLoginAttempts(username: String): Unit = {
 

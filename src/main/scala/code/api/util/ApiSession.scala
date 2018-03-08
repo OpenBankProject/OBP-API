@@ -8,13 +8,14 @@ import code.model.User
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers
 
 case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
                        resourceDocument: Option[ResourceDoc] = None,
-                       startTime: Option[Date] = None,
+                       startTime: Option[Date] = Some(Helpers.now),
                        endTime: Option[Date] = None,
                        correlationId: String = "",
                        url: String = "",
