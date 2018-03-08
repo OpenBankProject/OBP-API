@@ -162,9 +162,9 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
 
   def getProvider() = {
     if(provider.get == null) {
-      Props.get("hostname","")
-    } else if ( provider.get == "" || provider.get == Props.get("hostname","") ) {
-      Props.get("hostname","")
+      APIUtil.getPropsValue("hostname","")
+    } else if ( provider.get == "" || provider.get == APIUtil.getPropsValue("hostname","") ) {
+      APIUtil.getPropsValue("hostname","")
     } else {
       provider.get
     }
@@ -247,9 +247,9 @@ import net.liftweb.util.Helpers._
   /**Marking the locked state to show different error message */
   val usernameLockedStateCode = Long.MaxValue
 
-  val connector = Props.get("connector").openOrThrowException("no connector set")
+  val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
-  override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
+  override def emailFrom = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
@@ -352,7 +352,7 @@ import net.liftweb.util.Helpers._
     findUserByUsernameLocally(name) match {
       case Full(user) if user.validated_? =>
         user.resetUniqueId().save
-        val resetLink = Props.get("hostname", "ERROR")+
+        val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
 
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject),
@@ -401,7 +401,7 @@ import net.liftweb.util.Helpers._
    * Overriden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
-    val resetLink = Props.get("hostname", "ERROR")+"/"+validateUserPath.mkString("/")+
+    val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+"/"+validateUserPath.mkString("/")+
       "/"+urlEncode(user.getUniqueId())
 
     val email: String = user.getEmail
@@ -423,7 +423,7 @@ import net.liftweb.util.Helpers._
 
 
   def agreeTerms = {
-    val url = Props.get("webui_agree_terms_url", "")
+    val url = APIUtil.getPropsValue("webui_agree_terms_url", "")
     if (url.isEmpty) {
       s""
     } else {
@@ -480,7 +480,7 @@ import net.liftweb.util.Helpers._
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsernameLocally(username) match {
-      case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
+      case Full(user) if (user.getProvider() == APIUtil.getPropsValue("hostname","")) =>
         if (
           user.validated_? &&
           // User is NOT locked AND the password is good
@@ -514,7 +514,7 @@ import net.liftweb.util.Helpers._
           Empty
         }
 
-      case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
+      case Full(user) if (user.getProvider() != APIUtil.getPropsValue("hostname","")) =>
           connector match {
             case Helper.matchAnyKafka() if ( APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
@@ -634,7 +634,7 @@ import net.liftweb.util.Helpers._
           // Check if user came from localhost and
           // if User is NOT locked and password is good
           case Full(user) if user.validated_? &&
-            user.getProvider() == Props.get("hostname","") &&
+            user.getProvider() == APIUtil.getPropsValue("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
             user.testPassword(Full(passwordFromGui)) => {
               // Reset any bad attempts
@@ -669,7 +669,7 @@ import net.liftweb.util.Helpers._
           // if User is NOT locked. Then check username and password
           // from connector in case they changed on the south-side
           case Full(user) if user.validated_? &&
-            user.getProvider() != Props.get("hostname","") &&
+            user.getProvider() != APIUtil.getPropsValue("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
             testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
               // Reset any bad attempts
@@ -704,7 +704,7 @@ import net.liftweb.util.Helpers._
 
           // If user is unlocked AND bad password, increment bad login attempt counter.
           case Full(user) if user.validated_? &&
-            user.getProvider() == Props.get("hostname","") &&
+            user.getProvider() == APIUtil.getPropsValue("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
             ! user.testPassword(Full(passwordFromGui)) =>
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)

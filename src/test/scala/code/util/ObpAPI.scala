@@ -5,6 +5,7 @@ import java.net.{HttpURLConnection, URL}
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import code.util.ObpJson._
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -13,7 +14,6 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JObject, _}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 case class Header(key: String, value: String)
 case class ObpError(error :String)
@@ -22,7 +22,7 @@ object ObpAPI extends MdcLoggable {
   implicit val formats = DefaultFormats
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   
-  val defaultProvider = Props.get("defaultAuthProvider").getOrElse("")
+  val defaultProvider = APIUtil.getPropsValue("defaultAuthProvider").getOrElse("")
   
   val userNotFoundError = "user (\\S+) at provider (\\S+) not found".r
   

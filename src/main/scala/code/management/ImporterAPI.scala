@@ -1,9 +1,11 @@
 package code.management
 
 import java.util.Date
+
+import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-import code.model.{Transaction, BankId, AccountId}
+import code.model.{AccountId, BankId, Transaction}
 import code.tesobe.ErrorMessage
 import code.util.Helper
 import net.liftweb.common.Full
@@ -179,7 +181,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
 
       S.param("secret") match {
         case Full(s) => {
-          Props.get("importer_secret") match {
+          APIUtil.getPropsValue("importer_secret") match {
             case Full(localS) =>
               if(localS == s)
                 savetransactions

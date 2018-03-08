@@ -90,7 +90,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         case true =>
           Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
         case false =>
-          val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
+          val secretKey = APIUtil.getPropsValue("gateway.token_secret", "Cannot get the secret")
           Algorithm.HMAC256(secretKey)
       }
       jwt = JWT.create.
@@ -143,7 +143,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         case true =>
           Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
         case false =>
-          val secretKey = Props.get("gateway.token_secret", "Cannot get the secret")
+          val secretKey = APIUtil.getPropsValue("gateway.token_secret", "Cannot get the secret")
           Algorithm.HMAC256(secretKey)
       }
       val verifier = JWT.

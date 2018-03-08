@@ -67,7 +67,7 @@ object Connector extends SimpleInjector {
   val connector = new Inject(buildOne _) {}
 
   def buildOne: Connector = {
-    val connectorProps = Props.get("connector").openOrThrowException("no connector set")
+    val connectorProps = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
     connectorProps match {
       case "mapped" => LocalMappedConnector
@@ -107,6 +107,7 @@ case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
 case class OBPImplementedInVersion(value: String) extends OBPQueryParam
 case class OBPVerb(value: String) extends OBPQueryParam
 case class OBPAnon(value: String) extends OBPQueryParam
+case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
@@ -794,7 +795,7 @@ trait Connector extends MdcLoggable{
   protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
     // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
+    val validTransactionRequestTypes = APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
     Full(validTransactionRequestTypes)
   }
 

@@ -2,6 +2,8 @@ package code.management
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
+
+import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.model.{AccountId, Transaction}
@@ -24,7 +26,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
   }
 
   val secretKeyHttpParamName = "secret"
-  val secretKeyValue = Props.get("importer_secret").openOrThrowException("Prop importer_secret not specified.")
+  val secretKeyValue = APIUtil.getPropsValue("importer_secret").openOrThrowException("Prop importer_secret not specified.")
 
   val dummyKind = "Transfer"
 

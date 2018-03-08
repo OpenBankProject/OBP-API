@@ -52,11 +52,11 @@ import scalacache.memoization._
 object LocalMappedConnector extends Connector with MdcLoggable {
   
 //  override type AccountType = MappedBankAccount
-  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
+  val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "10"
 
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-  val getTransactionsTTL                    = Props.get("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
+  val getTransactionsTTL                    = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric
@@ -72,7 +72,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     logger.debug(s"threshold is $threshold")
 
     // TODO constrain this to supported currencies.
-    val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    val thresholdCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
 
     val rate = fx.exchangeRate(thresholdCurrency, currency)
@@ -131,7 +131,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     logger.debug(s"transactionRequests_charge_level is $chargeLevel")
 
     // TODO constrain this to supported currencies.
-    //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    //    val chargeLevelCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     //    logger.debug(s"chargeLevelCurrency is $chargeLevelCurrency")
     //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
     //    val convertedThreshold = fx.convert(chargeLevel, rate)

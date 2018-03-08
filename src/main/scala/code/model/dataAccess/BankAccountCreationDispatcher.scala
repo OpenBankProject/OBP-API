@@ -48,23 +48,17 @@ package com.tesobe.model {
 
 package code.model.dataAccess {
 
+import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import code.model._
 import code.users.Users
-import code.views.Views
-import com.rabbitmq.client.{ConnectionFactory,Channel}
-  import net.liftmodules.amqp.{
-    AMQPDispatcher,
-    AMQPMessage,
-    SerializedConsumer,
-    AMQPAddListener
-  }
-
-import net.liftweb.util._
-import net.liftweb.common.{Failure, Full}
 import code.util.Helper.MdcLoggable
-import net.liftweb.actor.LiftActor
+import code.views.Views
+import com.rabbitmq.client.{Channel, ConnectionFactory}
 import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
+import net.liftmodules.amqp.{AMQPAddListener, AMQPDispatcher, AMQPMessage, SerializedConsumer}
+import net.liftweb.actor.LiftActor
+import net.liftweb.common.{Failure, Full}
 
 
 /**
@@ -145,10 +139,10 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
     lazy val factory = new ConnectionFactory {
       import ConnectionFactory._
-      setHost(Props.get("connection.host", "localhost"))
+      setHost(APIUtil.getPropsValue("connection.host", "localhost"))
       setPort(DEFAULT_AMQP_PORT)
-      setUsername(Props.get("connection.user", DEFAULT_USER))
-      setPassword(Props.get("connection.password", DEFAULT_PASS))
+      setUsername(APIUtil.getPropsValue("connection.user", DEFAULT_USER))
+      setPassword(APIUtil.getPropsValue("connection.password", DEFAULT_PASS))
       setVirtualHost(DEFAULT_VHOST)
     }
 

@@ -12,7 +12,7 @@ import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
   */
 trait KafkaConfig {
 
-  val bootstrapServers = Props.get("kafka.bootstrap_hosts")openOr("localhost:9092")
+  val bootstrapServers = APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092")
 
   val partitions = APIUtil.getPropsAsIntValue("kafka.partitions", 10)
 

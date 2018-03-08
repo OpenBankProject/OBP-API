@@ -56,7 +56,7 @@ trait APIMethods200 {
   // helper methods begin here
 
 
-  val defaultBankId = Props.get("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+  val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
 
 
 
@@ -1299,7 +1299,7 @@ trait APIMethods200 {
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
               // Prevent default value for transaction request type (at least).
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-              validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
+              validTransactionRequestTypes <- tryo{APIUtil.getPropsValue("transactionRequests_supported_types", "")}
               // Use a list instead of a string to avoid partial matches
               validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
               _ <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
@@ -1566,8 +1566,8 @@ trait APIMethods200 {
           if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               // TODO use these keys to get session and tokens from tokbox
-              _ <- Props.get("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
-              _ <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
               u <- cc.user ?~! UserNotLoggedIn
               _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
               bank <- Bank(bankId) ?~! BankNotFound
@@ -1624,8 +1624,8 @@ trait APIMethods200 {
             for {
               _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
-              _ <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
-              _ <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               bank <- Bank(bankId) ?~! BankNotFound
               // now = Calendar.getInstance().getTime()
@@ -1682,8 +1682,8 @@ trait APIMethods200 {
             for {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
-              _ <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
-              _ <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               bank <- Bank(bankId) ?~! BankNotFound
               meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
             }
