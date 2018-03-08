@@ -7,9 +7,9 @@ import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.dataAccess._
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, booleanToBox}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
@@ -67,12 +67,16 @@ object MapperViews extends Views with MdcLoggable {
     * The parameter is the view object, and this view can be changed to ViewImpl
     */
   def getOrCreateViewPrivilege(view: View, user: User): Box[View] = {
-    
-    val viewImpl = view.asInstanceOf[ViewImpl]
-
-    if(viewImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-    // SQL Select Count ViewPrivileges where
-    getOrCreateViewPrivilege(user, viewImpl)
+    for{
+     viewImpl <- ViewImpl.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
+     _ <- ViewImpl.isPublic match {
+       case true => booleanToBox(ALLOW_PUBLIC_VIEWS, PublicViewsNotAllowedOnThisInstance)
+       case false => Full()
+     }
+    view <- getOrCreateViewPrivilege(user, viewImpl)
+    } yield{
+      view
+    }
   }
   
   private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
@@ -199,11 +203,25 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
-    val view = ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
-
-    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-
-    view
+    for{
+      ViewImpl <- ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
+      _ <- ViewImpl.isPublic match {
+        case true => booleanToBox(ALLOW_PUBLIC_VIEWS, PublicViewsNotAllowedOnThisInstance)
+        case false => Full()
+      }
+    
+      view <- viewId.value match {
+        //first system views
+        case "public" => Full(SystemPublicView(account.bankId, account.accountId, viewId, ViewImpl.users))
+        case "owner" => Full(SystemOwnerView(account.bankId, account.accountId, viewId, ViewImpl.users))
+        case "accountant" => Full(SystemAccountantView(account.bankId, account.accountId, viewId, ViewImpl.users))
+        case "auditor" => Full(SystemAuditorView(account.bankId, account.accountId, viewId, ViewImpl.users))
+        //then develop views
+        case _ =>Full(ViewImpl)
+      }
+    } yield{
+      view
+    }
   }
 
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = {

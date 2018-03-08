@@ -87,8 +87,11 @@ trait User extends MdcLoggable {
     * @return if has the input view access, return true, otherwise false.
     */
   final def hasViewAccess(view: View): Boolean ={
-    val viewImpl = view.asInstanceOf[ViewImpl]
-    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+    val viewImplBox = ViewImpl.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
+    viewImplBox match {
+      case Full(viewImpl) => !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+      case _ => false
+    }
   }
   
   def assignedEntitlements : List[Entitlement] = {

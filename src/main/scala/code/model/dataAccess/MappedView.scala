@@ -538,7 +538,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
 
 }
 
-class MappedAccountSystemView extends AccountSystemView with LongKeyedMapper[MappedAccountSystemView] with IdPK with CreatedUpdated{
+class MappedAccountSystemView extends AccountSystemView with LongKeyedMapper[MappedAccountSystemView] with ManyToMany with IdPK with CreatedUpdated{
   def getSingleton = MappedAccountSystemView
   
   object bankPermalink extends UUIDString(this)
@@ -546,10 +546,12 @@ class MappedAccountSystemView extends AccountSystemView with LongKeyedMapper[Map
   //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
   //we only constraint it when we create it : code.views.MapperViews.createView 
   object permalink_ extends UUIDString(this)
+  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
   
   def bankId : BankId = BankId(bankPermalink.get)
   def accountId : AccountId = AccountId(accountPermalink.get)
   def viewId : ViewId = ViewId(permalink_.get)
+  def users : List[User] =  users_.toList
  
 }
 
@@ -569,99 +571,4 @@ object MappedAccountSystemView extends MappedAccountSystemView with LongKeyedMet
     By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
   }
   
-}
-
-/**
-  * This is the `system public view` in scala code, not in database anymore.
-  * The develop can not modify this view at all, hard code the access here.
-  * All the accounts and users share the same public access.
-  *
-  */
-object SystemPublicView extends SystemViewDefinition {
-  
-  override def users: List[User] = Nil
-  override def name: String = "Public"
-  override def description: String = "Public View"
-  
-  
-  override def isSystem: Boolean = true
-  override def isFirehose: Boolean = true
-  override def isPublic: Boolean = true
-  
-  
-  override def usePublicAliasIfOneExists: Boolean = true
-  override def usePrivateAliasIfOneExists: Boolean = false
-  override def hideOtherAccountMetadataIfAlias: Boolean = true
-  override def canSeeTransactionThisBankAccount: Boolean = true
-  override def canSeeTransactionOtherBankAccount: Boolean = true
-  override def canSeeTransactionMetadata: Boolean = true
-  override def canSeeTransactionDescription: Boolean = false
-  override def canSeeTransactionAmount: Boolean = true
-  override def canSeeTransactionType: Boolean = true
-  override def canSeeTransactionCurrency: Boolean = true
-  override def canSeeTransactionStartDate: Boolean = true
-  override def canSeeTransactionFinishDate: Boolean = true
-  override def canSeeTransactionBalance: Boolean = true
-  override def canSeeComments: Boolean = true
-  override def canSeeOwnerComment: Boolean = true
-  override def canSeeTags: Boolean = true
-  override def canSeeImages: Boolean = true
-  override def canSeeBankAccountOwners: Boolean = true
-  override def canSeeBankAccountType: Boolean = true
-  override def canSeeBankAccountBalance: Boolean = true
-  override def canSeeBankAccountCurrency: Boolean = true
-  override def canSeeBankAccountLabel: Boolean = true
-  override def canSeeBankAccountNationalIdentifier: Boolean = true
-  override def canSeeBankAccountSwift_bic: Boolean = true
-  override def canSeeBankAccountIban: Boolean = true
-  override def canSeeBankAccountNumber: Boolean = true
-  override def canSeeBankAccountBankName: Boolean = true
-  override def canSeeBankRoutingScheme: Boolean = true
-  override def canSeeBankRoutingAddress: Boolean = true
-  override def canSeeBankAccountRoutingScheme: Boolean = true
-  override def canSeeBankAccountRoutingAddress: Boolean = true
-  override def canSeeOtherAccountNationalIdentifier: Boolean = true
-  override def canSeeOtherAccountSWIFT_BIC: Boolean = true
-  override def canSeeOtherAccountIBAN: Boolean = true
-  override def canSeeOtherAccountBankName: Boolean = true
-  override def canSeeOtherAccountNumber: Boolean = true
-  override def canSeeOtherAccountMetadata: Boolean = true
-  override def canSeeOtherAccountKind: Boolean = true
-  override def canSeeOtherBankRoutingScheme: Boolean = true
-  override def canSeeOtherBankRoutingAddress: Boolean = true
-  override def canSeeOtherAccountRoutingScheme: Boolean = true
-  override def canSeeOtherAccountRoutingAddress: Boolean = true
-  override def canSeeMoreInfo: Boolean = true
-  override def canSeeUrl: Boolean = true
-  override def canSeeImageUrl: Boolean = true
-  override def canSeeOpenCorporatesUrl: Boolean = true
-  override def canSeeCorporateLocation: Boolean = true
-  override def canSeePhysicalLocation: Boolean = true
-  override def canSeePublicAlias: Boolean = true
-  override def canSeePrivateAlias: Boolean = true
-  override def canAddMoreInfo: Boolean = true
-  override def canAddURL: Boolean = true
-  override def canAddImageURL: Boolean = true
-  override def canAddOpenCorporatesUrl: Boolean = true
-  override def canAddCorporateLocation: Boolean = true
-  override def canAddPhysicalLocation: Boolean = true
-  override def canAddPublicAlias: Boolean = true
-  override def canAddPrivateAlias: Boolean = true
-  override def canAddCounterparty: Boolean = true
-  override def canDeleteCorporateLocation: Boolean = true
-  override def canDeletePhysicalLocation: Boolean = true
-  override def canEditOwnerComment: Boolean = true
-  override def canAddComment: Boolean = true
-  override def canDeleteComment: Boolean = true
-  override def canAddTag: Boolean = true
-  override def canDeleteTag: Boolean = true
-  override def canAddImage: Boolean = true
-  override def canDeleteImage: Boolean = true
-  override def canAddWhereTag: Boolean = true
-  override def canSeeWhereTag: Boolean = true
-  override def canDeleteWhereTag: Boolean = true
-  override def canInitiateTransaction: Boolean = true
-  override def canAddTransactionRequestToOwnAccount: Boolean = false
-  override def canAddTransactionRequestToAnyAccount: Boolean = false
-  override def canSeeBankAccountCreditLimit: Boolean = true
 }

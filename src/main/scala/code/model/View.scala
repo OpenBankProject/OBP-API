@@ -101,6 +101,7 @@ case class UpdateViewJSON(
   * @define bankId The bank where the account is held
   * @define accountId The account that the view moderates
   * @define viewId A short url friendly, (singular) human readable name for the view. e.g. "team", "auditor" or "public". Note: "owner" is a default and reserved name. Other reserved names should include "public", "accountant" and "auditor"
+  * @define users A list of users that can use this view
   */
 trait AccountSystemView {
   //these ids are used together to uniquely identify a view
@@ -108,6 +109,7 @@ trait AccountSystemView {
   def accountId : AccountId
   def bankId : BankId
   
+  def users: List[User]
   //and here is the unique identifier
   def uid : ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
 }
@@ -122,7 +124,6 @@ trait AccountSystemView {
   * @define name The name of the view
   * @define description A description of the view
   * @define isPublic Set to True if the view should be open to the public (no authorisation required!) Set to False to require authorisation
-  * @define users A list of users that can use this view
   * @define usePublicAliasIfOneExists If true and the counterparty in a transaction has a public alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
   * @define usePrivateAliasIfOneExists If true and the counterparty in a transaction has a private alias set, use it. Else use the raw counterparty name (if both usePublicAliasIfOneExists and usePrivateAliasIfOneExists are true, public alias will be used)
   * @define hideOtherAccountMetadataIfAlias If true, the view will hide counterparty metadata if the counterparty has an alias. This is to preserve anonymity if required.
@@ -222,7 +223,6 @@ trait SystemViewDefinition {
   
   def name: String
   def description : String
-  def users: List[User]
 
   //the view settings
   def usePublicAliasIfOneExists: Boolean
