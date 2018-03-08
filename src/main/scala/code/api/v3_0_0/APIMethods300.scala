@@ -329,22 +329,19 @@ trait APIMethods300 {
     lazy val getPublicAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              account <- Future { BankAccount(bankId, accountId) } map {
-                x => fullBoxOrException(x ?~! BankAccountNotFound)
-              } map { unboxFull(_) }
-              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-                x => fullBoxOrException(x ?~! ViewNotFound)
-              } map { unboxFull(_) }
-            } yield {
-              for {
-                moderatedAccount <- account.moderatedBankAccount(view, Empty) //No user, so use Empty.
-              } yield {
-                (createCoreBankAccountJSON(moderatedAccount), None)
-              }
-            }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+          for {
+            account <- Future { BankAccount(bankId, accountId) } map {
+              x => fullBoxOrException(x ?~! BankAccountNotFound)
+            } map { unboxFull(_) }
+            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
+              x => fullBoxOrException(x ?~! s"$ViewNotFound(${viewId.value})")
+            } map { unboxFull(_) }
+            moderatedAccount <- Future {account.moderatedBankAccount(view, Empty) } map {
+              x => fullBoxOrException(x)
+            } map { unboxFull(_) }
+          } yield {
+            (createCoreBankAccountJSON(moderatedAccount), None)
+          }
       }
     }
 
@@ -814,7 +811,9 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDataWarehouse))
+      List(apiTagDataWarehouse),
+      Some(List(canSearchWarehouseStatistics))
+    )
     lazy val aggregateWarehouse: OBPEndpoint = {
       case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
@@ -1956,7 +1955,7 @@ trait APIMethods300 {
       emptyObjectJson,
       coreAccountsHeldJsonV300,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagAccount, apiTagView)
     )
   
