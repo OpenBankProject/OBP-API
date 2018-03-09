@@ -118,17 +118,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         logger.error("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
-      case obj@Failure(msg, _, c) => {
-        val failuresMsg = APIUtil.getPropsAsBoolValue("display_internal_errors", false) match {
-          case true => // Show all error in a chain
-            obj.messageChain
-          case false => // Do not display internal errors
-            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
-            obpFailures match {
-              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.map(_.msg).mkString(" <- ")
-            }
-          }
+      case obj@Failure(_, _, _) => {
+        val failuresMsg = filterMessage(obj)
         logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + failuresMsg)
         errorJsonResponse(failuresMsg)
       }

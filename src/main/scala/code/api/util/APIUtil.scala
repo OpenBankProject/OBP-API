@@ -2389,6 +2389,19 @@ Versions are groups of endpoints in a file
     getUserAndSessionContextFuture(cc)
   }
 
+  def filterMessage(obj: Failure) = {
+    getPropsAsBoolValue("display_internal_errors", false) match {
+      case true => // Show all error in a chain
+        obj.messageChain
+      case false => // Do not display internal errors
+        val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
+        obpFailures match {
+          case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
+          case _ => obpFailures.map(_.msg).mkString(" <- ")
+        }
+    }
+  }
+
   /**
     * This Function is used to terminate a Future used in for-comprehension with specific message
     * Please note that boxToFailed(Empty ?~ ("Some failure message")) will be transformed to Failure("Some failure message", Empty, Empty)
@@ -2403,31 +2416,14 @@ Versions are groups of endpoints in a file
         throw new Exception("Empty Box not allowed")
       case ParamFailure(m,e,c,af: APIFailureNewStyle) =>
         val obj = Failure(m, e, c) ?~! af.failMsg
-        val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
-          case true => // Show all error in a chain
-            obj.messageChain
-          case false => // Do not display internal errors
-            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
-            obpFailures match {
-              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.map(_.msg).mkString(" <- ")
-            }
-        }
+        val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(af.copy(failMsg = failuresMsg).copy(ccl = callContext))))
+        val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
-        val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
-          case true => // Show all error in a chain
-            obj.messageChain
-          case false => // Do not display internal errors
-            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
-            obpFailures match {
-              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.map(_.msg).mkString(" <- ")
-            }
-        }
+        val failuresMsg = filterMessage(obj)
         throw new Exception(failuresMsg)
       case _ =>
         throw new Exception(UnknownError)
