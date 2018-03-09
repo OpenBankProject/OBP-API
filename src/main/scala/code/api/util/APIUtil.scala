@@ -1811,8 +1811,7 @@ Returns a string showed to the developer
     callContext match {
       case Some(cc) =>
         val time = endTime.getTime() - cc.startTime.get.getTime()
-        val msg = "Endpoint (" + cc.verb + ") " + cc.url
-        logger.info(msg + " took " + time + " Milliseconds")
+        logger.info("Endpoint (" + cc.verb + ") " + cc.url + " returned " + cc.httpCode.getOrElse("xyz") + ", took " + time + " Milliseconds")
       case _ =>
         // There are no enough information for logging
     }
@@ -2402,20 +2401,20 @@ Versions are groups of endpoints in a file
         Full(v)
       case Empty => // Just forwarding
         throw new Exception("Empty Box not allowed")
-      case ParamFailure(m,_,c,af: APIFailureNewStyle) =>
-        val messages = List(af.failMsg, Failure(m, Empty, c).messageChain)
+      case ParamFailure(m,e,c,af: APIFailureNewStyle) =>
+        val obj = Failure(m, e, c) ?~! af.failMsg
         val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
           case true => // Show all error in a chain
-            c.map(_.messageChain).getOrElse("")
-            messages.mkString(" <- ")
+            obj.messageChain
           case false => // Do not display internal errors
-            val obpFailures = messages.filter(_.contains("OBP-"))
+            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
             obpFailures match {
               case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.mkString(" <- ")
+              case _ => obpFailures.map(_.msg).mkString(" <- ")
             }
         }
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(af.copy(failMsg = failuresMsg))))
+        val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(af.copy(failMsg = failuresMsg).copy(ccl = callContext))))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
