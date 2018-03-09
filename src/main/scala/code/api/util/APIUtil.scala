@@ -687,7 +687,6 @@ object APIUtil extends MdcLoggable {
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst = ApiSession.processJson((Extraction.decompose(cc)), callContext)
-    logAPICall(callContext.map(_.copy(endTime = Some(Helpers.now))))
     callContext match {
       case Some(c) if c.httpCode.isDefined =>
         JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, c.httpCode.get)
@@ -1811,11 +1810,12 @@ Returns a string showed to the developer
   def logEndpointTiming[R](callContext: Option[CallContext])(blockOfCode: => R): R = {
     val result = blockOfCode
     // call-by-name
+    val startTime = Helpers.now
     callContext match {
       case Some(cc) =>
         cc.resourceDocument match {
           case Some(rd) =>
-            val time = System.currentTimeMillis() - cc.startTime.get.getTime()
+            val time = startTime.getTime() - cc.startTime.get.getTime()
             val msg = "Endpoint (" + rd.requestVerb + ") " + rd.requestUrl + " implemented in API version " + rd.implementedInApiVersion
             logger.info(msg + " took " + time + " Milliseconds")
           case _ =>
@@ -1824,6 +1824,7 @@ Returns a string showed to the developer
       case _ =>
         // There are no enough information for logging
     }
+    logAPICall(callContext.map(_.copy(endTime = Some(startTime))))
     result
   }
 

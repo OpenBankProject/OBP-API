@@ -1616,7 +1616,9 @@ trait APIMethods210 {
         |
         |14 verb (if null ignore)
         |
-        |14 correlationId (if null ignore)
+        |15 correlationId (if null ignore)
+        |
+        |16 duration (if null ignore) non digit chars will be silently omitted
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1689,6 +1691,7 @@ trait APIMethods210 {
             implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
             verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
             correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
+            duration <- tryo(S.param("duration").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPDuration(x.filter(_.isDigit == true).toLong))
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
             _ <- Full(
@@ -1707,6 +1710,7 @@ trait APIMethods210 {
                 += verb
                 += anon
                 += correlationId
+                += duration
                 += OBPOrdering(Some(sortBy) , direction)
             )
 
