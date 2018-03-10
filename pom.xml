@@ -234,12 +234,12 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>5.3.0</version>
+      <version>6.1.1</version>
     </dependency>
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
-      <artifactId>elastic4s-tcp_${scala.version}</artifactId>
-      <version>5.3.0</version>
+      <artifactId>elastic4s-http_${scala.version}</artifactId>
+      <version>6.1.1</version>
       <!-- TODO try to switch to slf4j from log4j
       <exclusions>
         <exclusion>
