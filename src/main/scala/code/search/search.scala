@@ -18,10 +18,11 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import org.elasticsearch.common.settings.Settings
-import com.sksamuel.elastic4s.TcpClient
+import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.mappings.FieldType._
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import dispatch.as.String.charset
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPCookie
@@ -99,7 +100,7 @@ class elasticsearch extends MdcLoggable {
   
   private def getAPIResponse(req: Req): APIResponse = {
     Await.result(
-      for (response <- Http(req > as.Response(p => p)))
+      for (response <- Http.default(req > as.Response(p => p)))
         yield {
           val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
           APIResponse(response.getStatusCode, json.parse(body))
@@ -213,11 +214,11 @@ class elasticsearchMetrics extends elasticsearch {
 
   if (esIndex.contains(",")) throw new RuntimeException("Props error: es.metrics.index can not be a list")
 
-  var client:TcpClient = null
+  var client:HttpClient = null
 
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
     val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
-    client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
+    client = HttpClient(ElasticsearchClientUri(esHost,  esPortTCP.toInt))
     try {
       client.execute {
         createIndex(esIndex).mappings(
@@ -267,10 +268,10 @@ class elasticsearchWarehouse extends elasticsearch {
   override val esPortTCP  = APIUtil.getPropsValue("es.warehouse.port.tcp","9300")
   override val esPortHTTP = APIUtil.getPropsValue("es.warehouse.port.http","9200")
   override val esIndex    = APIUtil.getPropsValue("es.warehouse.index", "warehouse")
-  var client:TcpClient = null
+  var client:HttpClient = null
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_warehouse", false) ) {
     val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
-    client = TcpClient.transport(settings, "elasticsearch://" + esHost + ":" + esPortTCP + ",")
+    client = HttpClient(ElasticsearchClientUri(esHost,  esPortTCP.toInt))
   }
 }
 
