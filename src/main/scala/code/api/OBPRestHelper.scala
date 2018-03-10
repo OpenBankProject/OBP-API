@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.common._
@@ -62,10 +62,10 @@ object APIFailure {
   }
 }
 
-case class APIFailureNewStyle(failMsg: String, failCode: Int) extends APIFailure {
-  val msg: String = failMsg
-  val responseCode: Int = failCode
-}
+case class APIFailureNewStyle(failMsg: String,
+                              failCode: Int = 400,
+                              ccl: Option[CallContextLight] = None
+                             )
 
 //if you change this, think about backwards compatibility! All existing
 //versions of the API return this failure message, so if you change it, make sure
@@ -118,17 +118,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         logger.error("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
-      case obj@Failure(msg, _, c) => {
-        val failuresMsg = APIUtil.getPropsAsBoolValue("display_internal_errors", false) match {
-          case true => // Show all error in a chain
-            obj.messageChain
-          case false => // Do not display internal errors
-            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
-            obpFailures match {
-              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.map(_.msg).mkString(" <- ")
-            }
-          }
+      case obj@Failure(_, _, _) => {
+        val failuresMsg = filterMessage(obj)
         logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + failuresMsg)
         errorJsonResponse(failuresMsg)
       }

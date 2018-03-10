@@ -461,7 +461,7 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def logAPICall(callContext: Option[CallContext]) = {
+  def logAPICall(callContext: Option[CallContextLight]) = {
     callContext match {
       case Some(cc) =>
         if(getPropsAsBoolValue("write_metrics", false)) {
@@ -469,10 +469,7 @@ object APIUtil extends MdcLoggable {
           val userId = if (u != null) u.userId else "null"
           val userName = if (u != null) u.name else "null"
 
-          val implementedByPartialFunction = cc.resourceDocument match {
-            case Some(r) => r.partialFunctionName
-            case _       => ""
-          }
+          val implementedByPartialFunction = cc.partialFunctionName
 
           val duration =
             (cc.startTime, cc.endTime)  match {
@@ -484,12 +481,12 @@ object APIUtil extends MdcLoggable {
           Future {
             val consumer =
               if (hasAnOAuthHeader(cc.authReqHeaderField)) {
-                getConsumer(cc) match {
+                getConsumer(cc.oAuthToken) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
               } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-                DirectLogin.getConsumer(cc) match {
+                DirectLogin.getConsumer(cc.directLoginToken) match {
                   case Full(c) => Full(c)
                   case _ => Empty
                 }
@@ -1807,24 +1804,18 @@ Returns a string showed to the developer
     result
   }
 
-  def logEndpointTiming[R](callContext: Option[CallContext])(blockOfCode: => R): R = {
+  def logEndpointTiming[R](callContext: Option[CallContextLight])(blockOfCode: => R): R = {
     val result = blockOfCode
     // call-by-name
-    val startTime = Helpers.now
+    val endTime = Helpers.now
     callContext match {
       case Some(cc) =>
-        cc.resourceDocument match {
-          case Some(rd) =>
-            val time = startTime.getTime() - cc.startTime.get.getTime()
-            val msg = "Endpoint (" + rd.requestVerb + ") " + rd.requestUrl + " implemented in API version " + rd.implementedInApiVersion
-            logger.info(msg + " took " + time + " Milliseconds")
-          case _ =>
-            // There are no enough information for logging
-        }
+        val time = endTime.getTime() - cc.startTime.get.getTime()
+        logger.info("Endpoint (" + cc.verb + ") " + cc.url + " returned " + cc.httpCode.getOrElse("xyz") + ", took " + time + " Milliseconds")
       case _ =>
         // There are no enough information for logging
     }
-    logAPICall(callContext.map(_.copy(endTime = Some(startTime))))
+    logAPICall(callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
 
@@ -2220,13 +2211,13 @@ Versions are groups of endpoints in a file
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+        t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
       )
       in.onFail {
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
-              reply.apply(errorJsonResponse(af.msg, af.responseCode))
+              logEndpointTiming(af.ccl)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)))
             case _ =>
               reply.apply(errorJsonResponse(msg))
           }
@@ -2258,15 +2249,15 @@ Versions are groups of endpoints in a file
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => Full(logEndpointTiming(t._2)(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+        t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
       )
       in.onFail {
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
-              (reply.apply(errorJsonResponse(af.msg, af.responseCode)))
+              Full(logEndpointTiming(af.ccl)(reply.apply(errorJsonResponse(af.failMsg, af.failCode))))
             case _ =>
-              (reply.apply(errorJsonResponse(msg)))
+              Full((reply.apply(errorJsonResponse(msg))))
           }
         case _ =>
           Full(reply.apply(errorJsonResponse("Error")))
@@ -2388,7 +2379,7 @@ Versions are groups of endpoints in a file
     */
   def extractCallContext(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc) map {
-      x => (fullBoxOrException(x._1 ?~! emptyUserErrorMsg), x._2)
+      x => (fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))), x._2)
     }
   }
   /**
@@ -2396,6 +2387,19 @@ Versions are groups of endpoints in a file
     */
   def extractCallContext(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc)
+  }
+
+  def filterMessage(obj: Failure) = {
+    getPropsAsBoolValue("display_internal_errors", false) match {
+      case true => // Show all error in a chain
+        obj.messageChain
+      case false => // Do not display internal errors
+        val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
+        obpFailures match {
+          case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
+          case _ => obpFailures.map(_.msg).mkString(" <- ")
+        }
+    }
   }
 
   /**
@@ -2410,21 +2414,16 @@ Versions are groups of endpoints in a file
         Full(v)
       case Empty => // Just forwarding
         throw new Exception("Empty Box not allowed")
-      case ParamFailure(_,_,_,af: APIFailureNewStyle) =>
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(af)))
+      case ParamFailure(m,e,c,af: APIFailureNewStyle) =>
+        val obj = Failure(m, e, c) ?~! af.failMsg
+        val failuresMsg = filterMessage(obj)
+        val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
+        val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
-        val failuresMsg = getPropsAsBoolValue("display_internal_errors", false) match {
-          case true => // Show all error in a chain
-            obj.messageChain
-          case false => // Do not display internal errors
-            val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
-            obpFailures match {
-              case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-              case _ => obpFailures.map(_.msg).mkString(" <- ")
-            }
-        }
+        val failuresMsg = filterMessage(obj)
         throw new Exception(failuresMsg)
       case _ =>
         throw new Exception(UnknownError)
@@ -2453,9 +2452,9 @@ Versions are groups of endpoints in a file
     */
   def getSecondsCache(cacheType: String) : Int = {
     if(cacheType =="getOrCreateMetadata")
-      Props.get(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt  // 3600s --> 1h
+      APIUtil.getPropsValue(s"MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata", "3600").toInt  // 3600s --> 1h
     else
-      Props.get(s"connector.cache.ttl.seconds.$cacheType", "0").toInt
+      APIUtil.getPropsValue(s"connector.cache.ttl.seconds.$cacheType", "0").toInt
   }
 
   /**

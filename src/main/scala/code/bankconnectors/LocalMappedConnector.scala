@@ -68,7 +68,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
-    val threshold = BigDecimal(Props.get(propertyName, "1000"))
+    val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
 
     // TODO constrain this to supported currencies.
@@ -127,7 +127,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               transactionRequestType: String,
                               currency: String): Box[AmountOfMoney] = {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
-    val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
+    val chargeLevel = BigDecimal(APIUtil.getPropsValue(propertyName, "0.0001"))
     logger.debug(s"transactionRequests_charge_level is $chargeLevel")
 
     // TODO constrain this to supported currencies.

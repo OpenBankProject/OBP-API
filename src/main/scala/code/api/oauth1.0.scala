@@ -30,9 +30,10 @@ import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+
 import code.api.util.ErrorMessages._
 import code.api.Constant._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
 import code.consumer.Consumers
 import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
@@ -883,10 +884,10 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     consumer
   }
 
-  def getConsumer(sc: CallContext): Box[Consumer] = {
+  def getConsumer(token: String): Box[Consumer] = {
     import code.model.Token
     val consumer: Option[Consumer] = for {
-      tokenId: String <- sc.oAuthParams.get("oauth_token")
+      tokenId: String <- tryo(token)
       token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
       consumer: Consumer <- token.consumer
     } yield {
