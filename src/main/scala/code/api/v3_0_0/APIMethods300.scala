@@ -761,30 +761,30 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       aggregateWarehouse,
       implementedInApiVersion,
-      "elasticSearchWarehouseV300",
+      "elasticSearchWarehouseStatsV300",
       "POST",
       "/search/warehouse/statistics/FIELD",
       "Search Warehouse Data Via Elasticsearch and return only stats aggregation over one specific numeric field",
       s"""
          |Aggregate warehouse data via Elastic Search.
          |
-        |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(true)}
          |
-        |CanSearchWarehouseStats entitlement is required to search warehouse data!
+         |CanSearchWarehouseStats entitlement is required to search warehouse data!
          |
-        |Send your email, name, project name and user_id to the admins to get access.
+         |Send your email, name, project name and user_id to the admins to get access.
          |
-        |Elastic (search) is used in the background. See links below for syntax.
+         |Elastic (search) is used in the background. See links below for syntax.
          |
-        |This version differs from v2.0.0
+         |This version differs from v2.0.0
          |
-        |
-        |
-        |Example of usage:
          |
-        |POST /search/warehouse/statistics/INDEX/FIELD
          |
-        |POST /search/warehouse/statistics/ALL/FIELD|
+         |Example of usage:
+         |
+         |POST /search/warehouse/statistics/INDEX/FIELD
+         |
+         |POST /search/warehouse/statistics/ALL/FIELD|
          |
          | 
          |{  
@@ -799,13 +799,13 @@ trait APIMethods300 {
          |}
          |
          |
-        |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
+         |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
          |         |
-        |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
+         |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
          |
-        |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
+         |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
          |
-        |
+         |
         """,
       ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
       emptyObjectJson, //TODO what is output here?
