@@ -525,16 +525,11 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
-    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+    find(By(permalink_, viewUID.viewId.value), 
+         By(bankPermalink, viewUID.bankId.value), 
+         By(accountPermalink, viewUID.accountId.value) 
+    ) ~>
       APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
-  }
-
-  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[ViewImpl] = {
-    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
-  }
-
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
-    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
   }
 
 }

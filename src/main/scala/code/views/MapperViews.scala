@@ -27,8 +27,11 @@ object MapperViews extends Views with MdcLoggable {
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
 
-    val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
-      ViewImpl.accountFilter(account.bankId, account.accountId): _*)
+    val views: List[ViewImpl] = ViewImpl.findAll(
+      By(ViewImpl.isPublic_, false), 
+      By(ViewImpl.bankPermalink, account.bankId.value), 
+      By(ViewImpl.accountPermalink, account.accountId.value)
+    )
     //all the user that have access to at least to a view
     val users = views.map(_.users).flatten.distinct
     val usersPerView = views.map(v  =>(v, v.users))
@@ -249,8 +252,9 @@ object MapperViews extends Views with MdcLoggable {
     }
 
     val existing = ViewImpl.count(
-      By(ViewImpl.permalink_, newViewPermalink) ::
-        ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*
+      By(ViewImpl.permalink_, newViewPermalink),
+      By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
+      By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
     ) == 1
 
     if (existing)
@@ -272,7 +276,7 @@ object MapperViews extends Views with MdcLoggable {
   def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
-      view <- ViewImpl.find(viewId, bankAccountId)
+      view <- ViewImpl.find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -285,7 +289,7 @@ object MapperViews extends Views with MdcLoggable {
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewImpl.find(viewId, bankAccountId)
+        view <- ViewImpl.find(ViewIdBankIdAccountId(viewId,bankAccountId.bankId, bankAccountId.accountId))
         if(view.delete_!)
       } yield {
       }
@@ -293,7 +297,10 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
-    ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+    ViewImpl.findAll(
+      By(ViewImpl.bankPermalink, bankAccountId.bankId.value),
+      By(ViewImpl.accountPermalink, bankAccountId.accountId.value)
+    )
   }
   
   def publicViews: List[View] = {
