@@ -39,7 +39,7 @@ import code.model._
   * StaticPublicViewDefinition will be shared by all the system public views.
   */
 
-trait StaticPublicViewDefinition extends SystemViewDefinition {
+trait StaticPublicViewDefinition extends ViewDefinition {
   
   override final def name: String = "Public"
   override final def description: String = "Public View"
@@ -137,7 +137,7 @@ case class SystemPublicView(
 ) extends View with StaticPublicViewDefinition
 
 
-trait StaticOwnerViewDefinition extends SystemViewDefinition {
+trait StaticOwnerViewDefinition extends ViewDefinition {
   
   override final def name: String = "Owner"
   override final def description: String = "Owner View"
@@ -234,7 +234,7 @@ case class SystemOwnerView(
 
 
 
-trait StaticAccountantViewDefinition extends SystemViewDefinition {
+trait StaticAccountantViewDefinition extends ViewDefinition {
   
   override final def name: String = "Accountant"
   override final def description: String = "Accountant View"
@@ -329,7 +329,7 @@ case class SystemAccountantView(
 
 
 
-trait StaticAuditorViewDefinition extends SystemViewDefinition {
+trait StaticAuditorViewDefinition extends ViewDefinition {
   
   override final def name: String = "Auditor"
   override final def description: String = "Auditor View"

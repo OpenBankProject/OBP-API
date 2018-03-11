@@ -103,7 +103,7 @@ case class UpdateViewJSON(
   * @define viewId A short url friendly, (singular) human readable name for the view. e.g. "team", "auditor" or "public". Note: "owner" is a default and reserved name. Other reserved names should include "public", "accountant" and "auditor"
   * @define users A list of users that can use this view
   */
-trait AccountSystemView {
+trait AccountView {
   //these ids are used together to uniquely identify a view
   def viewId : ViewId
   def accountId : AccountId
@@ -207,7 +207,7 @@ trait AccountSystemView {
 
 
   */
-trait SystemViewDefinition {
+trait ViewDefinition {
 
   val viewLogger = Logger(classOf[View])
   //e.g. "Public", "Authorities", "Our Network", etc.
@@ -320,7 +320,7 @@ trait SystemViewDefinition {
 }
 
 //This the developer created views, it contains both in the database.
-trait View extends AccountSystemView with SystemViewDefinition{
+trait View extends AccountView with ViewDefinition{
   def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
     moderate(transaction, moderate(transaction.thisAccount))
   }

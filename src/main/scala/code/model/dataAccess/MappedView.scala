@@ -54,6 +54,7 @@ class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with Crea
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
 
+//TODO, this can be changed to MappedViewDefinition, only used for develop designed views.
 class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with CreatedUpdated{
   def getSingleton = ViewImpl
 
@@ -538,37 +539,35 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
 
 }
 
-class MappedAccountSystemView extends AccountSystemView with LongKeyedMapper[MappedAccountSystemView] with ManyToMany with IdPK with CreatedUpdated{
-  def getSingleton = MappedAccountSystemView
+class MappedAccountView extends AccountView with LongKeyedMapper[MappedAccountView] with ManyToMany with IdPK with CreatedUpdated{
+  def getSingleton = MappedAccountView
   
-  object bankPermalink extends UUIDString(this)
-  object accountPermalink extends AccountIdString(this)
-  //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
-  //we only constraint it when we create it : code.views.MapperViews.createView 
-  object permalink_ extends UUIDString(this)
-  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
+  object mBankId extends UUIDString(this)
+  object mAccountId extends AccountIdString(this)
+  object mViewId extends UUIDString(this)
+  object mUsers extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
   
-  def bankId : BankId = BankId(bankPermalink.get)
-  def accountId : AccountId = AccountId(accountPermalink.get)
-  def viewId : ViewId = ViewId(permalink_.get)
-  def users : List[User] =  users_.toList
+  def bankId : BankId = BankId(mBankId.get)
+  def accountId : AccountId = AccountId(mAccountId.get)
+  def viewId : ViewId = ViewId(mViewId.get)
+  def users : List[User] =  mUsers.toList
  
 }
 
-object MappedAccountSystemView extends MappedAccountSystemView with LongKeyedMetaMapper[MappedAccountSystemView]{
-  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[MappedAccountView]{
+  override def dbIndexes = Index(mViewId, mBankId, mAccountId) :: super.dbIndexes
   
-  def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountSystemView] = {
-    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+  def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountView] = {
+    find(By(mViewId, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
       APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
   }
   
-  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[MappedAccountSystemView] = {
+  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[MappedAccountView] = {
     find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
   }
   
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[MappedAccountSystemView]] = {
-    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
+  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[MappedAccountView]] = {
+    By(mBankId, bankId.value) :: By(mAccountId, accountId.value) :: Nil
   }
   
 }

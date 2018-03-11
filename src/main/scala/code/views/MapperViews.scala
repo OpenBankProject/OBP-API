@@ -204,6 +204,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     for{
+      //Check the view existence use the small table: MappedAccountSystemView
       ViewImpl <- ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
       _ <- ViewImpl.isPublic match {
         case true => booleanToBox(ALLOW_PUBLIC_VIEWS, PublicViewsNotAllowedOnThisInstance)
