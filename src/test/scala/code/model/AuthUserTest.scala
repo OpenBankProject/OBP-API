@@ -1,9 +1,9 @@
 package code.model
 
 import code.accountholder.MapperAccountHolders
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.connector.MockedJune2017Connector
-import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{AuthUser, MappedAccountView, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.MapperViews
 
@@ -16,6 +16,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
     super.beforeAll()
     Connector.connector.default.set(MockedJune2017Connector)
     ViewImpl.bulkDelete_!!()
+    MappedAccountView.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   
@@ -23,6 +24,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
     super.afterEach()
     Connector.connector.default.set(Connector.buildOne)
     ViewImpl.bulkDelete_!!()
+    MappedAccountView.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   

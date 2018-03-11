@@ -37,6 +37,7 @@ import java.util.Date
 
 import code.api.util.ErrorMessages
 import code.metadata.counterparties.Counterparties
+import code.model.dataAccess.MappedAccountView
 import code.util.Helper
 import net.liftweb.common._
 import code.views.Views
@@ -805,4 +806,9 @@ trait View extends AccountView with ViewDefinition{
     else
       Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${this.viewId.value})")
   }
+  
+  //We map one by one :  ViewImpl <---> MappedAccountView
+  lazy val mappedAccountView: MappedAccountView = MappedAccountView
+    .getOrCreate(ViewIdBankIdAccountId(viewId, bankId, accountId))
+    .openOrThrowException(s"Can not MappedAccountView.getOrCreate($viewId, $bankId, $accountId) !")
 }

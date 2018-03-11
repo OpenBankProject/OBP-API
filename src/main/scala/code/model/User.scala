@@ -40,7 +40,7 @@ import code.api.UserNotFound
 import code.api.util.APIUtil
 import code.views.Views
 import code.entitlement.Entitlement
-import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{MappedAccountView, ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.By
@@ -87,9 +87,9 @@ trait User extends MdcLoggable {
     * @return if has the input view access, return true, otherwise false.
     */
   final def hasViewAccess(view: View): Boolean ={
-    val viewImplBox = ViewImpl.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
-    viewImplBox match {
-      case Full(viewImpl) => !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+    val accountViewBox = MappedAccountView.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
+    accountViewBox match {
+      case Full(accountView) => !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, accountView.id.get)) == 0)
       case _ => false
     }
   }

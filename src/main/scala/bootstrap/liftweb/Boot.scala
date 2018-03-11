@@ -489,6 +489,7 @@ object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
   val modelsRemotedata = List(
     ViewImpl,
+    MappedAccountView,
     ViewPrivileges,
     ResourceUser,
     MappedComment,

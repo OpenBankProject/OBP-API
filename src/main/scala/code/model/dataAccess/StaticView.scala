@@ -424,4 +424,99 @@ case class SystemAuditorView(
 
 
 
+trait StaticFirehoseViewDefinition extends ViewDefinition {
+  
+  override final def name: String = "Firehose"
+  override final def description: String = "Firehose View"
+  
+  override final def isSystem: Boolean = true
+  override final def isFirehose: Boolean = true
+  override final def isPublic: Boolean = false
+  
+  
+  override final def usePublicAliasIfOneExists: Boolean = false
+  override final def usePrivateAliasIfOneExists: Boolean = false
+  override final def hideOtherAccountMetadataIfAlias: Boolean = false
+  override final def canSeeTransactionThisBankAccount: Boolean = true
+  override final def canSeeTransactionOtherBankAccount: Boolean = true
+  override final def canSeeTransactionMetadata: Boolean = true
+  override final def canSeeTransactionDescription: Boolean = true
+  override final def canSeeTransactionAmount: Boolean = true
+  override final def canSeeTransactionType: Boolean = true
+  override final def canSeeTransactionCurrency: Boolean = true
+  override final def canSeeTransactionStartDate: Boolean = true
+  override final def canSeeTransactionFinishDate: Boolean = true
+  override final def canSeeTransactionBalance: Boolean = true
+  override final def canSeeComments: Boolean = true
+  override final def canSeeOwnerComment: Boolean = true
+  override final def canSeeTags: Boolean = true
+  override final def canSeeImages: Boolean = true
+  override final def canSeeBankAccountOwners: Boolean = true
+  override final def canSeeBankAccountType: Boolean = true
+  override final def canSeeBankAccountBalance: Boolean = true
+  override final def canSeeBankAccountCurrency: Boolean = true
+  override final def canSeeBankAccountLabel: Boolean = true
+  override final def canSeeBankAccountNationalIdentifier: Boolean = true
+  override final def canSeeBankAccountSwift_bic: Boolean = true
+  override final def canSeeBankAccountIban: Boolean = true
+  override final def canSeeBankAccountNumber: Boolean = true
+  override final def canSeeBankAccountBankName: Boolean = true
+  override final def canSeeBankRoutingScheme: Boolean = true
+  override final def canSeeBankRoutingAddress: Boolean = true
+  override final def canSeeBankAccountRoutingScheme: Boolean = true
+  override final def canSeeBankAccountRoutingAddress: Boolean = true
+  override final def canSeeOtherAccountNationalIdentifier: Boolean = true
+  override final def canSeeOtherAccountSWIFT_BIC: Boolean = true
+  override final def canSeeOtherAccountIBAN: Boolean = true
+  override final def canSeeOtherAccountBankName: Boolean = true
+  override final def canSeeOtherAccountNumber: Boolean = true
+  override final def canSeeOtherAccountMetadata: Boolean = true
+  override final def canSeeOtherAccountKind: Boolean = true
+  override final def canSeeOtherBankRoutingScheme: Boolean = true
+  override final def canSeeOtherBankRoutingAddress: Boolean = true
+  override final def canSeeOtherAccountRoutingScheme: Boolean = true
+  override final def canSeeOtherAccountRoutingAddress: Boolean = true
+  override final def canSeeMoreInfo: Boolean = true
+  override final def canSeeUrl: Boolean = true
+  override final def canSeeImageUrl: Boolean = true
+  override final def canSeeOpenCorporatesUrl: Boolean = true
+  override final def canSeeCorporateLocation: Boolean = true
+  override final def canSeePhysicalLocation: Boolean = true
+  override final def canSeePublicAlias: Boolean = true
+  override final def canSeePrivateAlias: Boolean = true
+  override final def canAddMoreInfo: Boolean = true
+  override final def canAddURL: Boolean = true
+  override final def canAddImageURL: Boolean = true
+  override final def canAddOpenCorporatesUrl: Boolean = true
+  override final def canAddCorporateLocation: Boolean = true
+  override final def canAddPhysicalLocation: Boolean = true
+  override final def canAddPublicAlias: Boolean = true
+  override final def canAddPrivateAlias: Boolean = true
+  override final def canAddCounterparty: Boolean = true
+  override final def canDeleteCorporateLocation: Boolean = true
+  override final def canDeletePhysicalLocation: Boolean = true
+  override final def canEditOwnerComment: Boolean = true
+  override final def canAddComment: Boolean = true
+  override final def canDeleteComment: Boolean = true
+  override final def canAddTag: Boolean = true
+  override final def canDeleteTag: Boolean = true
+  override final def canAddImage: Boolean = true
+  override final def canDeleteImage: Boolean = true
+  override final def canAddWhereTag: Boolean = true
+  override final def canSeeWhereTag: Boolean = true
+  override final def canDeleteWhereTag: Boolean = true
+  override final def canInitiateTransaction: Boolean = true
+  override final def canAddTransactionRequestToOwnAccount: Boolean = true
+  override final def canAddTransactionRequestToAnyAccount: Boolean = true
+  override final def canSeeBankAccountCreditLimit: Boolean = true
+}
+case class SystemFirehoseView(
+  bankId : BankId,
+  accountId : AccountId,
+  viewId : ViewId,
+  users: List[User]
+) extends View with StaticAuditorViewDefinition
+
+
+
 

@@ -125,7 +125,7 @@ import net.liftweb.common.{Failure, Full}
           {
             //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
             logger.debug(s"creating owner view on account account $accountId at bank $bankId")
-            val view = Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+            val view = Views.views.vend.getOrCreateOwnerView(bankId, accountId)
 
             logger.debug(s"creating owner view access to user ${user.emailAddress}")
             Views.views.vend.addPermission(ownerViewUID, user)

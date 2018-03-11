@@ -31,11 +31,11 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.getOrCreatePublicView(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {

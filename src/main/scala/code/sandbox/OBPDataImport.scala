@@ -105,29 +105,29 @@ trait OBPDataImport extends MdcLoggable {
   /**
     * Create an firehose view for account with BankId @bankId and AccountId @accountId that can be saved.
     */
-  protected def createFirehoseView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  protected def createFirehoseView(bankId : BankId, accountId : AccountId) : Box[ViewType]
   
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  protected def createOwnerView(bankId : BankId, accountId : AccountId) : Box[ViewType]
 
   /**
    * Create a public view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  protected def createPublicView(bankId : BankId, accountId : AccountId) : Box[ViewType]
 
 
   /**
    * Create AccountantsView with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  protected def createAccountantsView(bankId : BankId, accountId : AccountId) : Box[ViewType]
 
 
   /**
    * Create AuditorsView with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+  protected def createAuditorsView(bankId : BankId, accountId : AccountId) : Box[ViewType]
 
 
   /**
@@ -390,24 +390,24 @@ trait OBPDataImport extends MdcLoggable {
     val accountId = AccountId(acc.id)
   
     val firehoseView =
-      createFirehoseView(bankId, accountId, "Firehose View")
+      createFirehoseView(bankId, accountId)
     
     val ownerView =
-        createOwnerView(bankId, accountId, "Owner View")
+        createOwnerView(bankId, accountId)
 
     val publicView =
       if(acc.generate_public_view)
-        createPublicView(bankId, accountId, "Public View")
+        createPublicView(bankId, accountId)
       else Empty
 
     val accountantsView =
       if(acc.generate_accountants_view)
-        createAccountantsView(bankId, accountId, "Accountants View")
+        createAccountantsView(bankId, accountId)
       else Empty
 
     val auditorsView =
       if(acc.generate_auditors_view)
-        createAuditorsView(bankId, accountId, "Auditors View")
+        createAuditorsView(bankId, accountId)
       else Empty
 
     List(firehoseView, ownerView, publicView, accountantsView, auditorsView).flatten

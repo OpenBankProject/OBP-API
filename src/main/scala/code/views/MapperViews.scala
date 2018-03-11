@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess._
-import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
+import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, ViewId, _}
 import code.util.Helper.{MdcLoggable, booleanToBox}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
@@ -51,16 +51,19 @@ object MapperViews extends Views with MdcLoggable {
     // by bankPermalink and accountPermalink
     //TODO: do it in a single query with a join
     val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
-    val views = privileges.flatMap(_.view.obj).filter(v =>
-      if (ALLOW_PUBLIC_VIEWS) {
-        v.accountId == account.accountId &&
-          v.bankId == account.bankId
-      } else {
-        v.accountId == account.accountId &&
-          v.bankId == account.bankId &&
-          v.isPrivate
-      }
-    )
+    val views = privileges
+      .flatMap(_.view.obj)
+      .map(_.toViewDefinition)
+      .filter(v =>
+        if (ALLOW_PUBLIC_VIEWS) {
+          v.accountId == account.accountId &&
+            v.bankId == account.bankId
+        } else {
+          v.accountId == account.accountId &&
+            v.bankId == account.bankId &&
+            v.isPrivate
+        }
+      )
     Full(Permission(user, views))
   }
 
@@ -71,44 +74,45 @@ object MapperViews extends Views with MdcLoggable {
     */
   def getOrCreateViewPrivilege(view: View, user: User): Box[View] = {
     for{
-     viewImpl <- ViewImpl.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId))
-     _ <- ViewImpl.isPublic match {
+      viewImpl <- MappedAccountView.find(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId)).map(_.toViewDefinition)
+     _ <- viewImpl.isPublic match {
        case true => booleanToBox(ALLOW_PUBLIC_VIEWS, PublicViewsNotAllowedOnThisInstance)
        case false => Full()
      }
-    view <- getOrCreateViewPrivilege(user, viewImpl)
+    view <- getOrCreateViewPrivilege(user, viewImpl.mappedAccountView)
     } yield{
       view
     }
   }
   
-  private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
-    if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
+  private def getOrCreateViewPrivilege(user: User, accountView: MappedAccountView): Box[ViewImpl] = {
+    if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, accountView.id.get)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
       // SQL Insert ViewPrivileges
       val saved = ViewPrivileges.create.
         user(user.resourceUserId.value).
-        view(viewImpl.id).
+        view(accountView.id.get).
         save
       if (saved) {
         //logger.debug("saved ViewPrivileges")
-        Full(viewImpl)
+        ViewImpl.find(accountView.uid)
       } else {
         //logger.debug("failed to save ViewPrivileges")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
-    } else Full(viewImpl) //privilege already exists, no need to create one
+    } else ViewImpl.find(accountView.uid) //privilege already exists, no need to create one
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
-    val viewImpl = ViewImpl.find(viewIdBankIdAccountId) // SQL Select View where
+    val accountViewBox = MappedAccountView.find(viewIdBankIdAccountId) // SQL Select View where
 
-    viewImpl match {
-      case Full(vImpl) => {
-        if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    accountViewBox match {
+      case Full(accountView) => {
+        val viewDefinition= accountView.toViewDefinition
+        if(viewDefinition.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count ViewPrivileges where
-        getOrCreateViewPrivilege(user, vImpl) //privilege already exists, no need to create one
+        getOrCreateViewPrivilege(viewDefinition, user) //privilege already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
@@ -117,29 +121,31 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
-    val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v}
+    val accountViews = views.map(uid => MappedAccountView.find(uid)).collect { case Full(v) => v}
 
-    if (viewImpls.size != views.size) {
-      val failMsg = s"not all viewimpls could be found for views ${viewImpls} (${viewImpls.size} != ${views.size}"
+    if (accountViews.size != views.size) {
+      val failMsg = s"not all viewimpls could be found for views ${accountViews} (${accountViews.size} != ${views.size}"
       //logger.debug(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
-      viewImpls.foreach(v => {
+      accountViews
+        .map(_.toViewDefinition)
+        .foreach(v => {
         if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-        getOrCreateViewPrivilege(user, v)
+        getOrCreateViewPrivilege(v, user)
       })
-      Full(viewImpls)
+      Full(accountViews.map(_.toViewDefinition))
     }
   }
 
   def revokePermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val res =
     for {
-      viewImpl <- ViewImpl.find(viewUID)
-      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id))
-      deletable <- accessRemovableAsBox(viewImpl, user)
+      accountView <- MappedAccountView.find(viewUID)
+      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, accountView.id.get))
+      deletable <- accessRemovableAsBox(accountView, user)
     } yield {
       vp.delete_!
     }
@@ -147,17 +153,17 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   //returns Full if deletable, Failure if not
-  def accessRemovableAsBox(viewImpl : ViewImpl, user : User) : Box[Unit] = {
-    if(accessRemovable(viewImpl, user)) Full(Unit)
+  def accessRemovableAsBox(accountView : MappedAccountView, user : User) : Box[Unit] = {
+    if(accessRemovable(accountView, user)) Full(Unit)
     else Failure("access cannot be revoked")
   }
 
 
-  def accessRemovable(viewImpl: ViewImpl, user : User) : Boolean = {
-    if(viewImpl.viewId == ViewId("owner")) {
+  def accessRemovable(accountView: MappedAccountView, user : User) : Boolean = {
+    if(accountView.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      val accountHolders = MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId)
+      val accountHolders = MapperAccountHolders.getAccountHolders(accountView.bankId, accountView.accountId)
       if(accountHolders.map {h =>
         h.resourceUserId
       }.contains(user.resourceUserId)) {
@@ -165,7 +171,7 @@ object MapperViews extends Views with MdcLoggable {
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
         // with access
-        viewImpl.users.length > 1
+        accountView.users.length > 1
       }
 
     } else true
@@ -208,20 +214,20 @@ object MapperViews extends Views with MdcLoggable {
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     for{
       //Check the view existence use the small table: MappedAccountSystemView
-      ViewImpl <- ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
-      _ <- ViewImpl.isPublic match {
+      accountView <- MappedAccountView.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId)).map(_.toViewDefinition)
+      _ <- accountView.isPublic match {
         case true => booleanToBox(ALLOW_PUBLIC_VIEWS, PublicViewsNotAllowedOnThisInstance)
         case false => Full()
       }
     
       view <- viewId.value match {
         //first system views
-        case "public" => Full(SystemPublicView(account.bankId, account.accountId, viewId, ViewImpl.users))
-        case "owner" => Full(SystemOwnerView(account.bankId, account.accountId, viewId, ViewImpl.users))
-        case "accountant" => Full(SystemAccountantView(account.bankId, account.accountId, viewId, ViewImpl.users))
-        case "auditor" => Full(SystemAuditorView(account.bankId, account.accountId, viewId, ViewImpl.users))
+        case "public" => Full(SystemPublicView(account.bankId, account.accountId, viewId, accountView.users))
+        case "owner" => Full(SystemOwnerView(account.bankId, account.accountId, viewId, accountView.users))
+        case "accountant" => Full(SystemAccountantView(account.bankId, account.accountId, viewId, accountView.users))
+        case "auditor" => Full(SystemAuditorView(account.bankId, account.accountId, viewId, accountView.users))
         //then develop views
-        case _ =>Full(ViewImpl)
+        case _ =>ViewImpl.find(ViewIdBankIdAccountId(viewId, account.bankId, account.accountId))
       }
     } yield{
       view
@@ -330,7 +336,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): List[View] ={
-    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj).flatten.filter(_.isPrivate)
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj).flatten.map(_.toViewDefinition).filter(_.isPrivate)
   }
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
@@ -361,13 +367,13 @@ object MapperViews extends Views with MdcLoggable {
     
     val theView =
       if (ownerView)
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateOwnerView(bankId, accountId)
       else if (publicView)
-        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+        Views.views.vend.getOrCreatePublicView(bankId, accountId)
       else if (accountantsView)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateAccountantsView(bankId, accountId)
       else if (auditorsView)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateAuditorsView(bankId, accountId)
       else 
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
     
@@ -376,44 +382,44 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, "Owner") match {
-      case Empty => createDefaultOwnerView(bankId, accountId, description)
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    getExistingView(bankId, accountId, ViewId("owner")) match {
+      case Empty => createDefaultOwnerView(bankId, accountId)
       case Full(v) => Full(v)
     }
   }
   
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
-    getExistingView(bankId, accountId, "Firehose") match {
-      case Empty => createDefaultOwnerView(bankId, accountId, description)
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    getExistingView(bankId, accountId, ViewId("firehose")) match {
+      case Empty => createDefaultOwnerView(bankId, accountId)
       case Full(v) => Full(v)
     }
   }
 
   def getOwners(view: View) : Set[User] = {
-    val viewUid = ViewImpl.find(view.uid)
-    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.view, viewUid))
+    val accountView = MappedAccountView.find(view.uid)
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.view, accountView))
     val users: List[User] = privileges.flatMap(_.user.obj)
     users.toSet
   }
 
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, "Public") match {
-      case Empty=> createDefaultPublicView(bankId, accountId, description)
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    getExistingView(bankId, accountId, ViewId("public")) match {
+      case Empty=> createDefaultPublicView(bankId, accountId)
       case Full(v)=> Full(v)
     }
   }
 
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingView(bankId, accountId, "Accountant") match {
-      case Empty => createDefaultAccountantsView(bankId, accountId, description)
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    getExistingView(bankId, accountId, ViewId("accountant")) match {
+      case Empty => createDefaultAccountantsView(bankId, accountId)
       case Full(v) => Full(v)
     }
   }
 
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingView(bankId, accountId, "Auditor") match {
-      case Empty => createDefaultAuditorsView(bankId, accountId, description)
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    getExistingView(bankId, accountId, ViewId("auditor")) match {
+      case Empty => createDefaultAuditorsView(bankId, accountId)
       case Full(v) => Full(v)
     }
   }
@@ -512,7 +518,7 @@ object MapperViews extends Views with MdcLoggable {
     * @return if no exception, it always return true
     */
   def grantAccessToAllExistingViews(user : User) = {
-    ViewImpl.findAll.foreach(v => {
+    MappedAccountView.findAll.foreach(v => {
       //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 
       if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ).isEmpty )
         //If the user and one view has no link, it will create one .
@@ -538,7 +544,7 @@ object MapperViews extends Views with MdcLoggable {
     *         
     */
   def grantAccessToView(user : User, view : View): Boolean = {
-    val v = ViewImpl.find(view.uid).orNull
+    val v = MappedAccountView.find(view.uid).orNull
     if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0 )
     ViewPrivileges.create.
       view(v). //explodes if no viewImpl exists, but that's okay, the test should fail then
@@ -548,434 +554,118 @@ object MapperViews extends Views with MdcLoggable {
       false
   }
   
-  def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveFirehoseView(bankId, accountId, "Firehose View")
+  def createDefaultFirehoseView(bankId: BankId, accountId: AccountId): Box[View] = {
+    createAndSaveFirehoseView(bankId, accountId)
   }
   
-  def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveOwnerView(bankId, accountId, "Owner View")
+  def createDefaultOwnerView(bankId: BankId, accountId: AccountId): Box[View] = {
+    createAndSaveOwnerView(bankId, accountId)
   }
 
-  def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+  def createDefaultPublicView(bankId: BankId, accountId: AccountId): Box[View] = {
     if(!ALLOW_PUBLIC_VIEWS) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
-    createAndSaveDefaultPublicView(bankId, accountId, "Public View")
+    createAndSaveDefaultPublicView(bankId, accountId)
   }
 
-  def createDefaultAccountantsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveDefaultAccountantsView(bankId, accountId, "Accountants View")
+  def createDefaultAccountantsView(bankId: BankId, accountId: AccountId): Box[View] = {
+    createAndSaveDefaultAccountantsView(bankId, accountId)
   }
 
-  def createDefaultAuditorsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveDefaultAuditorsView(bankId, accountId, "Auditors View")
+  def createDefaultAuditorsView(bankId: BankId, accountId: AccountId): Box[View] = {
+    createAndSaveDefaultAuditorsView(bankId, accountId)
   }
 
-  def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+  def getExistingView(bankId: BankId, accountId: AccountId, viewId: ViewId): Box[View] = {
     val res = ViewImpl.find(
         By(ViewImpl.bankPermalink, bankId.value),
         By(ViewImpl.accountPermalink, accountId.value),
-        By(ViewImpl.name_, name)
+        By(ViewImpl.permalink_, viewId.value)
       )
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
-    val views = ViewImpl.findAll(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
+    val accountViews = MappedAccountView.findAll(
+      By(MappedAccountView.mBankId, bankId.value),
+      By(MappedAccountView.mAccountId, accountId.value)
     )
     var privilegesDeleted = true
-    views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_.get))
+    accountViews.map (accountView => {
+      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, accountView.id.get))
     } )
       privilegesDeleted
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
-    ViewImpl.bulkDelete_!!(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
+    MappedAccountView.bulkDelete_!!(
+      By(MappedAccountView.mBankId, bankId.value),
+      By(MappedAccountView.mAccountId, accountId.value)
     )
   }
 
   def bulkDeleteAllPermissionsAndViews() : Boolean = {
-    ViewImpl.bulkDelete_!!()
+    MappedAccountView.bulkDelete_!!()
     ViewPrivileges.bulkDelete_!!()
     true
   }
 
-  def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    create
-      .isSystem_(true)
-      .isFirehose_(true)
-      .bankPermalink(bankId.value)
-      .accountPermalink(accountId.value)
-      .name_("Owner")
-      .permalink_("owner")
-      .description_(description)
-      .isPublic_(false) //(default is false anyways)
-      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
-      .usePublicAliasIfOneExists_(false) //(default is false anyways)
-      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canAddCounterparty_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .canInitiateTransaction_(true)
-      .canSeeBankRoutingScheme_(true) //added following in V300
-      .canSeeBankRoutingAddress_(true)
-      .canSeeBankAccountRoutingScheme_(true)
-      .canSeeBankAccountRoutingAddress_(true)
-      .canSeeOtherBankRoutingScheme_(true)
-      .canSeeOtherBankRoutingAddress_(true)
-      .canSeeOtherAccountRoutingScheme_(true)
-      .canSeeOtherAccountRoutingAddress_(true)
-      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(true)
+  def unsavedOwnerView(bankId : BankId, accountId: AccountId) : MappedAccountView = {
+    MappedAccountView
+      .create
+      .mBankId(bankId.value)
+      .mAccountId(accountId.value)
+      .mViewId("owner")
   }
   
-  def unsavedFirehoseView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    create
-      .isSystem_(true)
-      .isFirehose_(true)
-      .bankPermalink(bankId.value)
-      .accountPermalink(accountId.value)
-      .name_("Firehose")
-      .permalink_("firehose")
-      .description_(description)
-      .isPublic_(false) //(default is false anyways)
-      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
-      .usePublicAliasIfOneExists_(false) //(default is false anyways)
-      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canAddCounterparty_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .canInitiateTransaction_(true)
-      .canSeeBankRoutingScheme_(true) //added following in V300
-      .canSeeBankRoutingAddress_(true)
-      .canSeeBankAccountRoutingScheme_(true)
-      .canSeeBankAccountRoutingAddress_(true)
-      .canSeeOtherBankRoutingScheme_(true)
-      .canSeeOtherBankRoutingAddress_(true)
-      .canSeeOtherAccountRoutingScheme_(true)
-      .canSeeOtherAccountRoutingAddress_(true)
-      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(true)
+  def unsavedFirehoseView(bankId : BankId, accountId: AccountId) : MappedAccountView = {
+    MappedAccountView
+      .mBankId(bankId.value)
+      .mAccountId(accountId.value)
+      .mViewId("firehose")
   }
   
-  def createAndSaveFirehoseView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedFirehoseView(bankId, accountId, description).saveMe
-    Full(res)
+  def createAndSaveFirehoseView(bankId : BankId, accountId: AccountId) : Box[View] = {
+    val res = unsavedFirehoseView(bankId, accountId).saveMe
+    Full(res.toViewDefinition)
   }
   
-  def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedOwnerView(bankId, accountId, description).saveMe
-    Full(res)
+  def createAndSaveOwnerView(bankId : BankId, accountId: AccountId) : Box[View] = {
+    val res = unsavedOwnerView(bankId, accountId).saveMe
+    Full(res.toViewDefinition)
   }
 
-  def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    create.
-      isSystem_(true).
-      isFirehose_(true).
-      name_("Public").
-      description_(description).
-      permalink_("public").
-      isPublic_(true).
-      bankPermalink(bankId.value).
-      accountPermalink(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
-      canSeeOtherAccountIBAN_ (true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true).
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(false). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
+  def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId) : MappedAccountView = {
+    MappedAccountView
+      .mBankId(bankId.value)
+      .mAccountId(accountId.value)
+      .mViewId("public")
   }
 
-  def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+  def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId) : Box[View] = {
     if(!ALLOW_PUBLIC_VIEWS) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
-    val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe
-    Full(res)
+    val res = unsavedDefaultPublicView(bankId, accountId).saveMe
+    Full(res.toViewDefinition)
   }
 
   /*
  Accountants
    */
 
-  def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    create.
-      isSystem_(true).
-      isFirehose_(true).
-      name_("Accountant"). // Use the singular form
-      description_(description).
-      permalink_("accountant"). // Use the singular form
-      isPublic_(false).
-      bankPermalink(bankId.value).
-      accountPermalink(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
-      canSeeOtherAccountIBAN_ (true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true).
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canDeleteWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(true). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
+  def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId) : MappedAccountView = {
+    MappedAccountView
+      .mBankId(bankId.value)
+      .mAccountId(accountId.value)
+      .mViewId("accountant")
   }
 
-  def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedDefaultAccountantsView(bankId, accountId, description).saveMe
-    Full(res)
+  def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId) : Box[View] = {
+    val res = unsavedDefaultAccountantsView(bankId, accountId).saveMe
+    Full(res.toViewDefinition)
   }
 
 
@@ -983,95 +673,16 @@ object MapperViews extends Views with MdcLoggable {
 Auditors
  */
 
-  def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    create.
-      isSystem_(true).
-      isFirehose_(true).
-      name_("Auditor"). // Use the singular form
-      description_(description).
-      permalink_("auditor"). // Use the singular form
-      isPublic_(false).
-      bankPermalink(bankId.value).
-      accountPermalink(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
-      canSeeOtherAccountIBAN_ (true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true).
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canDeleteWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
+  def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId) : MappedAccountView = {
+    MappedAccountView
+      .mBankId(bankId.value)
+      .mAccountId(accountId.value)
+      .mViewId("auditor")
   }
 
-  def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedDefaultAuditorsView(bankId, accountId, description).saveMe
-    Full(res)
+  def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId) : Box[View] = {
+    val res = unsavedDefaultAuditorsView(bankId, accountId).saveMe
+    Full(res.toViewDefinition)
   }
 
 }

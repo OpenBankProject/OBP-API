@@ -34,11 +34,13 @@ package code.model.dataAccess
 
 import code.api.APIFailure
 import code.api.util.ErrorMessages
+import code.metadata.counterparties.Counterparties
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import code.views.Views
 
 import scala.collection.immutable.List
@@ -50,7 +52,7 @@ A User can't use a View unless it is listed here.
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object view extends MappedLongForeignKey(this, ViewImpl)
+  object view extends MappedLongForeignKey(this, MappedAccountView)
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
 
@@ -546,23 +548,43 @@ class MappedAccountView extends AccountView with LongKeyedMapper[MappedAccountVi
   def accountId : AccountId = AccountId(mAccountId.get)
   def viewId : ViewId = ViewId(mViewId.get)
   def users : List[User] =  mUsers.toList
+  
+  
+  //TODO ??? errro handling here..., maybe change to View.view method, it can call different kinds of views.  
+  def toViewDefinition = Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)).head
  
 }
 
-object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[MappedAccountView]{
+object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[MappedAccountView] with MdcLoggable{
   override def dbIndexes = Index(mViewId, mBankId, mAccountId) :: super.dbIndexes
   
   def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountView] = {
-    find(By(mViewId, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
-      APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
+    find(By(mViewId, viewUID.viewId.value), 
+         By(mBankId, bankId.value), 
+         By(mAccountId, accountId.value)
+    ) ~> APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
   }
   
-  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[MappedAccountView] = {
-    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
+  def getOrCreate(viewUID : ViewIdBankIdAccountId): Box[MappedAccountView] = {
+    MappedAccountView.find(viewUID) match {
+      case Full(e) =>{
+        logger.debug(s"getOrCreate-getAccountView($viewUID)")
+        Full(e)
+      }
+      // Create it!
+      case _ => {
+        logger.debug(s"getOrCreate--createAccountView($viewUID)")
+        // Store a record that contains counterparty information from the perspective of an account at a bank
+        Full(
+          MappedAccountView
+            .create
+            .mBankId(viewUID.bankId.value)
+            .mAccountId(viewUID.accountId.value)
+            .mViewId(viewUID.viewId.value)
+            .saveMe()
+        )
+      }
+    }
   }
   
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[MappedAccountView]] = {
-    By(mBankId, bankId.value) :: By(mAccountId, accountId.value) :: Nil
-  }
-  
-}
+}         

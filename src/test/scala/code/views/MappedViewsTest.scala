@@ -2,7 +2,7 @@ package code.views
 
 import code.api.util.ErrorMessages.ViewIdNotSupported
 import code.model._
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{MappedAccountView, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
 import net.liftweb.common.Failure
 import net.liftweb.mapper.By
@@ -12,11 +12,13 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   override def beforeAll() = {
     super.beforeAll()
     ViewImpl.bulkDelete_!!()
+    MappedAccountView.bulkDelete_!!()
   }
   
   override def afterEach() = {
     super.afterEach()
     ViewImpl.bulkDelete_!!()
+    MappedAccountView.bulkDelete_!!()
   }
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
@@ -79,10 +81,10 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       MapperViews.getOrCreateViewPrivilege(viewOwner, resourceUser1)
       
       Then("Check the result.")
-      val viewImpl = viewOwner.asInstanceOf[ViewImpl]
+      val accountView = viewOwner.asInstanceOf[MappedAccountView]
       val numberOfViewPrivilege= ViewPrivileges.count(
         By(ViewPrivileges.user, resourceUser1.resourceUserId.value), 
-        By(ViewPrivileges.view, viewImpl.id)
+        By(ViewPrivileges.view, accountView.id.get)
       )
       numberOfViewPrivilege should be(1)
       
@@ -92,7 +94,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       Then("We check the result, the number should be the same")
       val numberOfViewPrivilege2= ViewPrivileges.count(
         By(ViewPrivileges.user, resourceUser1.resourceUserId.value),
-        By(ViewPrivileges.view, viewImpl.id)
+        By(ViewPrivileges.view, accountView.id.get)
       )
       numberOfViewPrivilege2 should be(1)
     }
