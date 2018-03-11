@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import code.TransactionTypes.TransactionType
-import code.api.APIFailure
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.UserNotLoggedIn
@@ -2089,7 +2089,7 @@ trait APIMethods200 {
               isSuperAdmin(u.userId)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
-              x => fullBoxOrException(x ?~! ConnectorEmptyResponse)
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           } yield {
             (JSONFactory200.createEntitlementJSONs(entitlements), callContext)

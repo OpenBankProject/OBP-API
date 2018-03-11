@@ -169,9 +169,9 @@ class elasticsearch extends MdcLoggable {
   }
 
   def createElasticSearchUriPart(index: String, topic: String): String = {
-    val validIndices = Props.get("es.warehouse.allowed.indices", "").split(",").toSet
+    val validIndices = APIUtil.getPropsValue("es.warehouse.allowed.indices", "").split(",").toSet
     val realIndex =
-      if (index == "" || index == "ALL") Props.get("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
+      if (index == "" || index == "ALL") APIUtil.getPropsValue("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
       else index
     if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
     val addTopic = if (topic == "ALL") "" else "/" + topic
@@ -179,7 +179,7 @@ class elasticsearch extends MdcLoggable {
   }
 
   def getElasticSearchUri(indexString: String): Box[String] = {
-    val validIndices: List[String] = Props.get("es.warehouse.allowed.indices").getOrElse(
+    val validIndices: List[String] = APIUtil.getPropsValue("es.warehouse.allowed.indices").getOrElse(
       throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
     {
       case List("ALL") => List("")

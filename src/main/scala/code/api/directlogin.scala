@@ -533,9 +533,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
     consumer
   }
 
-  def getConsumer(sc: CallContext): Box[Consumer] = {
+  def getConsumer(token: String): Box[Consumer] = {
     val consumer: Option[Consumer] = for {
-      tokenId: String <- sc.directLoginParams.get("token")
+      tokenId: String <- Full(token)
       token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
       consumer: Consumer <- token.consumer
     } yield {

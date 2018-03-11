@@ -112,6 +112,9 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
           val response = makeGetRequest(request, List(invalidJwt))
           Then("We should get a 400 - Bad Request")
           response.code should equal(400)
+          println("-----------------------------------------")
+          println(response)
+          println("-----------------------------------------")
           assertResponse(response, ErrorMessages.GatewayLoginJwtTokenIsNotValid)
         }
 
