@@ -2096,14 +2096,16 @@ Versions are groups of endpoints in a file
   def convertToApiVersion (apiVersionString: String) : Box[ApiVersion] = {
 
     // Make sure the string has the "v" prefix
-    try {
-      val apiVersionStringWithV: String = if (apiVersionString.take(1).toLowerCase != "v") {
-        s"v$apiVersionString"
-      } else
-        apiVersionString
+    val apiVersionStringWithV: String = if (apiVersionString.take(1).toLowerCase != "v") {
+      s"v$apiVersionString"
+    } else
+      apiVersionString
 
+    val apiVersionStringWithVUnderscores: String = apiVersionStringWithV.replace(".", "_")
+
+    try {
       // replace dots with _
-      Full(ApiVersion.withName(apiVersionStringWithV.replace(".", "_")))
+      Full(ApiVersion.withName(apiVersionStringWithVUnderscores))
     } catch {
       case e: Exception => Failure(InvalidApiVersionString)
     }
