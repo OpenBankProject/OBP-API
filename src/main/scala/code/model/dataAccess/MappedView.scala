@@ -422,7 +422,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
-  def isPrivate : Boolean = !isPublic_.get
   def isFirehose : Boolean = isFirehose_.get
 
   //the view settings
@@ -527,7 +526,6 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
       APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
-    //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 
   def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[ViewImpl] = {
@@ -538,4 +536,39 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
     By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
   }
 
+}
+
+class MappedAccountSystemView extends AccountSystemView with LongKeyedMapper[MappedAccountSystemView] with ManyToMany with IdPK with CreatedUpdated{
+  def getSingleton = MappedAccountSystemView
+  
+  object bankPermalink extends UUIDString(this)
+  object accountPermalink extends AccountIdString(this)
+  //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
+  //we only constraint it when we create it : code.views.MapperViews.createView 
+  object permalink_ extends UUIDString(this)
+  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
+  
+  def bankId : BankId = BankId(bankPermalink.get)
+  def accountId : AccountId = AccountId(accountPermalink.get)
+  def viewId : ViewId = ViewId(permalink_.get)
+  def users : List[User] =  users_.toList
+ 
+}
+
+object MappedAccountSystemView extends MappedAccountSystemView with LongKeyedMetaMapper[MappedAccountSystemView]{
+  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+  
+  def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountSystemView] = {
+    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+      APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
+  }
+  
+  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[MappedAccountSystemView] = {
+    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
+  }
+  
+  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[MappedAccountSystemView]] = {
+    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
+  }
+  
 }
