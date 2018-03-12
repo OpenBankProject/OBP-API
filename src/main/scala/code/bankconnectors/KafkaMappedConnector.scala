@@ -824,7 +824,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

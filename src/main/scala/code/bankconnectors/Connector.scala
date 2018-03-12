@@ -1035,7 +1035,7 @@ trait Connector extends MdcLoggable{
 
   //sets a user as an account owner/holder
   def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   /**
