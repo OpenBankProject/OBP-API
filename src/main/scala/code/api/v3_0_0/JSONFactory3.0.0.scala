@@ -258,7 +258,8 @@ case class ModeratedCoreAccountsJsonV300(
   accounts: List[ModeratedCoreAccountJsonV300]
 )
 
-case class ElasticSearchJSON(es_uri_part: String, es_body_part: Any)
+case class ElasticSearchJSON(query: ElasticSearchQuery)
+case class ElasticSearchQuery(match_all:String  ="{}")
 
 //ended -- account relevant case classes /////
 
