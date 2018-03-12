@@ -397,7 +397,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       statedApiVersion,
       "getResourceDocsSwagger",
       "GET",
-      "/resource-docs/v.2.2.0/swagger",
+      "/resource-docs/API_VERSION/swagger",
       "Get Resource Docs in Swagger format.",
       """Returns documentation about the RESTful resources on this server in Swagger format.
         |

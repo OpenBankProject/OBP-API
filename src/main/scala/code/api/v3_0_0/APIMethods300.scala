@@ -737,7 +737,7 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDataWarehouse),
+      List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)))
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
@@ -806,7 +806,7 @@ trait APIMethods300 {
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDataWarehouse),
+      List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics))
     )
     lazy val aggregateWarehouse: OBPEndpoint = {
