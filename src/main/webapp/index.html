@@ -100,14 +100,14 @@ Berlin 13359, Germany
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
 				<h2>Accounts</h2>
-				<p>Access the user's list of accounts and account information such as the balance. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Account" href="">Explore...</a> </p>
+				<p>Access the user's list of accounts and account information such as the balance. Provide fine-grained access to third-party users using views (owner, auditor, accountant, public) on accounts.  <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Account" href="">Explore...</a> </p>
 			</div>
 			<div class="col-xs-12 col-sm-2 col-lg-1 main-apis-icon">
 				<img class="icon-branches" src="https://static.openbankproject.com/images/sandbox/icons/icon-branches.png" width="100" height="100" alt="branches" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Branches, ATMs</h2>
-				<p>Access the list of branches and ATMs for the specified bank including geolocation and opening hours. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Bank" href="">Explore...</a></p>
+				<h2>Bank, Branches, ATMs, Products</h2>
+				<p>Access open data related to the bank including branches and ATMs including geolocation and opening hours. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Bank,Branch,ATM,Product" href="">Explore...</a></p>
 			</div>
 		</div>
 
@@ -134,14 +134,14 @@ Berlin 13359, Germany
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
 				<h2>Counterparties</h2>
-				<p>Access the payers &amp; payees of an account including metadata such as their aliases, labels, logos and home pages. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Counterparty,CounterpartyMetadata" href="">Explore...</a></p>
+				<p>Access the payers &amp; payees of an account including metadata such as their aliases, labels, logos and home pages. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Counterparty,Counterparty-MetaData" href="">Explore...</a></p>
 			</div>
 			<div class="col-xs-12 col-sm-2 col-lg-1 main-apis-icon">
 				<img class="icon-entitlements" src="https://static.openbankproject.com/images/sandbox/icons/icon-entitlements.png" width="100" height="100" alt="entitlements" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Entitlements</h2>
-				<p>Enable account holders to grant fine-grained access to third-party users and applications. For instance, a business account might provide auditors with full read-only access whilst coworkers might only see the account balance. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=View" href="">Explore...</a> </p>
+				<h2>Cards</h2>
+				<p>List and create Cards. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Card" href="">Explore...</a> </p>
 			</div>
 		</div>
 
@@ -150,15 +150,15 @@ Berlin 13359, Germany
 				<img class="icon-messages" src="https://static.openbankproject.com/images/sandbox/icons/icon-messages.png" width="100" height="100" alt="messages" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Customer meetings, messages and video conferencing.</h2>
-				<p>Enable customer meetings, messages and video conferencing for KYC and CRM operations (uses third party video streaming). <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=KYC,Onboarding" href="">Explore...</a></p>
+				<h2>Onboarding and KYC</h2>
+				<p>Perform user, customer and account creation. Manage Know Your Customer (KYC) documents, media and status. Create customer meetings and messages. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=KYC,Onboarding,Customer" href="">Explore...</a></p>
 			</div>
 			<div class="col-xs-12 col-sm-2 col-lg-1 main-apis-icon">
 				<img class="icon-security" src="https://static.openbankproject.com/images/sandbox/icons/icon-security.png" width="100" height="100" alt="security" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Security challenges</h2>
-				<p>Step up authentication using the generic challenge / response mechanism for sensitive operations e.g. to progress a transfer, the user must supply a mobile TAN <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=TransactionRequest" href="">Explore...</a></p>
+				<h2>API Roles, Metrics and Documentation</h2>
+				<p>Control access to endpoints, get API metrics and documentation. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=API,API-Documentation" href="">Explore...</a></p>
 			</div>
 		</div>
 		<div class="row">
@@ -166,16 +166,16 @@ Berlin 13359, Germany
 				<img class="icon-requests" src="https://static.openbankproject.com/images/sandbox/icons/icon-requests.png" width="100" height="100" alt="requests" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Payments & Transaction requests</h2>
-				<p>Initiate transfers. View and confirm charges (as per PSD2). <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=TransactionRequest" href="">Explore...</a></p>
+				<h2>Payments & Transfers</h2>
+				<p>Initiate Transaction Requests (transfers and payments). View and confirm charges (as per PSD2). Answer strong customer authentication (SCA) challenges. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Transaction-Request" href="">Explore...</a></p>
 
 			</div>
 			<div class="col-xs-12 col-sm-2 col-lg-1 main-apis-icon">
 				<img class="icon-kyc" src="https://static.openbankproject.com/images/sandbox/icons/icon-kyc.png" width="100" height="100" alt="kyc" />
 			</div>
 			<div class="col-xs-12 col-sm-4 col-lg-5 main-apis-text">
-				<h2>Onboarding & KYC</h2>
-				<p>Perform user, customer and account creation. Access Know Your Customer (KYC) documents, media and KYC status.  <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=KYC,Onboarding" href="">Explore...</a></p>
+				<h2>Search warehouse</h2>
+				<p>Perform advanced row level and statistics search on the data warehouse. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Search-Warehouse" href="">Explore...</a></p>
 			</div>
 		</div>
 	</div>

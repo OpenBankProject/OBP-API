@@ -2158,7 +2158,7 @@ trait APIMethods121 {
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id

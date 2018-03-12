@@ -89,7 +89,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagView))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -138,7 +138,7 @@ trait APIMethods300 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
         |
-        | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
+        | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP system views.
         | """,
       SwaggerDefinitionsJSON.createViewJson,
       viewJsonV300,
