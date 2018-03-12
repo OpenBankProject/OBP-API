@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.model.dataAccess
 
-import code.model._
+import code.model.{ViewId, _}
 
 
 /**
@@ -41,6 +41,7 @@ import code.model._
 
 trait StaticPublicViewDefinition extends ViewDefinition {
   
+  final def viewId: ViewId = ViewId("public")
   override final def name: String = "Public"
   override final def description: String = "Public View"
   
@@ -132,13 +133,13 @@ trait StaticPublicViewDefinition extends ViewDefinition {
 case class SystemPublicView(
   bankId : BankId,
   accountId : AccountId,
-  viewId : ViewId,
   users: List[User]
 ) extends View with StaticPublicViewDefinition
 
 
 trait StaticOwnerViewDefinition extends ViewDefinition {
   
+  final def viewId: ViewId = ViewId("owner")
   override final def name: String = "Owner"
   override final def description: String = "Owner View"
   
@@ -227,15 +228,13 @@ trait StaticOwnerViewDefinition extends ViewDefinition {
 case class SystemOwnerView(
   bankId : BankId,
   accountId : AccountId,
-  viewId : ViewId,
   users: List[User]
 ) extends View with StaticOwnerViewDefinition
 
 
-
-
 trait StaticAccountantViewDefinition extends ViewDefinition {
   
+  final def viewId: ViewId = ViewId("accountant")
   override final def name: String = "Accountant"
   override final def description: String = "Accountant View"
   
@@ -323,7 +322,6 @@ trait StaticAccountantViewDefinition extends ViewDefinition {
 case class SystemAccountantView(
   bankId : BankId,
   accountId : AccountId,
-  viewId : ViewId,
   users: List[User]
 ) extends View with StaticAccountantViewDefinition
 
@@ -331,6 +329,7 @@ case class SystemAccountantView(
 
 trait StaticAuditorViewDefinition extends ViewDefinition {
   
+  final def viewId: ViewId = ViewId("auditor")
   override final def name: String = "Auditor"
   override final def description: String = "Auditor View"
   
@@ -418,7 +417,6 @@ trait StaticAuditorViewDefinition extends ViewDefinition {
 case class SystemAuditorView(
   bankId : BankId,
   accountId : AccountId,
-  viewId : ViewId,
   users: List[User]
 ) extends View with StaticAuditorViewDefinition
 
@@ -426,6 +424,7 @@ case class SystemAuditorView(
 
 trait StaticFirehoseViewDefinition extends ViewDefinition {
   
+  final def viewId: ViewId = ViewId("firehose")
   override final def name: String = "Firehose"
   override final def description: String = "Firehose View"
   
@@ -513,9 +512,8 @@ trait StaticFirehoseViewDefinition extends ViewDefinition {
 case class SystemFirehoseView(
   bankId : BankId,
   accountId : AccountId,
-  viewId : ViewId,
   users: List[User]
-) extends View with StaticAuditorViewDefinition
+) extends View with StaticFirehoseViewDefinition
 
 
 

@@ -81,7 +81,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       MapperViews.getOrCreateViewPrivilege(viewOwner, resourceUser1)
       
       Then("Check the result.")
-      val accountView = viewOwner.asInstanceOf[MappedAccountView]
+      val accountView = viewOwner.mappedAccountView
       val numberOfViewPrivilege= ViewPrivileges.count(
         By(ViewPrivileges.user, resourceUser1.resourceUserId.value), 
         By(ViewPrivileges.view, accountView.id.get)

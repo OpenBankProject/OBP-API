@@ -549,9 +549,21 @@ class MappedAccountView extends AccountView with LongKeyedMapper[MappedAccountVi
   def viewId : ViewId = ViewId(mViewId.get)
   def users : List[User] =  mUsers.toList
   
-  
-  //TODO ??? errro handling here..., maybe change to View.view method, it can call different kinds of views.  
-  def toViewDefinition = Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)).head
+  def toViewDefinition = {
+    for{
+      viewImple <- viewId.value match {
+      //first system views
+      case "public" => Full(SystemPublicView(bankId, accountId, users))
+      case "owner" => Full(SystemOwnerView(bankId, accountId, users))
+      case "accountant" => Full(SystemAccountantView(bankId, accountId, users))
+      case "auditor" => Full(SystemAuditorView(bankId, accountId, users))
+      case "firehose" => Full(SystemFirehoseView(bankId, accountId, users))
+      //then develop views
+      case _ =>ViewImpl.find(ViewIdBankIdAccountId(viewId, bankId, accountId))}
+    } yield{
+      viewImple
+    }
+  }
  
 }
 
@@ -560,8 +572,8 @@ object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[Mapp
   
   def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountView] = {
     find(By(mViewId, viewUID.viewId.value), 
-         By(mBankId, bankId.value), 
-         By(mAccountId, accountId.value)
+         By(mBankId, viewUID.bankId.value), 
+         By(mAccountId, viewUID.accountId.value)
     ) ~> APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
   }
   
@@ -571,10 +583,8 @@ object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[Mapp
         logger.debug(s"getOrCreate-getAccountView($viewUID)")
         Full(e)
       }
-      // Create it!
       case _ => {
         logger.debug(s"getOrCreate--createAccountView($viewUID)")
-        // Store a record that contains counterparty information from the perspective of an account at a bank
         Full(
           MappedAccountView
             .create
