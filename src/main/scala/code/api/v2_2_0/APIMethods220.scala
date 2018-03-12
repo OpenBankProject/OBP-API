@@ -710,7 +710,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount),
+      List(apiTagAccount,apiTagOnboarding),
       Some(List(canCreateAccount))
     )
 

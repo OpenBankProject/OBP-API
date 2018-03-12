@@ -468,7 +468,7 @@ trait APIMethods300 {
       emptyObjectJson,
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
       Some(List(canUseFirehoseAtAnyBank))
     )
