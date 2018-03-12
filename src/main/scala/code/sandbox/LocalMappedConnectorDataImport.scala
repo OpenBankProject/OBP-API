@@ -260,24 +260,24 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
     }
   }
 
-  protected def createFirehoseView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.getOrCreateFirehoseView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  protected def createFirehoseView(bankId : BankId, accountId : AccountId) : Box[ViewType] = {
+    Views.views.vend.getOrCreateFirehoseView(bankId, accountId).asInstanceOf[Box[ViewType]]
   }
   
-  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.getOrCreateOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  protected def createOwnerView(bankId : BankId, accountId : AccountId) : Box[ViewType] = {
+    Views.views.vend.getOrCreateOwnerView(bankId, accountId).asInstanceOf[Box[ViewType]]
   }
 
-  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.getOrCreatePublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  protected def createPublicView(bankId : BankId, accountId : AccountId) : Box[ViewType] = {
+    Views.views.vend.getOrCreatePublicView(bankId, accountId).asInstanceOf[Box[ViewType]]
   }
 
-  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.getOrCreateAccountantsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  protected def createAccountantsView(bankId : BankId, accountId : AccountId) : Box[ViewType] = {
+    Views.views.vend.getOrCreateAccountantsView(bankId, accountId).asInstanceOf[Box[ViewType]]
   }
 
-  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
-    Views.views.vend.getOrCreateAuditorsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  protected def createAuditorsView(bankId : BankId, accountId : AccountId) : Box[ViewType] = {
+    Views.views.vend.getOrCreateAuditorsView(bankId, accountId).asInstanceOf[Box[ViewType]]
   }
 
 }

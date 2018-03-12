@@ -34,11 +34,13 @@ package code.model.dataAccess
 
 import code.api.APIFailure
 import code.api.util.ErrorMessages
+import code.metadata.counterparties.Counterparties
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import code.views.Views
 
 import scala.collection.immutable.List
@@ -50,10 +52,11 @@ A User can't use a View unless it is listed here.
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
   object user extends MappedLongForeignKey(this, ResourceUser)
-  object view extends MappedLongForeignKey(this, ViewImpl)
+  object view extends MappedLongForeignKey(this, MappedAccountView)
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
 
+//TODO, this can be changed to MappedViewDefinition, only used for develop designed views.
 class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with CreatedUpdated{
   def getSingleton = ViewImpl
 
@@ -422,7 +425,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
-  def isPrivate : Boolean = !isPublic_.get
   def isFirehose : Boolean = isFirehose_.get
 
   //the view settings
@@ -525,17 +527,74 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
-    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+    find(By(permalink_, viewUID.viewId.value), 
+         By(bankPermalink, viewUID.bankId.value), 
+         By(accountPermalink, viewUID.accountId.value) 
+    ) ~>
       APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
-    //TODO: APIFailures with http response codes belong at a higher level in the code
-  }
-
-  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[ViewImpl] = {
-    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
-  }
-
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
-    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
   }
 
 }
+
+class MappedAccountView extends AccountView with LongKeyedMapper[MappedAccountView] with ManyToMany with IdPK with CreatedUpdated{
+  def getSingleton = MappedAccountView
+  
+  object mBankId extends UUIDString(this)
+  object mAccountId extends AccountIdString(this)
+  object mViewId extends UUIDString(this)
+  object mUsers extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
+  
+  def bankId : BankId = BankId(mBankId.get)
+  def accountId : AccountId = AccountId(mAccountId.get)
+  def viewId : ViewId = ViewId(mViewId.get)
+  def users : List[User] =  mUsers.toList
+  
+  def toViewDefinition = {
+    for{
+      viewImple <- viewId.value match {
+      //first system views
+      case "public" => Full(SystemPublicView(bankId, accountId, users))
+      case "owner" => Full(SystemOwnerView(bankId, accountId, users))
+      case "accountant" => Full(SystemAccountantView(bankId, accountId, users))
+      case "auditor" => Full(SystemAuditorView(bankId, accountId, users))
+      case "firehose" => Full(SystemFirehoseView(bankId, accountId, users))
+      //then develop views
+      case _ =>ViewImpl.find(ViewIdBankIdAccountId(viewId, bankId, accountId))}
+    } yield{
+      viewImple
+    }
+  }
+ 
+}
+
+object MappedAccountView extends MappedAccountView with LongKeyedMetaMapper[MappedAccountView] with MdcLoggable{
+  override def dbIndexes = Index(mViewId, mBankId, mAccountId) :: super.dbIndexes
+  
+  def find(viewUID : ViewIdBankIdAccountId) : Box[MappedAccountView] = {
+    find(By(mViewId, viewUID.viewId.value), 
+         By(mBankId, viewUID.bankId.value), 
+         By(mAccountId, viewUID.accountId.value)
+    ) ~> APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
+  }
+  
+  def getOrCreate(viewUID : ViewIdBankIdAccountId): Box[MappedAccountView] = {
+    MappedAccountView.find(viewUID) match {
+      case Full(e) =>{
+        logger.debug(s"getOrCreate-getAccountView($viewUID)")
+        Full(e)
+      }
+      case _ => {
+        logger.debug(s"getOrCreate--createAccountView($viewUID)")
+        Full(
+          MappedAccountView
+            .create
+            .mBankId(viewUID.bankId.value)
+            .mAccountId(viewUID.accountId.value)
+            .mViewId(viewUID.viewId.value)
+            .saveMe()
+        )
+      }
+    }
+  }
+  
+}         

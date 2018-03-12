@@ -76,20 +76,20 @@ object RemotedataViews extends ObpActorInit with Views {
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View] =
     extractFutureToBox(actor ? cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String))
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId))
   
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreateFirehoseView(bankId, accountId, description))
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreateFirehoseView(bankId, accountId))
   
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId, description))
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId) : Box[View] =
+    extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId))
 
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.getOrCreateAccountantsView(bankId, accountId, description))
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId) : Box[View] =
+   extractFutureToBox(actor ? cc.getOrCreateAccountantsView(bankId, accountId))
 
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.getOrCreateAuditorsView(bankId, accountId, description))
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId) : Box[View] =
+   extractFutureToBox(actor ? cc.getOrCreateAuditorsView(bankId, accountId))
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] =
     extractFutureToBox(actor ? cc.createRandomView(bankId, accountId))

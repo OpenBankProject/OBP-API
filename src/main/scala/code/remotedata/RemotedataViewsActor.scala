@@ -92,21 +92,21 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getOrCreateAccountView(" + BankIdAccountId +", "+ viewId +")")
       sender ! extractResult(mapper.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String))
     
-    case cc.getOrCreateOwnerView(bankId, accountId, description) =>
-      logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.getOrCreateOwnerView(bankId, accountId, description))
+    case cc.getOrCreateOwnerView(bankId, accountId) =>
+      logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +")")
+      sender ! extractResult(mapper.getOrCreateOwnerView(bankId, accountId))
 
-    case cc.getOrCreatePublicView(bankId, accountId, description) =>
-      logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.getOrCreatePublicView(bankId, accountId, description))
+    case cc.getOrCreatePublicView(bankId, accountId) =>
+      logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +")")
+      sender ! extractResult(mapper.getOrCreatePublicView(bankId, accountId))
 
-    case cc.getOrCreateAccountantsView(bankId, accountId, description) =>
-      logger.debug("getOrCreateAccountantsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.getOrCreateAccountantsView(bankId, accountId, description))
+    case cc.getOrCreateAccountantsView(bankId, accountId) =>
+      logger.debug("getOrCreateAccountantsView(" + bankId +", "+ accountId +")")
+      sender ! extractResult(mapper.getOrCreateAccountantsView(bankId, accountId))
 
-    case cc.getOrCreateAuditorsView(bankId, accountId, description) =>
-      logger.debug("getOrCreateAuditorsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! extractResult(mapper.getOrCreateAuditorsView(bankId, accountId, description))
+    case cc.getOrCreateAuditorsView(bankId, accountId) =>
+      logger.debug("getOrCreateAuditorsView(" + bankId +", "+ accountId +")")
+      sender ! extractResult(mapper.getOrCreateAuditorsView(bankId, accountId))
 
     case cc.createRandomView(bankId, accountId) =>
       logger.debug("createRandomView(" + bankId +", "+ accountId +")")
