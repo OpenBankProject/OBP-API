@@ -344,7 +344,7 @@ object JSONFactory1_4_0 {
       request_url = rd.requestUrl,
       summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin), //.replaceAll("\n", ""),
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
