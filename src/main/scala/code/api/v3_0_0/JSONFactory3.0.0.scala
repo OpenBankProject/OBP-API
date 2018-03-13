@@ -432,7 +432,7 @@ object JSONFactory300{
     GlossaryItemJsonV300(
       title = glossaryItem.title,
       description = GlossaryDescriptionJsonV300 (markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
-                                                  html = pegDownProcessor.markdownToHtml(glossaryItem.description.stripMargin).replaceAll("\n", "")
+                                                  html = pegDownProcessor.markdownToHtml(glossaryItem.description.stripMargin)// .replaceAll("\n", "")
       )
     )
   }
