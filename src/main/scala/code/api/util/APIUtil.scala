@@ -1241,7 +1241,9 @@ object APIUtil extends MdcLoggable {
                           errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
-                          roles: Option[List[ApiRole]] = None
+                          roles: Option[List[ApiRole]] = None,
+                          isFeatured: Boolean = false,
+                          specialInstructions: Option[String] = None
   )
 
 
@@ -1738,6 +1740,12 @@ Returns a string showed to the developer
     }
     user_ids.filter(_ == user_id).length > 0
   }
+
+
+
+
+
+
 
   def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty

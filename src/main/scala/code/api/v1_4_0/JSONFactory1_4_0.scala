@@ -319,7 +319,9 @@ object JSONFactory1_4_0 {
                          tags: List[String],
                          typed_request_body: JValue,
                          typed_success_response_body: JValue,
-                         roles: Option[List[ApiRole]] = None)
+                         roles: Option[List[ApiRole]] = None,
+                         is_featured: Boolean,
+                         special_instructions: String)
 
 
 
@@ -355,7 +357,9 @@ object JSONFactory1_4_0 {
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
       typed_success_response_body = createTypedBody(rd.successResponseBody),
-      roles = rd.roles
+      roles = rd.roles,
+      is_featured = rd.isFeatured,
+      special_instructions = pegDownProcessor.markdownToHtml(rd.specialInstructions.getOrElse("").stripMargin)
       )
   }
 
