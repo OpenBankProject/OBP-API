@@ -2416,8 +2416,11 @@ Versions are groups of endpoints in a file
         Full(v)
       case Empty => // Just forwarding
         throw new Exception("Empty Box not allowed")
-      case ParamFailure(m,e,c,af: APIFailureNewStyle) =>
-        val obj = Failure(m, e, c) ?~! af.failMsg
+      case obj1@ParamFailure(m,e,c,af: APIFailureNewStyle) =>
+        val obj = (m,e, c) match {
+          case ("", Empty, Empty) => Empty ?~! af.failMsg
+          case _ => Failure (m, e, c) ?~! af.failMsg
+        }
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)

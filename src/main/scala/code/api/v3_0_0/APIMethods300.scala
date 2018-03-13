@@ -1668,6 +1668,9 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
                 availableRoles.exists(_ == postedData.role_name)
               }
+              _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+                ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+              }
               _ <- Helper.booleanToFuture(failMsg = EntitlementRequestAlreadyExists) {
                 EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(postedData.bank_id, u.userId, postedData.role_name).isEmpty
               }
