@@ -35,6 +35,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 
 
@@ -712,22 +713,17 @@ trait APIMethods300 {
         |
         |Example of usage:
         |
+        |
         |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE 
-        |POST /search/warehouse/INDEX1,INDEX2 
-        |POST /search/warehouse/All 
+        |
+        |POST /search/warehouse/INDEX1,INDEX2
+        |
+        |POST /search/warehouse/ALL
+        |
+        |{ Any valid elasticsearch query DSL in the body }
         |
         |
-        |{
-        |    "query": {
-        |      "range": {
-        |        "postDate": {
-        |          "from": "2011-12-10",
-        |          "to": "2011-12-12"
-        |        
-        |      }
-        |    }
-        |  }
-        |}
+        |Elastic query DSL: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
         |
         |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
         |
@@ -737,7 +733,7 @@ trait APIMethods300 {
         |
         |
         """,
-      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      ElasticSearchJSON(ElasticSearchQuery()),
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -760,7 +756,7 @@ trait APIMethods300 {
       }
     }
   
-    
+    case class Query(query: String)
     
     resourceDocs += ResourceDoc(
       aggregateWarehouse,
@@ -768,9 +764,11 @@ trait APIMethods300 {
       "elasticSearchWarehouseStatsV300",
       "POST",
       "/search/warehouse/statistics/FIELD",
-      "Search Warehouse Data Via Elasticsearch and return only stats aggregation over one specific numeric field",
+      "Statistical aggregation over a warehouse field",
       s"""
-         |Aggregate warehouse data via Elastic Search.
+         |Does a stats aggregation over some numeric field:
+         |
+         |https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -786,32 +784,25 @@ trait APIMethods300 {
          |
          |Example of usage:
          |
+         |
          |POST /search/warehouse/statistics/INDEX/FIELD
          |
-         |POST /search/warehouse/statistics/ALL/FIELD|
+         |POST /search/warehouse/statistics/ALL/FIELD
          |
-         | 
-         |{  
-         |    "query": {
-         |      "range": {
-         |        "postDate": {
-         |          "from": "2011-12-10",
-         |          "to": "2011-12-12"
-         |        }
-         |      }
-         |    }
-         |}
+         |{ Any valid elasticsearch query DSL in the body }
          |
+         |
+         |Elastic query DSL: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
          |
          |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html
-         |         |
+         |         
          |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-filter-context.html
          |
          |Elastic aggregations: https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html
          |
          |
         """,
-      ElasticSearchJSON(es_uri_part = "/_search", es_body_part = EmptyClassJson()),
+      ElasticSearchJSON(ElasticSearchQuery()),
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -821,6 +812,7 @@ trait APIMethods300 {
     lazy val aggregateWarehouse: OBPEndpoint = {
       case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
+          if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
