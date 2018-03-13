@@ -695,23 +695,17 @@ trait APIMethods300 {
       "elasticSearchWarehouseV300",
       "POST",
       "/search/warehouse/INDEX",
-      "Search Warehouse Data Via Elasticsearch",
+      "Search Warehouse Data",
       s"""
-        |Search warehouse data via Elastic Search.
+        |Search the warehouse and get row level results.
         |
         |${authenticationRequiredMessage(true)}
         |
-        |CanSearchWarehouse entitlement is required to search warehouse data!
-        |
-        |Send your email, name, project name and user_id to the admins to get access.
+        |CanSearchWarehouse entitlement is required. You can request the Role below.
         |
         |Elastic (search) is used in the background. See links below for syntax.
         |
-        |This version differs from v2.0.0
-        |
-        |
-        |
-        |Example of usage:
+        |Examples of usage:
         |
         |
         |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE 
@@ -764,26 +758,21 @@ trait APIMethods300 {
       "elasticSearchWarehouseStatsV300",
       "POST",
       "/search/warehouse/statistics/FIELD",
-      "Statistical aggregation over a warehouse field",
+      "Search Warehouse Statistics",
       s"""
+         |Search the warehouse and get statistical aggregations over a warehouse field
+         |
          |Does a stats aggregation over some numeric field:
          |
          |https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html
          |
          |${authenticationRequiredMessage(true)}
          |
-         |CanSearchWarehouseStats entitlement is required to search warehouse data!
-         |
-         |Send your email, name, project name and user_id to the admins to get access.
+         |CanSearchWarehouseStats Role is required. You can request this below.
          |
          |Elastic (search) is used in the background. See links below for syntax.
          |
-         |This version differs from v2.0.0
-         |
-         |
-         |
-         |Example of usage:
-         |
+         |Examples of usage:
          |
          |POST /search/warehouse/statistics/INDEX/FIELD
          |
