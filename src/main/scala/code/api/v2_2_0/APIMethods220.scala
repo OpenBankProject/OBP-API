@@ -273,8 +273,8 @@ trait APIMethods220 {
       "getCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Get Counterparties of one Account.",
-      s"""Get the counterparties for the account / view.
+      "Get Counterparties (Explicit).",
+      s"""Get the Counterparties (Explicit) for the account / view.
           |
           |${authenticationRequiredMessage(true)}
           |""".stripMargin,
@@ -812,7 +812,7 @@ trait APIMethods220 {
       "Get Connector Metrics",
       """Get the all metrics
         |
-        |require $CanGetConnectorMetrics role
+        |require CanGetConnectorMetrics role
         |
         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/connector/metrics
         |
@@ -1006,10 +1006,16 @@ trait APIMethods220 {
       "createCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create counterparty for an account",
-      s"""Create counterparty.
+      "Create Counterparty (explicit)",
+      s"""Create Counterparty (Explicit) for an Account.
          |
-          |Counterparties are created for the account / view
+         |In OBP, there are two types of Counterparty.
+         |
+         |* Explicit Counterparties (those here) which we create explicitly and are used in COUNTERPARTY Transaction Requests
+         |
+         |* Implicit Counterparties (AKA Other Accounts) which are generated automatically from the other sides of Transactions.
+         |
+          |Explicit Counterparties are created for the account / view
          |They are how the user of the view (e.g. account owner) refers to the other side of the transaction
          |
           |name is the human readable name (e.g. Piano teacher, Miss Nipa)
