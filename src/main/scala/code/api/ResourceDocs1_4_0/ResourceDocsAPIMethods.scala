@@ -107,6 +107,32 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {
+
+      // Determine if the partialFunctionName is due to be "featured" in API Explorer etc.
+      def getIsFeaturedApi(partialFunctionName: String) : Boolean = {
+        val partialFunctionNames = APIUtil.getPropsValue("featured_apis") match {
+          case Full(v) =>
+            v.split(",").map(_.trim).toList
+          case _ =>
+            List()
+        }
+        partialFunctionNames.filter(_ == partialFunctionName).length > 0
+      }
+
+
+      // Determine if there are special instructions for partialFunctionName
+      def getSpecialInstructions(partialFunctionName: String): Option[String] = {
+        val specialInstructions = APIUtil.getPropsValue(s"special_instructions_for_$partialFunctionName") match {
+          case Full(v) =>
+            Some(v)
+          case _ =>
+            None
+        }
+        specialInstructions
+      }
+
+
+
       // Return a different list of resource docs depending on the version being called.
       // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
 
@@ -153,10 +179,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       activePlusLocalResourceDocs ++= localResourceDocs
 
 
-      logger.debug(s"There are ${activePlusLocalResourceDocs.length} resource docs (including local) available to $requestedApiVersion")
+      // Add any featured status and special instructions from Props
+      val theResourceDocs = for {
+        x <- activePlusLocalResourceDocs
+        y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName), specialInstructions = getSpecialInstructions(x.partialFunctionName))
+      } yield y
+
+
+      logger.debug(s"There are ${theResourceDocs.length} resource docs (including local) available to $requestedApiVersion")
 
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
-      Some(activePlusLocalResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
+      Some(theResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
 

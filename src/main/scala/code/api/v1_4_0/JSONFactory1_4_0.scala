@@ -319,7 +319,9 @@ object JSONFactory1_4_0 {
                          tags: List[String],
                          typed_request_body: JValue,
                          typed_success_response_body: JValue,
-                         roles: Option[List[ApiRole]] = None)
+                         roles: Option[List[ApiRole]] = None,
+                         is_featured: Boolean,
+                         special_instructions: String)
 
 
 
@@ -344,7 +346,7 @@ object JSONFactory1_4_0 {
       request_url = rd.requestUrl,
       summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin), //.replaceAll("\n", ""),
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
@@ -355,7 +357,9 @@ object JSONFactory1_4_0 {
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
       typed_success_response_body = createTypedBody(rd.successResponseBody),
-      roles = rd.roles
+      roles = rd.roles,
+      is_featured = rd.isFeatured,
+      special_instructions = pegDownProcessor.markdownToHtml(rd.specialInstructions.getOrElse("").stripMargin)
       )
   }
 

@@ -436,3 +436,11 @@ display_internal_errors=false
 ## (this needs to be a URL)
 documented_server_url=https://apisandbox.openbankproject.com
 organisation_website = https://www.tesobe.com
+
+## This property is a comma separated list of APIs that should be "featured" i.e. highlighted, or listed prominently in the API Explorer etc.
+# featured_apis=elasticSearchWarehouseV300
+
+## Properties of named special_instructions_for_PARTIAL_FUNCTION_NAME can be used to add
+## special instructions to certain endpoints which might have instance specific information
+#special_instructions_for_elasticSearchWarehouseV300=These are special instructions.....
+
