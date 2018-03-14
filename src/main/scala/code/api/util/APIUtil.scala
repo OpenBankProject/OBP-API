@@ -1492,8 +1492,141 @@ object APIUtil extends MdcLoggable {
         |
       """)
 
+  glossaryItems += GlossaryItem(
+    title = "Onboarding a user",
+    description =
+      s"""
+        |### 1) Create a user, get an app key and authenticate
+        |
+        |Follow the instructions in the [Direct Login](#Direct-Login) section to create a user, get an app key and authenticate.
+        |
+        |### 2) Get your user id
+        |
+        |Action:
+        |
+        |	GET $getObpApiRoot/v3.0.0/users/current
+        |
+        |
+        |Body:
+        |
+        |	Leave empty!
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |
+        |
+        |### 3) Create customer
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/customers
+        |
+        |Body:
+        |
+        |	{  "user_id":"your-user-id-from-step-2", "customer_number":"new customer number 687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |
+        |### 4) Create user customer link
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/user_customer_links
+        |
+        |Body:
+        |
+        |	{ "user_customer_link_id":"String", "customer_id":"customer-id-from-step-3", "user_id":"your-user-id-from-step-2", "date_inserted":"2018-03-22T00:08:00Z", "is_active":true }
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |
+        |### 5) Create account
+        |
+        |Action:
+        |
+        |	PUT $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
+        |
+        |Body:
+        |
+        |	{  "user_id":"your-user-id-from-step-2",  "label":"Label",  "type":"CURRENT",  "balance":{    "currency":"EUR",    "amount":"0"  },  "branch_id":"1234",  "account_routing":{    "scheme":"OBP",    "address":"UK123456"  }}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |
+        |### 6) Create card
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/cards
+        |
+        |Body:
+        |
+        |	{  "bank_card_number":"String",  "name_on_card":"String",  "issue_number":"String",  "serial_number":"String",  "valid_from_date":"2013-01-22T00:08:00Z",  "expires_date":"2013-01-22T00:08:00Z",  "enabled":true,  "cancelled":true,  "on_hot_list":true,  "technology":"String",  "networks":["String"],  "allows":["credit"],  "account_id":"String",  "replacement":{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"Good Point"  },  "pin_reset":[{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"forgot"  }],  "collected":"2013-01-22T00:08:00Z",  "posted":"2013-01-22T00:08:00Z"}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |
+      """)
 
-
+  glossaryItems += GlossaryItem(
+    title = "Create a public account",
+    description =
+      s"""
+         |### 1) Create account
+         |
+         |Create an account as described in Step 5 of section [Onboarding a user](#Onboarding-a-user)
+         |
+         |### 2) Create a view
+         |
+         |Action:
+         |
+         |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
+         |
+         |Body:
+         |
+         |	{  "name":"_test", "description":"good", "is_public":true, "which_alias_to_use":"good", "hide_metadata_if_alias_used":false,  "allowed_actions": ["can_see_transaction_this_bank_account", "can_see_transaction_other_bank_account", "can_see_transaction_metadata", "can_see_transaction_label", "can_see_transaction_amount", "can_see_transaction_type", "can_see_transaction_currency", "can_see_transaction_start_date", "can_see_transaction_finish_date", "can_see_transaction_balance", "can_see_comments", "can_see_narrative", "can_see_tags", "can_see_images", "can_see_bank_account_owners", "can_see_bank_account_type", "can_see_bank_account_balance", "can_see_bank_account_currency", "can_see_bank_account_label", "can_see_bank_account_national_identifier", "can_see_bank_account_swift_bic", "can_see_bank_account_iban", "can_see_bank_account_number", "can_see_bank_account_bank_name", "can_see_other_account_national_identifier", "can_see_other_account_swift_bic", "can_see_other_account_iban", "can_see_other_account_bank_name", "can_see_other_account_number", "can_see_other_account_metadata", "can_see_other_account_kind", "can_see_more_info", "can_see_url", "can_see_image_url", "can_see_open_corporates_url", "can_see_corporate_location", "can_see_physical_location", "can_see_public_alias", "can_see_private_alias", "can_add_more_info", "can_add_url", "can_add_image_url", "can_add_open_corporates_url", "can_add_corporate_location", "can_add_physical_location", "can_add_public_alias", "can_add_private_alias", "can_delete_corporate_location", "can_delete_physical_location", "can_edit_narrative", "can_add_comment", "can_delete_comment", "can_add_tag", "can_delete_tag", "can_add_image", "can_delete_image", "can_add_where_tag", "can_see_where_tag", "can_delete_where_tag", "can_create_counterparty", "can_see_bank_routing_scheme", "can_see_bank_routing_address", "can_see_bank_account_routing_scheme", "can_see_bank_account_routing_address", "can_see_other_bank_routing_scheme", "can_see_other_bank_routing_address", "can_see_other_account_routing_scheme", "can_see_other_account_routing_addres"]}
+         |
+         | Headers:
+         |
+         |	Content-Type:  application/json
+         |
+         |	Authorization: DirectLogin token="your-token"
+         |
+         |### 3) Grant user access to view
+         |
+         |Action:
+         |
+         |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/permissions/PROVIDER/PROVIDER_ID/views/view-id-from-step-2
+         |
+         |Body:
+         |
+         |	{  "json_string":"{}"}
+         |
+         | Headers:
+         |
+         |	Content-Type:  application/json
+         |
+         |	Authorization: DirectLogin token="your-token"
+         |
+         |
+         |
+      """)
 
 
   def getGlossaryItems : List[GlossaryItem] = {
