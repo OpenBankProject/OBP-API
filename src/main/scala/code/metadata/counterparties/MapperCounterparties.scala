@@ -114,10 +114,12 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   override def getCounterparty(counterpartyId : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId))
   }
+  
+  //TODO, here has a problem, MappedCounterparty has no unique constrain on IBan. But we get Counterparty By Iban. For now, we do not support update Counterpary endpoint. Here we only return the latest record.
   override def getCounterpartyByIban(iban : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(
-      By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
-      By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
+      By(MappedCounterparty.mOtherAccountSecondaryRoutingAddress, iban),
+      OrderBy(MappedCounterparty.id, Descending) //Always use the latest record. 
     )
   }
 

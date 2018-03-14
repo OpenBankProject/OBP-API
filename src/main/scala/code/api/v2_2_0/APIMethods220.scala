@@ -1018,28 +1018,72 @@ trait APIMethods220 {
           |Explicit Counterparties are created for the account / view
          |They are how the user of the view (e.g. account owner) refers to the other side of the transaction
          |
-          |name is the human readable name (e.g. Piano teacher, Miss Nipa)
+         |name : the human readable name (e.g. Piano teacher, Miss Nipa)
          |
-          |other_bank_id is an (internal) ID for the bank of the bank of the counterparty (if known)
+         |description : the human readable name (e.g. Piano teacher, Miss Nipa)
          |
-          |other_account_id is an (internal) ID for the bank account of the counterparty (if known)
+         |bank_routing_scheme : eg: bankId or bankCode or any other strings
          |
-          |other_account_provider is a code that tells the system where that bank is hosted. Will be OBP if its known to the API. Usage of this flag (in API / connectors) is work in progress.
+         |bank_routing_address : eg: `gh.29.uk`, must be valid sandbox bankIds
          |
-          |account_routing_scheme is a code that dictates the nature of the account_routing_address e.g. IBAN
+         |account_routing_scheme : eg: AccountId or AccountNumber or any other strings
          |
-          |account_routing_address is an instance of account_routing_scheme that can be used to route payments to external systems. e.g. an IBAN number
+         |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
          |
-          |bank_routing_scheme is a code that dictates the nature of the bank_routing_address e.g. "BIC",
+         |other_account_secondary_routing_scheme : eg: IBan or any other strings
          |
-          |bank_routing_address is an instance of bank_routing_scheme
+         |other_account_secondary_routing_address : if it is IBan, it should be unique for each counterparty. 
          |
-          |is_beneficiary must be set to true in order to send payments to this counterparty
+         |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
          |
-          |The view specified by VIEW_ID must have the canAddCounterparty permission
+         |other_branch_routing_address : eg: `branch-id-123` or you can leave it empty, not useful in sandbox mode.
          |
-          |${authenticationRequiredMessage(true)}
-          |
+         |is_beneficiary : must be set to `true` in order to send payments to this counterparty
+         |
+         |bespoke: It support list of key-value, you can add it to the counterarty.
+         |
+         |bespoke.key : any info-key you want to add to this counerparty
+         | 
+         |bespoke.value : any info-value you want to add to this counerparty
+         |
+         |The view specified by VIEW_ID must have the canAddCounterparty permission
+         |
+         |A minimal example for TransactionRequestType == COUNTERPARTY
+         | {
+         |  "name": "Tesobe1",
+         |  "description": "Good Company",
+         |  "other_bank_routing_scheme": "bankId",
+         |  "other_bank_routing_address": "gh.29.uk",
+         |  "other_account_routing_scheme": "accountId",
+         |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "is_beneficiary": true,
+         |  "other_account_secondary_routing_scheme": "",
+         |  "other_account_secondary_routing_address": "",
+         |  "other_branch_routing_scheme": "",
+         |  "other_branch_routing_address": "",
+         |  "bespoke": []
+         |}
+         |
+         | 
+         |A minimal example for TransactionRequestType == SEPA
+         | 
+         | {
+         |  "name": "Tesobe2",
+         |  "description": "Good Company",
+         |  "other_bank_routing_scheme": "bankId",
+         |  "other_bank_routing_address": "gh.29.uk",
+         |  "other_account_routing_scheme": "accountId",
+         |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "other_account_secondary_routing_scheme": "IBAN",
+         |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
+         |  "is_beneficiary": true,
+         |  "other_branch_routing_scheme": "",
+         |  "other_branch_routing_address": "",
+         |  "bespoke": []
+         |}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
          |""".stripMargin,
       postCounterpartyJSON,
       counterpartyWithMetadataJson,
