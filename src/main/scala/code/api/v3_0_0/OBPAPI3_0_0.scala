@@ -240,7 +240,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.createViewForBankAccount ::
                           Implementations3_0_0.updateViewForBankAccount ::
                           Implementations3_0_0.corePrivateAccountsAllBanks ::
-                          Implementations3_0_0.elasticSearchWarehouseV300 ::
+                          Implementations3_0_0.dataWarehouseSearch ::
                           Implementations3_0_0.getUser ::
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
@@ -262,7 +262,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getAllEntitlementRequests ::
                           Implementations3_0_0.getEntitlementRequests ::
                           Implementations3_0_0.deleteEntitlementRequest ::
-                          Implementations3_0_0.aggregateWarehouse ::
+                          Implementations3_0_0.dataWarehouseStatistics ::
                           Implementations3_0_0.getEntitlementRequestsForCurrentUser ::
                           Implementations3_0_0.getFirehoseAccountsAtOneBank ::
                           Implementations3_0_0.getEntitlementsForCurrentUser ::
