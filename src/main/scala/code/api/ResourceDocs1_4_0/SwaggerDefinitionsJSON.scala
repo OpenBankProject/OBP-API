@@ -793,8 +793,8 @@ object SwaggerDefinitionsJSON {
     country = "DE"
   )
   val challengeAnswerJSON = ChallengeAnswerJSON(
-    id = "123456",
-    answer = "any string you can post here."
+    id = "This is challenge.id, you can get it from `Create Transaction Request.` response, only is useful if status ==`INITIATED` there.",
+    answer = "123"
   )
 
   val postCustomerJson = PostCustomerJson(

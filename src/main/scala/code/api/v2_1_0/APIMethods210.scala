@@ -532,7 +532,7 @@ trait APIMethods210 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body. 
         |
-        |4) `answer` : is `challenge.answer` can be any Interge in sandbox mode.  
+        |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
         |
       """.stripMargin,
       challengeAnswerJSON,
