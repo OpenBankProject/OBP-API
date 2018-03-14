@@ -1266,7 +1266,7 @@ trait APIMethods210 {
     val createCustomerEntitlementsRequiredForAnyBank = canCreateCustomerAtAnyBank ::
       canCreateUserCustomerLinkAtAnyBank ::
       Nil
-    val createCustomeEntitlementsRequiredText = createCustomerEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createCustomerEntitlementsRequiredForAnyBank.mkString(" and ") + " entitlements required."
+    val createCustomeEntitlementsRequiredText = createCustomerEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createCustomerEntitlementsRequiredForAnyBank.mkString(" and ")
 
     resourceDocs += ResourceDoc(
       createCustomer,
@@ -1314,10 +1314,11 @@ trait APIMethods210 {
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank)
-                                            ||
-                                            hasAllEntitlements("", u.userId, createCustomerEntitlementsRequiredForAnyBank),
-                                            s"$createCustomeEntitlementsRequiredText")
+            _ <- booleanToBox(
+              hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank)
+                ||
+                hasAllEntitlements("", u.userId, createCustomerEntitlementsRequiredForAnyBank),
+              s"$UserHasMissingRoles$createCustomeEntitlementsRequiredText")
             _ <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! UserNotFoundById

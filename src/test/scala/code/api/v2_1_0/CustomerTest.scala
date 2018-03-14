@@ -47,13 +47,13 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       val requestPost = (v2_1Request / "banks" / testBankId1.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 400")
-      responsePost.code should equal(400)
+      responsePost.code should equal(403)
 
       When("We add one required entitlement")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
       val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 400")
-      responsePost1.code should equal(400)
+      responsePost1.code should equal(403)
 
       When("We add all required entitlement")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
