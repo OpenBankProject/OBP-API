@@ -1200,7 +1200,7 @@ object APIUtil extends MdcLoggable {
   val apiTagProduct = ResourceDocTag("Bank-Product")
   val apiTagOpenData = ResourceDocTag("Open-Data")
   val apiTagConsumer = ResourceDocTag("API-Consumer")
-  val apiTagSearchWarehouse = ResourceDocTag("Search-Warehouse")
+  val apiTagSearchWarehouse = ResourceDocTag("Data-Warehouse")
   val apiTagFx = ResourceDocTag("Bank-FX")
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("API-Metric")

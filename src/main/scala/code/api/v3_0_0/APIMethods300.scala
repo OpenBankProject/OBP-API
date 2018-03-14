@@ -695,9 +695,9 @@ trait APIMethods300 {
       "elasticSearchWarehouseV300",
       "POST",
       "/search/warehouse/INDEX",
-      "Search Warehouse Data",
+      "Data Warehouse Search",
       s"""
-        |Search the warehouse and get row level results.
+        |Search the data warehouse and get row level results.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -756,9 +756,9 @@ trait APIMethods300 {
       "elasticSearchWarehouseStatsV300",
       "POST",
       "/search/warehouse/statistics/FIELD",
-      "Search Warehouse Statistics",
+      "Data Warehouse Statistics",
       s"""
-         |Search the warehouse and get statistical aggregations over a warehouse field
+         |Search the data warehouse and get statistical aggregations over a warehouse field
          |
          |Does a stats aggregation over some numeric field:
          |
