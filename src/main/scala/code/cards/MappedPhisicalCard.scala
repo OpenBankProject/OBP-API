@@ -65,6 +65,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mEnabled(enabled)
             .mCancelled(cancelled)
             .mOnHotList(onHotList)
+            .mTechnology(technology)
+            .mNetworks(networks.mkString(","))
             .mAllows(allows.mkString(","))
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
@@ -82,6 +84,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mEnabled(enabled)
             .mCancelled(cancelled)
             .mOnHotList(onHotList)
+            .mTechnology(technology)
+            .mNetworks(networks.mkString(","))
             .mAllows(allows.mkString(","))
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
