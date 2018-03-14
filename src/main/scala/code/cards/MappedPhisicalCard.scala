@@ -49,6 +49,11 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
         By(MappedPhysicalCard.mBankCardNumber, bankCardNumber)
       )
     }
+
+    val r = replacement match {
+      case Some(c) => CardReplacementInfo(requestedDate = c.requestedDate, reasonRequested = c.reasonRequested)
+      case _       => CardReplacementInfo(requestedDate = null, reasonRequested = null)
+    }
     
     //check the product existence and update or insert data
     getPhysicalCard(BankId(bankId), bankCardNumber) match {
@@ -68,6 +73,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mTechnology(technology)
             .mNetworks(networks.mkString(","))
             .mAllows(allows.mkString(","))
+            .mReplacementDate(r.requestedDate)
+            .mReplacementReason(r.reasonRequested.toString)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.UpdateCardError
@@ -87,6 +94,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mTechnology(technology)
             .mNetworks(networks.mkString(","))
             .mAllows(allows.mkString(","))
+            .mReplacementDate(r.requestedDate)
+            .mReplacementReason(r.reasonRequested.toString)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.CreateCardError

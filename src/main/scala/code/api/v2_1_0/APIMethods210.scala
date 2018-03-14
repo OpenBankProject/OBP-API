@@ -938,8 +938,9 @@ trait APIMethods210 {
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             _ <- postJson.allows match {
               case List() => booleanToBox(true)
-              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
+              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {allowedValuesAre + CardAction.availableValues.mkString(", ")}
             }
+            _ <- tryo {CardReplacementReason.valueOf(postJson.replacement.reason_requested)} ?~! {allowedValuesAre + CardReplacementReason.availableValues.mkString(", ")}
             _ <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {AccountNotFound}
             card <- Connector.connector.vend.createOrUpdatePhysicalCard(
                                 bankCardNumber=postJson.bank_card_number,
@@ -956,7 +957,7 @@ trait APIMethods210 {
                                 allows= postJson.allows,
                                 accountId= postJson.account_id,
                                 bankId=bankId.value,
-                                replacement= None,
+                                replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
                                 pinResets= List(),
                                 collected= Option(CardCollectionInfo(postJson.collected)),
                                 posted= Option(CardPostedInfo(postJson.posted))

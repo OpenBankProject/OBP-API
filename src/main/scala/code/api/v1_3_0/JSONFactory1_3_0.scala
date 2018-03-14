@@ -79,9 +79,10 @@ object JSONFactory1_3_0 {
     ReplacementJSON(
       requested_date = replacementInfo.requestedDate,
       reason_requested = replacementInfo.reasonRequested match {
-        case CardReplacementReason.LOST => "lost"
-        case CardReplacementReason.STOLEN => "stolen"
-        case CardReplacementReason.RENEW => "renewal"
+        case CardReplacementReason.LOST => CardReplacementReason.LOST.toString
+        case CardReplacementReason.STOLEN => CardReplacementReason.STOLEN.toString
+        case CardReplacementReason.RENEW => CardReplacementReason.RENEW.toString
+        case _ => ""
       }
     )
   }

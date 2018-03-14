@@ -682,7 +682,7 @@ object SwaggerDefinitionsJSON {
 
   val replacementJSON = ReplacementJSON(
     requested_date = exampleDate,
-    reason_requested = "I want to change a new card"
+    reason_requested = CardReplacementReason.RENEW.toString
   )
 
   val physicalCardJSON = PhysicalCardJSON(

@@ -54,7 +54,7 @@ class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {
       responseJson.networks should equal(physicalCardJSON.networks)
       responseJson.allows should equal(physicalCardJSON.allows)
       responseJson.account.id should equal(physicalCardJSON.account_id)
-      //responseJson.replacement should equal(physicalCardJSON.replacement)
+      responseJson.replacement should equal(physicalCardJSON.replacement)
       //responseJson.collected should equal(physicalCardJSON.collected)
       //responseJson.posted should equal(physicalCardJSON.posted)
     }
