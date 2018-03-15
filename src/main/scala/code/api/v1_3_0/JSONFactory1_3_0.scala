@@ -38,8 +38,6 @@ case class PostPhysicalCardJSON(
                              valid_from_date : Date,
                              expires_date : Date,
                              enabled : Boolean,
-                             cancelled : Boolean,
-                             on_hot_list : Boolean,
                              technology : String,
                              networks : List[String],
                              allows : List[String],
@@ -69,8 +67,8 @@ object JSONFactory1_3_0 {
     PinResetJSON(
       requested_date = resetInfo.requestedDate,
       reason_requested = resetInfo.reasonRequested match {
-        case PinResetReason.FORGOT => "forgot"
-        case PinResetReason.GOOD_SECURITY_PRACTICE => "routine_security"
+        case PinResetReason.FORGOT => PinResetReason.FORGOT.toString
+        case PinResetReason.GOOD_SECURITY_PRACTICE => PinResetReason.GOOD_SECURITY_PRACTICE.toString
       }
     )
   }
@@ -79,9 +77,10 @@ object JSONFactory1_3_0 {
     ReplacementJSON(
       requested_date = replacementInfo.requestedDate,
       reason_requested = replacementInfo.reasonRequested match {
-        case CardReplacementReason.LOST => "lost"
-        case CardReplacementReason.STOLEN => "stolen"
-        case CardReplacementReason.RENEW => "renewal"
+        case CardReplacementReason.LOST => CardReplacementReason.LOST.toString
+        case CardReplacementReason.STOLEN => CardReplacementReason.STOLEN.toString
+        case CardReplacementReason.RENEW => CardReplacementReason.RENEW.toString
+        case _ => ""
       }
     )
   }
