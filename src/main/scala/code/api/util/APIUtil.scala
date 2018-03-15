@@ -1681,7 +1681,7 @@ object APIUtil extends MdcLoggable {
       """)
 
   glossaryItems += GlossaryItem(
-    title = "Create counterparty and make payment",
+    title = "Scenario 3: Create counterparty and make payment",
     description =
       s"""
         |### 1) Create counterparty
