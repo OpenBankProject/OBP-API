@@ -11,7 +11,7 @@ import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, S}
+import net.liftweb.http.{LiftRules, JsonResponse, S}
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -120,11 +120,29 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
 
 
+
+
+
       // Determine if there are special instructions for partialFunctionName
       def getSpecialInstructions(partialFunctionName: String): Option[String] = {
+
+        def textFileToString(filename: String): String = {
+          ""
+          /*
+          logger.info(s"getting $filename")
+          val source = LiftRules.doWithResource(filename) // TODO here
+          logger.info(s"source is $source")
+          val lines = source.toString()
+          logger.info(s"lines is $lines")
+          lines
+          */
+        }
+
+
+
         val specialInstructions = APIUtil.getPropsValue(s"special_instructions_for_$partialFunctionName") match {
           case Full(v) =>
-            Some(v)
+            Some(textFileToString(v))
           case _ =>
             None
         }
