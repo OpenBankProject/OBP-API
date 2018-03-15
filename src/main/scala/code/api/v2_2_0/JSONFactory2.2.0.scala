@@ -489,7 +489,14 @@ object JSONFactory220{
       is_beneficiary = counterparty.isBeneficiary,
       bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value)),
       metadata=CounterpartyMetadataJson(
-        publicAlias = counterpartyMetadata.getPublicAlias
+        publicAlias = counterpartyMetadata.getPublicAlias,
+        moreInfo = counterpartyMetadata.getMoreInfo,
+        url = counterpartyMetadata.getUrl,
+        imageURL = counterpartyMetadata.getImageURL,
+        openCorporatesURL = counterpartyMetadata.getOpenCorporatesURL,
+        corporateLocation = counterpartyMetadata.getCorporateLocation.getOrElse(null),
+        physicalLocation = counterpartyMetadata.getPhysicalLocation.getOrElse(null),
+        privateAlias = counterpartyMetadata.getPrivateAlias
       )
     )
   }
