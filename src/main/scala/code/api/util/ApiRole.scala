@@ -202,7 +202,7 @@ object ApiRole {
     roles.filter(_.toString == value) match {
       case x :: Nil => x // We find exactly one Role
       case x :: _ => throw new Exception("Duplicated role: " + x) // We find more than one Role
-      case _ => throw new IllegalArgumentException() // There is no Role
+      case _ => throw new IllegalArgumentException("Incorrect ApiRole value: " + value) // There is no Role
     }
   }
 

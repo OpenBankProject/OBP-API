@@ -122,6 +122,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
+  val AllowedValuesAre = "OBP-10015: Allowed values are: "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -2533,6 +2534,8 @@ Versions are groups of endpoints in a file
   }
 
   def filterMessage(obj: Failure) = {
+    println("obj: " + obj)
+    println("obj.failureChain: " + obj.failureChain)
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
         obj.messageChain

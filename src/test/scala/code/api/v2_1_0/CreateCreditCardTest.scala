@@ -48,15 +48,16 @@ class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {
       responseJson.valid_from_date should equal(physicalCardJSON.valid_from_date)
       responseJson.expires_date should equal(physicalCardJSON.expires_date)
       responseJson.enabled should equal(physicalCardJSON.enabled)
-      responseJson.cancelled should equal(physicalCardJSON.cancelled)
-      responseJson.on_hot_list should equal(physicalCardJSON.on_hot_list)
+      responseJson.cancelled should equal(false)
+      responseJson.on_hot_list should equal(false)
       responseJson.technology should equal(physicalCardJSON.technology)
       responseJson.networks should equal(physicalCardJSON.networks)
       responseJson.allows should equal(physicalCardJSON.allows)
       responseJson.account.id should equal(physicalCardJSON.account_id)
-      //responseJson.replacement should equal(physicalCardJSON.replacement)
-      //responseJson.collected should equal(physicalCardJSON.collected)
-      //responseJson.posted should equal(physicalCardJSON.posted)
+      responseJson.replacement should equal(physicalCardJSON.replacement)
+      responseJson.collected should equal(physicalCardJSON.collected)
+      responseJson.posted should equal(physicalCardJSON.posted)
+      responseJson.pin_reset should equal(physicalCardJSON.pin_reset)
     }
 
   }
