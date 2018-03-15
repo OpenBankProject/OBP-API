@@ -690,14 +690,14 @@ trait APIMethods300 {
 
     // TODO Put message into doc below if not enabled (but continue to show API Doc)
     resourceDocs += ResourceDoc(
-      elasticSearchWarehouseV300,
+      dataWarehouseSearch,
       implementedInApiVersion,
-      "elasticSearchWarehouseV300",
+      "dataWarehouseSearch",
       "POST",
       "/search/warehouse/INDEX",
-      "Search Warehouse Data",
+      "Data Warehouse Search",
       s"""
-        |Search the warehouse and get row level results.
+        |Search the data warehouse and get row level results.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -708,7 +708,7 @@ trait APIMethods300 {
         |Examples of usage:
         |
         |
-        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE 
+        |POST /search/warehouse/THE_INDEX_YOU_WANT_TO_USE
         |
         |POST /search/warehouse/INDEX1,INDEX2
         |
@@ -733,7 +733,7 @@ trait APIMethods300 {
       Some(List(canSearchWarehouse)))
     // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
-    lazy val elasticSearchWarehouseV300: OBPEndpoint = {
+    lazy val dataWarehouseSearch: OBPEndpoint = {
       case "search" :: "warehouse" :: index :: Nil JsonPost json -> _ => {
         cc =>
           for {
@@ -751,14 +751,14 @@ trait APIMethods300 {
     case class Query(query: String)
     
     resourceDocs += ResourceDoc(
-      aggregateWarehouse,
+      dataWarehouseStatistics,
       implementedInApiVersion,
-      "elasticSearchWarehouseStatsV300",
+      "dataWarehouseStatistics",
       "POST",
       "/search/warehouse/statistics/FIELD",
-      "Search Warehouse Statistics",
+      "Data Warehouse Statistics",
       s"""
-         |Search the warehouse and get statistical aggregations over a warehouse field
+         |Search the data warehouse and get statistical aggregations over a warehouse field
          |
          |Does a stats aggregation over some numeric field:
          |
@@ -784,7 +784,7 @@ trait APIMethods300 {
          |[Elastic simple query](https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-request-body.html)
          |
          |[Elastic aggregations](https://www.elastic.co/guide/en/elasticsearch/reference/6.2/search-aggregations.html)
-         |         
+         |
          |
         """,
       ElasticSearchJSON(ElasticSearchQuery()),
@@ -794,7 +794,7 @@ trait APIMethods300 {
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics))
     )
-    lazy val aggregateWarehouse: OBPEndpoint = {
+    lazy val dataWarehouseStatistics: OBPEndpoint = {
       case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
           if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
