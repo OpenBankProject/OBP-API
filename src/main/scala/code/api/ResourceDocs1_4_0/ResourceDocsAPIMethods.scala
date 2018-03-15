@@ -11,7 +11,7 @@ import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, S}
+import net.liftweb.http.{LiftRules, JsonResponse, S}
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -120,16 +120,31 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
 
 
-      // Determine if there are special instructions for partialFunctionName
+
+
+
+      // Find any special instructions for partialFunctionName
       def getSpecialInstructions(partialFunctionName: String): Option[String] = {
-        val specialInstructions = APIUtil.getPropsValue(s"special_instructions_for_$partialFunctionName") match {
-          case Full(v) =>
-            Some(v)
-          case _ =>
-            None
+
+        // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
+        // Each file should match a partial function name or it will be ignored.
+        // The format of the file should be mark down.
+        val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
+          logger.debug(s"getSpecialInstructions getting $filename")
+          val source = LiftRules.loadResourceAsString(filename)
+          logger.debug(s"getSpecialInstructions source is $source")
+          val result = source match {
+            case Full(payload) =>
+              logger.debug(s"getSpecialInstructions payload is $payload")
+              Some(payload)
+            case _ =>
+              logger.debug(s"getSpecialInstructions Could not find / load $filename")
+              None
+          }
+        result
         }
-        specialInstructions
-      }
+
+
 
 
 
