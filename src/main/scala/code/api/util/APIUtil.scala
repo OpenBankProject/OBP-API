@@ -321,7 +321,7 @@ val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
-  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body."
+  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
 
 
@@ -1200,7 +1200,7 @@ object APIUtil extends MdcLoggable {
   val apiTagProduct = ResourceDocTag("Bank-Product")
   val apiTagOpenData = ResourceDocTag("Open-Data")
   val apiTagConsumer = ResourceDocTag("API-Consumer")
-  val apiTagSearchWarehouse = ResourceDocTag("Search-Warehouse")
+  val apiTagSearchWarehouse = ResourceDocTag("Data-Warehouse")
   val apiTagFx = ResourceDocTag("Bank-FX")
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("API-Metric")
@@ -1493,7 +1493,7 @@ object APIUtil extends MdcLoggable {
       """)
 
   glossaryItems += GlossaryItem(
-    title = "Onboarding a user",
+    title = "Scenario 1: Onboarding a User",
     description =
       s"""
         |### 1) Create a user
@@ -1637,7 +1637,7 @@ object APIUtil extends MdcLoggable {
       """)
 
   glossaryItems += GlossaryItem(
-    title = "Create a public account",
+    title = "Scenario 2: Create a Public Account",
     description =
       s"""
          |### 1) Create account

@@ -43,15 +43,15 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       thisAccountId = accountId,
       thisViewId = "",
       name = UUID.randomUUID().toString,
-      otherAccountRoutingAddress = accountId,
       otherAccountRoutingScheme = otherAccountRoutingScheme,
+      otherAccountRoutingAddress = accountId,
       otherBankRoutingScheme = "OBP",
       otherBankRoutingAddress = bankId,
       otherBranchRoutingScheme ="OBP",
       otherBranchRoutingAddress ="Berlin",
       isBeneficiary = isBeneficiary,
-      otherAccountSecondaryRoutingScheme ="String",
-      otherAccountSecondaryRoutingAddress ="String",
+      otherAccountSecondaryRoutingScheme ="IBAN",
+      otherAccountSecondaryRoutingAddress ="DE89 3704 0044 0532 0130 00",
       description = "String",
       bespoke = Nil
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
