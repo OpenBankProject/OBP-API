@@ -1201,7 +1201,7 @@ object APIUtil extends MdcLoggable {
   val apiTagProduct = ResourceDocTag("Bank-Product")
   val apiTagOpenData = ResourceDocTag("Open-Data")
   val apiTagConsumer = ResourceDocTag("API-Consumer")
-  val apiTagSearchWarehouse = ResourceDocTag("Search-Warehouse")
+  val apiTagSearchWarehouse = ResourceDocTag("Data-Warehouse")
   val apiTagFx = ResourceDocTag("Bank-FX")
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("API-Metric")
@@ -1494,7 +1494,7 @@ object APIUtil extends MdcLoggable {
       """)
 
   glossaryItems += GlossaryItem(
-    title = "Onboarding a user",
+    title = "Scenario 1: Onboarding a User",
     description =
       s"""
         |### 1) Create a user, get an app key and authenticate
@@ -1586,7 +1586,7 @@ object APIUtil extends MdcLoggable {
       """)
 
   glossaryItems += GlossaryItem(
-    title = "Create a public account",
+    title = "Scenario 2: Create a Public Account",
     description =
       s"""
          |### 1) Create account
