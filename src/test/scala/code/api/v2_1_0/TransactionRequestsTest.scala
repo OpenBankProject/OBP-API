@@ -86,8 +86,8 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       var toAccountJson = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value)
 
       var bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-      val discription = "Just test it!"
-      var transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, discription)
+      val description = "Just test it!"
+      var transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, description)
 
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
@@ -100,9 +100,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
       val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
 
-      var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountSecondaryRoutingAddress), discription, sharedChargePolicy)
+      var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountSecondaryRoutingAddress), description, sharedChargePolicy)
 
-      var transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(CounterpartyIdJson(counterpartyCounterparty.counterpartyId), bodyValue, discription, sharedChargePolicy)
+      var transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(CounterpartyIdJson(counterpartyCounterparty.counterpartyId), bodyValue, description, sharedChargePolicy)
 
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
         this.challengeId = challengeId
@@ -212,10 +212,10 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         (getTransactionResponse.body.children.size) should equal(1)
         if (withChellenge) {
           And("we should get None, there is no transaction yet")
-          ((getTransactionResponse.body \ "transactions"\"details").toString contains (discription)) should not equal(true)
+          ((getTransactionResponse.body \ "transactions"\"details").toString contains (description)) should not equal(true)
         } else {
-          And("we should get the body discription value is as we set before")
-          ((getTransactionResponse.body \ "transactions"\"details").toString contains (discription)) should equal(true)
+          And("we should get the body description value is as we set before")
+          ((getTransactionResponse.body \ "transactions"\"details").toString contains (description)) should equal(true)
         }
       }
 
