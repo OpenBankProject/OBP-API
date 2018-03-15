@@ -127,15 +127,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       def getSpecialInstructions(partialFunctionName: String): Option[String] = {
 
         def textFileToString(filename: String): String = {
-          ""
-          /*
           logger.info(s"getting $filename")
-          val source = LiftRules.doWithResource(filename) // TODO here
+          val source = LiftRules.loadResourceAsString(filename) // TODO here
           logger.info(s"source is $source")
-          val lines = source.toString()
-          logger.info(s"lines is $lines")
-          lines
-          */
+          source match {
+            case Full(payload) =>
+              logger.info(s"lines is $payload")
+              payload
+            case _ =>
+              logger.info(s"cannot load $filename")
+              ""
+          }
         }
 
 
