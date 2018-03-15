@@ -723,8 +723,6 @@ object SwaggerDefinitionsJSON {
     valid_from_date = exampleDate,
     expires_date = exampleDate,
     enabled = true,
-    cancelled = true,
-    on_hot_list = true,
     technology = "String",
     networks = List("network1", "network2"),
     allows = List("credit", "debit"),

@@ -921,6 +921,7 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
+        AllowedValuesAre,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -938,9 +939,9 @@ trait APIMethods210 {
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
             _ <- postJson.allows match {
               case List() => booleanToBox(true)
-              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {allowedValuesAre + CardAction.availableValues.mkString(", ")}
+              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {AllowedValuesAre + CardAction.availableValues.mkString(", ")}
             }
-            _ <- tryo {CardReplacementReason.valueOf(postJson.replacement.reason_requested)} ?~! {allowedValuesAre + CardReplacementReason.availableValues.mkString(", ")}
+            _ <- tryo {CardReplacementReason.valueOf(postJson.replacement.reason_requested)} ?~! {AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")}
             _ <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {AccountNotFound}
             card <- Connector.connector.vend.createOrUpdatePhysicalCard(
                                 bankCardNumber=postJson.bank_card_number,
@@ -950,8 +951,8 @@ trait APIMethods210 {
                                 validFrom=postJson.valid_from_date,
                                 expires=postJson.expires_date,
                                 enabled=postJson.enabled,
-                                cancelled=postJson.cancelled,
-                                onHotList=postJson.on_hot_list,
+                                cancelled=false,
+                                onHotList=false,
                                 technology=postJson.technology,
                                 networks= postJson.networks,
                                 allows= postJson.allows,

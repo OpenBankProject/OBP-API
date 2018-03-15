@@ -38,8 +38,6 @@ case class PostPhysicalCardJSON(
                              valid_from_date : Date,
                              expires_date : Date,
                              enabled : Boolean,
-                             cancelled : Boolean,
-                             on_hot_list : Boolean,
                              technology : String,
                              networks : List[String],
                              allows : List[String],
