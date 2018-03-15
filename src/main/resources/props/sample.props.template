@@ -440,7 +440,9 @@ organisation_website = https://www.tesobe.com
 ## This property is a comma separated list of APIs that should be "featured" i.e. highlighted, or listed prominently in the API Explorer etc.
 # featured_apis=elasticSearchWarehouseV300
 
-## Properties of named special_instructions_for_PARTIAL_FUNCTION_NAME can be used to add
-## special instructions to certain endpoints which might have instance specific information
-#special_instructions_for_elasticSearchWarehouseV300=These are special instructions.....
+## Note: To add special instructions for an endpoint, just add a folder called  of named special_instructions_for_resources
+## to your src main resources folder and create markdown files there for each partial function that needs special instructions
+## and they will be displayed in the API Explorer (and in Resource Docs endpoint).
+## e.g. OBP-API/src/main/resources/special_instructions_for_resources/dataWarehouseSearch.md
+## Note: You do NOT need to include anything here for this to work.
 

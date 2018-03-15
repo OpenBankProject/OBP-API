@@ -123,33 +123,28 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-      // Determine if there are special instructions for partialFunctionName
+      // Find any special instructions for partialFunctionName
       def getSpecialInstructions(partialFunctionName: String): Option[String] = {
 
-        def textFileToString(filename: String): String = {
-          logger.info(s"getting $filename")
-          val source = LiftRules.loadResourceAsString(filename) // TODO here
-          logger.info(s"source is $source")
-          source match {
+        // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
+        // Each file should match a partial function name or it will be ignored.
+        // The format of the file should be mark down.
+        val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
+          logger.debug(s"getSpecialInstructions getting $filename")
+          val source = LiftRules.loadResourceAsString(filename)
+          logger.debug(s"getSpecialInstructions source is $source")
+          val result = source match {
             case Full(payload) =>
-              logger.info(s"lines is $payload")
-              payload
+              logger.debug(s"getSpecialInstructions payload is $payload")
+              Some(payload)
             case _ =>
-              logger.info(s"cannot load $filename")
-              ""
+              logger.debug(s"getSpecialInstructions Could not find / load $filename")
+              None
           }
+        result
         }
 
 
-
-        val specialInstructions = APIUtil.getPropsValue(s"special_instructions_for_$partialFunctionName") match {
-          case Full(v) =>
-            Some(textFileToString(v))
-          case _ =>
-            None
-        }
-        specialInstructions
-      }
 
 
 
