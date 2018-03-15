@@ -529,8 +529,17 @@ trait BankAccount extends MdcLoggable {
   *  accounts that have at least one transaction in common with this bank account
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
-    if(APIUtil.hasAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten)
+    if(APIUtil.hasAccess(view, user)){
+      val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten
+      val explictCounterpartiesBox = Connector.connector.vend.getCounterparties(view.bankId, view.accountId, view.viewId)
+      explictCounterpartiesBox match {
+        case Full(counterparties) => {
+          val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccount.toInternalCounterparty).flatMap(counterparty=>view.moderate(counterparty))
+          Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
+        }
+        case _ => Full(implicitModeratedOtherBankAccounts)
+      }
+    }
     else
       viewNotAllowed(view)
   /**
