@@ -1497,16 +1497,47 @@ object APIUtil extends MdcLoggable {
     title = "Scenario 1: Onboarding a User",
     description =
       s"""
-        |### 1) Create a user, get an app key and authenticate
-        |
-        |Follow the instructions in the [Direct Login](#Direct-Login) section to create a user, get an app key and authenticate.
-        |
-        |### 2) Get your user id
+        |### 1) Create a user
         |
         |Action:
         |
-        |	GET $getObpApiRoot/v3.0.0/users/current
+        |	POST $getObpApiRoot/v3.0.0/users
         |
+        |Body:
+        |
+        |	{  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
+        |
+        |Please note the user_id
+        |
+        |### 2) Create customer
+        |
+        |Requires CanCreateCustomer and CanCreateUserCustomerLink roles
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/customers
+        |
+        |Body:
+        |
+        |	{  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
+        |
+        |### 3) List customers for the user
+        |
+        |Action:
+        |
+        |	GET $getObpApiRoot/v3.0.0/users/current/customers
         |
         |Body:
         |
@@ -1516,26 +1547,11 @@ object APIUtil extends MdcLoggable {
         |
         |	Content-Type:  application/json
         |
-        |	Authorization: DirectLogin token="your-token-from-step-1"
-        |
-        |
-        |### 3) Create customer
-        |
-        |Action:
-        |
-        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/customers
-        |
-        |Body:
-        |
-        |	{  "user_id":"your-user-id-from-step-2", "customer_number":"new customer number 687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
-        |
-        |Headers:
-        |
-        |	Content-Type:  application/json
-        |
-        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
         |
         |### 4) Create user customer link
+        |
+        |Requires CanCreateCustomer and CanCreateUserCustomerLink roles
         |
         |Action:
         |
@@ -1543,15 +1559,17 @@ object APIUtil extends MdcLoggable {
         |
         |Body:
         |
-        |	{ "user_customer_link_id":"String", "customer_id":"customer-id-from-step-3", "user_id":"your-user-id-from-step-2", "date_inserted":"2018-03-22T00:08:00Z", "is_active":true }
+        |	{ "user_customer_link_id":"String", "customer_id":"customer-id-from-step-2", "user_id":"user-id-from-step-1", "date_inserted":"2018-03-22T00:08:00Z", "is_active":true }
         |
         |Headers:
         |
         |	Content-Type:  application/json
         |
-        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
         |
         |### 5) Create account
+        |
+        |Requires CanCreateAccount role
         |
         |Action:
         |
@@ -1559,15 +1577,33 @@ object APIUtil extends MdcLoggable {
         |
         |Body:
         |
-        |	{  "user_id":"your-user-id-from-step-2",  "label":"Label",  "type":"CURRENT",  "balance":{    "currency":"EUR",    "amount":"0"  },  "branch_id":"1234",  "account_routing":{    "scheme":"OBP",    "address":"UK123456"  }}
+        |	{  "user_id":"user-id-from-step-1",  "label":"Label",  "type":"CURRENT",  "balance":{    "currency":"EUR",    "amount":"0"  },  "branch_id":"1234",  "account_routing":{    "scheme":"OBP",    "address":"UK123456"  }}
         |
         |Headers:
         |
         |	Content-Type:  application/json
         |
-        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
         |
-        |### 6) Create card
+        |### 6) List accounts
+        |
+        |Action:
+        |
+        |	GET $getObpApiRoot/v3.0.0/my/banks/BANK_ID/accounts/account-id-from-step-2/account
+        |
+        |Body:
+        |
+        |	Leave empty!
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-direct-login"
+        |
+        |### 7) Create card
+        |
+        |Requires CanCreateCardsForBank role
         |
         |Action:
         |
@@ -1575,13 +1611,29 @@ object APIUtil extends MdcLoggable {
         |
         |Body:
         |
-        |	{  "bank_card_number":"String",  "name_on_card":"String",  "issue_number":"String",  "serial_number":"String",  "valid_from_date":"2013-01-22T00:08:00Z",  "expires_date":"2013-01-22T00:08:00Z",  "enabled":true,  "cancelled":true,  "on_hot_list":true,  "technology":"String",  "networks":["String"],  "allows":["credit"],  "account_id":"String",  "replacement":{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"Good Point"  },  "pin_reset":[{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"forgot"  }],  "collected":"2013-01-22T00:08:00Z",  "posted":"2013-01-22T00:08:00Z"}
+        |	{  "account_id":"account-id-from-step-4","bank_card_number":"String",  "name_on_card":"String",  "issue_number":"String",  "serial_number":"String",  "valid_from_date":"2013-01-22T00:08:00Z",  "expires_date":"2013-01-22T00:08:00Z",  "enabled":true,  "cancelled":true,  "on_hot_list":false,  "technology":"String",  "networks":["String"],  "allows":["credit"],  "account_id":"String",  "replacement":{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"Good Point"  },  "pin_reset":[{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"forgot"  }],  "collected":"2013-01-22T00:08:00Z",  "posted":"2013-01-22T00:08:00Z"}
         |
         |Headers:
         |
         |	Content-Type:  application/json
         |
-        |	Authorization: DirectLogin token="your-token-from-step-1"
+        |	Authorization: DirectLogin token="your-token-from-direct0login"
+        |
+        |### 8) List cards
+        |
+        |Action:
+        |
+        |	GET $getObpApiRoot/v3.0.0/cards
+        |
+        |Body:
+        |
+        |	Leave empty!
+        |
+        |Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token-from-direct0login"
         |
       """)
 
@@ -1627,6 +1679,62 @@ object APIUtil extends MdcLoggable {
          |
          |
          |
+      """)
+
+  glossaryItems += GlossaryItem(
+    title = "Scenario 3: Create counterparty and make payment",
+    description =
+      s"""
+        |### 1) Create counterparty
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/account-id-from-account-creation/VIEW_ID/counterparties
+        |
+        |Body:
+        |
+        |	{  "name":"CounterpartyName",  "description":"My landlord",  "other_account_routing_scheme":"IBAN",  "other_account_routing_address":"7987987-2348987-234234",  "other_account_secondary_routing_scheme":"accountNumber",  "other_account_secondary_routing_address":"BIC201483",  "other_bank_routing_scheme":"bankCode",  "other_bank_routing_address":"10",  "other_branch_routing_scheme":"branchNumber",  "other_branch_routing_address":"10010",  "is_beneficiary":true,  "bespoke":[{    "key":"englishName",    "value":"english Name"  }]}
+        |
+        | Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token"
+        |
+        |### 2) Make payment by SEPA
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests
+        |
+        |Body:
+        |
+        |	{  "value":{    "currency":"EUR",    "amount":"10"  },  "to":{    "iban":"123"  },  "description":"This is a SEPA Transaction Request",  "charge_policy":"SHARED"}
+        |
+        | Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token"        |
+        |
+        |
+        |### 3) Make payment by COUNTERPARTY
+        |
+        |Action:
+        |
+        |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests
+        |
+        |Body:
+        |
+        |	{  "to":{    "counterparty_id":"counterparty-id-from-step-1"  },  "value":{    "currency":"EUR",    "amount":"10"  },  "description":"A description for the transaction to the counterparty",  "charge_policy":"SHARED"}
+        |
+        | Headers:
+        |
+        |	Content-Type:  application/json
+        |
+        |	Authorization: DirectLogin token="your-token"
+        |
+        |
       """)
 
 
