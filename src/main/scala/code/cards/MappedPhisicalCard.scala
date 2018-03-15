@@ -54,9 +54,17 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
       case Some(c) => CardReplacementInfo(requestedDate = c.requestedDate, reasonRequested = c.reasonRequested)
       case _       => CardReplacementInfo(requestedDate = null, reasonRequested = null)
     }
+    val c = collected match {
+      case Some(c) => CardCollectionInfo(date = c.date)
+      case _       => CardCollectionInfo(date = null)
+    }
+    val p = posted match {
+      case Some(c) => CardPostedInfo(date = c.date)
+      case _       => CardPostedInfo(date = null)
+    }
     
     //check the product existence and update or insert data
-    getPhysicalCard(BankId(bankId), bankCardNumber) match {
+    val result = getPhysicalCard(BankId(bankId), bankCardNumber) match {
       case Full(mappedPhysicalCard) =>
         tryo {
           mappedPhysicalCard
@@ -75,6 +83,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mAllows(allows.mkString(","))
             .mReplacementDate(r.requestedDate)
             .mReplacementReason(r.reasonRequested.toString)
+            .mCollected(c.date)
+            .mPosted(c.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.UpdateCardError
@@ -96,10 +106,26 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mAllows(allows.mkString(","))
             .mReplacementDate(r.requestedDate)
             .mReplacementReason(r.reasonRequested.toString)
+            .mCollected(c.date)
+            .mPosted(c.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.CreateCardError
     }
+    result match {
+      case Full(v) =>
+        for(pinReset <- pinResets) {
+          val pin = PinReset.create
+            .mReplacementReason(pinReset.reasonRequested.toString)
+            .mReplacementDate(pinReset.requestedDate)
+            .card(v)
+            .saveMe()
+          v.mPinResets += pin
+          v.save()
+        }
+      case _ => // There is no enough information to set foreign key
+    }
+    result
   }
   def getPhysicalCards(user: User) = {
     val accounts = views.vend.getPrivateBankAccounts(user)

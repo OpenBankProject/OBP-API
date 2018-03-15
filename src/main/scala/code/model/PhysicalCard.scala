@@ -63,7 +63,7 @@ case object CardAction {
     case "credit" => CREDIT
     case "debit" => DEBIT
     case "cash_withdrawal" => CASH_WITHDRAWAL
-    case _ => throw new IllegalArgumentException ()
+    case _ => throw new IllegalArgumentException ("Incorrect CardAction value: " + value)
   }
   val availableValues = "credit" :: "debit" :: "cash_withdrawal" :: Nil
 }
@@ -98,15 +98,15 @@ case class PinResetInfo(requestedDate: Date, reasonRequested: PinResetReason)
 sealed trait PinResetReason
 
 case object PinResetReason {
-  object FORGOT extends PinResetReason
-  object GOOD_SECURITY_PRACTICE extends PinResetReason
+  case object FORGOT extends PinResetReason
+  case object GOOD_SECURITY_PRACTICE extends PinResetReason
 
   def valueOf(value: String) = value match {
-    case "forgot" => FORGOT
-    case "routine_security" => GOOD_SECURITY_PRACTICE
-    case _ => throw new IllegalArgumentException ()
+    case "FORGOT" => FORGOT
+    case "GOOD_SECURITY_PRACTICE" => GOOD_SECURITY_PRACTICE
+    case _ => throw new IllegalArgumentException ("Incorrect PinResetReason value: " + value)
   }
-  val availableValues = "forgot" :: "routine_security" :: Nil
+  val availableValues = "FORGOT" :: "GOOD_SECURITY_PRACTICE" :: Nil
 }
 
 

@@ -8,6 +8,7 @@ import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
+import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import net.liftweb.json
 
@@ -677,7 +678,11 @@ object SwaggerDefinitionsJSON {
 
   val pinResetJSON = PinResetJSON(
     requested_date = exampleDate,
-    reason_requested = "forgot"
+    reason_requested = FORGOT.toString
+  )
+  val pinResetJSON1 = PinResetJSON(
+    requested_date = exampleDate,
+    reason_requested = GOOD_SECURITY_PRACTICE.toString
   )
 
   val replacementJSON = ReplacementJSON(
@@ -725,7 +730,7 @@ object SwaggerDefinitionsJSON {
     allows = List("credit", "debit"),
     account_id = "String",
     replacement = replacementJSON,
-    pin_reset = List(pinResetJSON),
+    pin_reset = List(pinResetJSON, pinResetJSON1),
     collected = exampleDate,
     posted = exampleDate
   )

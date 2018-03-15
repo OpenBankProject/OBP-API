@@ -69,8 +69,8 @@ object JSONFactory1_3_0 {
     PinResetJSON(
       requested_date = resetInfo.requestedDate,
       reason_requested = resetInfo.reasonRequested match {
-        case PinResetReason.FORGOT => "forgot"
-        case PinResetReason.GOOD_SECURITY_PRACTICE => "routine_security"
+        case PinResetReason.FORGOT => PinResetReason.FORGOT.toString
+        case PinResetReason.GOOD_SECURITY_PRACTICE => PinResetReason.GOOD_SECURITY_PRACTICE.toString
       }
     )
   }

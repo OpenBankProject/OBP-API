@@ -958,7 +958,7 @@ trait APIMethods210 {
                                 accountId= postJson.account_id,
                                 bankId=bankId.value,
                                 replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
-                                pinResets= List(),
+                                pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
                                 collected= Option(CardCollectionInfo(postJson.collected)),
                                 posted= Option(CardPostedInfo(postJson.posted))
                               )
