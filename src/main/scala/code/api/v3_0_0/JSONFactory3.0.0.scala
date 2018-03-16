@@ -259,7 +259,9 @@ case class ModeratedCoreAccountsJsonV300(
 )
 
 case class ElasticSearchJSON(query: ElasticSearchQuery)
-case class ElasticSearchQuery(match_all:String  ="{}")
+case class ElasticSearchQuery(match_all: EmptyElasticSearch)
+case class EmptyElasticSearch(none:Option[String] = None)
+
 
 //ended -- account relevant case classes /////
 
