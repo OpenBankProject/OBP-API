@@ -75,6 +75,25 @@ class elasticsearch extends MdcLoggable {
       Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
     }
   }
+  def searchProxyAsyncV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Future[APIResponse] = {
+      val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
+      val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
+      logger.debug(esUrl)
+      logger.debug(body)
+      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
+      val response = getAPIResponseAsync(request)
+      response
+
+  }
+
+  def parseResponse(response: APIResponse, statsOnly: Boolean = false) = {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
+      if (statsOnly) (ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
+      else (ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
+    } else {
+      Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
+    }
+  }
 
 
   def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): Box[LiftResponse] = {
@@ -100,12 +119,16 @@ class elasticsearch extends MdcLoggable {
   
   private def getAPIResponse(req: Req): APIResponse = {
     Await.result(
-      for (response <- Http.default(req > as.Response(p => p)))
-        yield {
-          val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
-          APIResponse(response.getStatusCode, json.parse(body))
-        }
+      getAPIResponseAsync(req)
       , Duration.Inf)
+  }
+
+  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
+    for (response <- Http.default(req > as.Response(p => p)))
+      yield {
+        val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
+        APIResponse(response.getStatusCode, json.parse(body))
+      }
   }
 
   private def constructQuery(userId: String, params: Map[String, String]): Req = {

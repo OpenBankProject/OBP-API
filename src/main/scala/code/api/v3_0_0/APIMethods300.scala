@@ -737,13 +737,17 @@ trait APIMethods300 {
       case "search" :: "warehouse" :: index :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouse.toString) ?~! {UserHasMissingRoles + CanSearchWarehouse}
-            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
-            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
-            result <- esw.searchProxyV300(u.userId, indexPart, bodyPart)
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            indexPart <- Future { esw.getElasticSearchUri(index) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            bodyPart <- Future { tryo(compactRender(json)) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchEmptyQueryBody, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
-            successJsonResponse(Extraction.decompose(result))
+            (esw.parseResponse(result), callContext)
           }
       }
     }
