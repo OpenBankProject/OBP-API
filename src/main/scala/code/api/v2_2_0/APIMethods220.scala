@@ -268,9 +268,9 @@ trait APIMethods220 {
     }
 
     resourceDocs += ResourceDoc(
-      getCounterpartiesForAccount,
+      getExplictCounterpartiesForAccount,
       implementedInApiVersion,
-      "getCounterpartiesForAccount",
+      "getExplictCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit).",
@@ -291,8 +291,7 @@ trait APIMethods220 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
-    lazy val getCounterpartiesForAccount : OBPEndpoint = {
-      //get other accounts for one account
+    lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
@@ -314,12 +313,12 @@ trait APIMethods220 {
 
   
     resourceDocs += ResourceDoc(
-      getCounterpartyById,
+      getExplictCounterpartyById,
       implementedInApiVersion,
-      "getCounterpartyById",
+      "getExplictCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id.",
+      "Get Counterparty by Counterparty Id.(Explicit).",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
@@ -331,8 +330,7 @@ trait APIMethods220 {
       List(apiTagCounterparty, apiTagCounterpartyMetaData)
     )
   
-    lazy val getCounterpartyById : OBPEndpoint = {
-      //get private accounts for a single bank
+    lazy val getExplictCounterpartyById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
@@ -1006,7 +1004,7 @@ trait APIMethods220 {
       "createCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create Counterparty (explicit)",
+      "Create Counterparty (Explicit)",
       s"""Create Counterparty (Explicit) for an Account.
          |
          |In OBP, there are two types of Counterparty.

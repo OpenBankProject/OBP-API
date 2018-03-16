@@ -529,8 +529,17 @@ trait BankAccount extends MdcLoggable {
   *  accounts that have at least one transaction in common with this bank account
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
-    if(APIUtil.hasAccess(view, user))
-      Full(Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten)
+    if(APIUtil.hasAccess(view, user)){
+      val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderate(oAcc)).flatten
+      val explictCounterpartiesBox = Connector.connector.vend.getCounterparties(view.bankId, view.accountId, view.viewId)
+      explictCounterpartiesBox match {
+        case Full(counterparties) => {
+          val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccount.toInternalCounterparty).flatMap(counterparty=>view.moderate(counterparty))
+          Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
+        }
+        case _ => Full(implicitModeratedOtherBankAccounts)
+      }
+    }
     else
       viewNotAllowed(view)
   /**
@@ -542,7 +551,12 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID).flatMap(oAcc => view.moderate(oAcc))
+      Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID)).flatMap(BankAccount.toInternalCounterparty).flatMap(view.moderate) match {
+        //First check the explict counterparty 
+        case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)
+        //Than we checked the implict counterparty.  
+        case _ => Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID).flatMap(oAcc => view.moderate(oAcc))
+      }
     else
       viewNotAllowed(view)
 
@@ -606,6 +620,31 @@ object BankAccount {
         )
       )
   }
+  
+  //This method change CounterpartyTrait to internal counterparty, becuasa of the view stuff.
+  //All the fileds need be controlled by the view, and the `code.model.View.moderate` accept the `Counterparty` as parameter. 
+  def toInternalCounterparty(counterparty: CounterpartyTrait) : Box[Counterparty] = {
+    Full(
+      //TODO, check all the `new Counterparty` code, they can be reduced into one gernal method for all.
+      new Counterparty(
+        kind = "",//Can not map 
+        nationalIdentifier = "", //Can not map
+        otherAccountProvider = "", //Can not map
+        
+        thisBankId = BankId(counterparty.thisBankId),
+        thisAccountId = AccountId(counterparty.thisAccountId),
+        counterpartyId = counterparty.counterpartyId,
+        counterpartyName = counterparty.name,
+        
+        otherBankRoutingAddress = Some(counterparty.otherBankRoutingAddress),
+        otherBankRoutingScheme = counterparty.otherBankRoutingScheme,
+        otherAccountRoutingScheme = counterparty.otherAccountRoutingScheme,
+        otherAccountRoutingAddress = Some(counterparty.otherBankRoutingAddress),
+        isBeneficiary = true
+      )
+    )
+  }
+  
   
   def publicAccounts(publicViews: List[View]) : List[BankAccount] = {
     publicViews
