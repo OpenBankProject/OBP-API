@@ -315,10 +315,10 @@ trait APIMethods220 {
     resourceDocs += ResourceDoc(
       getExplictCounterpartyById,
       implementedInApiVersion,
-      "getExplictCounterpartyById (Explicit).",
+      "getExplictCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id.",
+      "Get Counterparty by Counterparty Id.(Explicit).",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
