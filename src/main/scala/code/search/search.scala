@@ -99,6 +99,9 @@ class elasticsearch extends MdcLoggable {
   def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): Box[LiftResponse] = {
     searchProxyV300(userId, uriPart, addAggregation(bodyPart,field), true)
   }
+  def searchProxyStatsAsyncV300(userId: String, uriPart: String, bodyPart:String, field: String): Future[APIResponse] = {
+    searchProxyAsyncV300(userId, uriPart, addAggregation(bodyPart,field), true)
+  }
 
   private def addAggregation(bodyPart: String, field: String): String = {
     bodyPart.dropRight(1).concat(",\"aggs\":{\"" + field + "\":{\"stats\":{\"field\":\""+ field + "\"}}}}")

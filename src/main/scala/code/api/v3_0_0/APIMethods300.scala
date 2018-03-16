@@ -801,17 +801,24 @@ trait APIMethods300 {
     lazy val dataWarehouseStatistics: OBPEndpoint = {
       case "search" :: "warehouse" :: "statistics" :: index :: field :: Nil JsonPost json -> _ => {
         cc =>
-          if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
+          //if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Entitlement.entitlement.vend.getEntitlement("", u.userId, ApiRole.CanSearchWarehouseStatistics.toString) ?~! {UserHasMissingRoles + CanSearchWarehouseStatistics}
-            indexPart <- esw.getElasticSearchUri(index) ?~! ElasticSearchIndexNotFound
-            bodyPart <- tryo(compactRender(json)) ?~! ElasticSearchEmptyQueryBody
-            result <- esw.searchProxyStatsV300(u.userId, indexPart, bodyPart, field)
-          } yield {
-            successJsonResponse(Extraction.decompose(result))
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouseStatistics) {
+              hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics)
             }
+            indexPart <- Future { esw.getElasticSearchUri(index) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            bodyPart <- Future { tryo(compactRender(json)) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchEmptyQueryBody, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
+          } yield {
+            (esw.parseResponse(result), callContext)
           }
+      }
     }
     
 
