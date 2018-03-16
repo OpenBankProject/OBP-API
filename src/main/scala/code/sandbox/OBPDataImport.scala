@@ -705,3 +705,184 @@ case class SandboxCustomerImport (
    name: String,
    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
    )
+
+
+
+object SandboxData{
+  val bank1 = SandboxBankImport(id = "bank1", short_name = "bank 1", full_name = "Bank 1 Inc.",
+    logo = "http://example.com/logo", website = "http://example.com")
+  val bank2 = SandboxBankImport(id = "bank2", short_name = "bank 2", full_name = "Bank 2 Inc.",
+    logo = "http://example.com/logo2", website = "http://example.com/2")
+
+  val standardBanks = bank1 :: bank2 :: Nil
+
+
+  val standardAddress1 = SandboxAddressImport(line_1 = "5 Some Street", line_2 = "Rosy Place", line_3 = "Sunny Village",
+    city = "Ashbourne", county = "Derbyshire",  state = "", post_code = "WHY RU4", country_code = "UK")
+
+  val standardLocation1 = SandboxLocationImport(52.556198, 13.384099)
+
+
+  val standardLicense = SandboxLicenseImport  (id = "pddl", name = "Open Data Commons Public Domain Dedication and License (PDDL)")
+  val standardMeta = SandboxMetaImport (license = standardLicense)
+
+  val standardLobby = SandboxLobbyImport(hours = "M-TH 8:30-3:30, F 9-5")
+  val standardDriveUp = SandboxDriveUpImport(hours = "M-Th 8:30-5:30, F-8:30-6, Sat 9-12")
+
+  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Genel Müdürlük", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
+  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
+
+  val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
+
+  val atm1AtBank1 = SandboxAtmImport(id = "atm1", name = "Ashbourne Atm 1", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta)
+  val atm2AtBank1 = SandboxAtmImport(id = "atm2", name = "Manchester Atm 1", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta)
+
+  val standardAtms = atm1AtBank1 :: atm2AtBank1 :: Nil
+
+
+  val product1AtBank1 = SandboxProductImport(
+    bank_id = "bank1",
+    code = "prd1",
+    name = "product 1",
+    category = "cat1",
+    family = "fam1",
+    super_family = "sup fam 1",
+    more_info_url = "www.example.com/index1",
+    meta = standardMeta
+  )
+
+  val product2AtBank1 = SandboxProductImport(
+    bank_id = "bank1",
+    code = "prd2",
+    name = "Product 2",
+    category = "cat2",
+    family = "fam2",
+    super_family = "sup fam 2",
+    more_info_url = "www.example.com/index2",
+    meta = standardMeta
+  )
+
+  val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
+
+
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "User 2")
+
+  val standardUsers = user1 :: user2 :: Nil
+
+  val account1AtBank1 = SandboxAccountImport(id = "account1", bank = "bank1", label = "Account 1 at Bank 1",
+    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.user_name),
+    balance = SandboxBalanceImport(currency = "EUR", amount = "1000.00"), generate_accountants_view = true, generate_auditors_view = true)
+
+  val account2AtBank1 = SandboxAccountImport(id = "account2", bank = "bank1", label = "Account 2 at Bank 1",
+    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.user_name),
+    balance = SandboxBalanceImport(currency = "EUR", amount = "2000.00"), generate_accountants_view = true, generate_auditors_view = true)
+
+  val account1AtBank2 = SandboxAccountImport(id = "account1", bank = "bank2", label = "Account 1 at Bank 2",
+    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.user_name, user2.user_name),
+    balance = SandboxBalanceImport(currency = "EUR", amount = "1500.00"), generate_accountants_view = true, generate_auditors_view = true)
+
+  val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
+
+  val counterparty1 = SandboxTransactionCounterparty(name = Some("Acme Inc."), account_number = Some("12345-B"))
+
+  val transactionWithCounterparty = SandboxTransactionImport(id = "transaction-with-counterparty",
+    this_account = SandboxAccountIdImport(id = account1AtBank1.id, bank=account1AtBank1.bank),
+    counterparty = Some(counterparty1),
+    details = SandboxAccountDetailsImport(
+      `type` = "SEPA",
+      description = "some description",
+      posted = "2012-03-07T00:00:00.001Z",
+      completed = "2012-04-07T00:00:00.001Z",
+      new_balance = "1244.00",
+      value = "-135.33"
+    ))
+
+  val transactionWithoutCounterparty = SandboxTransactionImport(id = "transaction-without-counterparty",
+    this_account = SandboxAccountIdImport(id = account1AtBank1.id, bank=account1AtBank1.bank),
+    counterparty = None,
+    details = SandboxAccountDetailsImport(
+      `type` = "SEPA",
+      description = "this is a description",
+      posted = "2012-03-07T00:00:00.001Z",
+      completed = "2012-04-07T00:00:00.001Z",
+      new_balance = "1244.00",
+      value = "-135.33"
+    ))
+
+  val standardTransactions = transactionWithCounterparty :: transactionWithoutCounterparty :: Nil
+
+  val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
+
+
+  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val standardDate = format.parse("30/03/2015")
+
+
+  val dataImportDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+
+  val standardDateString = dataImportDateFormat.format(standardDate)
+
+
+
+  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id, standardCustomer1, "Call", "Check mortgage", "Phone", standardDateString)
+  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id, standardCustomer1, "Call", "Check mortgage", "Phone", standardDateString)
+
+  val standardCrmEvents =  standardCrmEvent1 :: standardCrmEvent2 :: Nil
+
+
+    //same transaction id as another one used, but for a different bank account, so it should work
+    val anotherTransaction = SandboxTransactionImport(id = transactionWithoutCounterparty.id,
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = None,
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
+    val blankCounterpartyNameTransaction  = SandboxTransactionImport(id = "blankCounterpartNameTransaction",
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = Some(SandboxTransactionCounterparty(None, Some("123456-AVB"))),
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
+    val blankCounterpartyAccountNumberTransaction  = SandboxTransactionImport(id = "blankCounterpartAccountNumberTransaction",
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = Some(SandboxTransactionCounterparty(Some("Piano Repair"), None)),
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
+    val banks = standardBanks
+    val users = standardUsers
+    val accounts = standardAccounts
+    val transactions = anotherTransaction :: blankCounterpartyNameTransaction :: blankCounterpartyAccountNumberTransaction :: standardTransactions
+    val branches = standardBranches
+    val atms = standardAtms
+    val products = standardProducts
+    val crmEvents = standardCrmEvents
+
+
+
+    val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products, crmEvents)
+
+  }
