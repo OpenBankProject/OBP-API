@@ -24,6 +24,7 @@ import code.fx.fx
 import code.metrics.{APIMetric, APIMetrics}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
+import code.sandbox.SandboxData
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink
@@ -95,7 +96,7 @@ trait APIMethods210 {
           |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
          |${authenticationRequiredMessage(true)}
           |""",
-      emptyObjectJson,
+      SandboxData.importJson,
       successMessage,
       List(
         UserNotLoggedIn,
