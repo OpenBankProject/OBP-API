@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil._
+import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
@@ -410,7 +411,6 @@ case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
 
 
 
-import code.api.util.APIUtil.GlossaryItem
 
 object JSONFactory300{
 
