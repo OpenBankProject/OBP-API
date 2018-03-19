@@ -45,7 +45,7 @@ trait APIMethods300 {
 
   val Implementations3_0_0 = new Object() {
 
-    val implementedInApiVersion: String = "3_0_0" // TODO Use ApiVersions enumeration
+    val implementedInApiVersion: String = noV(ApiVersion.v3_0_0)
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
