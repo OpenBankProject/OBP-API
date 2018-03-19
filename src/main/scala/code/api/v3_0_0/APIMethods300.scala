@@ -739,6 +739,9 @@ trait APIMethods300 {
           for {
             (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouse) {
+              hasEntitlement("", u.userId, ApiRole.canSearchWarehouse)
+            }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
