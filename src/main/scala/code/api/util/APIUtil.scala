@@ -40,6 +40,7 @@ import java.util.{Date, UUID}
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
+import code.api.berlin.group.v1.OBPAPI_1
 import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
@@ -1207,6 +1208,7 @@ object APIUtil extends MdcLoggable {
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("API-Metric")
   val apiTagDocumentation = ResourceDocTag("API-Documentation")
+  val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 
@@ -1831,6 +1833,7 @@ Returns a string showed to the developer
         case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
+        case ApiVersion.v1 => LiftRules.statelessDispatch.append(OBPAPI_1)
       }
 
       logger.info(s"${version.toString} was ENABLED")
@@ -1851,7 +1854,7 @@ Versions are groups of endpoints in a file
  */
   object ApiVersion extends Enumeration {
     type ApiVersion = Value
-    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, importerApi, accountsApi, bankMockApi = Value
+    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, importerApi, accountsApi, bankMockApi, v1 = Value
   }
 
 
