@@ -29,7 +29,7 @@ trait APIMethods1 {
       implementedInApiVersion,
       "corePrivateAccountsAllBanks1",
       "GET",
-      "/my/accounts",
+      "/accounts",
       "Get Accounts at all Banks (My)",
       s"""Get private accounts at all banks.
          |Returns the list of accounts containing private views for the user at all banks.
