@@ -55,7 +55,12 @@ object Glossary {
 		  |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
 		  |
 		  |It is typically a human (developer) friendly string for ease of identification.
-		  |In sandbox mode it typically has the form financialinstitutuion.sequenceno.region.language. e.g. "bnpp-irb.01.it.it" however for production it could be the BIC of the institution.
+			|
+			|It SHOULD NOT contain spaces.
+			|
+		  |In sandbox mode it typically has the form: "financialinstitutuion.sequencennumber.region.language". e.g. "bnpp-irb.01.it.it"
+			|
+			|For production, it's value could be the BIC of the institution.
 		 """)
 
 	  glossaryItems += GlossaryItem(
