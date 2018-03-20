@@ -21,7 +21,7 @@ trait APIMethods130 {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = "1_3_0"
+    val apiVersion : String = noV(ApiVersion.v1_3_0)
 
 
     resourceDocs += ResourceDoc(
