@@ -31,7 +31,8 @@ Berlin 13359, Germany
   */
 package code.api.v1_2_1
 
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.util.Helper.MdcLoggable
 import code.api.OBPRestHelper
 import code.api.v2_1_0.OBPAPI2_1_0.findResourceDoc
@@ -39,12 +40,14 @@ import code.model.User
 import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
 
+import code.api.util.APIUtil.ApiVersion.ApiVersion
+
 // Added so we can add resource docs for this version of the API
 
 object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
 
 
-  val version = "1.2.1"
+  val version : ApiVersion = ApiVersion.v1_2_1  //    "1.2.1"
   val versionStatus = "STABLE"
 
   val endpointsOf1_2_1 = List(

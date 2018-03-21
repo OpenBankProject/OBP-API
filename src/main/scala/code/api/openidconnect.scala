@@ -78,7 +78,7 @@ object OpenIdConnectConfig {
 
 object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
-  val version = "1.0" // TODO: Should this be the lowest version supported or when introduced?
+  val version = ApiVersion.OpenIdConnect1 // "1.0" // TODO: Should this be the lowest version supported or when introduced?
   val versionStatus = "UNKNOWN"
 
   serve {

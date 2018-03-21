@@ -46,7 +46,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val statedApiVersion : String = "1_4_0"
+    // val statedApiVersion : String = "1_4_0"
+
+    val statedApiVersion : ApiVersion = ApiVersion.v1_4_0
 
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -198,9 +200,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
       // Add any featured status and special instructions from Props
+      // Overwrite the requestUrl adding /obp
+      // TODO change the response depending on version (berlin group etc)
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
-        y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName), specialInstructions = getSpecialInstructions(x.partialFunctionName))
+        y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
+                    specialInstructions = getSpecialInstructions(x.partialFunctionName),
+          requestUrl = s"/obp/${vDottedApiVersion(x.implementedInApiVersion)}${x.requestUrl}")
       } yield y
 
 
@@ -337,7 +343,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     val exampleResourceDoc =  ResourceDoc(
-      dummy(statedApiVersion, "DUMMY"),
+      dummy(statedApiVersion.toString, "DUMMY"),
       statedApiVersion,
       "testResourceDoc",
       "GET",
@@ -602,7 +608,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     if (Props.devMode) {
       localResourceDocs += ResourceDoc(
-        dummy(statedApiVersion, "DUMMY"),
+        dummy(vDottedApiVersion(statedApiVersion), "DUMMY"),
         statedApiVersion,
         "testResourceDoc",
         "GET",

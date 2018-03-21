@@ -19,7 +19,7 @@ object SandboxApiCalls extends OBPRestHelper with MdcLoggable {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
   logger.debug("Hello from SandboxApiCalls")
-  val version = "sandbox"
+  val version = ApiVersion.sandbox // "sandbox"
   val versionStatus = "DEPRECIATED"
 
   oauthServe(apiPrefix{

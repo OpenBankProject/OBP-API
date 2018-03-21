@@ -4,6 +4,7 @@ import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -46,7 +47,7 @@ trait APIMethods300 {
 
   val Implementations3_0_0 = new Object() {
 
-    val implementedInApiVersion: String = noV(ApiVersion.v3_0_0)
+    val implementedInApiVersion: ApiVersion = ApiVersion.v3_0_0 // was noV
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

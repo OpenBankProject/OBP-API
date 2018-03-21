@@ -46,7 +46,7 @@ This file defines which endpoints from all the versions are available in v1
 
 object OBPAPI_1 extends OBPRestHelper with APIMethods1 with MdcLoggable {
 
-  val version = ApiVersion.v1.toString
+  val version = ApiVersion.v1
   val versionStatus = "DRAFT"
 
   val endpointsOf1 =  Implementations1.corePrivateAccountsAllBanks1 :: Nil
@@ -63,7 +63,7 @@ object OBPAPI_1 extends OBPRestHelper with APIMethods1 with MdcLoggable {
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("berlin-group" / version).oPrefix{route}, findResourceDoc(route))
+    oauthServe(("berlin-group" / version.toString).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

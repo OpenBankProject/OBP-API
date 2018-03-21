@@ -1234,7 +1234,7 @@ object APIUtil extends MdcLoggable {
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                          implementedInApiVersion: String, // TODO: Use ApiVersion enumeration instead of string
+                          implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
@@ -1438,7 +1438,7 @@ Returns a string showed to the developer
         toResourceDoc.partialFunction,
         relation.rel,
         // Add the vVersion to the documented url
-        s"/${apiVersionWithV(toResourceDoc.implementedInApiVersion)}${toResourceDoc.requestUrl}"
+        s"/${vDottedApiVersion(toResourceDoc.implementedInApiVersion)}${toResourceDoc.requestUrl}"
       )
     internalApiLinks
   }
@@ -1854,7 +1854,8 @@ Versions are groups of endpoints in a file
  */
   object ApiVersion extends Enumeration {
     type ApiVersion = Value
-    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, importerApi, accountsApi, bankMockApi, v1 = Value
+    // Note: v3_3_0 doesn't contain antyhing yet?
+    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, v3_3_0, importerApi, accountsApi, bankMockApi, v1, OpenIdConnect1, sandbox = Value
   }
 
 

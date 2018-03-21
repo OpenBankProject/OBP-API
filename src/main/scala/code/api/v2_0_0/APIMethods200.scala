@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import code.TransactionTypes.TransactionType
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -125,7 +126,7 @@ trait APIMethods200 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: String = noV(ApiVersion.v2_0_0)
+    val apiVersion: ApiVersion = ApiVersion.v2_0_0 // was noV
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")

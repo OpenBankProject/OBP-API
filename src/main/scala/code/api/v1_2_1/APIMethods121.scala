@@ -3,6 +3,7 @@ package code.api.v1_2_1
 import java.net.URL
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -87,7 +88,7 @@ trait APIMethods121 {
     } yield metadata
   }
 
-  private def getApiInfoJSON(apiVersion : String, apiVersionStatus : String) = {
+  private def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
     val apiDetails: JValue = {
 
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
@@ -98,7 +99,7 @@ trait APIMethods121 {
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
+      val apiInfoJSON = new APIInfoJSON(vDottedApiVersion(apiVersion), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
@@ -110,7 +111,7 @@ trait APIMethods121 {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = noV(ApiVersion.v1_2_1)
+    val apiVersion : ApiVersion = ApiVersion.v1_2_1 // was noV
     val apiVersionStatus : String = "STABLE"
 
     resourceDocs += ResourceDoc(
@@ -131,7 +132,7 @@ trait APIMethods121 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: Nil)
 
-    def root(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
+    def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case "root" :: Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
       case Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }

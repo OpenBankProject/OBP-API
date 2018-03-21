@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
@@ -87,11 +88,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
 
-  val version : String
-  val versionStatus : String
-  def vPlusVersion = "v" + version
+  val version : ApiVersion
+  val versionStatus : String // TODO this should be property of ApiVersion
+  //def vDottedVersion = vDottedApiVersion(version)
 
-  def apiPrefix = (ApiPathZero / vPlusVersion).oPrefix(_)
+ def apiPrefix = (ApiPathZero / vDottedApiVersion(version)).oPrefix(_)
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse

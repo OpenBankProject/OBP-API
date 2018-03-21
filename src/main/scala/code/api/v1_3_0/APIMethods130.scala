@@ -1,5 +1,6 @@
 package code.api.v1_3_0
 
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.{APIUtil, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -21,7 +22,7 @@ trait APIMethods130 {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = noV(ApiVersion.v1_3_0)
+    val apiVersion : ApiVersion = ApiVersion.v1_3_0 // was noV
 
 
     resourceDocs += ResourceDoc(

@@ -1,13 +1,16 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil.ApiVersion
+import code.api.util.APIUtil.ApiVersion
+import code.api.util.APIUtil.ApiVersion._
 
 
 import code.util.Helper.MdcLoggable
 
 
 object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version = "1.4.0" // We match other api versions so API explorer can easily use the path.
+  val version = ApiVersion.v1_4_0 //    "1.4.0" // We match other api versions so API explorer can easily use the path.
   val versionStatus = "STABLE"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
@@ -21,7 +24,7 @@ object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with Md
 
 // Hack to provide Resource Docs / Swagger on endpoints other than 1.4.0 where it is defined.
 object ResourceDocs200 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version = "2.0.0" // We match other api versions so API explorer can easily use the path.
+  val version = ApiVersion.v2_0_0 // "2.0.0" // We match other api versions so API explorer can easily use the path.
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
@@ -35,7 +38,7 @@ object ResourceDocs200 extends OBPRestHelper with ResourceDocsAPIMethods with Md
 
 // Hack to provide Resource Docs / Swagger on endpoints other than 1.4.0 where it is defined.
 object ResourceDocs210 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version = "2.1.0" // We match other api versions so API explorer can easily use the path.
+  val version: ApiVersion = ApiVersion.v2_1_0 //   "2.1.0" // We match other api versions so API explorer can easily use the path.
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
@@ -48,7 +51,7 @@ object ResourceDocs210 extends OBPRestHelper with ResourceDocsAPIMethods with Md
 
 // Hack to provide Resource Docs / Swagger on endpoints other than 1.4.0 where it is defined.
 object ResourceDocs220 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version = "2.2.0" // We match other api versions so API explorer can easily use the path.
+  val version: ApiVersion = ApiVersion.v2_2_0 // "2.2.0" // We match other api versions so API explorer can easily use the path.
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
@@ -61,7 +64,7 @@ object ResourceDocs220 extends OBPRestHelper with ResourceDocsAPIMethods with Md
 
 // Hack to provide Resource Docs / Swagger on endpoints other than 1.4.0 where it is defined.
 object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version = "3.0.0" // We match other api versions so API explorer can easily use the path.
+  val version : ApiVersion = ApiVersion.v3_0_0 // = "3.0.0" // We match other api versions so API explorer can easily use the path.
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,

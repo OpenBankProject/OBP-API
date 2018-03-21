@@ -32,6 +32,7 @@
 package code.api.v3_0_0
 
 import code.api.OBPRestHelper
+import code.api.util.APIUtil.ApiVersion._
 import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, dottedApiVersion, getAllowedEndpoints}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -56,9 +57,10 @@ This file defines which endpoints from all the versions are available in v3.0.0
 object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable {
   
 
-  // Note discrepancy between Resource Docs and this _ vs .
-  val version = dottedApiVersion(ApiVersion.v3_0_0)    // Previously "3.0.0"
-  val versionStatus = "BLEEDING-EDGE"
+
+  val version : ApiVersion = ApiVersion.v3_3_0 // Previously "3.0.0"
+
+  val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
 
 
   // Possible Endpoints from 1.2.1

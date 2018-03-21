@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole}
@@ -52,7 +53,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : String = noV(ApiVersion.v1_4_0) //  "1_4_0"
+    val apiVersion : ApiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
     val exampleDateString : String ="22/08/2013"
@@ -759,12 +760,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
 
 
-    def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
+    def dummy(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case "dummy" :: Nil JsonGet req => {
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "https://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
+            val apiInfoJSON = new APIInfoJSON(vDottedApiVersion(apiVersion), apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
             Extraction.decompose(apiInfoJSON)
           }
 

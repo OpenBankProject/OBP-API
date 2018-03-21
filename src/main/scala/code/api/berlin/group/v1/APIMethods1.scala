@@ -1,6 +1,7 @@
 package code.api.berlin.group.v1
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.coreAccountsJsonV300
+import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{UnknownError, UserNotLoggedIn}
 import code.api.v3_0_0.JSONFactory300
@@ -17,7 +18,7 @@ trait APIMethods1 {
   self: RestHelper =>
 
   val Implementations1 = new Object() {
-    val implementedInApiVersion: String = noV(ApiVersion.v1)
+    val implementedInApiVersion: ApiVersion = ApiVersion.v1 // was noV
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
