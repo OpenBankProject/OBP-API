@@ -1,7 +1,8 @@
 package code.api.v3_0_0.custom
 
 
-import code.api.util.APIUtil.{ApiRelation, CodeContext, ResourceDoc}
+import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.APIUtil.{ApiRelation, ApiVersion, CodeContext, ResourceDoc}
 import net.liftweb.http.rest.RestHelper
 
 import scala.collection.mutable.ArrayBuffer
@@ -13,7 +14,7 @@ trait CustomAPIMethods300 {
     
     def endpointsOfCustom3_0_0 = createTransactionRequestTransferToReferenceAccountCustom :: Nil
     
-    val apiVersion: String = "3_0_0"
+    val apiVersion: ApiVersion = ApiVersion.v3_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

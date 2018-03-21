@@ -70,7 +70,7 @@ trait APIMethods210 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: ApiVersion = ApiVersion.v2_1_0 // was noV
+    val apiVersion: ApiVersion = ApiVersion.v2_1_0 // was String "2_1_0"
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")

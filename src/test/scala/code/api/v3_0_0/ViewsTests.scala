@@ -71,7 +71,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 200 ok code")
       httpResponse.code should equal (200)
       val apiInfo = httpResponse.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("3.0.0")
+      apiInfo.version should equal ("v3.0.0")
     }
   }
 

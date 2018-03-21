@@ -81,7 +81,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val server = TestServer
   def baseRequest = host(server.host, server.port)
 
-  def sandboxApiPrefix = baseRequest / "obp" / "vsandbox"
+  def sandboxApiPrefix = baseRequest / "obp" / "sandbox"
 
   //users should automatically be assigned the "hostname" as a provider (for now at least)
   val defaultProvider = APIUtil.getPropsValue("hostname").openOrThrowException("no hostname set")

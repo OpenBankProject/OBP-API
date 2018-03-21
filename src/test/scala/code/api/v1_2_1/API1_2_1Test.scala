@@ -998,7 +998,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("1.2.1")
+      apiInfo.version should equal ("v1.2.1")
 /*      apiInfo.git_commit.nonEmpty should equal (true)*/
     }
   }

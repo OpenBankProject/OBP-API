@@ -136,7 +136,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("2.2.0")
+      apiInfo.version should equal ("v2.2.0")
 /*      apiInfo.git_commit.nonEmpty should equal (true)*/
     }
   }

@@ -58,7 +58,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
 
 
-  val version : ApiVersion = ApiVersion.v3_3_0 // Previously "3.0.0"
+  val version : ApiVersion = ApiVersion.v3_0_0
 
   val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
 
