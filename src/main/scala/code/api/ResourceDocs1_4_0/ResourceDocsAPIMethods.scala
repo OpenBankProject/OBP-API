@@ -201,12 +201,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       // Add any featured status and special instructions from Props
       // Overwrite the requestUrl adding /obp
-      // TODO change the response depending on version (berlin group etc)
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
+        url = x.implementedInApiVersion match {
+          case ApiVersion.v1 =>  s"/berlin-group/${vDottedApiVersion(x.implementedInApiVersion)}${x.requestUrl}"
+          case _ =>  s"/obp/${vDottedApiVersion(x.implementedInApiVersion)}${x.requestUrl}"
+        }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
-          requestUrl = s"/obp/${vDottedApiVersion(x.implementedInApiVersion)}${x.requestUrl}")
+          requestUrl = url)
       } yield y
 
 
