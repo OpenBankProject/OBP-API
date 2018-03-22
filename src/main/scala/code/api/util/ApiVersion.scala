@@ -68,7 +68,7 @@ object ApiVersion {
       Nil
 
   def valueOf(value: String): ApiVersion = {
-    versions.filter(_.toString == value) match {
+    versions.filter(_.vDottedApiVersion == value) match {
       case x :: Nil => x // We find exactly one Role
       case x :: _ => throw new Exception("Duplicated version: " + x) // We find more than one Role
       case _ => throw new IllegalArgumentException("Incorrect ApiVersion value: " + value) // There is no Role
