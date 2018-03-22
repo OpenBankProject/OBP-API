@@ -26,6 +26,17 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
+    scenario("We try to get all user data without required role " + CanGetAnyUser){
+
+      When("We have to find it by endpoint getUsers")
+      val requestGet = (v3_0Request / "users").GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+
+      And("We should get a 403")
+      responseGet.code should equal(403)
+      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
+    }
+
     scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser){
 
       When("We have to find it by endpoint getUsersByEmail")
