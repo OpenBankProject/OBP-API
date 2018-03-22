@@ -4,12 +4,11 @@ import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
+import code.api.util._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
@@ -24,20 +23,18 @@ import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
-import code.views.{MapperViews, Views}
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.http.{JsonResponse, S}
+import net.liftweb.common.{Empty, Full}
+import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.control.NoStackTrace
 
 
 

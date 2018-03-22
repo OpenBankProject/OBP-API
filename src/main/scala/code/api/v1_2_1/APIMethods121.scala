@@ -3,36 +3,29 @@ package code.api.v1_2_1
 import java.net.URL
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.bankconnectors.{OBPFromDate, OBPOffset, OBPToDate, _}
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.bankconnectors._
 import code.metadata.counterparties.Counterparties
 import code.model.{CreateViewJson, UpdateViewJSON, _}
+import code.util.Helper.booleanToBox
+import code.views.Views
+import com.google.common.cache.CacheBuilder
 import net.liftweb.common.{Full, _}
+import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import net.liftweb.json.JsonDSL._
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
-import scalacache.guava
-import concurrent.duration._
-import language.postfixOps
-import com.google.common.cache.CacheBuilder
-import net.liftweb.json.Extraction._
-import scalacache.{memoization}
 import scalacache.memoization.memoizeSync
-import code.api.util.APIUtil._
-import code.util.Helper.booleanToBox
-import code.views.Views
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -99,7 +92,7 @@ trait APIMethods121 {
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(vDottedApiVersion(apiVersion), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
+      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails

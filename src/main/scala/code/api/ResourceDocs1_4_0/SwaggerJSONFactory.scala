@@ -1,21 +1,19 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util.{Date, UUID}
+import java.util.Date
 
 import code.api.Constant._
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.{APIUtil, ErrorMessages}
-import code.api.util.APIUtil.{BaseErrorResponseBody, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
 import net.liftweb
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
-import net.liftweb.util.Props
 import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
-import code.api.util.ErrorMessages._
-import net.liftweb.json.JsonAST.JValue
 
 object SwaggerJSONFactory {
   //Info Object
@@ -218,7 +216,7 @@ object SwaggerJSONFactory {
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
       //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
-      val pathAddedObpandVersion = s"/$ApiPathZero/" + APIUtil.vDottedApiVersion(infoApiVersion)+mrd._1
+      val pathAddedObpandVersion = s"/$ApiPathZero/" + infoApiVersion.vDottedApiVersion + mrd._1
       //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
         pathAddedObpandVersion

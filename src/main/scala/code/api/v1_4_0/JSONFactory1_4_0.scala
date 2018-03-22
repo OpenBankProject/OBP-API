@@ -2,7 +2,6 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil.noV
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJsonV121
@@ -351,7 +350,7 @@ object JSONFactory1_4_0 {
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
-      implemented_by = ImplementedByJson(noV(rd.implementedInApiVersion), rd.partialFunctionName),
+      implemented_by = ImplementedByJson(rd.implementedInApiVersion.noV(), rd.partialFunctionName),
       is_core = rd.catalogs.core,
       is_psd2 = rd.catalogs.psd2,
       is_obwg = rd.catalogs.obwg,

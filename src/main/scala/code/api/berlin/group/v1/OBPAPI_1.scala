@@ -32,7 +32,8 @@
 package code.api.berlin.group.v1
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.ApiVersion
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil

@@ -31,16 +31,10 @@ Berlin 13359, Germany
   */
 package code.api.v1_2_1
 
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.util.Helper.MdcLoggable
 import code.api.OBPRestHelper
-import code.api.v2_1_0.OBPAPI2_1_0.findResourceDoc
-import code.model.User
-import net.liftweb.common.Box
-import net.liftweb.http.{JsonResponse, Req}
-
-import code.api.util.APIUtil.ApiVersion.ApiVersion
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.ApiVersion
+import code.util.Helper.MdcLoggable
 
 // Added so we can add resource docs for this version of the API
 

@@ -41,7 +41,6 @@ import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.berlin.group.v1.OBPAPI_1
-import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
@@ -1357,12 +1356,6 @@ Returns a string showed to the developer
 
 
 
-  def apiVersionWithV(apiVersion : String) : String = {
-    // TODO Define a list of supported versions (put in Constant) and constrain the input
-    // Append v and replace _ with .
-    s"v${apiVersion.replaceAll("_",".")}"
-  }
-
   def fullBaseUrl : String = {
     val crv = CurrentReq.value
     val apiPathZeroFromRequest = crv.path.partPath(0)
@@ -1438,7 +1431,7 @@ Returns a string showed to the developer
         toResourceDoc.partialFunction,
         relation.rel,
         // Add the vVersion to the documented url
-        s"/${vDottedApiVersion(toResourceDoc.implementedInApiVersion)}${toResourceDoc.requestUrl}"
+        s"/${toResourceDoc.implementedInApiVersion.vDottedApiVersion}${toResourceDoc.requestUrl}"
       )
     internalApiLinks
   }
@@ -1848,44 +1841,6 @@ Returns a string showed to the developer
 
 
   type OBPEndpoint = PartialFunction[Req, CallContext => Box[JsonResponse]]
-
-/*
-Versions are groups of endpoints in a file
- */
-  object ApiVersion extends Enumeration {
-    type ApiVersion = Value
-    // Note: v3_3_0 doesn't contain antyhing yet?
-    val v1_0, v1_1, v1_2, v1_2_1, v1_3_0, v1_4_0, v2_0_0, v2_1_0, v2_2_0, v3_0_0, v3_3_0, importerApi, accountsApi, bankMockApi, v1, OpenIdConnect1, sandbox = Value
-  }
-
-
-
-  def convertToApiVersion (apiVersionString: String) : Box[ApiVersion] = {
-
-    // Make sure the string has the "v" prefix
-    val apiVersionStringWithV: String = if (apiVersionString.take(1).toLowerCase != "v") {
-      s"v$apiVersionString"
-    } else
-      apiVersionString
-
-    val apiVersionStringWithVUnderscores: String = apiVersionStringWithV.replace(".", "_")
-
-    try {
-      // replace dots with _
-      Full(ApiVersion.withName(apiVersionStringWithVUnderscores))
-    } catch {
-      case e: Exception => Failure(InvalidApiVersionString)
-    }
-
-
-
-  }
-
-  def dottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".").replace("v","")
-  def vDottedApiVersion (apiVersion: ApiVersion) : String = apiVersion.toString.replace("_", ".")
-
-  // TODO make this a method of the ApiVersion object so its easier to call
-  def noV (apiVersion: ApiVersion) : String = apiVersion.toString.replace("v", "").replace("V","")
 
 
   def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {

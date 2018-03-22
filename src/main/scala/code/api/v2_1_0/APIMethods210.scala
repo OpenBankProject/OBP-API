@@ -4,9 +4,9 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util
 import code.api.util.ErrorMessages.TransactionDisabled
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -22,7 +22,7 @@ import code.consumer.Consumers
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metrics.{APIMetric, APIMetrics}
+import code.metrics.APIMetrics
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.sandbox.SandboxData
@@ -35,7 +35,6 @@ import code.views.Views
 import net.liftweb.http.S
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -70,7 +69,7 @@ trait APIMethods210 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: ApiVersion = ApiVersion.v2_1_0 // was String "2_1_0"
+    val apiVersion: util.ApiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")

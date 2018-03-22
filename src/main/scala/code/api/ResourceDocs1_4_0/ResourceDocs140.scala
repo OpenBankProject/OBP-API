@@ -1,11 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.ApiVersion
-import code.api.util.APIUtil.ApiVersion
-import code.api.util.APIUtil.ApiVersion._
-
-
+import code.api.util.ApiVersion
 import code.util.Helper.MdcLoggable
 
 
