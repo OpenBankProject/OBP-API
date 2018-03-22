@@ -1,18 +1,16 @@
 package code.api.v1_3_0
 
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.{APIUtil, ErrorMessages}
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.common.{Box, Failure, Full}
-import code.model.{Bank, BankId, PhysicalCard, User}
-import code.bankconnectors.Connector
-import net.liftweb.json.Extraction
-import APIUtil._
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.immutable.Nil
-import code.api.util.ErrorMessages._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil._
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.bankconnectors.Connector
+import code.model.{Bank, BankId}
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.Extraction
+
+import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -22,7 +20,7 @@ trait APIMethods130 {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : ApiVersion = ApiVersion.v1_3_0 // was noV
+    val apiVersion : ApiVersion = ApiVersion.v1_3_0 // was String "1_3_0"
 
 
     resourceDocs += ResourceDoc(

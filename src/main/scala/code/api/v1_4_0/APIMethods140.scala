@@ -1,9 +1,8 @@
 package code.api.v1_4_0
 
-import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, ApiVersion}
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
@@ -33,7 +32,7 @@ import scala.collection.mutable.ArrayBuffer
 import java.text.SimpleDateFormat
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, noV, _}
+import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, _}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.atms.Atms
@@ -765,7 +764,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "https://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(vDottedApiVersion(apiVersion), apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
+            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
             Extraction.decompose(apiInfoJSON)
           }
 

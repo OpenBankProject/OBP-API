@@ -1,10 +1,9 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.berlin.group.v1.OBPAPI_1
-import code.api.util.APIUtil
-import code.api.util.APIUtil.ApiVersion._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
+import code.api.util.{APIUtil, ApiVersion}
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
@@ -201,12 +200,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       // Add any featured status and special instructions from Props
       // Overwrite the requestUrl adding /obp
-      // TODO change the response depending on version (berlin group etc)
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
+        url = x.implementedInApiVersion match {
+          case ApiVersion.v1 =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+        }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
-          requestUrl = s"/obp/${vDottedApiVersion(x.implementedInApiVersion)}${x.requestUrl}")
+          requestUrl = url)
       } yield y
 
 
@@ -437,7 +439,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       cc =>{
 
        for {
-         requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
+         requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
          json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
         }
@@ -584,7 +586,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
       memoizeSync (getResourceDocsTTL millisecond) {
         logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
         val jsonOut = for {
-            requestedApiVersion <- convertToApiVersion(requestedApiVersionString) ?~! InvalidApiVersionString
+            requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
           rd <- getResourceDocsList(requestedApiVersion)
         } yield {
@@ -608,7 +610,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     if (Props.devMode) {
       localResourceDocs += ResourceDoc(
-        dummy(vDottedApiVersion(statedApiVersion), "DUMMY"),
+        dummy(statedApiVersion.vDottedApiVersion, "DUMMY"),
         statedApiVersion,
         "testResourceDoc",
         "GET",

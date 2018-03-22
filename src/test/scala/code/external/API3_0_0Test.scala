@@ -84,7 +84,7 @@
 //      Then("we should get a 200 ok code")
 //      reply.code should equal (200)
 //      val apiInfo = reply.body.extract[APIInfoJSON]
-//      apiInfo.version should equal ("3.0.0")
+//      apiInfo.version should equal ("v3.0.0")
 //    }
 //  }
 //

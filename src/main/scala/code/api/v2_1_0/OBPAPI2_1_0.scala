@@ -32,17 +32,12 @@
 package code.api.v2_1_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil
-import code.api.util.APIUtil.ApiVersion._
-import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.{APIUtil, ApiVersion}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
-import code.model.User
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.Box
-import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 

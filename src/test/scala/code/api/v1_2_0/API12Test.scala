@@ -627,7 +627,7 @@
 //      Then("we should get a 200 ok code")
 //      reply.code should equal (200)
 //      val apiInfo = reply.body.extract[APIInfoJSON]
-//      apiInfo.version should equal ("1.2")
+//      apiInfo.version should equal ("v1.2")
 ///*      apiInfo.git_commit.nonEmpty should equal (true)*/
 //    }
 //  }

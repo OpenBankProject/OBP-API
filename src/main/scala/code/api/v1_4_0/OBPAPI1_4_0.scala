@@ -1,14 +1,9 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.util.APIUtil.{ApiVersion, OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.v2_1_0.OBPAPI2_1_0.findResourceDoc
-import code.model.User
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.ApiVersion
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.Box
-import net.liftweb.http.{JsonResponse, Req}
 
 
 object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable {

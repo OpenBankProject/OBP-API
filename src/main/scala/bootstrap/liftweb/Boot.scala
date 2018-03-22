@@ -41,13 +41,17 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.APIUtil.enableVersionIfAllowed
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
 import code.atms.MappedAtm
+import code.bankconnectors.Connector
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
+import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.kafka.KafkaHelperActors
 import code.kycchecks.MappedKycCheck
@@ -84,10 +88,6 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
-import code.api.util.APIUtil.{ApiVersion, enableVersionIfAllowed}
-import code.bankconnectors.Connector
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.entitlementrequest.MappedEntitlementRequest
 
 
 /**

@@ -4,17 +4,16 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import code.TransactionTypes.TransactionType
-import code.api.util.APIUtil.ApiVersion.ApiVersion
-import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.UserNotLoggedIn
-import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
@@ -37,16 +36,14 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.customer.{Customer, CustomerFaceImage}
-import code.util.Helper._
 import net.liftweb.json.Extraction
 
 
@@ -126,7 +123,7 @@ trait APIMethods200 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: ApiVersion = ApiVersion.v2_0_0 // was noV
+    val apiVersion: ApiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
 
     val exampleDateString: String = "22/08/2013"
     val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")

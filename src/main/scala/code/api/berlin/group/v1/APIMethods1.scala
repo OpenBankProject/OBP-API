@@ -1,10 +1,9 @@
 package code.api.berlin.group.v1
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.coreAccountsJsonV300
-import code.api.util.APIUtil.ApiVersion.ApiVersion
 import code.api.util.APIUtil._
+import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.{UnknownError, UserNotLoggedIn}
-import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.views.Views
 import net.liftweb.http.rest.RestHelper

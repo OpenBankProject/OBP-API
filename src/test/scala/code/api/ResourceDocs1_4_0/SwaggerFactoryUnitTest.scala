@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.util.APIUtil.{ApiVersion, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.v2_1_0.OBPAPI2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
