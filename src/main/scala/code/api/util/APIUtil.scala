@@ -1788,13 +1788,17 @@ Returns a string showed to the developer
   }
 
   def filterMessage(obj: Failure) = {
-    println("obj: " + obj)
-    println("obj.failureChain: " + obj.failureChain)
+    logger.debug("Failure: " + obj)
+
+    def messageIsNotNull(x: Failure, obj: Failure) = {
+      if (x.msg != null) true else { logger.info("Failure: " + obj); false }
+    }
+
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
         obj.messageChain
       case false => // Do not display internal errors
-        val obpFailures = obj.failureChain.filter(_.msg.contains("OBP-"))
+        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.contains("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
           case _ => obpFailures.map(_.msg).mkString(" <- ")
