@@ -30,10 +30,10 @@ trait APIMethods1 {
       "corePrivateAccountsAllBanks1",
       "GET",
       "/accounts",
-      "Get Accounts at all Banks (My)",
+      "Experimental - BG Get Accounts at all Banks",
       s"""Get private accounts at all banks.
          |Returns the list of accounts containing private views for the user at all banks.
-         |For each account the API returns the ID and the available views.
+         |Please ignore example JSON for now.
          |
         |${authenticationRequiredMessage(true)}
          |""",
