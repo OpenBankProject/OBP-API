@@ -624,7 +624,9 @@ case class MessageDocJson(
                            message_format: String,
                            description: String,
                            example_outbound_message: JValue,
-                           example_inbound_message: JValue
+                           example_inbound_message: JValue,
+                           outboundAvroSchema: Option[JValue] = None,
+                           inboundAvroSchema: Option[JValue] = None
 )
 
 // Creates the json resource_docs
@@ -642,7 +644,9 @@ object JsonFactory_vMar2017 {
       message_format = md.messageFormat,
       description = md.description,
       example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage
+      example_inbound_message = md.exampleInboundMessage,
+      inboundAvroSchema = md.inboundAvroSchema,
+      outboundAvroSchema = md.outboundAvroSchema
     )
   }
   

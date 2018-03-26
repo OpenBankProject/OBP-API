@@ -28,7 +28,7 @@ import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiSession, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.customer._
@@ -39,10 +39,11 @@ import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
+import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, _}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Extraction, MappingException}
+import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -117,7 +118,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           date = (new Date()).toString
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
   override def getAdapterInfo: Box[InboundAdapterInfoInternal] = {
     val req = OutboundGetAdapterInfo((new Date()).toString)
@@ -171,7 +174,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           displayName = "susan"
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetUserByUsernamePassword]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetUserByUsernamePassword]().toString(true)))
   )
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     memoizeSync(userTTL second) {
@@ -228,8 +233,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           url = "https://tesobe.com/"
         )  :: Nil
       )
-      
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBanks]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true)))
   )
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
     memoizeSync(banksTTL second){
@@ -284,8 +290,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           url = "https://tesobe.com/"
         )
       )
-      
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBank]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true)))
   )
   override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
     memoizeSync(bankTTL second){
@@ -364,7 +371,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accountRoutingAddress = "accountRoutingAddress",
           accountRules = Nil
         ) :: Nil)
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAccounts]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetAccounts]().toString(true)))
   )
   override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
     memoizeSync(accountsTTL second) {
@@ -468,7 +477,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accountRoutingAddress = "accountRoutingAddress",
           accountRules = Nil
         )
-      ))
+      )),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAccountbyAccountID]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetAccountbyAccountID]().toString(true)))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
@@ -552,7 +563,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accountRules = Nil
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundCheckBankAccountExists]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundCheckBankAccountExists]().toString(true)))
   )
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
@@ -634,7 +647,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accountRoutingAddress = "accountRoutingAddress",
           accountRules = Nil
         )
-      ))
+      )),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetCoreBankAccounts]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetCoreBankAccounts]().toString(true)))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
     memoizeSync(accountTTL second){
@@ -764,7 +779,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           `type` = "String",
           userId = "String"
         )::Nil
-      ))
+      )),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetTransactions]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetTransactions]().toString(true)))
   )
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric{
@@ -935,7 +952,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           userId = "String"
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetTransaction]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetTransaction]().toString(true)))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = saveConnectorMetric{memoizeSync(transactionTTL second){
     val req =  OutboundGetTransaction(
@@ -1003,7 +1022,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           "1234"
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeJune2017]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeJune2017]().toString(true)))
   )
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
     val req = OutboundCreateChallengeJune2017(
@@ -1097,7 +1118,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           ))
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateCounterparty]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundCreateCounterparty]().toString(true)))
   )
   override def createCounterparty(
     name: String,
@@ -1223,7 +1246,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           )
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetTransactionRequests210]().toString(true))),
+    inboundAvroSchema = None
   )
   override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = saveConnectorMetric{memoizeSync(transactionRequests210TTL second){
     val req = OutboundGetTransactionRequests210(
@@ -1296,7 +1321,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           Nil
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetCounterparties]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetCounterparties]().toString(true)))
   )
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = saveConnectorMetric{memoizeSync(counterpartiesTTL second){
     val req = OutboundGetCounterparties(
@@ -1370,7 +1397,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           bespoke = Nil
         )
       )
-    )
+    ),
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetCounterpartyByCounterpartyId]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundGetCounterparty]().toString(true)))
   )
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(counterpartyByCounterpartyIdTTL second){
     val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),OutboundGetCounterpartyById(counterpartyId.value))
@@ -1464,7 +1493,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           lastOkDate = exampleDate
         )::Nil
       )
-    )
+    ),
+    outboundAvroSchema = None,
+    inboundAvroSchema = None
   )
 
   override def getCustomersByUserIdFuture(userId: String)(session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
