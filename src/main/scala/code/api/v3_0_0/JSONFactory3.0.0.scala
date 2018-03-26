@@ -1084,9 +1084,9 @@ object JSONFactory300{
 
   case class AggregateMetricJSON(
                                   total_api_calls: Long,
-                                  average_duration: (List[String],List[List[String]]),
-                                  minimum_duration: (List[String],List[List[String]]),
-                                  maximum_duration: (List[String],List[List[String]])
+                                  average_duration: String,
+                                  minimum_duration: String,
+                                  maximum_duration: String
                                 )
 
 }

@@ -1982,7 +1982,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAggregateMetrics,
       implementedInApiVersion,
-      "aggregatemetrics",
+      "getAggregateMetrics",
       "GET",
       "/management/aggregatemetrics",
       "Get Aggregate Metrics",
