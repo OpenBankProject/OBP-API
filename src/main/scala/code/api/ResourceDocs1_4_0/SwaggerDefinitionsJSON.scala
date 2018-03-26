@@ -344,7 +344,7 @@ object SwaggerDefinitionsJSON {
     akka = akka
   )
 
-/*  val aggregateMetricsJSON = AggregateMetricJSON(
+  /*  val aggregateMetricsJSON = AggregateMetricJSON(
     total_api_calls = 591,
     average_duration = {"_1":["avg"],"_2":[["164.4940778341793570"]]},
     minimum_duration = {"_1":["min"],"_2":[["0"]]},
@@ -2180,6 +2180,13 @@ object SwaggerDefinitionsJSON {
   )
   
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
+
+  val aggregateMetricsJSONV300 = AggregateMetricJSON(
+    total_api_calls = 7076,
+    average_duration = "65.21",
+    minimum_duration = "1",
+    maximum_duration = "9039"
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

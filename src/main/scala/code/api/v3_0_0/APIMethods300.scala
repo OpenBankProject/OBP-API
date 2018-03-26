@@ -1990,16 +1990,35 @@ trait APIMethods300 {
         |
         |* Aggregate metrics on api usage eg. total number of api calls, average duration, etc.""",
       emptyObjectJson,
-      apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      aggregateMetricsJSONV300,
+//      List(UnknownError, "no connector set"),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApi :: Nil)
+      apiTagApi :: Nil,
+      Some(List(canReadAggregateMetrics)))
 
-    lazy val getAggregateMetrics : OBPEndpoint = {
+/*    lazy val getAggregateMetrics : OBPEndpoint = {
       case "management" :: "aggregatemetrics" :: Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
       case Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
+    }*/
 
+    lazy val getAggregateMetrics : OBPEndpoint = {
+      case "management" :: "aggregatemetrics" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            u <- cc.user ?~! UserNotLoggedIn
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
+          } yield {
+            val json = Full(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")))
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
 
+      }
     }
 
 
