@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
-import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
+import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
@@ -343,6 +343,13 @@ object SwaggerDefinitionsJSON {
     hosted_by = hostedBy,
     akka = akka
   )
+
+/*  val aggregateMetricsJSON = AggregateMetricJSON(
+    total_api_calls = 591,
+    average_duration = {"_1":["avg"],"_2":[["164.4940778341793570"]]},
+    minimum_duration = {"_1":["min"],"_2":[["0"]]},
+    maximum_duration = {"_1":["max"],"_2":[["2847"]]}
+  )*/
   
   val errorMessage = ErrorMessage(
     error = "String"

@@ -1082,4 +1082,11 @@ object JSONFactory300{
     EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
+  case class AggregateMetricJSON(
+                                  total_api_calls: Long,
+                                  average_duration: (List[String],List[List[String]]),
+                                  minimum_duration: (List[String],List[List[String]]),
+                                  maximum_duration: (List[String],List[List[String]])
+                                )
+
 }

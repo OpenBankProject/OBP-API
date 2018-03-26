@@ -44,6 +44,7 @@ import code.api.berlin.group.v1.OBPAPI_1
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
+import code.api.v3_0_0.JSONFactory300.AggregateMetricJSON
 import code.api.{DirectLogin, _}
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -926,6 +927,15 @@ object APIUtil extends MdcLoggable {
 
   def getGlossaryItems : List[GlossaryItem] = {
     Glossary.glossaryItems.toList.sortBy(_.title)
+  }
+
+  def getAggregateMetricJSON(count: Long, avg_duration: (List[String],List[List[String]]), min_duration: (List[String],List[List[String]]), max_duration: (List[String],List[List[String]])) = {
+    val result: JValue = {
+      val result2 = new AggregateMetricJSON(count, avg_duration, min_duration, max_duration)
+      Extraction.decompose(result2)
+    }
+
+    result
   }
 
 

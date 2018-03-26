@@ -18,6 +18,7 @@ import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
+import code.metrics.MappedMetric
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -29,6 +30,7 @@ import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
+import net.liftweb.mapper.DB
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
@@ -1974,6 +1976,30 @@ trait APIMethods300 {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
       }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAggregateMetrics,
+      implementedInApiVersion,
+      "aggregatemetrics",
+      "GET",
+      "/management/aggregatemetrics",
+      "Get Aggregate Metrics",
+      """Returns information about:
+        |
+        |* Aggregate metrics on api usage eg. total number of api calls, average duration, etc.""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagApi :: Nil)
+
+    lazy val getAggregateMetrics : OBPEndpoint = {
+      case "management" :: "aggregatemetrics" :: Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
+      case Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
+
+
     }
 
 
