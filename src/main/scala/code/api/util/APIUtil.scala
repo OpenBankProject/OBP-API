@@ -954,7 +954,9 @@ object APIUtil extends MdcLoggable {
     messageFormat: String,
     description: String,
     exampleOutboundMessage: JValue,
-    exampleInboundMessage: JValue
+    exampleInboundMessage: JValue,
+    outboundAvroSchema: Option[JValue] = None,
+    inboundAvroSchema: Option[JValue] = None
   )
 
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
