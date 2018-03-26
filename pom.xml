@@ -15,7 +15,7 @@
     <scala.compiler>2.11.8</scala.compiler>
     <akka.version>2.5.1</akka.version>
     <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
-    <avro.version>1.7.0</avro.version>
+    <avro.version>1.8.3</avro.version>
     <lift.version>3.1.0</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
