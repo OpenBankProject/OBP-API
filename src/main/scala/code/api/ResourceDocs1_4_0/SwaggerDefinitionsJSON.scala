@@ -2183,9 +2183,9 @@ object SwaggerDefinitionsJSON {
 
   val aggregateMetricsJSONV300 = AggregateMetricJSON(
     total_api_calls = 7076,
-    average_duration = "65.21",
-    minimum_duration = "1",
-    maximum_duration = "9039"
+    average_duration = 65.21,
+    minimum_duration = 1,
+    maximum_duration = 9039
   )
   
   //The common error or success format.

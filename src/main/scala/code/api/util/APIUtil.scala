@@ -929,7 +929,7 @@ object APIUtil extends MdcLoggable {
     Glossary.glossaryItems.toList.sortBy(_.title)
   }
 
-  def getAggregateMetricJSON(count: Long, avg_duration: (List[String],List[List[String]]), min_duration: (List[String],List[List[String]]), max_duration: (List[String],List[List[String]])) = {
+/*  def getAggregateMetricJSON(count: Long, avg_duration: (List[String],List[List[String]]), min_duration: (List[String],List[List[String]]), max_duration: (List[String],List[List[String]])) = {
     val aggregateMetricJVALUE: JValue = {
       val aggregateMetricJSON = new AggregateMetricJSON(
         count,
@@ -939,6 +939,15 @@ object APIUtil extends MdcLoggable {
       Extraction.decompose(aggregateMetricJSON)
     }
 
+    aggregateMetricJVALUE
+  }*/
+
+//  def getAggregateMetricJSON(count:Long, avg_duration: String, min_duration: String, max_duration: String) = {
+  def getAggregateMetricJSON(aggregatemetrics: List[Double]) = {
+    val aggregateMetricJVALUE: JValue = {
+      val aggregateMetricJSON = new AggregateMetricJSON(aggregatemetrics(0), aggregatemetrics(1), aggregatemetrics(2), aggregatemetrics(3))
+      Extraction.decompose(aggregateMetricJSON)
+    }
     aggregateMetricJVALUE
   }
 
