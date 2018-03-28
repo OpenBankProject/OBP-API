@@ -47,7 +47,7 @@ This file defines which endpoints from all the versions are available in v1
 
 object OBPAPI_1 extends OBPRestHelper with APIMethods1 with MdcLoggable {
 
-  val version = ApiVersion.v1
+  val version = ApiVersion.berlinGroupV1
   val versionStatus = "DRAFT"
 
   val endpointsOf1 =  Implementations1.corePrivateAccountsAllBanks1 :: Nil

@@ -8,13 +8,16 @@ object JSONFactory_v1 {
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
+  trait links
+  case class Balances(balances: String) extends links
+  case class Transactions(trasactions: String) extends links
   case class CoreAccountJson_v1(
                                  id: String,
                                  iban: String,
                                  currency: String,
                                  accountType: String,
                                  cashAccountType: String,
-                                 _links: List[String],
+                                 _links: List[links],
                                  name: String
                                )
 

@@ -39,8 +39,10 @@ object ApiVersion {
   lazy val accountsApi = AccountsApi()
   case class BankMockApi() extends ApiVersion
   lazy val bankMockApi = BankMockApi()
-  case class V1() extends ApiVersion
-  lazy val v1 = V1()
+  case class BerlinGroupV1()  extends ApiVersion {
+    override def toString() = "v1"
+  }
+  lazy val berlinGroupV1 = BerlinGroupV1()
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
@@ -62,9 +64,9 @@ object ApiVersion {
       importerApi ::
       accountsApi ::
       bankMockApi ::
-      v1 ::
       openIdConnect1 ::
       sandbox ::
+      berlinGroupV1 ::
       Nil
 
   def valueOf(value: String): ApiVersion = {

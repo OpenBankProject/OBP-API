@@ -1,6 +1,6 @@
 package code.api.berlin.group.v1
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.coreAccountsJsonV300
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.{UnknownError, UserNotLoggedIn}
@@ -17,7 +17,7 @@ trait APIMethods1 {
   self: RestHelper =>
 
   val Implementations1 = new Object() {
-    val implementedInApiVersion: ApiVersion = ApiVersion.v1 // was noV
+    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1 // was noV
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
@@ -33,12 +33,12 @@ trait APIMethods1 {
       "Experimental - BG Get Accounts at all Banks",
       s"""Get private accounts at all banks.
          |Returns the list of accounts containing private views for the user at all banks.
-         |Please ignore example JSON for now.
+         |
          |
         |${authenticationRequiredMessage(true)}
          |""",
       emptyObjectJson,
-      coreAccountsJsonV300,
+      SwaggerDefinitionsJSON.coreAccountsJson_v1,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
