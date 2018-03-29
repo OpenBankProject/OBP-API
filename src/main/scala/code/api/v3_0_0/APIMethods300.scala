@@ -1993,7 +1993,15 @@ trait APIMethods300 {
       "GET",
       "/management/aggregate-metrics",
       "Get Aggregate Metrics",
-      s"""Returns information about aggregate metrics on api usage eg. total number of api calls, average duration, etc.
+      s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/aggregate-metrics?start_date=2018-03-26&end_date=2018-03-29
+        |
+        |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
+        |
+        |2 end_date (defaults to the current date) eg:end_date=2018-03-29
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -2006,7 +2014,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      List(apiTagApi, apiTagAggregateMetrics),
+      List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)))
 
       lazy val getAggregateMetrics : OBPEndpoint = {
@@ -2018,23 +2026,22 @@ trait APIMethods300 {
 
               // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-              //inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
-
-              //nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
-
-              //defaultStartDate <- Full("0000-00-00 00:00:00")
-
               inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
 
-              nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+              // Date format of now.getTime
+              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
 
               defaultStartDate <- Full("0000-00-00")
 
-              tomorrowDate1 <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
+              // Get tomorrow's date
 
-              tomorrowUnformatted <- Full(nowInputDateFormat.parse(tomorrowDate1))
+              tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
 
+              // Parse tomorrow's date
 
+              tomorrowUnformatted <- Full(nowDateFormat.parse(tomorrowDate))
+
+              //Format tomorrow's date with the inputDateFormat
               tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
 
               //(defaults to one week before current date
@@ -2043,15 +2050,6 @@ trait APIMethods300 {
               // defaults to current date
               endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
                 s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
-
-              parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-              _ <- Full(
-              parameters
-                += OBPFromDate(startDate)
-                += OBPToDate(endDate)
-              )
-
-              //aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(parameters.toList))
 
               aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
 

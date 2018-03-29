@@ -1083,10 +1083,10 @@ object JSONFactory300{
   }
 
   case class AggregateMetricJSON(
-                                  total_api_calls: Double,
-                                  average_duration: Double,
-                                  minimum_duration: Double,
-                                  maximum_duration: Double
+                                  count: Double,
+                                  average_response_time: Double,
+                                  minimum_response_time: Double,
+                                  maximum_response_time: Double
                                 )
 
 }

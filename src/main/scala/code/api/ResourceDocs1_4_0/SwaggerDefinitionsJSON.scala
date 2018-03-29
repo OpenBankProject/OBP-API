@@ -2196,10 +2196,10 @@ object SwaggerDefinitionsJSON {
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
 
   val aggregateMetricsJSONV300 = AggregateMetricJSON(
-    total_api_calls = 7076,
-    average_duration = 65.21,
-    minimum_duration = 1,
-    maximum_duration = 9039
+    count = 7076,
+    average_response_time = 65.21,
+    minimum_response_time = 1,
+    maximum_response_time = 9039
   )
   
   //The common error or success format.
