@@ -12,7 +12,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait APIMethods1 {
+trait APIMethods_BERLIN_GROUP_1 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
@@ -58,7 +58,7 @@ trait APIMethods1 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
-            (JSONFactory_v1.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), callContext)
+            (JSONFactory_BERLIN_GROUP_1.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), callContext)
           }
       }
     }
@@ -70,5 +70,5 @@ trait APIMethods1 {
 }
 
 
-object APIMethods1 {
+object APIMethods_BERLIN_GROUP_1 {
 }
