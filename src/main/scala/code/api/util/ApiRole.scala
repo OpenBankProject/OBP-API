@@ -202,6 +202,8 @@ object ApiRole {
     canReadAggregateMetrics ::
     Nil
 
+  lazy val rolesMappedToClasses = roles.map(_.getClass)
+
   def valueOf(value: String): ApiRole = {
     roles.filter(_.toString == value) match {
       case x :: Nil => x // We find exactly one Role

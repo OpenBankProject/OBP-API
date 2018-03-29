@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.berlin.group.v1.JSONFactory_v1.{Balances, CoreAccountJson_v1, CoreAccountsJson_v1, Transactions}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccountJson_v1, CoreAccountsJson_v1, Transactions}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._

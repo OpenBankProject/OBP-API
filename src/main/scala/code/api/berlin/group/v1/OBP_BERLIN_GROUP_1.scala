@@ -45,7 +45,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBPAPI_1 extends OBPRestHelper with APIMethods1 with MdcLoggable {
+object OBP_BERLIN_GROUP_1 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1 with MdcLoggable {
 
   val version = ApiVersion.berlinGroupV1
   val versionStatus = "DRAFT"

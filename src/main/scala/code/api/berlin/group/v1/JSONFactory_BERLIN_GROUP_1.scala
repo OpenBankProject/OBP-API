@@ -4,7 +4,7 @@ import code.model.CoreAccount
 
 import scala.collection.immutable.List
 
-object JSONFactory_v1 {
+object JSONFactory_BERLIN_GROUP_1 {
 
   implicit val formats = net.liftweb.json.DefaultFormats
 

@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.berlin.group.v1.OBPAPI_1
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiVersion}
@@ -55,57 +55,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
-      override val typeHints = ShortTypeHints(List(
-        classOf[CanSearchAllTransactions],
-        classOf[CanSearchAllAccounts],
-        classOf[CanQueryOtherUser],
-        classOf[CanSearchWarehouse],
-        classOf[CanSearchMetrics],
-        classOf[CanCreateCustomer],
-        classOf[CanCreateCustomerAtAnyBank],
-        classOf[CanCreateUserCustomerLink],
-        classOf[CanCreateUserCustomerLinkAtAnyBank],
-        classOf[CanCreateAccount],
-        classOf[CanGetAnyUser],
-        classOf[CanCreateAnyTransactionRequest],
-        classOf[CanAddSocialMediaHandle],
-        classOf[CanGetSocialMediaHandles],
-        classOf[CanCreateSandbox],
-        classOf[CanGetEntitlementsForAnyUserAtOneBank],
-        classOf[CanCreateEntitlementAtOneBank],
-        classOf[CanDeleteEntitlementAtOneBank],
-        classOf[CanGetEntitlementsForAnyUserAtAnyBank],
-        classOf[CanCreateEntitlementAtAnyBank],
-        classOf[CanDeleteEntitlementAtAnyBank],
-        classOf[CanGetConsumers],
-        classOf[CanDisableConsumers],
-        classOf[CanEnableConsumers],
-        classOf[CanUpdateConsumerRedirectUrl],
-        classOf[CanCreateConsumer],
-        classOf[CanCreateTransactionType],
-        classOf[CanCreateCardsForBank],
-        classOf[CanCreateBranch],
-        classOf[CanCreateBranchAtAnyBank],
-        classOf[CanCreateAtm],
-        classOf[CanCreateAtmAtAnyBank],
-        classOf[CanCreateProduct],
-        classOf[CanCreateProductAtAnyBank],
-        classOf[CanCreateFxRate],
-        classOf[CanCreateFxRateAtAnyBank],
-        classOf[CanCreateBank],
-        classOf[CanReadMetrics],
-        classOf[CanGetConfig],
-        classOf[CanGetConnectorMetrics],
-        classOf[CanGetOtherAccountsAtBank],
-        classOf[CanDeleteEntitlementRequestsAtOneBank],
-        classOf[CanDeleteEntitlementRequestsAtAnyBank],
-        classOf[CanGetEntitlementRequestsAtOneBank],
-        classOf[CanGetEntitlementRequestsAtAnyBank],
-        classOf[CanUseFirehoseAtAnyBank],
-        classOf[CanSearchWarehouseStatistics],
-        classOf[CanReadAggregateMetrics]
-        )
-      )
+
+      override val typeHints = ShortTypeHints(rolesMappedToClasses)
     }
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
@@ -157,7 +108,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
-        case ApiVersion.`berlinGroupV1`     => OBPAPI_1.allResourceDocs
+        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
@@ -170,7 +121,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
-        case ApiVersion.`berlinGroupV1`     => OBPAPI_1.routes
+        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
