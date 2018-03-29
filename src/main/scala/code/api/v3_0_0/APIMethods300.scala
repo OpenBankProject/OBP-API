@@ -27,7 +27,7 @@ import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
+import code.util.Helper.{DateFormatWithCurrentTimeZone, booleanToBox}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Empty, Full}
@@ -1993,9 +1993,11 @@ trait APIMethods300 {
       "GET",
       "/management/aggregate-metrics",
       "Get Aggregate Metrics",
-      """Returns information about:
+      s"""Returns information about aggregate metrics on api usage eg. total number of api calls, average duration, etc.
         |
-        |* Aggregate metrics on api usage eg. total number of api calls, average duration, etc.""",
+        |${authenticationRequiredMessage(true)}
+        |
+      """.stripMargin,
       emptyObjectJson,
       aggregateMetricsJSONV300,
       List(
@@ -2004,54 +2006,60 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApi :: Nil,
+      List(apiTagApi, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)))
 
-    lazy val getAggregateMetrics : OBPEndpoint = {
-      case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
-        cc => {
-          for {
-            u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
+      lazy val getAggregateMetrics : OBPEndpoint = {
+        case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
+          cc => {
+            for {
+              u <- cc.user ?~! UserNotLoggedIn
+              _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
 
-            // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
+              // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
+              //inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
 
-            nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+              //nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
 
-            defaultStartDate <- Full("0000-00-00 00:00:00")
+              //defaultStartDate <- Full("0000-00-00 00:00:00")
 
-            tomorrowDate1 <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
+              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
 
-            tomorrowUnformatted <- Full(nowInputDateFormat.parse(tomorrowDate1))
+              nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+
+              defaultStartDate <- Full("0000-00-00")
+
+              tomorrowDate1 <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
+
+              tomorrowUnformatted <- Full(nowInputDateFormat.parse(tomorrowDate1))
 
 
-            tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
+              tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
 
-            //(defaults to one week before current date
-            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
-            // defaults to current date
-            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
+              //(defaults to one week before current date
+              startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
+                s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
+              // defaults to current date
+              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
+                s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
 
-            parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(
+              parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
+              _ <- Full(
               parameters
                 += OBPFromDate(startDate)
                 += OBPToDate(endDate)
-            )
+              )
 
-            //aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(parameters.toList))
+              //aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(parameters.toList))
 
-            aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
+              aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
 
-          } yield {
-            val json = getAggregateMetricJSON(aggregatemetrics)
-            successJsonResponse(Extraction.decompose(json))
+            } yield {
+              val json = getAggregateMetricJSON(aggregatemetrics)
+              successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+            }
           }
-        }
 
       }
     }
