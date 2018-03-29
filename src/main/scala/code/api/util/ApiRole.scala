@@ -148,6 +148,9 @@ object ApiRole {
   case class CanUseFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUseFirehoseAtAnyBank = CanUseFirehoseAtAnyBank()
 
+  case class CanReadAggregateMetrics (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadAggregateMetrics = CanReadAggregateMetrics()
+
   private val roles =
     canSearchAllTransactions ::
     canSearchAllAccounts ::
@@ -196,6 +199,7 @@ object ApiRole {
     canGetEntitlementRequestsAtOneBank ::
     canGetEntitlementRequestsAtAnyBank ::
     canUseFirehoseAtAnyBank ::
+    canReadAggregateMetrics ::
     Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

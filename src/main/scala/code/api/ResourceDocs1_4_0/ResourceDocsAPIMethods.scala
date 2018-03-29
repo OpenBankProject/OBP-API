@@ -55,6 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
+
       override val typeHints = ShortTypeHints(rolesMappedToClasses)
     }
 

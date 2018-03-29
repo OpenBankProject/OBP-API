@@ -4,7 +4,7 @@ import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccoun
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
-import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
+import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
@@ -344,6 +344,13 @@ object SwaggerDefinitionsJSON {
     hosted_by = hostedBy,
     akka = akka
   )
+
+  /*  val aggregateMetricsJSON = AggregateMetricJSON(
+    total_api_calls = 591,
+    average_duration = {"_1":["avg"],"_2":[["164.4940778341793570"]]},
+    minimum_duration = {"_1":["min"],"_2":[["0"]]},
+    maximum_duration = {"_1":["max"],"_2":[["2847"]]}
+  )*/
   
   val errorMessage = ErrorMessage(
     error = "String"
@@ -2187,6 +2194,13 @@ object SwaggerDefinitionsJSON {
   )
   
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
+
+  val aggregateMetricsJSONV300 = AggregateMetricJSON(
+    count = 7076,
+    average_response_time = 65.21,
+    minimum_response_time = 1,
+    maximum_response_time = 9039
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

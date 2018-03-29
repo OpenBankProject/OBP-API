@@ -1,5 +1,9 @@
 package code.api.v3_0_0
 
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.util.{Date, Locale}
+
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -12,29 +16,34 @@ import code.api.util._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPFromDate, OBPQueryParam, OBPToDate}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
+import code.metrics.MappedMetric
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
+import code.util.Helper.{DateFormatWithCurrentTimeZone, booleanToBox}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.mapper.DB
+import net.liftweb.util.Helpers.{now, tryo}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.metrics.AggregateMetrics
+import net.liftweb.util.Helpers._
+
 
 
 
@@ -1973,6 +1982,83 @@ trait APIMethods300 {
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAggregateMetrics,
+      implementedInApiVersion,
+      "getAggregateMetrics",
+      "GET",
+      "/management/aggregate-metrics",
+      "Get Aggregate Metrics",
+      s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/aggregate-metrics?start_date=2018-03-26&end_date=2018-03-29
+        |
+        |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
+        |
+        |2 end_date (defaults to the current date) eg:end_date=2018-03-29
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      aggregateMetricsJSONV300,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagMetric, apiTagAggregateMetrics),
+      Some(List(canReadAggregateMetrics)))
+
+      lazy val getAggregateMetrics : OBPEndpoint = {
+        case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
+          cc => {
+            for {
+              u <- cc.user ?~! UserNotLoggedIn
+              _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
+
+              // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
+
+              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+
+              // Date format of now.getTime
+              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+
+              defaultStartDate <- Full("0000-00-00")
+
+              // Get tomorrow's date
+
+              tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
+
+              // Parse tomorrow's date
+
+              tomorrowUnformatted <- Full(nowDateFormat.parse(tomorrowDate))
+
+              //Format tomorrow's date with the inputDateFormat
+              tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
+
+              //(defaults to one week before current date
+              startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
+                s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
+              // defaults to current date
+              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
+                s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
+
+              aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
+
+            } yield {
+              val json = getAggregateMetricJSON(aggregatemetrics)
+              successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+            }
+          }
+
       }
     }
 

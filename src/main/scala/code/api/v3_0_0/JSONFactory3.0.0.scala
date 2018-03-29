@@ -1082,4 +1082,11 @@ object JSONFactory300{
     EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
+  case class AggregateMetricJSON(
+                                  count: Double,
+                                  average_response_time: Double,
+                                  minimum_response_time: Double,
+                                  maximum_response_time: Double
+                                )
+
 }
