@@ -55,56 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
-      override val typeHints = ShortTypeHints(List(
-        classOf[CanSearchAllTransactions],
-        classOf[CanSearchAllAccounts],
-        classOf[CanQueryOtherUser],
-        classOf[CanSearchWarehouse],
-        classOf[CanSearchMetrics],
-        classOf[CanCreateCustomer],
-        classOf[CanCreateCustomerAtAnyBank],
-        classOf[CanCreateUserCustomerLink],
-        classOf[CanCreateUserCustomerLinkAtAnyBank],
-        classOf[CanCreateAccount],
-        classOf[CanGetAnyUser],
-        classOf[CanCreateAnyTransactionRequest],
-        classOf[CanAddSocialMediaHandle],
-        classOf[CanGetSocialMediaHandles],
-        classOf[CanCreateSandbox],
-        classOf[CanGetEntitlementsForAnyUserAtOneBank],
-        classOf[CanCreateEntitlementAtOneBank],
-        classOf[CanDeleteEntitlementAtOneBank],
-        classOf[CanGetEntitlementsForAnyUserAtAnyBank],
-        classOf[CanCreateEntitlementAtAnyBank],
-        classOf[CanDeleteEntitlementAtAnyBank],
-        classOf[CanGetConsumers],
-        classOf[CanDisableConsumers],
-        classOf[CanEnableConsumers],
-        classOf[CanUpdateConsumerRedirectUrl],
-        classOf[CanCreateConsumer],
-        classOf[CanCreateTransactionType],
-        classOf[CanCreateCardsForBank],
-        classOf[CanCreateBranch],
-        classOf[CanCreateBranchAtAnyBank],
-        classOf[CanCreateAtm],
-        classOf[CanCreateAtmAtAnyBank],
-        classOf[CanCreateProduct],
-        classOf[CanCreateProductAtAnyBank],
-        classOf[CanCreateFxRate],
-        classOf[CanCreateFxRateAtAnyBank],
-        classOf[CanCreateBank],
-        classOf[CanReadMetrics],
-        classOf[CanGetConfig],
-        classOf[CanGetConnectorMetrics],
-        classOf[CanGetOtherAccountsAtBank],
-        classOf[CanDeleteEntitlementRequestsAtOneBank],
-        classOf[CanDeleteEntitlementRequestsAtAnyBank],
-        classOf[CanGetEntitlementRequestsAtOneBank],
-        classOf[CanGetEntitlementRequestsAtAnyBank],
-        classOf[CanUseFirehoseAtAnyBank],
-        classOf[CanSearchWarehouseStatistics]
-        )
-      )
+      override val typeHints = ShortTypeHints(rolesMappedToClasses)
     }
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
