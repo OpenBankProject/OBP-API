@@ -1990,7 +1990,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "getAggregateMetrics",
       "GET",
-      "/management/aggregatemetrics",
+      "/management/aggregate-metrics",
       "Get Aggregate Metrics",
       """Returns information about:
         |
