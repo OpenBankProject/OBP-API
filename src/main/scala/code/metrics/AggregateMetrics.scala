@@ -1,12 +1,8 @@
 package code.metrics
 
-import java.util.{Calendar, Date}
-
+import java.util.Date
 import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
-import code.remotedata.RemotedataMetrics
-import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 object AggregateMetrics extends SimpleInjector {
 
@@ -20,14 +16,7 @@ object AggregateMetrics extends SimpleInjector {
 }
 
 trait AggregateMetrics {
-
-/*  def saveAggregateMetric(total_api_calls: Long,
-                 average_duration: String,
-                 minimum_duration: String,
-                 maximum_duration: String): Unit*/
-
-//  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): Box[Long]
-  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double]
+  def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double]
 
   //def bulkDeleteAggregateMetrics(): Boolean
 
@@ -35,9 +24,7 @@ trait AggregateMetrics {
 
 class RemotedataAggregateMetricsCaseClasses {
   case class saveAggregateMetric(total_api_calls: Long, average_duration: String, minimum_duration: String, maximum_duration: String)
-
-  //case class getAllAggregateMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetrics(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetrics(startDate: Date, endDate: Date)
   case class bulkDeleteAggregateMetrics()
 }
 
