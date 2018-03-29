@@ -1525,7 +1525,7 @@ Returns a string showed to the developer
         case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
-        case ApiVersion.v1 => LiftRules.statelessDispatch.append(OBPAPI_1)
+        case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBPAPI_1)
       }
 
       logger.info(s"${version.toString} was ENABLED")
