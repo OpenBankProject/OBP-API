@@ -40,7 +40,7 @@ import java.util.{Date, UUID}
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
-import code.api.berlin.group.v1.OBPAPI_1
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
@@ -1502,7 +1502,7 @@ Returns a string showed to the developer
         case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
-        case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBPAPI_1)
+        case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
       }
 
       logger.info(s"${version.toString} was ENABLED")

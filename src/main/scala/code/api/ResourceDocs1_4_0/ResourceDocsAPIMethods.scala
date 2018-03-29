@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.berlin.group.v1.OBPAPI_1
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiVersion}
@@ -156,7 +156,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
-        case ApiVersion.`berlinGroupV1`     => OBPAPI_1.allResourceDocs
+        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
@@ -169,7 +169,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
-        case ApiVersion.`berlinGroupV1`     => OBPAPI_1.routes
+        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
