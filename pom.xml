@@ -11,8 +11,8 @@
   <name>Open Bank Project API</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
-    <scala.version>2.11</scala.version>
-    <scala.compiler>2.11.8</scala.compiler>
+    <scala.version>2.12</scala.version>
+    <scala.compiler>2.12.4</scala.compiler>
     <akka.version>2.5.1</akka.version>
     <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
     <avro.version>1.8.3</avro.version>

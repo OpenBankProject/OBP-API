@@ -246,7 +246,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v2_1_0)
     enableVersionIfAllowed(ApiVersion.v2_2_0)
     enableVersionIfAllowed(ApiVersion.v3_0_0)
-    enableVersionIfAllowed(ApiVersion.v1)
+    enableVersionIfAllowed(ApiVersion.berlinGroupV1)
 
 
     // TODO Wrap these with enableVersionIfAllowed as well

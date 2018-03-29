@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale}
 
 import code.accountholder.AccountHolders
@@ -1997,7 +1998,6 @@ trait APIMethods300 {
         |* Aggregate metrics on api usage eg. total number of api calls, average duration, etc.""",
       emptyObjectJson,
       aggregateMetricsJSONV300,
-//      List(UnknownError, "no connector set"),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -2007,11 +2007,6 @@ trait APIMethods300 {
       apiTagApi :: Nil,
       Some(List(canReadAggregateMetrics)))
 
-/*    lazy val getAggregateMetrics : OBPEndpoint = {
-      case "management" :: "aggregatemetrics" :: Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
-      case Nil JsonGet req => cc => Full(successJsonResponse(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")), 200))
-    }*/
-
     lazy val getAggregateMetrics : OBPEndpoint = {
       case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
         cc => {
@@ -2019,19 +2014,27 @@ trait APIMethods300 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
 
-            // Filter by date // eg: /management/aggregatemetrics?start_date=2010-05-22&end_date=2017-05-22
+            // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
-            // set the long,long ago as the default date.
-            defautStartDate <- Full("0000-00-00")
-            tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
+
+            nowInputDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+
+            defaultStartDate <- Full("0000-00-00 00:00:00")
+
+            tomorrowDate1 <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
+
+            tomorrowUnformatted <- Full(nowInputDateFormat.parse(tomorrowDate1))
+
+
+            tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
 
             //(defaults to one week before current date
-            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
-              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
+            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
+              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
             // defaults to current date
             endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
 
             parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
             _ <- Full(
@@ -2040,25 +2043,11 @@ trait APIMethods300 {
                 += OBPToDate(endDate)
             )
 
-            aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(parameters.toList))
+            //aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(parameters.toList))
 
-/*            totalCount = MappedMetric.count
-
-            dbQuery = "select avg(duration), min(duration), max(duration) from mappedmetric"
-
-            queryResult = DB.runQuery(dbQuery)
-
-            avgDuration = queryResult._2.headOr(Nil).headOr("null")
-            minDuration = queryResult._2.headOr(Nil).headOr("null")
-            maxDuration = queryResult._2.headOr(Nil).headOr("null")*/
-
+            aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
 
           } yield {
-            //val json = Full(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric where date_c between '" + startDate + "' and '" + endDate + "'"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")))
-            //use this val json = Full(getAggregateMetricJSON(MappedMetric.count, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric")))
-            //val json = getAggregateMetricJSON(aggregatemetrics, DB.runQuery("select avg(duration) from mappedmetric"), DB.runQuery("select min(duration) from mappedmetric"), DB.runQuery("select max(duration) from mappedmetric"))
-            //val json = Full(getAggregateMetricJSON(totalCount, avgDuration, minDuration, maxDuration))
-            //val json = Full(getAggregateMetricJSON(aggregatemetrics(1), avgDuration, minDuration, maxDuration))
             val json = getAggregateMetricJSON(aggregatemetrics)
             successJsonResponse(Extraction.decompose(json))
           }
