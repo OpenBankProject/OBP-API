@@ -946,7 +946,7 @@ object APIUtil extends MdcLoggable {
 //  def getAggregateMetricJSON(count:Long, avg_duration: String, min_duration: String, max_duration: String) = {
   def getAggregateMetricJSON(aggregatemetrics: List[Double]) = {
     val aggregateMetricJVALUE: JValue = {
-      val aggregateMetricJSON = new AggregateMetricJSON(aggregatemetrics(0), aggregatemetrics(1), aggregatemetrics(2), aggregatemetrics(3))
+      val aggregateMetricJSON = new AggregateMetricJSON(aggregatemetrics(0).toInt, aggregatemetrics(1), aggregatemetrics(2), aggregatemetrics(3))
       Extraction.decompose(aggregateMetricJSON)
     }
     aggregateMetricJVALUE

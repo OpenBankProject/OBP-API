@@ -1083,7 +1083,7 @@ object JSONFactory300{
   }
 
   case class AggregateMetricJSON(
-                                  count: Double,
+                                  count: Int,
                                   average_response_time: Double,
                                   minimum_response_time: Double,
                                   maximum_response_time: Double
