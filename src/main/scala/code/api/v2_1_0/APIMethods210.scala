@@ -474,7 +474,7 @@ trait APIMethods210 {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
                   toIban <- Full(transDetailsSEPAJson.to.iban)
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {CounterpartyNotFoundByIban}
+                  toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $toIban "
                   toAccount <- BankAccount.toBankAccount(toCounterparty)
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
                   chargePolicy = transDetailsSEPAJson.charge_policy

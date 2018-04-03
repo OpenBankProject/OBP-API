@@ -10,10 +10,6 @@ import net.liftweb.json.Serialization.write
 
 class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
   
-  //The test Body should use the varible in SwaggerDefinitionsJson, 
-  // Because this body will be used in API-Explorer 
-  val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON
-
   override def beforeAll() {
     super.beforeAll()
   }
@@ -26,7 +22,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
 
     scenario("There is a user has the owner view and the BankAccount") {
 
-      Given("The user ower access and BankAccount")
+      Given("The user owner access and BankAccount")
       val testBank = createBank("transactions-test-bank1")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
@@ -36,6 +32,8 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       // Note: The view created below has can_add_counterparty set to true
       // TODO Add a test to test the creation of that permission on a view that doesn't have it, and then try to create the Couterparty
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
+  
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -92,23 +90,27 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val ownerView = createOwnerView(bankId, accountId)
       grantAccessToView(resourceUser1, ownerView)
 
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+  
       val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
       Then("We should get a 400")
       responsePost.code should equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error  should contain  (ErrorMessages.AccountNotFound)
+      error.toString contains (ErrorMessages.AccountNotFound) should be (true)
     }
 
     scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
-      Given("The user ower access and BankAccount")
+      Given("The user owner access and BankAccount")
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+  
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       var responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
