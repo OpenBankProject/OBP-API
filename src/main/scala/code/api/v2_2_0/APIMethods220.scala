@@ -14,7 +14,7 @@ import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
 import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
@@ -1105,16 +1105,30 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            _ <- Bank(bankId) ?~! BankNotFound
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! {AccountNotFound}
+            _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
+            account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! s"$ViewNotFound Current VIEW_ID = $viewId"
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             _ <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
-
+            
+            //If it is sandbox mode, the counterparty is a real obp bank account. the bank_id is `other_bank_routing_address` and account_id is `other_account_routing_address`.
+            //So we can check the existence of counterparty when we create it . 
+            _<- if (APIUtil.isSandboxMode){
+              for{
+                _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maxsinec length of `description` filed is ${MappedCounterparty.mDescription.maxLen}")
+                _ <- Bank(BankId(postJson.other_bank_routing_address)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                account <- Connector.connector.vend.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+              } yield {
+                account
+              }
+            }
+            else
+              Full()
+              
             counterparty <- Connector.connector.vend.createCounterparty(
               name=postJson.name,
               description=postJson.description,

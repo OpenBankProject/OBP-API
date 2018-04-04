@@ -1682,10 +1682,10 @@ object SwaggerDefinitionsJSON {
   val postCounterpartyJSON = PostCounterpartyJSON(
     name = "CounterpartyName",
     description ="My landlord",
-    other_account_routing_scheme = "IBAN",
+    other_account_routing_scheme = "accountNumber",
     other_account_routing_address = "7987987-2348987-234234",
-    other_account_secondary_routing_scheme = "accountNumber",
-    other_account_secondary_routing_address = "BIC201483",
+    other_account_secondary_routing_scheme = "IBAN",
+    other_account_secondary_routing_address = "DE89370400440532013000",
     other_bank_routing_scheme = "bankCode",
     other_bank_routing_address = "10",
     other_branch_routing_scheme = "branchNumber",
