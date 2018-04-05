@@ -266,10 +266,22 @@ object SwaggerDefinitionsJSON {
     account_id= "String"
   )
   
+  val transactionRequestCounterpartyId = TransactionRequestCounterpartyId (counterparty_id = "String")
+  
+  val transactionRequestIban =  TransactionRequestIban (iban = "String")
+  
   val transactionRequestBody = TransactionRequestBody(
     to = transactionRequestAccount,
     value= amountOfMoney,
     description= "String"
+  )
+  
+  val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
+    to_sandbox_tan = Some(transactionRequestAccount),
+    to_sepa = Some(transactionRequestIban),
+    to_counterparty = Some(transactionRequestCounterpartyId),
+    value = amountOfMoney,
+    description = "String" 
   )
   
   val transactionRequest = TransactionRequest(
@@ -277,7 +289,7 @@ object SwaggerDefinitionsJSON {
     `type`= "String",
     from= transactionRequestAccount,
     details= defaultJValue, // Note= This is unstructured! (allows multiple "to" accounts etc.)
-    body= transactionRequestBody, // Note= This is structured with one "to" account etc.
+    body= transactionRequestBodyAllTypes, // Note= This is structured with one "to" account etc.
     transaction_ids= "String",
     status= "String",
     start_date= exampleDate,

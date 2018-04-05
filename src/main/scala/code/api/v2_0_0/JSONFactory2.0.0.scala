@@ -394,54 +394,6 @@ object JSONFactory200{
     )
   }
 
-  def getTransactionRequestFromJson(json : TransactionRequestJsonV200) : TransactionRequest = {
-    val fromAcc = TransactionRequestAccount (
-      json.from.bank_id,
-      json.from.account_id
-    )
-    val challenge = TransactionRequestChallenge (
-      id = json.challenge.id,
-      allowed_attempts = json.challenge.allowed_attempts,
-      challenge_type = json.challenge.challenge_type
-    )
-
-    val charge = TransactionRequestCharge("Total charges for a completed transaction request.", AmountOfMoney(json.body.value.currency, "0.05"))
-
-
-    TransactionRequest (
-      id = TransactionRequestId(json.id),
-      `type`= json.`type`,
-      from = fromAcc,
-      details = null,
-      body = getTransactionRequestBodyFromJson(json.body),
-      transaction_ids = json.transaction_ids,
-      status = json.status,
-      start_date = json.start_date,
-      end_date = json.end_date,
-      challenge = challenge,
-      charge = charge,
-      charge_policy ="",// Note: charge_policy only used in V210. For V140 just set it empty
-      counterparty_id =  CounterpartyId(""),// Note: counterparty only used in V210. For V140 just set it empty
-      name = "",
-      this_bank_id = BankId(""),
-      this_account_id = AccountId(""),
-      this_view_id = ViewId(""),
-      other_account_routing_scheme = "",
-      other_account_routing_address = "",
-      other_bank_routing_scheme = "",
-      other_bank_routing_address = "",
-      is_beneficiary = true
-    )
-  }
-
-
-
-
-
-
-
-
-
   // New in 2.0.0
 
 

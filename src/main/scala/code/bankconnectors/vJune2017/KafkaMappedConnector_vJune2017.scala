@@ -26,6 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
@@ -1218,10 +1219,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             `type` = "String",
             from = TransactionRequestAccount("10", "12"),
             details = null,
-            body = TransactionRequestBody(
-              TransactionRequestAccount("", ""),
-              AmountOfMoney("ILS", "0"), ""
-            ),
+            body = SwaggerDefinitionsJSON.transactionRequestBodyAllTypes,
             transaction_ids = "",
             status = "COMPLETED",
             start_date = exampleDate,
