@@ -288,8 +288,7 @@ object SwaggerDefinitionsJSON {
     id= transactionRequestId,
     `type`= "String",
     from= transactionRequestAccount,
-    details= defaultJValue, // Note= This is unstructured! (allows multiple "to" accounts etc.)
-    body= transactionRequestBodyAllTypes, // Note= This is structured with one "to" account etc.
+    body= transactionRequestBodyAllTypes,
     transaction_ids= "String",
     status= "String",
     start_date= exampleDate,
@@ -1318,7 +1317,7 @@ object SwaggerDefinitionsJSON {
     id = "82f92531-9c63-4246-abfc-96c20ec46188",
     `type` = SANDBOX_TAN.toString,
     from = transactionRequestAccountJsonV140,
-    details = defaultJValue,
+    details = transactionRequestBodyAllTypes,
     transaction_ids = "666666-9c63-4246-abfc-96c20ec46188",
     status = "COMPLETED",
     start_date = exampleDate,
@@ -1629,7 +1628,7 @@ object SwaggerDefinitionsJSON {
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
     `type` = SANDBOX_TAN.toString,
     from = transactionRequestAccountJsonV140,
-    details = defaultJValue,
+    details = transactionRequestBodyAllTypes,
     transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
     status = "COMPLETED",
     start_date = exampleDate,

@@ -1218,7 +1218,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             id = TransactionRequestId("id"),
             `type` = "String",
             from = TransactionRequestAccount("10", "12"),
-            details = null,
             body = SwaggerDefinitionsJSON.transactionRequestBodyAllTypes,
             transaction_ids = "",
             status = "COMPLETED",

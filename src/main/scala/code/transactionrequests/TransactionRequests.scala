@@ -43,8 +43,7 @@ object TransactionRequests extends SimpleInjector {
     val id: TransactionRequestId,
     val `type` : String,
     val from: TransactionRequestAccount,
-    val details: JValue, // Note: This is unstructured! (allows multiple "to" accounts etc.)
-    val body: TransactionRequestBodyAllTypes, // Note: This is structured with one "to" account etc.
+    val body: TransactionRequestBodyAllTypes,
     val transaction_ids: String,
     val status: String,
     val start_date: Date,

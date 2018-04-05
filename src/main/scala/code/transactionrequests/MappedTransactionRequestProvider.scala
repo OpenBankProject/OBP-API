@@ -274,7 +274,6 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         id = TransactionRequestId(mTransactionRequestId.get),
         `type`= mType.get,
         from = t_from,
-        details = parsedDetails,
         body = t_body,
         status = mStatus.get,
         transaction_ids = mTransactionIDs.get,
