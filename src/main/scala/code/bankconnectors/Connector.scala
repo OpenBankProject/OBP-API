@@ -8,6 +8,8 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
@@ -870,17 +872,24 @@ trait Connector extends MdcLoggable{
   def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest): Box[TransactionRequest] = {
     for {
       
-      details <- Full(transactionRequest.details)
+//      details <- Full(transactionRequest.details)
+      body <- Full(transactionRequest.body)
     
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
       transactionId  <- TransactionRequestTypes.withName(transactionRequestType) match {
         case SANDBOX_TAN =>
           for{
-            sandboxBody <- tryo{details.extract[TransactionRequestBodySandBoxTanJSON]} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
-            toBankId = BankId(sandboxBody.to.bank_id)
-            toAccountId = AccountId(sandboxBody.to.account_id)
+            toBankId <- tryo{(BankId(body.to_sandbox_tan.get.bank_id))} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
+            toAccountId <- tryo{(AccountId(body.to_sandbox_tan.get.account_id))} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
             toAccount <- Connector.connector.vend.getBankAccount(toBankId,toAccountId)
+            sandboxBody <- Full(
+              TransactionRequestBodySandBoxTanJSON(
+              to = TransactionRequestAccountJsonV140(toBankId.value, toAccountId.value),
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description
+              )
+            )
             transactionId <- makePaymentv200(
               fromAccount,
               toAccount,
@@ -895,10 +904,18 @@ trait Connector extends MdcLoggable{
           }
         case COUNTERPARTY   =>
           for{
-           counterpartyBody <- tryo{details.extract[TransactionRequestBodyCounterpartyJSON]}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
-           counterpartyId = CounterpartyId(counterpartyBody.to.counterparty_id)
+           counterpartyId <- tryo{CounterpartyId(body.to_counterparty.get.counterparty_id)}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
            toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
            toAccount <- BankAccount.toBankAccount(toCounterparty)
+           counterpartyBody <- Full(
+             TransactionRequestBodyCounterpartyJSON(
+               to = CounterpartyIdJson(counterpartyId.value), 
+               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount), 
+               description = body.description,
+               charge_policy = transactionRequest.charge_policy
+             )
+            )
+            
            transactionId <- makePaymentv200(
              fromAccount,
              toAccount,
@@ -913,10 +930,17 @@ trait Connector extends MdcLoggable{
           }
         case SEPA  =>
           for{
-            sepaBody <- tryo{(details.extract[TransactionRequestBodySEPAJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
-            toCounterpartyIBan = sepaBody.to.iban
+            toCounterpartyIBan <- tryo{body.to_sepa.get.iban}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
             toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
             toAccount <- BankAccount.toBankAccount(toCounterparty)
+            sepaBody <- Full(
+              TransactionRequestBodySEPAJSON(
+                to = IbanJson(toCounterpartyIBan),
+                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+                description = body.description,
+                charge_policy = transactionRequest.charge_policy
+              )
+            )
             transactionId <- makePaymentv200(
               fromAccount,
               toAccount,
@@ -930,7 +954,12 @@ trait Connector extends MdcLoggable{
             transactionId
           }  
         case FREE_FORM => for{
-          freeformBody <- tryo{(details.extract[TransactionRequestBodyFreeFormJSON])}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyFreeFormJSON"
+          freeformBody <- Full(
+            TransactionRequestBodyFreeFormJSON(
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description,
+            )
+          )
           transactionId <- makePaymentv200(
             fromAccount,
             fromAccount,
