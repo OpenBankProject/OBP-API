@@ -14,3 +14,6 @@ src/main/resources/
 src/test/resources/
 *.iml
 src/main/resources/log4j.properties
+src/main/scripts/kafka/kafka_*
+src/main/scripts/kafka/logs/
+src/main/scripts/kafka/tmp/
