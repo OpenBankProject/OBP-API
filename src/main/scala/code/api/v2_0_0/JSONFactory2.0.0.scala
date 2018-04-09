@@ -327,7 +327,7 @@ case class TransactionRequestWithChargeJson(
   id: String,
   `type`: String,
   from: TransactionRequestAccountJsonV140,
-  details: TransactionRequestBodyAllTypes,
+  details: TransactionRequestBody,
   transaction_ids: String,
   status: String,
   start_date: Date,
@@ -755,7 +755,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       from = TransactionRequestAccountJsonV140 (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
-      details = tr.body,
+      details = TransactionRequestBody(tr.body.to_sandbox_tan.get, tr.body.value, tr.body.description),
       transaction_ids = tr.transaction_ids,
       status = tr.status,
       start_date = tr.start_date,

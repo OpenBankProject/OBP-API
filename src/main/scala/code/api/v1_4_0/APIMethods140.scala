@@ -531,7 +531,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |Please see later versions of this call in 2.0.0 or 2.1.0.
         |""",
       transactionRequestBodyJsonV140,
-      transactionRequest,
+      transactionRequestJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -573,8 +573,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
+              oldTransactionRequest <- transforOldTransactionRequest(createdTransactionRequest)
             } yield {
-              val json = Extraction.decompose(createdTransactionRequest)
+              val json = Extraction.decompose(oldTransactionRequest)
               createdJsonResponse(json)
             }
           } else {
@@ -597,7 +598,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
       """.stripMargin,
       challengeAnswerJSON,
-      transactionRequest,
+      transactionRequestJson,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -634,8 +635,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
+              oldTransactionRequest <- transforOldTransactionRequest(transactionRequest)
             } yield {
-              val successJson = Extraction.decompose(transactionRequest)
+              val successJson = Extraction.decompose(oldTransactionRequest)
               successJsonResponse(successJson, 202)
             }
           } else {

@@ -957,7 +957,7 @@ trait Connector extends MdcLoggable{
           freeformBody <- Full(
             TransactionRequestBodyFreeFormJSON(
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
-              description = body.description,
+              description = body.description
             )
           )
           transactionId <- makePaymentv200(

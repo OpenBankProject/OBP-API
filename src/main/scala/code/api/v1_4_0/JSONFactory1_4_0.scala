@@ -14,9 +14,11 @@ import code.customer.{Customer, CustomerMessage}
 import code.model._
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests._
+import code.transactionrequests.TransactionRequests.{TransactionRequest, _}
+import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.JValue
+import net.liftweb.json.JsonAST.JValue
 import org.pegdown.PegDownProcessor
 
 import scala.reflect.runtime.currentMirror
@@ -106,9 +108,37 @@ object JSONFactory1_4_0 {
 
   // Note this case class has country (not countryCode) and it is missing county
   case class AddressJsonV140(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
-
-
-
+  
+  case class TransactionRequestBodyJson (
+    val to: TransactionRequestAccount,
+    val value : AmountOfMoney,
+    val description : String
+  )
+  
+  case class TransactionRequestJson (
+    id: TransactionRequestId,
+    `type` : String,
+    from: TransactionRequestAccount,
+    details: TransactionRequestBodyJson, 
+    body: TransactionRequestBodyJson,
+    transaction_ids: String,
+    status: String,
+    start_date: Date,
+    end_date: Date,
+    challenge: TransactionRequestChallenge,
+    charge: TransactionRequestCharge,
+    charge_policy: String,
+    counterparty_id :CounterpartyId,
+    name :String,
+    this_bank_id : BankId,
+    this_account_id : AccountId,
+    this_view_id :ViewId,
+    other_account_routing_scheme : String,
+    other_account_routing_address : String,
+    other_bank_routing_scheme : String,
+    other_bank_routing_address : String,
+    is_beneficiary :Boolean
+  )
 
 
   def createCustomerJson(cInfo : Customer) : CustomerJsonV140 = {
@@ -582,6 +612,41 @@ object JSONFactory1_4_0 {
       countryCode = addressJsonV140.country // May not be a code
     )
   }
+  
+  //We get rid of JValue in transaction request class. We need keep the response body the same as before. (compatability) 
+  def transforOldTransactionRequest(transactionRequest: TransactionRequest) =
+    Full(TransactionRequestJson(
+      id = transactionRequest.id,
+      `type` = transactionRequest.`type`,
+      from = transactionRequest.from,
+      details = TransactionRequestBodyJson(
+        transactionRequest.body.to_sandbox_tan.get, 
+        transactionRequest.body.value, 
+        transactionRequest.body.description
+      ),
+      body = TransactionRequestBodyJson(
+        transactionRequest.body.to_sandbox_tan.get, 
+        transactionRequest.body.value, 
+        transactionRequest.body.description
+      ),
+      transaction_ids = transactionRequest.transaction_ids, 
+      status = transactionRequest.status,
+      start_date = transactionRequest.start_date,
+      end_date = transactionRequest.end_date,
+      challenge = transactionRequest.challenge,
+      charge = transactionRequest.charge,
+      charge_policy = transactionRequest.charge_policy,
+      counterparty_id = transactionRequest.counterparty_id,
+      name = transactionRequest.name,
+      this_bank_id  = transactionRequest.this_bank_id,
+      this_account_id  = transactionRequest.this_account_id,
+      this_view_id  = transactionRequest.this_view_id,
+      other_account_routing_scheme  = transactionRequest.other_account_routing_scheme,
+      other_account_routing_address  = transactionRequest.other_account_routing_address,
+      other_bank_routing_scheme  = transactionRequest.other_bank_routing_scheme,
+      other_bank_routing_address  = transactionRequest.other_bank_routing_address,
+      is_beneficiary  = transactionRequest.is_beneficiary
+    ))
 
 
 

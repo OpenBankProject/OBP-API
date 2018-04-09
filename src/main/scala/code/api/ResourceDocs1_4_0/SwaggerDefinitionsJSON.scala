@@ -757,6 +757,37 @@ object SwaggerDefinitionsJSON {
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_4_0.JSONFactory1_4_0._
 
+  val transactionRequestBodyJson = TransactionRequestBodyJson (
+    to = transactionRequestAccount,
+    value = amountOfMoney,
+    description = "String"
+  )
+  
+  val transactionRequestJson = TransactionRequestJson(
+    id = transactionRequestId,
+    `type` = "String",
+    from = transactionRequestAccount,
+    details = transactionRequestBodyJson,
+    body = transactionRequestBodyJson,
+    transaction_ids = "String",
+    status = "String",
+    start_date = exampleDate,
+    end_date = exampleDate,
+    challenge = transactionRequestChallenge,
+    charge = transactionRequestCharge,
+    charge_policy = "String",
+    counterparty_id = counterpartyId,
+    name = "String",
+    this_bank_id = bankId,
+    this_account_id = accountId,
+    this_view_id = viewId,
+    other_account_routing_scheme = "String",
+    other_account_routing_address = "String",
+    other_bank_routing_scheme = "String",
+    other_bank_routing_address = "String",
+    is_beneficiary = true
+  )
+  
   val customerFaceImageJson = CustomerFaceImageJson(
     url = "www.openbankproject",
     date = exampleDate
@@ -1317,7 +1348,7 @@ object SwaggerDefinitionsJSON {
     id = "82f92531-9c63-4246-abfc-96c20ec46188",
     `type` = SANDBOX_TAN.toString,
     from = transactionRequestAccountJsonV140,
-    details = transactionRequestBodyAllTypes,
+    details = transactionRequestBody,
     transaction_ids = "666666-9c63-4246-abfc-96c20ec46188",
     status = "COMPLETED",
     start_date = exampleDate,
