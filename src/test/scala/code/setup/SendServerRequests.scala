@@ -189,6 +189,20 @@ trait SendServerRequests {
       , Duration.Inf)
   }
 
+  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
+    for (response <- Http(req > as.Response(p => p)))
+      yield {
+        val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
+        val parsedBody = tryo {
+          parse(body)
+        }
+        parsedBody match {
+          case Full(b) => APIResponse(response.getStatusCode, b)
+          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+        }
+      }
+  }
+
   /**
   *this method does a POST request given a URL, a JSON
     */
@@ -198,6 +212,16 @@ trait SendServerRequests {
     val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
     val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)
+  }
+  /**
+  *this method does a POST request given a URL, a JSON
+    */
+  def makePostRequestAsync(req: Req, json: String = ""): Future[APIResponse] = {
+    val extra_headers = Map(  "Content-Type" -> "application/json",
+                              "Accept" -> "application/json")
+    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
+    val jsonReq = createRequest(reqData)
+    getAPIResponseAsync(jsonReq)
   }
 
 // Accepts an additional option header Map
@@ -216,6 +240,13 @@ trait SendServerRequests {
     getAPIResponse(jsonReq)
   }
 
+  def makePutRequestAsync(req: Req, json: String = ""): Future[APIResponse] = {
+    val extra_headers = Map("Content-Type" -> "application/json")
+    val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)
+    val jsonReq = createRequest(reqData)
+    getAPIResponseAsync(jsonReq)
+  }
+
   /**
    * this method does a GET request given a URL
    */
@@ -225,6 +256,15 @@ trait SendServerRequests {
     val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)
   }
+  /**
+   * this method does a GET request given a URL
+   */
+  def makeGetRequestAsync(req: Req, params: List[(String, String)] = Nil): Future[APIResponse] = {
+    val extra_headers = Map.empty ++ params
+    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
+    val jsonReq = createRequest(reqData)
+    getAPIResponseAsync(jsonReq)
+  }
 
   /**
    * this method does a delete request given a URL
@@ -233,6 +273,14 @@ trait SendServerRequests {
     //Note: method will be set too late for oauth signing, so set it before using <@
     val jsonReq = req.DELETE
     getAPIResponse(jsonReq)
+  }
+  /**
+   * this method does a delete request given a URL
+   */
+  def makeDeleteRequestAsync(req: Req): Future[APIResponse] = {
+    //Note: method will be set too late for oauth signing, so set it before using <@
+    val jsonReq = req.DELETE
+    getAPIResponseAsync(jsonReq)
   }
 
 }
