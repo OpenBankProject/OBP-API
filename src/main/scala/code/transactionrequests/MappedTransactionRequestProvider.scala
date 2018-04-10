@@ -1,11 +1,11 @@
 package code.transactionrequests
 
 import code.api.util.ErrorMessages._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v2_1_0.{TransactionRequestBodyCounterpartyJSON, TransactionRequestBodySEPAJSON, TransactionRequestBodySandBoxTanJSON, TransactionRequestCommonBodyJSON}
 import code.bankconnectors.Connector
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model._
-import code.transactionrequests.TransactionRequests._
+import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
@@ -161,6 +161,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated {
 
   private val logger = Logger(classOf[MappedTransactionRequest])
+  
+  implicit val formats = net.liftweb.json.DefaultFormats
 
   override def getSingleton = MappedTransactionRequest
 
@@ -216,16 +218,37 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   }
 
   def toTransactionRequest : Option[TransactionRequest] = {
+  
+    val details = mDetails.get
+  
+    val parsedDetails = json.parse(details)
+  
+    val transactionType = mType.get
+    
     val t_amount = AmountOfMoney (
       currency = mBody_Value_Currency.get,
       amount = mBody_Value_Amount.get
     )
-    val t_to = TransactionRequestAccount (
+    
+    val t_to_sandbox_tan = Some(TransactionRequestAccount (
       bank_id = mTo_BankId.get,
       account_id = mTo_AccountId.get
-    )
-    val t_body = TransactionRequestBody (
-      to = t_to,
+    ))
+    
+    val t_to_sepa = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA)
+      Some(TransactionRequestIban(iban = parsedDetails.extract[TransactionRequestBodySEPAJSON].to.iban))
+    else
+      None
+    
+    val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY) 
+      Some(TransactionRequestCounterpartyId (counterparty_id = parsedDetails.extract[TransactionRequestBodyCounterpartyJSON].to.counterparty_id))
+    else
+      None
+    
+    val t_body = TransactionRequestBodyAllTypes(
+      to_sandbox_tan = t_to_sandbox_tan,
+      to_sepa = t_to_sepa,
+      to_counterparty = t_to_counterparty,
       value = t_amount,
       description = mBody_Description.get
     )
@@ -246,17 +269,11 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     )
 
 
-    val details = mDetails.get
-
-    val parsedDetails = json.parse(details)
-
-
     Some(
       TransactionRequest(
         id = TransactionRequestId(mTransactionRequestId.get),
         `type`= mType.get,
         from = t_from,
-        details = parsedDetails,
         body = t_body,
         status = mStatus.get,
         transaction_ids = mTransactionIDs.get,

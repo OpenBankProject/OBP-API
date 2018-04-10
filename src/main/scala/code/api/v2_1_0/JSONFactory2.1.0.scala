@@ -122,7 +122,7 @@ case class TransactionRequestWithChargeJSON210(
                                              id: String,
                                              `type`: String,
                                              from: TransactionRequestAccountJsonV140,
-                                             details: JValue,
+                                             details: TransactionRequestBodyAllTypes,
                                              transaction_ids: List[String],
                                              status: String,
                                              start_date: Date,
@@ -482,7 +482,7 @@ object JSONFactory210{
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id
       ),
-      details = tr.details,
+      details = tr.body,
       transaction_ids = tr.transaction_ids::Nil,
       status = tr.status,
       start_date = tr.start_date,
