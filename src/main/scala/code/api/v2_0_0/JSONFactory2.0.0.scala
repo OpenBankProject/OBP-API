@@ -327,7 +327,7 @@ case class TransactionRequestWithChargeJson(
   id: String,
   `type`: String,
   from: TransactionRequestAccountJsonV140,
-  details: JValue,
+  details: TransactionRequestBody,
   transaction_ids: String,
   status: String,
   start_date: Date,
@@ -393,54 +393,6 @@ object JSONFactory200{
       description = body.description
     )
   }
-
-  def getTransactionRequestFromJson(json : TransactionRequestJsonV200) : TransactionRequest = {
-    val fromAcc = TransactionRequestAccount (
-      json.from.bank_id,
-      json.from.account_id
-    )
-    val challenge = TransactionRequestChallenge (
-      id = json.challenge.id,
-      allowed_attempts = json.challenge.allowed_attempts,
-      challenge_type = json.challenge.challenge_type
-    )
-
-    val charge = TransactionRequestCharge("Total charges for a completed transaction request.", AmountOfMoney(json.body.value.currency, "0.05"))
-
-
-    TransactionRequest (
-      id = TransactionRequestId(json.id),
-      `type`= json.`type`,
-      from = fromAcc,
-      details = null,
-      body = getTransactionRequestBodyFromJson(json.body),
-      transaction_ids = json.transaction_ids,
-      status = json.status,
-      start_date = json.start_date,
-      end_date = json.end_date,
-      challenge = challenge,
-      charge = charge,
-      charge_policy ="",// Note: charge_policy only used in V210. For V140 just set it empty
-      counterparty_id =  CounterpartyId(""),// Note: counterparty only used in V210. For V140 just set it empty
-      name = "",
-      this_bank_id = BankId(""),
-      this_account_id = AccountId(""),
-      this_view_id = ViewId(""),
-      other_account_routing_scheme = "",
-      other_account_routing_address = "",
-      other_bank_routing_scheme = "",
-      other_bank_routing_address = "",
-      is_beneficiary = true
-    )
-  }
-
-
-
-
-
-
-
-
 
   // New in 2.0.0
 
@@ -803,7 +755,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       from = TransactionRequestAccountJsonV140 (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
-      details = tr.details,
+      details = TransactionRequestBody(tr.body.to_sandbox_tan.get, tr.body.value, tr.body.description),
       transaction_ids = tr.transaction_ids,
       status = tr.status,
       start_date = tr.start_date,

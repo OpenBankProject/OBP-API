@@ -1375,8 +1375,8 @@ trait APIMethods200 {
               //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               _ <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
 
-              toBankId  = BankId(existingTransactionRequest.body.to.bank_id)
-              toAccountId  = AccountId(existingTransactionRequest.body.to.account_id)
+              toBankId  = BankId(existingTransactionRequest.body.to_sandbox_tan.get.bank_id)
+              toAccountId  = AccountId(existingTransactionRequest.body.to_sandbox_tan.get.account_id)
               toAccount <- BankAccount(toBankId, toAccountId) ?~! s"$AccountNotFound,toBankId($toBankId) and toAccountId($toAccountId) is invalid ."
             
               //create transaction and insert its id into the transaction request

@@ -239,21 +239,13 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
             fromAccountBalance should equal((beforeFromBalance))
             And("there should now be 2 new transactions in the database")
             transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore+2)
-          } else if(transactionRequestTypeInput.equals(SANDBOX_TAN.toString)){
+          } else {
             Then("check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least) ")
             fromAccountBalance should equal((beforeFromBalance - amt))
             And("the account receiving the payment should have a new balance plus the amount paid")
             toAccountBalance should equal(beforeToBalance + convertedAmount)
             And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
             transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
-          } else{
-            Then("check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least) ")
-            fromAccountBalance should equal((beforeFromBalance - amt))
-            And("the account receiving the payment should have a new balance plus the amount paid")
-            //TODO for now, sepa, counterparty can not clear the toAccount and toAccount Currency so just test the fromAccount
-            //toAccountBalance should equal(beforeToBalance + convertedAmount)
-            And("there should now be 1 new transactions in the database (one for the sender, one for the receiver")
-            transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 1)
           }
 
         } else {

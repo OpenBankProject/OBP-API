@@ -517,11 +517,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
        sentTransactionId <- saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-       //Only when it is FREE_FORM and SANDBOX_TAN we can save transaction for toAccount, other types, we can not know the toAccount. It is not a mapped account
-       _ <- if("SANDBOX_TAN"==transactionRequestType.value || "FREE_FORM"==transactionRequestType.value) 
-        saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-      else
-         Full("NoAction!")
+       _sentTransactionId <- saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
     } yield{
       sentTransactionId
     }

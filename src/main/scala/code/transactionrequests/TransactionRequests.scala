@@ -4,7 +4,8 @@ package code.transactionrequests
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestCommonBodyJSON}
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.remotedata.RemotedataTransactionRequests
@@ -42,8 +43,7 @@ object TransactionRequests extends SimpleInjector {
     val id: TransactionRequestId,
     val `type` : String,
     val from: TransactionRequestAccount,
-    val details: JValue, // Note: This is unstructured! (allows multiple "to" accounts etc.)
-    val body: TransactionRequestBody, // Note: This is structured with one "to" account etc.
+    val body: TransactionRequestBodyAllTypes,
     val transaction_ids: String,
     val status: String,
     val start_date: Date,
@@ -74,11 +74,25 @@ object TransactionRequests extends SimpleInjector {
     val bank_id: String,
     val account_id : String
   )
+  
+  //For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
+  case class TransactionRequestCounterpartyId (counterparty_id : String)
+  
+  //For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
+  case class TransactionRequestIban (iban : String)
 
   case class TransactionRequestBody (
     val to: TransactionRequestAccount,
     val value : AmountOfMoney,
     val description : String
+  )
+  
+  case class TransactionRequestBodyAllTypes (
+    to_sandbox_tan: Option[TransactionRequestAccount],
+    to_sepa: Option[TransactionRequestIban],
+    to_counterparty: Option[TransactionRequestCounterpartyId],
+    value: AmountOfMoney,
+    description: String
   )
 
   val transactionRequestProvider = new Inject(buildOne _) {}
