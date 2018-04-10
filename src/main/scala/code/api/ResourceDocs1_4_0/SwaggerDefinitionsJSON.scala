@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccountJson_v1, CoreAccountsJson_v1, Transactions}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccountJsonV1, CoreAccountsJsonV1, Transactions}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
@@ -2116,7 +2116,7 @@ object SwaggerDefinitionsJSON {
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
 
-  val coreAccountJson_v1 = CoreAccountJson_v1(
+  val coreAccountJson_v1 = CoreAccountJsonV1(
     id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
     iban = "DE2310010010123456789",
     currency = "EUR",
@@ -2127,7 +2127,7 @@ object SwaggerDefinitionsJSON {
       Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")),
     name = "Main Account"
   )
-  val coreAccountsJson_v1 = CoreAccountsJson_v1(List(coreAccountJson_v1))
+  val coreAccountsJson_v1 = CoreAccountsJsonV1(List(coreAccountJson_v1))
   
   val accountIdJson = AccountIdJson(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf"
