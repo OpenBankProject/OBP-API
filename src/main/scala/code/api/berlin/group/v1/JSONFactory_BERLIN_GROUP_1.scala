@@ -16,7 +16,7 @@ object JSONFactory_BERLIN_GROUP_1 {
   trait links
   case class Balances(balances: String) extends links
   case class Transactions(trasactions: String) extends links
-  case class viewAccount(viewAccount: String) extends links
+  case class ViewAccount(viewAccount: String) extends links
   case class CoreAccountJsonV1(
                                  id: String,
                                  iban: String,
@@ -50,7 +50,7 @@ object JSONFactory_BERLIN_GROUP_1 {
   case class TransactionsJsonV1(
     transactions_booked: List[TransactionJsonV1],
     transactions_pending: List[TransactionJsonV1],
-    _links: List[viewAccount]
+    _links: List[ViewAccount]
   )
   
   case class TransactionJsonV1(
@@ -103,7 +103,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     TransactionsJsonV1(
       transactions_booked =transactionRequests.filter(_.status=="COMPLETED").map(createTransactionJSON),
       transactions_pending =transactionRequests.filter(_.status!="COMPLETED").map(createTransactionJSON),
-      _links = viewAccount(s"/${OBP_BERLIN_GROUP_1.version}/accounts/${transactionRequests.head.from.account_id}/balances")::Nil
+      _links = ViewAccount(s"/${OBP_BERLIN_GROUP_1.version}/accounts/${transactionRequests.head.from.account_id}/balances")::Nil
     )
   }
 

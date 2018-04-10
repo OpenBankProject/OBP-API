@@ -42,7 +42,7 @@ trait APIMethods_BERLIN_GROUP_1 {
         |${authenticationRequiredMessage(true)}
          |""",
       emptyObjectJson,
-      SwaggerDefinitionsJSON.coreAccountsJson_v1,
+      SwaggerDefinitionsJSON.coreAccountsJsonV1,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
@@ -80,7 +80,7 @@ trait APIMethods_BERLIN_GROUP_1 {
         |${authenticationRequiredMessage(true)}
         |""",
       emptyObjectJson,
-      SwaggerDefinitionsJSON.coreAccountsJson_v1,
+      SwaggerDefinitionsJSON.accountBalances,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
@@ -125,7 +125,7 @@ trait APIMethods_BERLIN_GROUP_1 {
         |${authenticationRequiredMessage(true)}
         |""",
       emptyObjectJson,
-      SwaggerDefinitionsJSON.coreAccountsJson_v1,
+      SwaggerDefinitionsJSON.transactionsJsonV1,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
