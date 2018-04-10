@@ -263,7 +263,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         listOfTuples
       }
       //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + S.uri ,"UTF-8")+"&"
+      var baseString = httpMethod+"&"+URLEncoder.encode(S.hostAndPath + S.uri,"UTF-8")+"&"
       // Add OAuth and URL parameters to the base string
       // Parameters are provided as List[(String, String)]
       baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
@@ -550,7 +550,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       }
     }
 
-    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
+    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String, sHostAndPath: String) = {
       //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
       //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
       def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
@@ -583,7 +583,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         listOfTuples
       }
       //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + sUri ,"UTF-8")+"&"
+      var baseString = httpMethod+"&"+URLEncoder.encode(sHostAndPath + sUri ,"UTF-8")+"&"
       // Add OAuth and URL parameters to the base string
       // Parameters are provided as List[(String, String)]
       baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
@@ -687,6 +687,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     val registeredApplicationF = APIUtil.registeredApplicationFuture(parameters.get("oauth_consumer_key").get)
     val sRequest = S.request
     val sUri = S.uri
+    val sHostAndPath = S.hostAndPath
 
     // Please note that after this point S.request for instance cannot be used directly
     // If you need it later assign it to some variable and pass it
@@ -754,7 +755,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 401
       }
       //checking if the signature is correct
-      else if(! correctSignature(parameters, httpMethod, sRequest, sUri))
+      else if(! correctSignature(parameters, httpMethod, sRequest, sUri, sHostAndPath))
       {
         message = "Invalid signature"
         httpCode = 401
