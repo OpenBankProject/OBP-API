@@ -29,7 +29,7 @@ object TransactionRequests extends SimpleInjector {
   
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
-    val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT = Value
+    val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT = Value
   }
 
   def updatestatus(newStatus: String) = {}

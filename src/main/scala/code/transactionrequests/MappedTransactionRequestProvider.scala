@@ -9,6 +9,7 @@ import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
+import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
@@ -230,18 +231,30 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       amount = mBody_Value_Amount.get
     )
     
-    val t_to_sandbox_tan = Some(TransactionRequestAccount (
-      bank_id = mTo_BankId.get,
-      account_id = mTo_AccountId.get
-    ))
-    
-    val t_to_sepa = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA)
-      Some(TransactionRequestIban(iban = parsedDetails.extract[TransactionRequestBodySEPAJSON].to.iban))
+    val t_to_sandbox_tan = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN)
+      Some(TransactionRequestAccount (bank_id = mTo_BankId.get, account_id = mTo_AccountId.get))
+    else
+      None
+  
+    val t_to_sepa = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA){
+      val ibanValue = for {
+        JObject(child) <- parsedDetails
+        JField("iban", JString(iban)) <- child
+      } yield
+        iban
+      Some(TransactionRequestIban(iban = ibanValue.toString))
+    }
     else
       None
     
-    val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY) 
-      Some(TransactionRequestCounterpartyId (counterparty_id = parsedDetails.extract[TransactionRequestBodyCounterpartyJSON].to.counterparty_id))
+    val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY){
+      val counterpartyIdValue = for {
+        JObject(child) <- parsedDetails
+        JField("counterparty_id", JString(counterpartyId)) <- child
+      } yield
+        counterpartyId
+      Some(TransactionRequestCounterpartyId (counterparty_id = counterpartyIdValue.toString))
+    }
     else
       None
     
