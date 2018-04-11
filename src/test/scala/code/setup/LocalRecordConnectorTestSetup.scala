@@ -99,5 +99,7 @@ trait LocalRecordConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     env.save(true)
   }
+  
+  override protected def createTransactionRequest(account: BankAccount) = Unit
 
 }

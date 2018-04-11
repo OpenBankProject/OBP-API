@@ -89,7 +89,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   
 }
 
-trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup {
+trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup with DefaultUsers{
 
   override def beforeEach() = {
     super.beforeEach()
@@ -97,9 +97,11 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     //fake banks
     val banks = createBanks()
     //fake bank accounts
-    val accounts = createAccounts(banks)
+    val accounts = createAccounts(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)
+    //fake transactionRequests
+    createTransactionRequests(accounts)
   }
 
   override def afterEach() = {

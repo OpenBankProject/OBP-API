@@ -7,11 +7,11 @@ import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests
+import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
 import code.views.Views
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
@@ -135,6 +135,24 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .toTransaction.orNull
   }
 
+  override protected def createTransactionRequest(account: BankAccount) = {
+  
+    MappedTransactionRequest.create
+      .mTransactionRequestId(UUID.randomUUID().toString)
+      .mType("SANDBOX_TAN")
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mTo_BankId(randomString(5))
+      .mTo_AccountId(randomString(5))
+      .mBody_Value_Currency(account.currency)
+      .mBody_Value_Amount("1000")
+      .mBody_Description("This is a description..")
+      .mStatus("COMPLETED")
+      .mStartDate(now)
+      .mEndDate(now)
+      .saveMe
+  }
+  
   override protected def wipeTestData() = {
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
@@ -149,6 +167,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       Views.views.vend.bulkDeleteAllPermissionsAndViews()
       AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
       TransactionRequests.transactionRequestProvider.vend.bulkDeleteTransactionRequests()
+      MappedTransaction.bulkDelete_!!()
+      MappedBank.bulkDelete_!!()
+      MappedBankAccount.bulkDelete_!!()
+      MappedCounterparty.bulkDelete_!!()
     }
   }
 }

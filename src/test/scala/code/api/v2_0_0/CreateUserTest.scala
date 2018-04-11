@@ -33,7 +33,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
     val testConsumer = Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, None, None, None)
   }
 
-  val consumer = new Consumer(KEY, SECRET)
+  override lazy val consumer = new Consumer(KEY, SECRET)
 
   def oauthRequest = baseRequest / "oauth"
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"

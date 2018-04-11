@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccountJson_v1, CoreAccountsJson_v1, Transactions}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
@@ -2116,7 +2116,7 @@ object SwaggerDefinitionsJSON {
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
 
-  val coreAccountJson_v1 = CoreAccountJson_v1(
+  val coreAccountJson_v1 = CoreAccountJsonV1(
     id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
     iban = "DE2310010010123456789",
     currency = "EUR",
@@ -2127,7 +2127,49 @@ object SwaggerDefinitionsJSON {
       Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")),
     name = "Main Account"
   )
-  val coreAccountsJson_v1 = CoreAccountsJson_v1(List(coreAccountJson_v1))
+  val coreAccountsJsonV1 = CoreAccountsJsonV1(List(coreAccountJson_v1))
+  
+  val amountOfMoneyV1 = AmountOfMoneyV1(
+    currency = "String",
+    content = "String"
+  )
+  
+  val closingBookedBody = ClosingBookedBody(
+    amount = amountOfMoneyV1,
+    date = exampleDate
+  )
+  
+  val expectedBody = ExpectedBody(
+    amount  = amountOfMoneyV1,
+    lastActionDateTime = exampleDate
+  )
+  
+  val accountBalance = AccountBalance(
+    closingBooked = closingBookedBody,
+    expected = expectedBody
+  )
+  
+  val accountBalances = AccountBalances(
+    `balances` = List(accountBalance)
+  )
+  
+  val transactionJsonV1 = TransactionJsonV1(
+    transactionId = "String",
+    creditorName = "String",
+    creditorAccount = ibanJson,
+    amount = amountOfMoneyV1,
+    bookingDate = exampleDate,
+    valueDate = exampleDate,
+    remittanceInformationUnstructured = "String"
+  )
+  
+  val viewAccount = ViewAccount(viewAccount = "/v1/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f")
+  
+  val transactionsJsonV1 = TransactionsJsonV1(
+    transactions_booked = List(transactionJsonV1),
+    transactions_pending =  List(transactionJsonV1),
+    _links = List(viewAccount)
+  )
   
   val accountIdJson = AccountIdJson(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf"
