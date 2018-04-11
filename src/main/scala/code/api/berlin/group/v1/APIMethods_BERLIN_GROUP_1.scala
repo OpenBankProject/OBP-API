@@ -4,7 +4,7 @@ import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
 import code.api.util.ApiVersion
-import code.api.util.ErrorMessages.{BankAccountNotFound, UnknownError, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
@@ -81,7 +81,7 @@ trait APIMethods_BERLIN_GROUP_1 {
         |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountBalances,
-      List(UserNotLoggedIn,UnknownError),
+      List(UserNotLoggedIn, ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
   
@@ -101,14 +101,18 @@ trait APIMethods_BERLIN_GROUP_1 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
+            _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+
+            transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, account)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
           
             moderatedAccount <- Future {account.moderatedBankAccount(view, user)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             
           } yield {
-            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount), callContext)
+            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount, transactionRequests), callContext)
           }
       }
     }
@@ -144,15 +148,19 @@ trait APIMethods_BERLIN_GROUP_1 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             params <- Future { getTransactionParams(callContext.get.requestHeaders)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           
             transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
+
+            transactions <- Future { bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
             } yield {
-              //TODO here, we map the `transactionRequests` to the Berlin Group `transactions`. 
-              (JSONFactory_BERLIN_GROUP_1.createTransactionsJson(transactionRequests), callContext)
+              (JSONFactory_BERLIN_GROUP_1.createTransactionsJson(transactions, transactionRequests), callContext)
             }
       }
     }

@@ -145,9 +145,24 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .mTo_BankId(randomString(5))
       .mTo_AccountId(randomString(5))
       .mBody_Value_Currency(account.currency)
-      .mBody_Value_Amount("1000")
+      .mBody_Value_Amount("10")
       .mBody_Description("This is a description..")
       .mStatus("COMPLETED")
+      .mStartDate(now)
+      .mEndDate(now)
+      .saveMe
+  
+    MappedTransactionRequest.create
+      .mTransactionRequestId(UUID.randomUUID().toString)
+      .mType("SANDBOX_TAN")
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mTo_BankId(randomString(5))
+      .mTo_AccountId(randomString(5))
+      .mBody_Value_Currency(account.currency)
+      .mBody_Value_Amount("1001")
+      .mBody_Description("This is a description..")
+      .mStatus("INITIATED")
       .mStartDate(now)
       .mEndDate(now)
       .saveMe
