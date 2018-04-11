@@ -616,9 +616,7 @@ trait APIMethods210 {
                   Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest)
               } 
             } yield {
-              // Format explicitly as v2.0.0 json
-              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
-              //successJsonResponse(Extraction.decompose(json))
+              val json = JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
               val successJson = Extraction.decompose(json)
               successJsonResponse(successJson, 202)
             }
