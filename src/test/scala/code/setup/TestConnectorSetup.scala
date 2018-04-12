@@ -2,6 +2,7 @@ package code.setup
 
 import java.util.{Calendar, Date}
 
+import code.api.util.APIUtil
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
@@ -40,9 +41,11 @@ trait TestConnectorSetup {
   }
 
   final protected def createBanks() : Traversable[Bank] = {
-    for{i <- 0 until 4} yield {
+    val defaultBank = createBank(APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET"))
+    val banks = for{i <- 0 until 4} yield {
       if (i==3) createBank("testBankWithoutBranches") else createBank("testBank"+i)
     }
+    banks ++ Seq(defaultBank)
   }
   
   /**
