@@ -21,7 +21,7 @@ trait APIMethods_BERLIN_GROUP_1 {
   self: RestHelper =>
 
   val Implementations1 = new Object() {
-    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1 // was noV
+    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
@@ -34,7 +34,7 @@ trait APIMethods_BERLIN_GROUP_1 {
       "readAccountList",
       "GET",
       "/accounts",
-      "Experimental - BG Read Account List",
+      "Experimental! - Berlin Group: Read Account List",
       s"""
          |Reads a list of bank accounts, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.

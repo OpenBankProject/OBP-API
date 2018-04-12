@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -108,6 +109,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
@@ -121,6 +123,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
@@ -156,6 +159,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         url = x.implementedInApiVersion match {
           case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV200` =>  s"/uk-open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
@@ -350,19 +354,20 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "getResourceDocsObp",
       "GET",
       "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs in OBP format.",
+      "Get Resource Docs.",
       """Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+        |
+        |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
         |
         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
         |
-        | Most (but not all) fields are also available in swagger format.
+        | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
         |
         | API_VERSION is the version you want documentation about e.g. v3.0.0
         |
-        | You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
         |
-        |
-        | You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
         |
         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
         |
@@ -409,16 +414,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "getResourceDocsSwagger",
       "GET",
       "/resource-docs/API_VERSION/swagger",
-      "Get Resource Docs in Swagger format.",
+      "Get Swagger documentation",
       """Returns documentation about the RESTful resources on this server in Swagger format.
-        |
-        |The information returned in this endpoint is continuously being enhanced.
         |
         |API_VERSION is the version you want documentation about e.g. v3.0.0
         |
-        |You may query this endpoint with tags parameter e.g. ?tags=Account,Bank
+        |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
         |
-        |You may query this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |(All endpoints are given one or more tags which for used in grouping)
+        |
+        |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |
+        |(Each endpoint is implemented in the OBP Scala code by a 'function')
         |
         |See the Resource Doc endpoint for more information.
         |
