@@ -89,7 +89,7 @@ trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
   
 }
 
-trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnectorTestSetup {
+trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnectorTestSetup with DefaultUsers {
 
   override def beforeEach() = {
     super.beforeEach()
@@ -97,9 +97,11 @@ trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnecto
     //fake banks
     val banks = createBanks()
     //fake bank accounts
-    val accounts = createAccounts(banks)
+    val accounts = createAccounts(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)
+    //fake transactionRequests
+    createTransactionRequests(accounts)
   }
 
   override def afterEach() = {

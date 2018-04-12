@@ -25,8 +25,7 @@ class BerlinGroupV1Tests extends BerlinGroupV1ServerSetup with DefaultUsers {
   {
     scenario("Successful Case", BerlinGroup) 
     {
-      val Account_Id = testAccountId1
-      val requestGetAll = (BerlinGroup_V1Request / "accounts"/"testAccount1"/"balances" ).GET <@(user1)
+      val requestGetAll = (BerlinGroup_V1Request / "accounts"/ testAccountId1.value /"balances" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
       
       Then("We should get a 200 ")
@@ -38,7 +37,7 @@ class BerlinGroupV1Tests extends BerlinGroupV1ServerSetup with DefaultUsers {
   {
     scenario("Successful Case", BerlinGroup)
     {
-      val requestGetAll = (BerlinGroup_V1Request / "accounts"/"testAccount1"/"transactions" ).GET <@(user1)
+      val requestGetAll = (BerlinGroup_V1Request / "accounts"/ testAccountId1.value /"transactions" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
       
       Then("We should get a 200 ")
