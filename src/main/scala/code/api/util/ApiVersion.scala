@@ -43,6 +43,10 @@ object ApiVersion {
     override def toString() = "v1"
   }
   lazy val berlinGroupV1 = BerlinGroupV1()
+  case class UKOpenBankingV200()  extends ApiVersion {
+    override def toString() = "v2.0.0"
+  }
+  lazy val ukOpenBankingV200 = UKOpenBankingV200()
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
@@ -67,6 +71,7 @@ object ApiVersion {
       openIdConnect1 ::
       sandbox ::
       berlinGroupV1 ::
+      ukOpenBankingV200 ::
       Nil
 
   def valueOf(value: String): ApiVersion = {
