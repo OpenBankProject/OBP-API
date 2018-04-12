@@ -17,7 +17,7 @@ trait APIMethods_BERLIN_GROUP_1 {
   self: RestHelper =>
 
   val Implementations1 = new Object() {
-    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1 // was noV
+    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
@@ -30,9 +30,9 @@ trait APIMethods_BERLIN_GROUP_1 {
       "corePrivateAccountsAllBanks1",
       "GET",
       "/accounts",
-      "Experimental - BG Get Accounts at all Banks",
+      "Experimental ! Berlin Group -  Get Accounts at all Banks",
       s"""Get private accounts at all banks.
-         |Returns the list of accounts containing private views for the user at all banks.
+         |Returns the list of accounts for the user at all banks.
          |
          |
         |${authenticationRequiredMessage(true)}
