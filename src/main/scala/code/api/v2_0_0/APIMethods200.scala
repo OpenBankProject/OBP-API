@@ -1987,7 +1987,7 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -2033,7 +2033,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagUser, apiTagEntitlement))
 
 
@@ -2068,7 +2068,7 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement))
 
 

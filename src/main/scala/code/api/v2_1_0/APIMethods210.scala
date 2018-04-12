@@ -706,7 +706,7 @@ trait APIMethods210 {
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole))
 
     lazy val getRoles: OBPEndpoint = {
@@ -746,7 +746,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank)))
 

@@ -534,7 +534,7 @@ trait APIMethods300 {
       emptyObjectJson,
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
       Some(List(canUseFirehoseAtAnyBank)))
 
@@ -967,7 +967,7 @@ trait APIMethods300 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagApi))
 
 
@@ -1935,8 +1935,8 @@ trait APIMethods300 {
       emptyObjectJson,
       JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      apiTagApi :: Nil)
+      Catalogs(Core, PSD2, OBWG),
+      apiTagDocumentation :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
       case "api" :: "glossary" :: Nil JsonGet req => _ => {
@@ -2013,7 +2013,7 @@ trait APIMethods300 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)))
 

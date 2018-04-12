@@ -122,7 +122,7 @@ trait APIMethods121 {
       emptyObjectJson,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagApi :: Nil)
 
     def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
