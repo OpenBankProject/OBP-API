@@ -53,11 +53,6 @@ trait APIMethods200 {
 
   // helper methods begin here
 
-
-  val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-
-
-
   // shows a small representation of View
   private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
     Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))

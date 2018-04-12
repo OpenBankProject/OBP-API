@@ -14,6 +14,7 @@ trait TestConnectorSetup {
   @deprecated("Please use `createAccountAndOwnerView` instead, we need owner view for each account! ","2018-02-23")
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
+  protected def createTransactionRequest(account: BankAccount)
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
   protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait
@@ -48,11 +49,11 @@ trait TestConnectorSetup {
     * This will create the test accounts for testBanks.
     * It will also create ownerView, PublicView and RandomView ...
     */
-  final protected def createAccounts(banks : Traversable[Bank]) : Traversable[BankAccount] = {
+  final protected def createAccounts(user: User, banks : Traversable[Bank]) : Traversable[BankAccount] = {
     val testAccountCurrency = "EUR"
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(None, bank.bankId, AccountId("testAccount"+i), testAccountCurrency)
+        createAccountAndOwnerView(Some(user), bank.bankId, AccountId("testAccount"+i), testAccountCurrency)
       }
     })
 
@@ -106,6 +107,16 @@ trait TestConnectorSetup {
       //load all transactions for the account to generate the counterparty metadata
       Connector.connector.vend.getTransactions(account.bankId, account.accountId, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
     })
+  }
+  
+  final protected def createTransactionRequests(accounts : Traversable[BankAccount]) = {
+    val NUM_TRANSACTIONS = 10
+
+    accounts.foreach(account => {
+      for(i <- 0 until NUM_TRANSACTIONS)
+        createTransactionRequest(account)
+      }
+    )
   }
 
   final protected def createPaymentTestBank() : Bank =

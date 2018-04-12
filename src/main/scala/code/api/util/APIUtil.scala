@@ -2023,4 +2023,6 @@ Returns a string showed to the developer
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
   
+  lazy val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+  
 }
