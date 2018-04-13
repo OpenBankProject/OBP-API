@@ -41,10 +41,12 @@ object ApiVersion {
   lazy val bankMockApi = BankMockApi()
   case class BerlinGroupV1()  extends ApiVersion {
     override def toString() = "v1"
+    //override def toString() = "berlin_group_v1" // TODO don't want to confuse with OBP
   }
   lazy val berlinGroupV1 = BerlinGroupV1()
   case class UKOpenBankingV200()  extends ApiVersion {
     override def toString() = "v2.0.0"
+    // override def toString() = "uk_v2.0.0" // TODO don't want to confuse with OBP
   }
   lazy val ukOpenBankingV200 = UKOpenBankingV200()
   case class OpenIdConnect1() extends ApiVersion
