@@ -989,7 +989,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1236,7 +1236,7 @@ trait APIMethods210 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct)
     )
 

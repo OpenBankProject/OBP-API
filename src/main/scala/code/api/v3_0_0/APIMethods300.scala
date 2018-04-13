@@ -600,7 +600,7 @@ trait APIMethods300 {
         ViewNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransaction, apiTagAccount)
     )
 
@@ -849,7 +849,7 @@ trait APIMethods300 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -886,7 +886,7 @@ trait APIMethods300 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -927,7 +927,7 @@ trait APIMethods300 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1181,7 +1181,7 @@ trait APIMethods300 {
         BankNotFound,
         "No branches available. License may not be set.",
         UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank)
     )
     lazy val getBranches : OBPEndpoint = {
@@ -1304,7 +1304,7 @@ trait APIMethods300 {
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagATM)
     )
     lazy val getAtms : OBPEndpoint = {
@@ -1377,7 +1377,7 @@ trait APIMethods300 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 

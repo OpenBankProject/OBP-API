@@ -1473,7 +1473,7 @@ trait APIMethods200 {
       createUserJson,
       userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {

@@ -199,7 +199,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No branches available. License may not be set.",
         UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch)
     )
 
@@ -333,7 +333,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "No products available.",
         "License may not be set.",
         UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
 
