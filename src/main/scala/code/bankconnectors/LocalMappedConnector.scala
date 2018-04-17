@@ -288,6 +288,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
       )
   }
+
+  override def getBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
+    Future {
+      Full(
+        bankIdAcountIds.map(
+          bankIdAccountId =>
+            getBankAccount(
+              bankIdAccountId.bankId,
+              bankIdAccountId.accountId
+            ).openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
+      )
+    }
+  }
   
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = {
     getBankAccount(bankId: BankId, accountId: AccountId)

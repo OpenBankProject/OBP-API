@@ -1,5 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
+import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountInner, AccountList, Accounts, Links}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
@@ -2132,6 +2134,28 @@ object SwaggerDefinitionsJSON {
   val amountOfMoneyV1 = AmountOfMoneyV1(
     currency = "String",
     content = "String"
+  )
+
+  val accountInnerJsonUKOpenBanking_v200 = AccountInner(
+    SchemeName = "SortCodeAccountNumber",
+    Identification = "80200110203345",
+    Name = "Mr Kevin",
+    SecondaryIdentification = Some("00021")
+  )
+
+  val accountJsonUKOpenBanking_v200 = Account(
+    AccountId = "22289",
+    Currency = "GBP",
+    AccountType = "Personal",
+    AccountSubType = "CurrentAccount",
+    Nickname = "Bills",
+    Account = accountInnerJsonUKOpenBanking_v200
+  )
+
+  val accountsJsonUKOpenBanking_v200 = Accounts(
+    Data = AccountList(List(accountJsonUKOpenBanking_v200)),
+    Links = Links(Self = "https://api.alphabank.com/open-banking/v2.0/accounts/"),
+    Meta = JSONFactory_UKOpenBanking_200.Meta(TotalPages = 1)
   )
   
   val closingBookedBody = ClosingBookedBody(
