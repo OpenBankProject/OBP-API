@@ -159,7 +159,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         url = x.implementedInApiVersion match {
           case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/uk-open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
