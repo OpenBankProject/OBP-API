@@ -93,6 +93,8 @@ trait APIMethods210 {
           |
           |The user needs to have CanCreateSandbox entitlement.
           |
+          |Note: This is a monolithic call. You could also use a combination of endpoints including create bank, create user, create account and create transaction request to create similar data.
+          |
           |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
          |${authenticationRequiredMessage(true)}
           |""",
