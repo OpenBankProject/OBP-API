@@ -45,7 +45,7 @@ object JSONFactory_UKOpenBanking_200 {
     )
     Accounts(
       Data = AccountList(list),
-      Links = Links(Self = Constant.HostName + "/uk-open-banking/v2.0/accounts"),
+      Links = Links(Self = Constant.HostName + "/open-banking/v2.0/accounts"),
       Meta = Meta(TotalPages = 1)
     )
   }
