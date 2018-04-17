@@ -259,6 +259,8 @@ trait Connector extends MdcLoggable{
 
   def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[CallContext]) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
+  def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
+
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
   def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
   

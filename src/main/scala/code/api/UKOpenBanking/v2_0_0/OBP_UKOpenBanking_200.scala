@@ -50,7 +50,7 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with APIMethods_UKOpenBanking
   val version = ApiVersion.ukOpenBankingV200
   val versionStatus = "DRAFT"
 
-  val endpointsOf200 = Nil
+  val endpointsOf200 = ImplementationsUKOpenBanking200.readAccountList :: Nil
   
   val allResourceDocs = ImplementationsUKOpenBanking200.resourceDocs
   
@@ -64,7 +64,7 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with APIMethods_UKOpenBanking
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("uk-open-banking" / version.toString).oPrefix{route}, findResourceDoc(route))
+    oauthServe(("uk-open-banking" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
