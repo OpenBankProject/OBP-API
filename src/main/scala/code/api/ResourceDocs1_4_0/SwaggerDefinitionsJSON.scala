@@ -1,7 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
-import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountInner, AccountList, Accounts, Links}
+import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountInner, AccountList, Accounts, BalanceUKOpenBankingJson, BankTransactionCodeJson, Links, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
@@ -2308,6 +2308,55 @@ object SwaggerDefinitionsJSON {
     average_response_time = 65.21,
     minimum_response_time = 1,
     maximum_response_time = 9039
+  )
+  
+  //APIMethods_UKOpenBanking_200 
+  
+  val bankTransactionCodeJson = BankTransactionCodeJson(
+    Code = "ReceivedCreditTransfer",
+    SubCode = "DomesticCreditTransfer"
+  )
+
+  val balanceUKOpenBankingJson = BalanceUKOpenBankingJson(
+    Amount = amountOfMoneyJsonV121,
+    CreditDebitIndicator = "Credit",
+    Type = "InterimBooked"
+  )
+
+  val transactionCodeJson = TransactionCodeJson(
+    Code = "Transfer",
+    Issuer = "AlphaBank"
+  )
+  
+  val transactionInnerJson  = TransactionInnerJson(
+    AccountId = accountId.value,
+    TransactionId  = "123",
+    TransactionReference = "Ref 1",
+    Amount = amountOfMoneyJsonV121,
+    CreditDebitIndicator = "Credit",
+    Status = "Booked",
+    BookingDateTime = exampleDate,
+    ValueDateTime = exampleDate,
+    TransactionInformation = "Cash from Aubrey",
+    BankTransactionCode = bankTransactionCodeJson,
+    ProprietaryBankTransactionCode = transactionCodeJson,
+    Balance = balanceUKOpenBankingJson
+  )
+
+  val transactionsInnerJson =  TransactionsInnerJson(
+    Transaction = List(transactionInnerJson)
+  )
+
+  val metaInnerJson  = MetaInnerJson(
+    TotalPages = 1,
+    FirstAvailableDateTime = exampleDate,
+    LastAvailableDateTime = exampleDate
+  )
+
+  val transactionsJsonUKV200 = TransactionsJsonUKV200(
+    Data = transactionsInnerJson,
+    Links = Links(Self="https://api.alphabank.com/open-banking/v2.0/accounts/22289/transactions/"),
+    Meta = metaInnerJson
   )
   
   //The common error or success format.

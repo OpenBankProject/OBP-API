@@ -1,15 +1,21 @@
 package code.api.UKOpenBanking.v2_0_0
 
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, ViewNotFound}
 import code.api.util.{ApiVersion, ErrorMessages}
 import code.bankconnectors.Connector
+import code.model._
 import code.model.AccountId
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 
+import scala.collection.immutable.Nil
+
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait APIMethods_UKOpenBanking_200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -54,6 +60,54 @@ trait APIMethods_UKOpenBanking_200 {
             accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory_UKOpenBanking_200.createAccountsListJSON(accounts.getOrElse(Nil)), callContext)
+          }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      getAccountTransactions,
+      implementedInApiVersion,
+      "getAccountTransactions",
+      "GET",
+      "/accounts/ACCOUNT_ID/transactions",
+      "Experimental - UK Open Banking: Get Account Transactions",
+      s"""
+         |Reads account data from a given account addressed by “account-id”. 
+         |${authenticationRequiredMessage(true)}
+         |""",
+      emptyObjectJson,
+      SwaggerDefinitionsJSON.branchJsonV300,
+      List(UserNotLoggedIn,UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
+  
+    lazy val getAccountTransactions : OBPEndpoint = {
+      //get private accounts for all banks
+      case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            params <- Future { getTransactionParams(callContext.get.requestHeaders)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+          
+            transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+          
+            transactions <- Future { bankAccount.getModeratedTransactions(user, view, params: _*)(callContext)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+          
+          } yield {
+            (JSONFactory_UKOpenBanking_200.createTransactionsJson(transactions, transactionRequests), callContext)
           }
       }
     }
