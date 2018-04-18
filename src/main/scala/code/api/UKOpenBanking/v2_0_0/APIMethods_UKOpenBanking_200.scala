@@ -34,12 +34,14 @@ trait APIMethods_UKOpenBanking_200 {
       "readAccountList",
       "GET",
       "/accounts",
-      "Experimental! - UK Open Banking: Read Account List",
+      "UK Open Banking: Read Account List",
       s"""
          |Reads a list of bank accounts, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
          |
         |${authenticationRequiredMessage(true)}
+        |
+        |This call is work in progress - Experimental!
          |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
@@ -70,16 +72,18 @@ trait APIMethods_UKOpenBanking_200 {
       "getAccountTransactions",
       "GET",
       "/accounts/ACCOUNT_ID/transactions",
-      "Experimental - UK Open Banking: Get Account Transactions",
+      "UK Open Banking: Get Account Transactions",
       s"""
          |Reads account data from a given account addressed by “account-id”. 
          |${authenticationRequiredMessage(true)}
+         |
+         |This call is work in progress - Experimental!
          |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.branchJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
+      List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
   
     lazy val getAccountTransactions : OBPEndpoint = {
       //get private accounts for all banks
@@ -119,12 +123,14 @@ trait APIMethods_UKOpenBanking_200 {
       "readAccount",
       "GET",
       "/accounts/ACCOUNT_ID",
-      "Experimental! - UK Open Banking: Read Account",
+      "UK Open Banking: Read Account",
       s"""
          |Reads a bank account, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
          |
         |${authenticationRequiredMessage(true)}
+        |
+        |This call is work in progress - Experimental!
          |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,

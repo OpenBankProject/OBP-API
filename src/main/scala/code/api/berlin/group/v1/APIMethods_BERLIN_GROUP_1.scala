@@ -34,12 +34,14 @@ trait APIMethods_BERLIN_GROUP_1 {
       "readAccountList",
       "GET",
       "/accounts",
-      "Experimental! - Berlin Group: Read Account List",
+      "Berlin Group: Read Account List",
       s"""
          |Reads a list of bank accounts, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
          |
         |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint is work in progress. Experimental!
          |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.coreAccountsJsonV1,
@@ -73,11 +75,13 @@ trait APIMethods_BERLIN_GROUP_1 {
       "readBalance",
       "GET",
       "/accounts/ACCOUNT_ID/balances",
-      "Experimental - BG Read Balance",
+      "Berlin Group Read Balance",
       s"""
         |Reads account data from a given account addressed by “account-id”.
         |
         |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint is work in progress. Experimental!
         |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountBalances,
@@ -123,10 +127,12 @@ trait APIMethods_BERLIN_GROUP_1 {
       "readTransactionList",
       "GET",
       "/accounts/ACCOUNT_ID/transactions",
-      "Experimental - BG Read Account Transactions",
+      "Berlin Group Read Account Transactions",
       s"""
         |Reads account data from a given account addressed by “account-id”. 
         |${authenticationRequiredMessage(true)}
+        |
+        |This endpoint is work in progress. Experimental!
         |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.transactionsJsonV1,
