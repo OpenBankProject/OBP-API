@@ -141,4 +141,26 @@ object JSONFactory_UKOpenBanking_200 {
     )
   }
 
+  def createAccountJSON(accounts: List[BankAccount]) = {
+    val list = accounts.map(
+      x => Account(
+        AccountId = x.accountId.value,
+        Currency = x.currency,
+        AccountType = x.accountType,
+        AccountSubType = x.accountType,
+        Nickname = x.label,
+        AccountInner(
+          SchemeName = x.accountRoutingScheme,
+          Identification = x.accountRoutingAddress,
+          Name = x.name
+        )
+      )
+    )
+    Accounts(
+      Data = AccountList(list),
+      Links = Links(Self = Constant.HostName + "/open-banking/v2.0/accounts/" + list.head.AccountId),
+      Meta = Meta(TotalPages = 1)
+    )
+  }
+
 }
