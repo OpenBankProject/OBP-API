@@ -8,11 +8,11 @@ import code.api.util.{ApiVersion, ErrorMessages}
 import code.bankconnectors.Connector
 import code.model._
 import code.model.AccountId
+import code.util.Helper
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
-
+import code.api.util.ErrorMessages._
 import scala.collection.immutable.Nil
-
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -156,7 +156,55 @@ trait APIMethods_UKOpenBanking_200 {
           }
       }
     }
-
+  
+    resourceDocs += ResourceDoc(
+      getAccountBalances,
+      implementedInApiVersion,
+      "getAccountBalances",
+      "GET",
+      "/accounts/ACCOUNT_ID/balances",
+      "UK Open Banking: Get Account Balances",
+      s"""
+         |An AISP may retrieve the account balance information resource for a specific AccountId 
+         |(which is retrieved in the call to GET /accounts).
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |This call is work in progress - Experimental!
+         |""",
+      emptyObjectJson,
+      SwaggerDefinitionsJSON.accountBalancesUKV200,
+      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
+  
+    lazy val getAccountBalances : OBPEndpoint = {
+      //get private accounts for all banks
+      case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+        
+            account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+        
+            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+        
+            _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+        
+            moderatedAccount <- Future {account.moderatedBankAccount(view, user)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+        
+          } yield {
+            (JSONFactory_UKOpenBanking_200.createAccountBalanceJSON(moderatedAccount), callContext)
+          }
+      }
+    }
 
   }
 

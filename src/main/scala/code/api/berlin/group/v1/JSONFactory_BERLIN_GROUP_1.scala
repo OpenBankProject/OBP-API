@@ -63,7 +63,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     remittanceInformationUnstructured: String
   )
 
-  def createTransactionListJSON(coreAccounts: List[CoreAccount]) = {
+  def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV1 = {
     CoreAccountsJsonV1(coreAccounts.map(
       x => CoreAccountJsonV1(
         id = x.id,

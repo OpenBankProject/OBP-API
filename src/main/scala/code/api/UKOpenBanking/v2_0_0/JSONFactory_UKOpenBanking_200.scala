@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.Constant
 import code.api.util.APIUtil.exampleDate
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.model.{BankAccount, ModeratedTransaction}
+import code.model.{BankAccount, ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
 
 import scala.collection.immutable.List
@@ -81,7 +81,36 @@ object JSONFactory_UKOpenBanking_200 {
     LastAvailableDateTime: Date
   )
   
-  def createAccountsListJSON(accounts: List[BankAccount]) = {
+  case class CreditLineJson(
+    Included: Boolean,
+    Amount: AmountOfMoneyJsonV121,
+    Type: String
+  )
+  
+  case class BalanceJsonUKV200(
+    AccountId: String,
+    Amount: AmountOfMoneyJsonV121,
+    CreditDebitIndicator: String,
+    Type: String,
+    DateTime: Date,
+    CreditLine: List[CreditLineJson]
+  )
+  
+  case class DataJsonUKV200(
+    Balance: List[BalanceJsonUKV200]
+  )
+  
+  case class MetaBisJson(
+    TotalPages: Int
+  )
+  
+  case class AccountBalancesUKV200(
+    Data: DataJsonUKV200,
+    Links: Links,
+    Meta: MetaBisJson
+  )
+  
+  def createAccountsListJSON(accounts: List[BankAccount]): Accounts = {
     val list = accounts.map(
       x => Account(
         AccountId = x.accountId.value,
@@ -158,8 +187,31 @@ object JSONFactory_UKOpenBanking_200 {
     )
     Accounts(
       Data = AccountList(list),
-      Links = Links(Self = Constant.HostName + "/open-banking/v2.0/accounts/" + list.head.AccountId),
+      Links = Links(Self = s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId),
       Meta = Meta(TotalPages = 1)
+    )
+  }
+  
+  def createAccountBalanceJSON(moderatedAccount : ModeratedBankAccount) = {
+    val accountId = moderatedAccount.accountId.value
+    
+    val dataJson = DataJsonUKV200(
+      List(BalanceJsonUKV200(
+        AccountId = accountId,
+        Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance),
+        CreditDebitIndicator = moderatedAccount.owners.getOrElse(null).head.name,
+        Type = "Credit",
+        DateTime = null,
+        CreditLine = List(CreditLineJson(
+          Included = true,
+          Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""),moderatedAccount.balance),
+          Type = "Pre-Agreed"
+        )))))
+    
+    AccountBalancesUKV200(
+      Data = dataJson,
+      Links = Links(s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/"),
+      Meta = MetaBisJson(1)
     )
   }
 
