@@ -9,7 +9,7 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
   
   object UKOpenBankingV200 extends Tag("UKOpenBankingV200")
   
-  feature("test the UKOpenBankingV200 Read Account List") 
+  feature("test the UKOpenBankingV200 GET Account List") 
   {
     scenario("Successful Case", UKOpenBankingV200) 
     {
@@ -35,7 +35,7 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
 //    }
 //  }
   
-  feature("test the UKOpenBankingV200 Read Account Transactions") 
+  feature("test the UKOpenBankingV200 GET Account Transactions") 
   {
     scenario("Successful Case", UKOpenBankingV200)
     {

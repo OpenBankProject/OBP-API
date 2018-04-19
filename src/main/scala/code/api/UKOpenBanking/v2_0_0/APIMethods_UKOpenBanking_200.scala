@@ -29,12 +29,12 @@ trait APIMethods_UKOpenBanking_200 {
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
     resourceDocs += ResourceDoc(
-      readAccountList,
+      getAccountList,
       implementedInApiVersion,
-      "readAccountList",
+      "getAccountList",
       "GET",
       "/accounts",
-      "UK Open Banking: Read Account List",
+      "UK Open Banking: Get Account List",
       s"""
          |Reads a list of bank accounts, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
@@ -49,9 +49,9 @@ trait APIMethods_UKOpenBanking_200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
-    apiRelations += ApiRelation(readAccountList, readAccountList, "self")
+    apiRelations += ApiRelation(getAccountList, getAccountList, "self")
 
-    lazy val readAccountList : OBPEndpoint = {
+    lazy val getAccountList : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: Nil JsonGet _ => {
         cc =>
@@ -80,10 +80,10 @@ trait APIMethods_UKOpenBanking_200 {
          |This call is work in progress - Experimental!
          |""",
       emptyObjectJson,
-      SwaggerDefinitionsJSON.branchJsonV300,
+      SwaggerDefinitionsJSON.transactionsJsonUKV200,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
+      List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData))
   
     lazy val getAccountTransactions : OBPEndpoint = {
       //get private accounts for all banks
@@ -118,12 +118,12 @@ trait APIMethods_UKOpenBanking_200 {
 
 
     resourceDocs += ResourceDoc(
-      readAccount,
+      getAccount,
       implementedInApiVersion,
-      "readAccount",
+      "getAccount",
       "GET",
       "/accounts/ACCOUNT_ID",
-      "UK Open Banking: Read Account",
+      "UK Open Banking: Get Account",
       s"""
          |Reads a bank account, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
@@ -138,9 +138,9 @@ trait APIMethods_UKOpenBanking_200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
-    apiRelations += ApiRelation(readAccount, readAccount, "self")
+    apiRelations += ApiRelation(getAccount, getAccount, "self")
 
-    lazy val readAccount : OBPEndpoint = {
+    lazy val getAccount : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
         cc =>

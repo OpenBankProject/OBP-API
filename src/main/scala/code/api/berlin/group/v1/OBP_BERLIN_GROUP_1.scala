@@ -51,9 +51,9 @@ object OBP_BERLIN_GROUP_1 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1 w
   val versionStatus = "DRAFT"
 
   val endpointsOf1 =  
-    Implementations1.readAccountList ::
-    Implementations1.readBalance ::
-    Implementations1.readTransactionList ::
+    Implementations1.getAccountList ::
+    Implementations1.getAccountBalances ::
+    Implementations1.getTransactionList ::
     Nil
   
   val allResourceDocs = Implementations1.resourceDocs
