@@ -214,5 +214,27 @@ object JSONFactory_UKOpenBanking_200 {
       Meta = MetaBisJson(1)
     )
   }
+  
+  def createBalancesJSON(accounts: List[BankAccount]) = {
+    
+    val dataJson = DataJsonUKV200(
+      accounts.map(account => BalanceJsonUKV200(
+        AccountId = account.accountId.value,
+        Amount = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
+        CreditDebitIndicator = account.owners.headOption.getOrElse(null).name,
+        Type = "Credit",
+        DateTime = null,
+        CreditLine = List(CreditLineJson(
+          Included = true,
+          Amount = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
+          Type = "Pre-Agreed"
+        )))))
+    
+    AccountBalancesUKV200(
+      Data = dataJson,
+      Links = Links(s"${Constant.HostName}/open-banking/v2.0/balances/"),
+      Meta = MetaBisJson(1)
+    )
+  }
 
 }

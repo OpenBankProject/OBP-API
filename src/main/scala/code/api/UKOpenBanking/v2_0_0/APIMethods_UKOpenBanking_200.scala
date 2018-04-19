@@ -205,6 +205,47 @@ trait APIMethods_UKOpenBanking_200 {
           }
       }
     }
+  
+    resourceDocs += ResourceDoc(
+      getBalances,
+      implementedInApiVersion,
+      "getBalances",
+      "GET",
+      "/balances",
+      "UK Open Banking: Get Balances",
+      s"""
+         |
+         |If an ASPSP has implemented the bulk retrieval endpoints - 
+         |an AISP may optionally retrieve the account information resources in bulk.
+         |This will retrieve the resources for all authorised accounts linked to the account-request.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |This call is work in progress - Experimental!
+         |""",
+      emptyObjectJson,
+      SwaggerDefinitionsJSON.accountBalancesUKV200,
+      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
+  
+    lazy val getBalances : OBPEndpoint = {
+      //get private accounts for all banks
+      case "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          
+            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+          
+          } yield {
+            (JSONFactory_UKOpenBanking_200.createBalancesJSON(accounts.getOrElse(Nil)), callContext)
+          }
+      }
+    }
 
   }
 

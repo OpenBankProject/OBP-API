@@ -23,13 +23,28 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
     }
   }
   
-  feature("test the UKOpenBankingV200 Read Balance") 
+  feature("test the UKOpenBankingV200 Get Account Balances") 
   {
     scenario("Successful Case", UKOpenBankingV200) 
     {
       val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"balances" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
 
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      val accountBalancesUKV200 = response.body.extract[AccountBalancesUKV200]
+      accountBalancesUKV200.Links.Self contains("balances")
+      
+    }
+  }
+  
+  feature("test the UKOpenBankingV200 Get Balances")
+  {
+    scenario("Successful Case", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "balances" ).GET <@(user1)
+      val response = makeGetRequest(requestGetAll)
+      
       Then("We should get a 200 ")
       response.code should equal(200)
       val accountBalancesUKV200 = response.body.extract[AccountBalancesUKV200]

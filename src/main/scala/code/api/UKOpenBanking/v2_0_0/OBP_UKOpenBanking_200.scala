@@ -55,6 +55,7 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with APIMethods_UKOpenBanking
       ImplementationsUKOpenBanking200.getAccountTransactions :: 
       ImplementationsUKOpenBanking200.getAccount :: 
       ImplementationsUKOpenBanking200.getAccountBalances :: 
+      ImplementationsUKOpenBanking200.getBalances :: 
       Nil
   
   val allResourceDocs = ImplementationsUKOpenBanking200.resourceDocs
