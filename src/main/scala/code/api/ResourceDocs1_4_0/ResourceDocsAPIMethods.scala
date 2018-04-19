@@ -212,7 +212,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             * replace JValue key: jsonClass --> api_role
             */
           def replaceJsonKey(json: JValue): JValue = json transformField {
-            case JField("json_class", x) => JField("role", x)
+            case JField("jsonClass", x) => JField("role", x)
+            case JField("requiresBankId", x) => JField("requires_bank_id", x)
           }
   
           /**
@@ -221,7 +222,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           def replaceJsonValue(json: JValue): JValue = json transformField {
             case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
           }
-          successJsonResponse(replaceJsonValue(replaceJsonKey(snakify(Extraction.decompose(innerJson)))))
+          successJsonResponse(replaceJsonValue(replaceJsonKey(Extraction.decompose(innerJson))))
         }
         obpResourceDocJson
       }
