@@ -51,9 +51,11 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with APIMethods_UKOpenBanking
   val versionStatus = "DRAFT"
 
   val endpointsOf200 = 
-      ImplementationsUKOpenBanking200.readAccountList :: 
+      ImplementationsUKOpenBanking200.getAccountList :: 
       ImplementationsUKOpenBanking200.getAccountTransactions :: 
-      ImplementationsUKOpenBanking200.readAccount :: 
+      ImplementationsUKOpenBanking200.getAccount :: 
+      ImplementationsUKOpenBanking200.getAccountBalances :: 
+      ImplementationsUKOpenBanking200.getBalances :: 
       Nil
   
   val allResourceDocs = ImplementationsUKOpenBanking200.resourceDocs

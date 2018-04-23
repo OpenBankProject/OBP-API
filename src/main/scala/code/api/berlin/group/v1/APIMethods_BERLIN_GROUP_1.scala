@@ -29,9 +29,9 @@ trait APIMethods_BERLIN_GROUP_1 {
 
 
     resourceDocs += ResourceDoc(
-      readAccountList,
+      getAccountList,
       implementedInApiVersion,
-      "readAccountList",
+      "getAccountList",
       "GET",
       "/accounts",
       "Berlin Group: Read Account List",
@@ -50,11 +50,11 @@ trait APIMethods_BERLIN_GROUP_1 {
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
 
 
-    apiRelations += ApiRelation(readAccountList, readAccountList, "self")
+    apiRelations += ApiRelation(getAccountList, getAccountList, "self")
 
 
 
-    lazy val readAccountList : OBPEndpoint = {
+    lazy val getAccountList : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: Nil JsonGet _ => {
         cc =>
@@ -70,9 +70,9 @@ trait APIMethods_BERLIN_GROUP_1 {
     }
 
     resourceDocs += ResourceDoc(
-      readBalance,
+      getAccountBalances,
       implementedInApiVersion,
-      "readBalance",
+      "getAccountBalances",
       "GET",
       "/accounts/ACCOUNT_ID/balances",
       "Berlin Group Read Balance",
@@ -89,7 +89,7 @@ trait APIMethods_BERLIN_GROUP_1 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
   
-    lazy val readBalance : OBPEndpoint = {
+    lazy val getAccountBalances : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
@@ -122,9 +122,9 @@ trait APIMethods_BERLIN_GROUP_1 {
     }
   
     resourceDocs += ResourceDoc(
-      readTransactionList,
+      getTransactionList,
       implementedInApiVersion,
-      "readTransactionList",
+      "getTransactionList",
       "GET",
       "/accounts/ACCOUNT_ID/transactions",
       "Berlin Group Read Account Transactions",
@@ -138,9 +138,9 @@ trait APIMethods_BERLIN_GROUP_1 {
       SwaggerDefinitionsJSON.transactionsJsonV1,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
+      List(apiTagBerlinGroup, apiTagTransaction, apiTagPrivateData))
   
-    lazy val readTransactionList : OBPEndpoint = {
+    lazy val getTransactionList : OBPEndpoint = {
       //get private accounts for all banks
       case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
         cc =>

@@ -1,7 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
-import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountInner, AccountList, Accounts, BalanceUKOpenBankingJson, BankTransactionCodeJson, Links, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
+import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
@@ -2154,7 +2155,7 @@ object SwaggerDefinitionsJSON {
 
   val accountsJsonUKOpenBanking_v200 = Accounts(
     Data = AccountList(List(accountJsonUKOpenBanking_v200)),
-    Links = Links(Self = "https://api.alphabank.com/open-banking/v2.0/accounts/"),
+    Links = Links(Self = s"${Constant.HostName}/open-banking/v2.0/accounts/"),
     Meta = JSONFactory_UKOpenBanking_200.Meta(TotalPages = 1)
   )
   
@@ -2355,8 +2356,37 @@ object SwaggerDefinitionsJSON {
 
   val transactionsJsonUKV200 = TransactionsJsonUKV200(
     Data = transactionsInnerJson,
-    Links = Links(Self="https://api.alphabank.com/open-banking/v2.0/accounts/22289/transactions/"),
+    Links = Links(Self=s"${Constant.HostName}/open-banking/v2.0/accounts/22289/transactions/"),
     Meta = metaInnerJson
+  )
+  
+  val creditLineJson = CreditLineJson(
+    Included = true,
+    Amount = amountOfMoneyJsonV121,
+    Type = "Pre-Agreed"
+  )
+  
+  val balanceJsonUK200 = BalanceJsonUKV200(
+    AccountId = "22289",
+    Amount = amountOfMoneyJsonV121,
+    CreditDebitIndicator = "Credit",
+    Type = "InterimAvailable",
+    DateTime = exampleDate,
+    CreditLine = List(creditLineJson)
+  )
+  
+  val dataJsonUK200 = DataJsonUKV200(
+    Balance = List(balanceJsonUK200)
+  )
+  
+  val metaBisJson =  MetaBisJson(
+    TotalPages = 1
+  )
+  
+  val accountBalancesUKV200 = AccountBalancesUKV200(
+    Data = dataJsonUK200,
+    Links = Links(s"${Constant.HostName}/open-banking/v2.0/accounts/22289/balances/"),
+    Meta = metaBisJson
   )
   
   //The common error or success format.
