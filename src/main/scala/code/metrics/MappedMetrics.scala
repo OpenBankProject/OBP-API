@@ -3,8 +3,8 @@ package code.metrics
 import java.util.Date
 
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
-import code.util.{UUIDString, MappedUUID}
-import net.liftweb.mapper._
+import code.util.{MappedUUID, UUIDString}
+import net.liftweb.mapper.{Index, _}
 
 object MappedMetrics extends APIMetrics {
 
@@ -147,5 +147,5 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
   //override def dbIndexes = Index(userId) :: Index(url) :: Index(date) :: Index(userName) :: Index(appName) :: Index(developerEmail) :: super.dbIndexes
-  override def dbIndexes = super.dbIndexes
+  override def dbIndexes = Index(date) :: super.dbIndexes
 }
