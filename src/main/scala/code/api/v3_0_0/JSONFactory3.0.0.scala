@@ -803,7 +803,7 @@ object JSONFactory300{
   }
 
   def createBranchesJson(branchesList: List[BranchT]): BranchesJsonV300 = {
-    BranchesJsonV300(branchesList.map(createBranchJsonV300))
+    code.api.v3_0_0.BranchesJsonV300(branchesList.map(createBranchJsonV300))
   }
 
   def createAtmJsonV300(atm: AtmT): AtmJsonV300 = {

@@ -5,8 +5,11 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import code.api.util.APIUtil.InboundMessageBase
+import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
+import code.branches.Branches._
+import code.common.{Address, Location, Meta, Routing}
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
@@ -32,6 +35,11 @@ case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, ac
 case class OutboundGetCoreBankAccounts(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
+case class OutboundGetBranches(authInfo: AuthInfo,bankId: String) extends TopicTrait
+case class OutboundGetBranch(authInfo: AuthInfo, bankId: String, branchId: String)extends TopicTrait
+case class OutboundGetAtms(authInfo: AuthInfo,bankId: String) extends TopicTrait
+case class OutboundGetAtm(authInfo: AuthInfo,bankId: String, atmId: String) extends TopicTrait
+
 case class OutboundCreateChallengeJune2017(
   authInfo: AuthInfo,
   bankId: String,
@@ -61,11 +69,11 @@ case class OutboundGetCounterpartyByCounterpartyId(
   authInfo: AuthInfo,
   counterparty: OutboundGetCounterpartyById
 ) extends TopicTrait
+case class OutboundGetCounterparty(authInfo: AuthInfo, thisBankId: String, thisAccountId: String, counterpartyId: String) extends TopicTrait
 
 case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
-case class OutboundGetCounterparty(authInfo: AuthInfo, thisBankId: String, thisAccountId: String, counterpartyId: String) extends TopicTrait
 
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
@@ -76,18 +84,24 @@ case class InboundAdapterInfo(data: InboundAdapterInfoInternal)
 case class InboundGetUserByUsernamePassword(authInfo: AuthInfo, data: InboundValidatedUser)
 case class InboundGetBanks(authInfo: AuthInfo, status: Status,data: List[InboundBank])
 case class InboundGetBank(authInfo: AuthInfo, status: Status, data: InboundBank)
-case class InboundGetAccounts(authInfo: AuthInfo, data: List[InboundAccountJune2017])
-case class InboundGetAccountbyAccountID(authInfo: AuthInfo, data: InboundAccountJune2017)
-case class InboundCheckBankAccountExists(authInfo: AuthInfo, data: InboundAccountJune2017)
+case class InboundGetAccounts(authInfo: AuthInfo, status: Status, data: List[InboundAccountJune2017])
+case class InboundGetAccountbyAccountID(authInfo: AuthInfo, status: Status, data: Option[InboundAccountJune2017])
+case class InboundCheckBankAccountExists(authInfo: AuthInfo, status: Status, data: Option[InboundAccountJune2017])
 case class InboundGetCoreBankAccounts(authInfo: AuthInfo, data: List[InternalInboundCoreAccount])
-case class InboundGetTransactions(authInfo: AuthInfo, data: List[InternalTransaction])
-case class InboundGetTransaction(authInfo: AuthInfo, data: InternalTransaction)
+case class InboundGetTransactions(authInfo: AuthInfo, status: Status, data: List[InternalTransaction_vJune2017])
+case class InboundGetTransaction(authInfo: AuthInfo, status: Status, data: Option[InternalTransaction_vJune2017])
 case class InboundCreateChallengeJune2017(authInfo: AuthInfo, data: InternalCreateChallengeJune2017)
-case class InboundCreateCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
-case class InboundGetTransactionRequests210(authInfo: AuthInfo, data: InternalGetTransactionRequests)
-case class InboundGetCounterparties(authInfo: AuthInfo, data: List[InternalCounterparty])
-case class InboundGetCounterparty(authInfo: AuthInfo, data: InternalCounterparty)
-case class InboundGetCustomersByUserId(authInfo: AuthInfo, data: List[InternalCustomer])
+case class InboundCreateCounterparty(authInfo: AuthInfo, status: Status, data: Option[InternalCounterparty])
+case class InboundGetTransactionRequests210(authInfo: AuthInfo, status: Status, data: List[TransactionRequest])
+case class InboundGetCounterparties(authInfo: AuthInfo, status: Status, data: List[InternalCounterparty])
+case class InboundGetCounterparty(authInfo: AuthInfo, status: Status, data: Option[InternalCounterparty])
+case class InboundGetCustomersByUserId(authInfo: AuthInfo, status: Status, data: List[InternalCustomer])
+case class InboundGetBranches(authInfo: AuthInfo,status: Status,data: List[InboundBranchVJune2017])
+case class InboundGetBranch(authInfo: AuthInfo,status: Status, data: Option[InboundBranchVJune2017])
+case class InboundGetAtms(authInfo: AuthInfo, status: Status, data: List[InboundAtmJune2017])
+case class InboundGetAtm(authInfo: AuthInfo, status: Status, data: Option[InboundAtmJune2017])
+
+
 
 
 
@@ -115,7 +129,6 @@ case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst:
 case class AccountRule(scheme: String, value: String)
 case class InboundAccountJune2017(
   errorCode: String,
-  backendMessages: List[InboundStatusMessage],
   cbsToken: String, //TODO, this maybe move to AuthInfo, but it is used in GatewayLogin
   bankId: String,
   branchId: String,
@@ -132,6 +145,7 @@ case class InboundAccountJune2017(
   branchRoutingAddress: String,
   accountRoutingScheme: String,
   accountRoutingAddress: String,
+  accountRouting: List[AccountRouting],
   accountRules: List[AccountRule]
 ) extends InboundMessageBase with InboundAccountCommon
 
@@ -232,50 +246,99 @@ case class OutboundTransactionRequests(
   
 
 case class InternalCounterparty(
-  errorCode: String,
-  backendMessages: List[InboundStatusMessage],
-  createdByUserId: String,
-  name: String,
-  thisBankId: String,
-  thisAccountId: String,
-  thisViewId: String,
-  counterpartyId: String,
-  otherAccountRoutingScheme: String,
-  otherAccountRoutingAddress: String,
-  otherBankRoutingScheme: String,
-  otherBankRoutingAddress: String,
-  otherBranchRoutingScheme: String,
-  otherBranchRoutingAddress: String,
-  isBeneficiary: Boolean,
-  description: String,
-  otherAccountSecondaryRoutingScheme: String,
-  otherAccountSecondaryRoutingAddress: String,
-  bespoke: List[CounterpartyBespoke]
-) extends CounterpartyTrait
+                                 createdByUserId: String,
+                                 name: String,
+                                 thisBankId: String,
+                                 thisAccountId: String,
+                                 thisViewId: String,
+                                 counterpartyId: String,
+                                 otherAccountRoutingScheme: String,
+                                 otherAccountRoutingAddress: String,
+                                 otherBankRoutingScheme: String,
+                                 otherBankRoutingAddress: String,
+                                 otherBranchRoutingScheme: String,
+                                 otherBranchRoutingAddress: String,
+                                 isBeneficiary: Boolean,
+                                 description: String,
+                                 otherAccountSecondaryRoutingScheme: String,
+                                 otherAccountSecondaryRoutingAddress: String,
+                                 bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait
 
 
-case class InternalCustomer(
-  status: String,
-  errorCode: String,
-  backendMessages: List[InboundStatusMessage],
-  customerId : String, 
-  bankId : String,
-  number : String,   // The Customer number i.e. the bank identifier for the customer.
-  legalName : String,
-  mobileNumber : String,
-  email : String,
-  faceImage : CustomerFaceImage,
-  dateOfBirth: Date,
-  relationshipStatus: String,
-  dependents: Integer,
-  dobOfDependents: List[Date],
-  highestEducationAttained: String,
-  employmentStatus: String,
-  creditRating : CreditRating,
-  creditLimit: CreditLimit,
-  kycStatus: lang.Boolean,
-  lastOkDate: Date
-)extends Customer
+case class InternalCustomer(customerId: String, bankId: String, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage, dateOfBirth: Date, relationshipStatus: String, dependents: Integer, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, creditRating: CreditRating, creditLimit: CreditLimit, kycStatus: lang.Boolean, lastOkDate: Date) extends Customer
+
+case class  InboundBranchVJune2017(
+                           branchId: BranchId,
+                           bankId: BankId,
+                           name: String,
+                           address: Address,
+                           location: Location,
+                           lobbyString: Option[LobbyString],
+                           driveUpString: Option[DriveUpString],
+                           meta: Meta,
+                           branchRouting: Option[Routing],
+                           lobby: Option[Lobby],
+                           driveUp: Option[DriveUp],
+                           // Easy access for people who use wheelchairs etc.
+                           isAccessible : Option[Boolean],
+                           accessibleFeatures: Option[String],
+                           branchType : Option[String],
+                           moreInfo : Option[String],
+                           phoneNumber : Option[String]
+                         ) extends BranchT
+
+case class InboundAtmJune2017(
+                               atmId : AtmId,
+                               bankId : BankId,
+                               name : String,
+                               address : Address,
+                               location : Location,
+                               meta : Meta,
+
+                               OpeningTimeOnMonday : Option[String],
+                               ClosingTimeOnMonday : Option[String],
+
+                               OpeningTimeOnTuesday : Option[String],
+                               ClosingTimeOnTuesday : Option[String],
+
+                               OpeningTimeOnWednesday : Option[String],
+                               ClosingTimeOnWednesday : Option[String],
+
+                               OpeningTimeOnThursday : Option[String],
+                               ClosingTimeOnThursday: Option[String],
+
+                               OpeningTimeOnFriday : Option[String],
+                               ClosingTimeOnFriday : Option[String],
+
+                               OpeningTimeOnSaturday : Option[String],
+                               ClosingTimeOnSaturday : Option[String],
+
+                               OpeningTimeOnSunday: Option[String],
+                               ClosingTimeOnSunday : Option[String],
+
+                               isAccessible : Option[Boolean],
+
+                               locatedAt : Option[String],
+                               moreInfo : Option[String],
+                               hasDepositCapability : Option[Boolean]
+                             ) extends AtmT
+
+case class InternalTransaction_vJune2017(
+                                transactionId: String,
+                                accountId: String,
+                                amount: String,
+                                bankId: String,
+                                completedDate: String,
+                                counterpartyId: String,
+                                counterpartyName: String,
+                                currency: String,
+                                description: String,
+                                newBalanceAmount: String,
+                                newBalanceCurrency: String,
+                                postedDate: String,
+                                `type`: String,
+                                userId: String
+                              )
 
 
 object JsonFactory_vJune2017 {
