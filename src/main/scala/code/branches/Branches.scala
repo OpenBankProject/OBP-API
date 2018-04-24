@@ -67,7 +67,6 @@ object Branches extends SimpleInjector {
                      moreInfo : Option[String],
                      phoneNumber : Option[String]
                    ) extends BranchT
-  
 
 
 
@@ -210,7 +209,7 @@ object Branches extends SimpleInjector {
 
 
 
-                          
+
 
   case class Lobby(
                     monday: List[OpeningTimes],
@@ -220,7 +219,7 @@ object Branches extends SimpleInjector {
                     friday: List[OpeningTimes],
                     saturday: List[OpeningTimes],
                     sunday: List[OpeningTimes]
-                  ) 
+                          )
 
   case class DriveUp(
                               monday: OpeningTimes,
