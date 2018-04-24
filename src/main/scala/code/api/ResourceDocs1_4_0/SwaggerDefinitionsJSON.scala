@@ -7,6 +7,7 @@ import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, Acco
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
@@ -278,11 +279,78 @@ object SwaggerDefinitionsJSON {
     value= amountOfMoney,
     description= "String"
   )
+
+
+  val fromAccountTransfer = FromAccountTransfer(
+    mobile_phone_number = "String",
+    nickname = "String"
+  )
+
+  val toAccountTransferToPhone = ToAccountTransferToPhone(
+    mobile_phone_number = "String"
+  )
+
+  val toAccountTransferToAtmKycDocument = ToAccountTransferToAtmKycDocument(
+    `type` = "String",
+    number = "String",
+  )
+
+  val toAccountTransferToAtm = ToAccountTransferToAtm(
+    legal_name = "String",
+    date_of_birth = "String",
+    mobile_phone_number = "String",
+    kyc_document = toAccountTransferToAtmKycDocument
+  )
+
+  val toAccountTransferToAccountAccount = ToAccountTransferToAccountAccount(
+    number = "String",
+    iban = "String"
+  )
+
+  val toAccountTransferToAccount = ToAccountTransferToAccount(
+    name = "String",
+    bank_code = "String",
+    branch_number = "String",
+    account = toAccountTransferToAccountAccount
+  )
+
+  val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
+    currency = "EUR",
+    amount = "10"
+  )
   
+  val transactionRequestTransferToPhone = TransactionRequestTransferToPhone(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    message = "String",
+    from = fromAccountTransfer,
+    to = toAccountTransferToPhone
+  )
+
+  val transactionRequestTransferToAtm = TransactionRequestTransferToAtm(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    message = "String",
+    from = fromAccountTransfer,
+    to = toAccountTransferToAtm
+  )
+
+  val transactionRequestTransferToAccount = TransactionRequestTransferToAccount(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    transfer_type = "String",
+    future_date = "String",
+    to = toAccountTransferToAccount
+  )
+  
+
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
     to_sepa = Some(transactionRequestIban),
     to_counterparty = Some(transactionRequestCounterpartyId),
+    to_transfer_to_phone = None,//Some(transactionRequestTransferToPhone),
+    to_transfer_to_atm = None, // Some(transactionRequestTransferToAtm),
+    to_transfer_to_account = None, //Some(transactionRequestTransferToAccount),
     value = amountOfMoney,
     description = "String" 
   )
@@ -401,10 +469,6 @@ object SwaggerDefinitionsJSON {
     address = "DE89 3704 0044 0532 0130 00"
   )
 
-  val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
-    currency = "EUR",
-    amount = "10"
-  )
   val accountRuleJsonV300 = AccountRuleJsonV300(
     scheme = "OVERDRAFT",
     value = "10"
