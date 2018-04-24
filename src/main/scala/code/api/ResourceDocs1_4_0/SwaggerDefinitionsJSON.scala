@@ -958,13 +958,13 @@ object SwaggerDefinitionsJSON {
   )
 
   val lobby: Lobby = Lobby(
-    monday = openingTimes,
-    tuesday = openingTimes,
-    wednesday = openingTimes,
-    thursday = openingTimes,
-    friday = openingTimes,
-    saturday = openingTimes,
-    sunday = openingTimes
+    monday = List(openingTimes),
+    tuesday = List(openingTimes),
+    wednesday = List(openingTimes),
+    thursday = List(openingTimes),
+    friday = List(openingTimes),
+    saturday = List(openingTimes),
+    sunday = List(openingTimes)
   )
 
 
@@ -1014,6 +1014,7 @@ object SwaggerDefinitionsJSON {
     branchRouting = Some(branchRouting),
     // Easy access for people who use wheelchairs etc.
     isAccessible = Some(true),
+    accessibleFeatures = Some("wheelchair, atm usuable by the visually impaired"),
     branchType = Some("Full service store"),
     moreInfo = Some("short walk to the lake from here"),
     phoneNumber = Some("+381631954907")
@@ -1021,13 +1022,13 @@ object SwaggerDefinitionsJSON {
   
   
   val lobbyJsonV330 = LobbyJsonV330(
-    monday = openingTimesV300,
-    tuesday = openingTimesV300,
-    wednesday = openingTimesV300,
-    thursday =  openingTimesV300,
-    friday =  openingTimesV300,
-    saturday =  openingTimesV300,
-    sunday =  openingTimesV300
+    monday = List(openingTimesV300),
+    tuesday = List(openingTimesV300),
+    wednesday = List(openingTimesV300),
+    thursday =  List(openingTimesV300),
+    friday =  List(openingTimesV300),
+    saturday =  List(openingTimesV300),
+    sunday =  List(openingTimesV300)
   )
   
   val driveUpJsonV330 = DriveUpJsonV330(

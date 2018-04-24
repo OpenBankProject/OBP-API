@@ -13,7 +13,9 @@ import net.liftweb.util.SimpleInjector
 
 object Atms extends SimpleInjector {
 
-  case class AtmId(value : String)
+  case class AtmId(value : String){
+    override def toString() = value
+  }
 
   object AtmId {
     def unapply(id : String) = Some(AtmId(id))
