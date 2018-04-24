@@ -35,6 +35,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
@@ -742,8 +743,7 @@ object JSONFactory300{
 
 
   def createBranchJsonV300(branch: BranchT): BranchJsonV300 = {
-
-    val getOrCreateLobby: Lobby = branch.lobby.getOrElse(Lobby(List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")))) 
+    val getOrCreateLobby: Lobby = branch.lobby.getOrElse(Lobby(List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("",""))))
     
     BranchJsonV300(branch.branchId.value,
       branch.bankId.value,
@@ -803,7 +803,7 @@ object JSONFactory300{
   }
 
   def createBranchesJson(branchesList: List[BranchT]): BranchesJsonV300 = {
-    code.api.v3_0_0.BranchesJsonV300(branchesList.map(createBranchJsonV300))
+    BranchesJsonV300(branchesList.map(createBranchJsonV300))
   }
 
   def createAtmJsonV300(atm: AtmT): AtmJsonV300 = {
