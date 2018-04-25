@@ -9,6 +9,7 @@ import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
+import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
@@ -2460,8 +2461,8 @@ object SwaggerDefinitionsJSON {
   
   val noSupportYet = NoSupportYet()
   
-  val allFields =
-    for (
+  val allFields ={
+    val allFieldsThisFile = for (
       v <- this.getClass.getDeclaredFields
       //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
       if (APIUtil.notExstingBaseClass(v.getName()))
@@ -2470,4 +2471,8 @@ object SwaggerDefinitionsJSON {
         v.setAccessible(true)
         v.get(this)
       }
+
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields
+  }
+
 }
