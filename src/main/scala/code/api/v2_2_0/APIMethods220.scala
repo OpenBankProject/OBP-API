@@ -338,7 +338,7 @@ trait APIMethods220 {
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
-            counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId)
+            counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value)
           } yield {
             val counterpartyJson = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
             successJsonResponse(Extraction.decompose(counterpartyJson))

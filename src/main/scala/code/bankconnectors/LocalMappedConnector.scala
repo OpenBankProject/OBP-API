@@ -393,6 +393,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
+  //Note: in local mapped database, we have the unique constraint counterparty Id, so just call `getCounterpartyByCounterpartyId` is enough.
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String): Box[CounterpartyTrait]= {
+    getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId)
+  }
+  
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
