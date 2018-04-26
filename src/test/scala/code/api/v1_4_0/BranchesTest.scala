@@ -80,7 +80,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
                          // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
                          isAccessible : Option[Boolean],
-
+                         accessibleFeatures: Option[String],
                          branchType : Option[String],
                          moreInfo : Option[String],
                          driveUp: Option[DriveUp],
@@ -172,6 +172,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
+    None,
     fakeBranchType,
     fakeMoreInfo, None, None, None, None)
   val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
@@ -191,6 +192,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
+    None,
     fakeMoreInfo, None, None, None, None)
   val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
@@ -209,6 +211,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeIsAccessible,
     fakeBranchType,
+    None,
     fakeMoreInfo, None, None, None, None) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks

@@ -3,6 +3,7 @@ package code.connector
 
 import code.api.util.APIUtil.MessageDoc
 import code.bankconnectors.vJune2017.{InboundGetTransactionRequests210, InternalGetTransactionRequests, KafkaMappedConnector_vJune2017, OutboundGetTransactionRequests210}
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
 import net.liftweb.json.JsonAST.JValue
 import org.scalatest._
@@ -26,11 +27,11 @@ class June2017UnitTest extends FunSuite
     val outboundGetTransactionRequests210: OutboundGetTransactionRequests210 = outboundMessage.extract[OutboundGetTransactionRequests210]
     
     val inboundGetTransactionRequests210: InboundGetTransactionRequests210 = inboundMessage.extract[InboundGetTransactionRequests210]
-    val internalGetTransactionRequests: InternalGetTransactionRequests = inboundGetTransactionRequests210.data
+    val internalGetTransactionRequests: List[TransactionRequest] = inboundGetTransactionRequests210.data
   
   
     outboundGetTransactionRequests210 shouldBe a [OutboundGetTransactionRequests210]
-    internalGetTransactionRequests shouldBe a [InternalGetTransactionRequests]
+    internalGetTransactionRequests shouldBe a [List[TransactionRequest]]
     
   }
 

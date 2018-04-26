@@ -94,7 +94,7 @@ object JSONFactory1_4_0 {
 
   case class BranchesJson (branches : List[BranchJson])
 
-  case class BranchesJsonV300 (branches : List[BranchJsonV300])
+  //case class BranchesJsonV300 (branches : List[BranchJsonV300])
 
 
   case class AtmJson(id : String,

@@ -7,7 +7,9 @@ import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, Acco
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
+import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
@@ -278,11 +280,78 @@ object SwaggerDefinitionsJSON {
     value= amountOfMoney,
     description= "String"
   )
+
+
+  val fromAccountTransfer = FromAccountTransfer(
+    mobile_phone_number = "String",
+    nickname = "String"
+  )
+
+  val toAccountTransferToPhone = ToAccountTransferToPhone(
+    mobile_phone_number = "String"
+  )
+
+  val toAccountTransferToAtmKycDocument = ToAccountTransferToAtmKycDocument(
+    `type` = "String",
+    number = "String",
+  )
+
+  val toAccountTransferToAtm = ToAccountTransferToAtm(
+    legal_name = "String",
+    date_of_birth = "String",
+    mobile_phone_number = "String",
+    kyc_document = toAccountTransferToAtmKycDocument
+  )
+
+  val toAccountTransferToAccountAccount = ToAccountTransferToAccountAccount(
+    number = "String",
+    iban = "String"
+  )
+
+  val toAccountTransferToAccount = ToAccountTransferToAccount(
+    name = "String",
+    bank_code = "String",
+    branch_number = "String",
+    account = toAccountTransferToAccountAccount
+  )
+
+  val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
+    currency = "EUR",
+    amount = "10"
+  )
   
+  val transactionRequestTransferToPhone = TransactionRequestTransferToPhone(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    message = "String",
+    from = fromAccountTransfer,
+    to = toAccountTransferToPhone
+  )
+
+  val transactionRequestTransferToAtm = TransactionRequestTransferToAtm(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    message = "String",
+    from = fromAccountTransfer,
+    to = toAccountTransferToAtm
+  )
+
+  val transactionRequestTransferToAccount = TransactionRequestTransferToAccount(
+    value = amountOfMoneyJsonV121,
+    description = "String",
+    transfer_type = "String",
+    future_date = "String",
+    to = toAccountTransferToAccount
+  )
+  
+
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
     to_sepa = Some(transactionRequestIban),
     to_counterparty = Some(transactionRequestCounterpartyId),
+    to_transfer_to_phone = None,//Some(transactionRequestTransferToPhone),
+    to_transfer_to_atm = None, // Some(transactionRequestTransferToAtm),
+    to_transfer_to_account = None, //Some(transactionRequestTransferToAccount),
     value = amountOfMoney,
     description = "String" 
   )
@@ -401,10 +470,6 @@ object SwaggerDefinitionsJSON {
     address = "DE89 3704 0044 0532 0130 00"
   )
 
-  val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
-    currency = "EUR",
-    amount = "10"
-  )
   val accountRuleJsonV300 = AccountRuleJsonV300(
     scheme = "OVERDRAFT",
     value = "10"
@@ -958,13 +1023,13 @@ object SwaggerDefinitionsJSON {
   )
 
   val lobby: Lobby = Lobby(
-    monday = openingTimes,
-    tuesday = openingTimes,
-    wednesday = openingTimes,
-    thursday = openingTimes,
-    friday = openingTimes,
-    saturday = openingTimes,
-    sunday = openingTimes
+    monday = List(openingTimes),
+    tuesday = List(openingTimes),
+    wednesday = List(openingTimes),
+    thursday = List(openingTimes),
+    friday = List(openingTimes),
+    saturday = List(openingTimes),
+    sunday = List(openingTimes)
   )
 
 
@@ -1014,6 +1079,7 @@ object SwaggerDefinitionsJSON {
     branchRouting = Some(branchRouting),
     // Easy access for people who use wheelchairs etc.
     isAccessible = Some(true),
+    accessibleFeatures = Some("wheelchair, atm usuable by the visually impaired"),
     branchType = Some("Full service store"),
     moreInfo = Some("short walk to the lake from here"),
     phoneNumber = Some("+381631954907")
@@ -1021,13 +1087,13 @@ object SwaggerDefinitionsJSON {
   
   
   val lobbyJsonV330 = LobbyJsonV330(
-    monday = openingTimesV300,
-    tuesday = openingTimesV300,
-    wednesday = openingTimesV300,
-    thursday =  openingTimesV300,
-    friday =  openingTimesV300,
-    saturday =  openingTimesV300,
-    sunday =  openingTimesV300
+    monday = List(openingTimesV300),
+    tuesday = List(openingTimesV300),
+    wednesday = List(openingTimesV300),
+    thursday =  List(openingTimesV300),
+    friday =  List(openingTimesV300),
+    saturday =  List(openingTimesV300),
+    sunday =  List(openingTimesV300)
   )
   
   val driveUpJsonV330 = DriveUpJsonV330(
@@ -2395,8 +2461,8 @@ object SwaggerDefinitionsJSON {
   
   val noSupportYet = NoSupportYet()
   
-  val allFields =
-    for (
+  val allFields ={
+    val allFieldsThisFile = for (
       v <- this.getClass.getDeclaredFields
       //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
       if (APIUtil.notExstingBaseClass(v.getName()))
@@ -2405,4 +2471,8 @@ object SwaggerDefinitionsJSON {
         v.setAccessible(true)
         v.get(this)
       }
+
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields
+  }
+
 }

@@ -26,5 +26,17 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0.custom
 
-object JSONFactory300{
+import code.api.util.APIUtil
+
+object JSONFactoryCustom300{
+  val allFields =
+    for (
+      v <- this.getClass.getDeclaredFields
+      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
+      if (APIUtil.notExstingBaseClass(v.getName()))
+    )
+      yield {
+        v.setAccessible(true)
+        v.get(this)
+      }
 }

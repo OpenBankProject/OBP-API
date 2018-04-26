@@ -12,6 +12,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
+import code.common.OpeningTimes
 import code.customer.Customer
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -390,6 +391,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         isBeneficiary = true
       )
     }
+  }
+  
+  //Note: in local mapped database, we have the unique constraint counterparty Id, so just call `getCounterpartyByCounterpartyId` is enough.
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String): Box[CounterpartyTrait]= {
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId))
   }
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
@@ -1122,26 +1128,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
             .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
 
-            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnTuesday(branch.lobby.map(_.tuesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnWednesday(branch.lobby.map(_.wednesday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnWednesday(branch.lobby.map(_.wednesday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnWednesday(branch.lobby.map(_.wednesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnWednesday(branch.lobby.map(_.wednesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnThursday(branch.lobby.map(_.thursday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnThursday(branch.lobby.map(_.thursday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnThursday(branch.lobby.map(_.thursday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnThursday(branch.lobby.map(_.thursday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnFriday(branch.lobby.map(_.friday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnFriday(branch.lobby.map(_.friday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnFriday(branch.lobby.map(_.friday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnFriday(branch.lobby.map(_.friday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnSaturday(branch.lobby.map(_.saturday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnSaturday(branch.lobby.map(_.saturday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnSaturday(branch.lobby.map(_.saturday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnSaturday(branch.lobby.map(_.saturday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnSunday(branch.lobby.map(_.sunday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnSunday(branch.lobby.map(_.sunday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnSunday(branch.lobby.map(_.sunday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnSunday(branch.lobby.map(_.sunday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
 
             // Drive Up
@@ -1166,12 +1172,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mDriveUpOpeningTimeOnSunday(branch.driveUp.map(_.sunday).map(_.openingTime).orNull)
             .mDriveUpClosingTimeOnSunday(branch.driveUp.map(_.sunday).map(_.closingTime).orNull)
 
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-
-            .mBranchType(branch.branchType.orNull)
-            .mMoreInfo(branch.moreInfo.orNull)
-
-            .saveMe()
             .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
 
             .mBranchType(branch.branchType.orNull)
@@ -1204,26 +1204,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mDriveUpHours(branch.driveUpString.map(_.hours).getOrElse("")) // OK like this? only used by versions prior to v3.0.0
             .mBranchRoutingScheme(branch.branchRouting.map(_.scheme).orNull) //Added in V220
             .mBranchRoutingAddress(branch.branchRouting.map(_.address).orNull) //Added in V220
-            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnMonday(branch.lobby.map(_.monday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnMonday(branch.lobby.map(_.monday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnTuesday(branch.lobby.map(_.tuesday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnTuesday(branch.lobby.map(_.tuesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnTuesday(branch.lobby.map(_.tuesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnWednesday(branch.lobby.map(_.wednesday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnWednesday(branch.lobby.map(_.wednesday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnWednesday(branch.lobby.map(_.wednesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnWednesday(branch.lobby.map(_.wednesday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnThursday(branch.lobby.map(_.thursday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnThursday(branch.lobby.map(_.thursday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnThursday(branch.lobby.map(_.thursday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnThursday(branch.lobby.map(_.thursday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnFriday(branch.lobby.map(_.friday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnFriday(branch.lobby.map(_.friday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnFriday(branch.lobby.map(_.friday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnFriday(branch.lobby.map(_.friday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnSaturday(branch.lobby.map(_.saturday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnSaturday(branch.lobby.map(_.saturday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnSaturday(branch.lobby.map(_.saturday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnSaturday(branch.lobby.map(_.saturday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
-            .mLobbyOpeningTimeOnSunday(branch.lobby.map(_.sunday).map(_.openingTime).orNull)
-            .mLobbyClosingTimeOnSunday(branch.lobby.map(_.sunday).map(_.closingTime).orNull)
+            .mLobbyOpeningTimeOnSunday(branch.lobby.map(_.sunday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.openingTime).head)
+            .mLobbyClosingTimeOnSunday(branch.lobby.map(_.sunday).getOrElse(List(OpeningTimes("00:00","00:00"))).map(_.closingTime).head)
 
 
             // Drive Up

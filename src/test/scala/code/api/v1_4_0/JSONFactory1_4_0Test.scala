@@ -2,12 +2,19 @@ package code.api.v1_4_0
 
 import java.util.Date
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
+import code.api.v2_1_0.OBPAPI2_1_0
+import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.Extraction
 import net.liftweb.json.Extraction.decompose
+import org.scalatest._
+
+import scala.collection.mutable.ArrayBuffer
 import net.liftweb.json._
 import org.everit.json.schema.loader.SchemaLoader
 import org.json.JSONObject

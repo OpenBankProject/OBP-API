@@ -476,17 +476,17 @@
             </execution>
           </executions>
         </plugin>
-        <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <version>6.1.26</version>
-          <configuration>
-            <contextPath>/</contextPath>
-            <scanIntervalSeconds>5</scanIntervalSeconds>
-            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
-          </configuration>
-        </plugin>
-        <plugin>
+      <plugin>
+        <groupId>org.mortbay.jetty</groupId>
+        <artifactId>maven-jetty-plugin</artifactId>
+        <version>6.1.26</version>
+        <configuration>
+          <contextPath>/</contextPath>
+          <scanIntervalSeconds>5</scanIntervalSeconds>
+          <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
+        </configuration>
+      </plugin>
+      <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>yuicompressor-maven-plugin</artifactId>
           <version>1.5.1</version>
