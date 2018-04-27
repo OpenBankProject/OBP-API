@@ -113,6 +113,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
 
   object mIsAccessible extends MappedString(this, 1) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
+  object mAccessibleFeatures extends MappedString(this,250)
 
   object mBranchType extends MappedString(this, 32)
   object mMoreInfo extends MappedString(this, 128)
@@ -174,34 +175,34 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   override def lobby = Some(
     Lobby(
-    monday = OpeningTimes(
+    monday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnMonday.get,
       closingTime = mLobbyClosingTimeOnMonday.get
-    ),
-    tuesday = OpeningTimes(
+    )),
+    tuesday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnTuesday.get,
       closingTime = mLobbyClosingTimeOnTuesday.get
-    ),
-    wednesday = OpeningTimes(
+    )),
+    wednesday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnWednesday.get,
       closingTime = mLobbyClosingTimeOnWednesday.get
-    ),
-    thursday = OpeningTimes(
+    )),
+    thursday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnThursday.get,
       closingTime = mLobbyClosingTimeOnThursday.get
-    ),
-    friday = OpeningTimes(
+    )),
+    friday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnFriday.get,
       closingTime = mLobbyClosingTimeOnFriday.get
-    ),
-    saturday = OpeningTimes(
+    )),
+    saturday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnSaturday.get,
       closingTime = mLobbyClosingTimeOnSaturday.get
-    ),
-    sunday = OpeningTimes(
+    )),
+    sunday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnSunday.get,
       closingTime = mLobbyClosingTimeOnSunday.get
-    )
+    ))
   )
   )
   // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
@@ -248,6 +249,8 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     case "N" => Some(false)
     case _ => None
   }
+
+  override def accessibleFeatures: Option[String] = Some(mAccessibleFeatures.get)
 
   override def  branchType = Some(mBranchType.get)
   override def  moreInfo = Some(mMoreInfo.get)

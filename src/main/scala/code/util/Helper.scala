@@ -107,6 +107,12 @@ object Helper{
     }
   }
 
+  def intToFuture(failMsg: String)(statement: => Int): Future[Int] = {
+    Future {
+      statement
+    }
+  }
+
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 
   /**

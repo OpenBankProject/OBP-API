@@ -259,11 +259,29 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     }
     else
       None
+
+    val t_to_transfer_to_phone = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_PHONE) 
+      Some(parsedDetails.extract[TransactionRequestTransferToPhone])
+    else
+      None
+
+    val t_to_transfer_to_atm = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ATM) 
+      Some(parsedDetails.extract[TransactionRequestTransferToAtm])
+    else
+      None
+    
+    val t_to_transfer_to_account = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ACCOUNT)
+      Some(parsedDetails.extract[TransactionRequestTransferToAccount])
+    else
+      None
     
     val t_body = TransactionRequestBodyAllTypes(
       to_sandbox_tan = t_to_sandbox_tan,
       to_sepa = t_to_sepa,
       to_counterparty = t_to_counterparty,
+      to_transfer_to_phone = t_to_transfer_to_phone, 
+      to_transfer_to_atm = t_to_transfer_to_atm,
+      to_transfer_to_account = t_to_transfer_to_account,
       value = t_amount,
       description = mBody_Description.get
     )

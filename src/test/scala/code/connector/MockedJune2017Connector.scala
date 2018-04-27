@@ -27,47 +27,7 @@ object MockedJune2017Connector extends ServerSetup
   
   override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = {
     Full(
-      InboundAccountJune2017(
-        errorCode = "OBP-6001: ...",
-        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId.bankId.value,
-        branchId = "222", 
-        accountId = bankIdAccountId.accountId.value,
-        accountNumber = "123", 
-        accountType = "AC", 
-        balanceAmount = "50",
-        balanceCurrency = "EUR", 
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", 
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRules = Nil
-      ) :: InboundAccountJune2017(
-        errorCode = "OBP-6001: ...",
-        List(InboundStatusMessage("ESB", "Success", "0", "OK")),
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId2.bankId.value,
-        branchId = "222",
-        accountId = bankIdAccountId2.accountId.value,
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRules = Nil
-      ) :: Nil
+      InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId.bankId.value, branchId = "222", accountId = bankIdAccountId.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId2.bankId.value, branchId = "222", accountId = bankIdAccountId2.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil
     )
   }
 

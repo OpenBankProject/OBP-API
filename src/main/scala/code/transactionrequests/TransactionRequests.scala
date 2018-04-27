@@ -4,8 +4,10 @@ package code.transactionrequests
 import java.util.Date
 
 import code.api.util.APIUtil
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestCommonBodyJSON}
+import code.api.v3_0_0.custom._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.remotedata.RemotedataTransactionRequests
@@ -81,6 +83,63 @@ object TransactionRequests extends SimpleInjector {
   //For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
   case class TransactionRequestIban (iban : String)
 
+  case class FromAccountTransfer(
+    mobile_phone_number: String,
+    nickname: String
+  )
+
+  case class ToAccountTransferToPhone(
+    mobile_phone_number: String
+  )
+
+  case class ToAccountTransferToAtmKycDocument(
+    `type`: String,
+    number: String
+  )
+
+  case class ToAccountTransferToAtm(
+    legal_name: String,
+    date_of_birth: String,
+    mobile_phone_number: String,
+    kyc_document: ToAccountTransferToAtmKycDocument
+  )
+
+  case class ToAccountTransferToAccountAccount(
+    number: String,
+    iban: String
+  )
+
+  case class ToAccountTransferToAccount(
+    name: String,
+    bank_code: String,
+    branch_number: String,
+    account: ToAccountTransferToAccountAccount
+  )
+
+  case class TransactionRequestTransferToPhone(
+    value: AmountOfMoneyJsonV121,
+    description: String,
+    message: String,
+    from: FromAccountTransfer,
+    to: ToAccountTransferToPhone
+  ) extends TransactionRequestCommonBodyJSON
+
+  case class TransactionRequestTransferToAtm(
+    value: AmountOfMoneyJsonV121,
+    description: String,
+    message: String,
+    from: FromAccountTransfer,
+    to: ToAccountTransferToAtm
+  ) extends TransactionRequestCommonBodyJSON
+
+  case class TransactionRequestTransferToAccount(
+    value: AmountOfMoneyJsonV121,
+    description: String,
+    transfer_type: String,
+    future_date: String,
+    to: ToAccountTransferToAccount
+  ) extends TransactionRequestCommonBodyJSON
+
   case class TransactionRequestBody (
     val to: TransactionRequestAccount,
     val value : AmountOfMoney,
@@ -91,6 +150,9 @@ object TransactionRequests extends SimpleInjector {
     to_sandbox_tan: Option[TransactionRequestAccount],
     to_sepa: Option[TransactionRequestIban],
     to_counterparty: Option[TransactionRequestCounterpartyId],
+    to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable 
+    to_transfer_to_atm: Option[TransactionRequestTransferToAtm]= None,//TODO not stable 
+    to_transfer_to_account: Option[TransactionRequestTransferToAccount]= None,//TODO not stable 
     value: AmountOfMoney,
     description: String
   )

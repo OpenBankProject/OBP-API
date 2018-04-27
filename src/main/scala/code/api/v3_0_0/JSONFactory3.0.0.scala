@@ -34,7 +34,8 @@ import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchesJsonV300, _}
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
@@ -275,13 +276,13 @@ case class OpeningTimesV300(
                            )
 
 case class LobbyJsonV330(
-                        monday: OpeningTimesV300,
-                        tuesday: OpeningTimesV300,
-                        wednesday: OpeningTimesV300,
-                        thursday: OpeningTimesV300,
-                        friday: OpeningTimesV300,
-                        saturday: OpeningTimesV300,
-                        sunday: OpeningTimesV300
+                          monday: List[OpeningTimesV300],
+                          tuesday: List[OpeningTimesV300],
+                          wednesday: List[OpeningTimesV300],
+                          thursday: List[OpeningTimesV300],
+                          friday: List[OpeningTimesV300],
+                          saturday: List[OpeningTimesV300],
+                          sunday: List[OpeningTimesV300]
                         )
 
 case class DriveUpJsonV330(
@@ -334,6 +335,7 @@ case class BranchJsonV300(
                            branch_routing: BranchRoutingJsonV141,
                            // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
                            is_accessible : String,
+                           accessibleFeatures: String,
                            branch_type : String,
                            more_info : String,
                            phone_number : String
@@ -741,6 +743,8 @@ object JSONFactory300{
 
 
   def createBranchJsonV300(branch: BranchT): BranchJsonV300 = {
+    val getOrCreateLobby: Lobby = branch.lobby.getOrElse(Lobby(List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("",""))))
+    
     BranchJsonV300(branch.branchId.value,
       branch.bankId.value,
       branch.name,
@@ -755,27 +759,13 @@ object JSONFactory300{
       createLocationJson(branch.location),
       createMetaJson(branch.meta),
       LobbyJsonV330(
-        monday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.monday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.monday.closingTime).getOrElse("")),
-        tuesday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.tuesday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.tuesday.closingTime).getOrElse("")),
-        wednesday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.wednesday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.wednesday.closingTime).getOrElse("")),
-        thursday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.thursday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.thursday.closingTime).getOrElse("")),
-        friday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.friday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.friday.closingTime).getOrElse("")),
-        saturday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.saturday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.saturday.closingTime).getOrElse("")),
-        sunday = OpeningTimesV300(
-          opening_time = branch.lobby.map(_.sunday.openingTime).getOrElse(""),
-          closing_time = branch.lobby.map(_.sunday.closingTime).getOrElse(""))
+        monday = getOrCreateLobby.monday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        tuesday = getOrCreateLobby.tuesday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        wednesday = getOrCreateLobby.wednesday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        thursday = getOrCreateLobby.thursday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        friday = getOrCreateLobby.friday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        saturday = getOrCreateLobby.saturday.map(x => OpeningTimesV300(x.openingTime,x.closingTime)),
+        sunday = getOrCreateLobby.sunday.map(x => OpeningTimesV300(x.openingTime,x.closingTime))
       ),
       DriveUpJsonV330(
         monday = OpeningTimesV300(
@@ -805,6 +795,7 @@ object JSONFactory300{
         address = branch.branchRouting.map(_.address).getOrElse("")
       ),
       is_accessible = branch.isAccessible.map(_.toString).getOrElse(""),
+      accessibleFeatures = branch.accessibleFeatures.getOrElse(""),
       branch_type = branch.branchType.getOrElse(""),
       more_info = branch.moreInfo.getOrElse(""),
       phone_number = branch.phoneNumber.getOrElse("")
@@ -928,27 +919,13 @@ object JSONFactory300{
 
 
     val lobby: Lobby = Lobby(
-      monday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.monday.opening_time,
-        closingTime = branchJsonV300.lobby.monday.closing_time),
-      tuesday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.tuesday.opening_time,
-        closingTime = branchJsonV300.lobby.tuesday.closing_time),
-      wednesday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.wednesday.opening_time,
-        closingTime = branchJsonV300.lobby.wednesday.closing_time),
-      thursday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.thursday.opening_time,
-        closingTime = branchJsonV300.lobby.thursday.closing_time),
-      friday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.friday.opening_time,
-        closingTime = branchJsonV300.lobby.friday.closing_time),
-      saturday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.saturday.opening_time,
-        closingTime = branchJsonV300.lobby.saturday.closing_time),
-      sunday = OpeningTimes(
-        openingTime = branchJsonV300.lobby.sunday.opening_time,
-        closingTime = branchJsonV300.lobby.sunday.closing_time)
+      monday = branchJsonV300.lobby.monday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      tuesday = branchJsonV300.lobby.tuesday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      wednesday = branchJsonV300.lobby.wednesday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      thursday = branchJsonV300.lobby.thursday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      friday = branchJsonV300.lobby.friday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      saturday = branchJsonV300.lobby.saturday.map(x => OpeningTimes(x.opening_time, x.closing_time)),
+      sunday = branchJsonV300.lobby.sunday.map(x => OpeningTimes(x.opening_time, x.closing_time))
     )
 
 
@@ -1001,6 +978,7 @@ object JSONFactory300{
       branchRouting = branchRouting,
       // Easy access for people who use wheelchairs etc. true or false ""=Unknown
       isAccessible = Some(isAccessible),
+      accessibleFeatures = Some(branchJsonV300.accessibleFeatures),
       branchType = Some(branchJsonV300.branch_type),
       moreInfo = Some(branchJsonV300.more_info),
       phoneNumber = Some(branchJsonV300.phone_number)
