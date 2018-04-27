@@ -324,8 +324,18 @@
       <version>0.9.1</version>
     </dependency>
     <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>chill-bijection_${scala.version}</artifactId>
+      <version>0.9.1</version>
+    </dependency>
+    <dependency>
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-guava_${scala.version}</artifactId>
+      <version>0.9.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.cb372</groupId>
+      <artifactId>scalacache-redis_${scala.version}</artifactId>
       <version>0.9.3</version>
     </dependency>
     <dependency>
