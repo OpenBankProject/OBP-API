@@ -1,5 +1,6 @@
 package code.api.cache
 
+import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import scalacache._
 import scalacache.memoization.{cacheKeyExclude, memoizeSync}
@@ -11,7 +12,10 @@ import scala.language.postfixOps
 
 object Redis extends MdcLoggable {
 
-  implicit val scalaCache = ScalaCache(RedisCache("127.0.0.1", 6379))
+  val url = APIUtil.getPropsValue("guava.cache.url", "127.0.0.1")
+  val port = APIUtil.getPropsAsIntValue("guava.cache.port", 6379)
+
+  implicit val scalaCache = ScalaCache(RedisCache(url, port))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
 
   implicit def anyToByte[T](implicit m: Manifest[T]) = new Codec[T, Array[Byte]] {
@@ -38,7 +42,7 @@ object Redis extends MdcLoggable {
   }
 
   def memoizeSyncWithRedis[A](unique: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A)(implicit @cacheKeyExclude m: Manifest[A]): A = {
-    memoizeSync(ttl)(f)(scalaCache, flags, anyToByte)
+    memoizeSync(ttl)(f)
   }
 
 }
