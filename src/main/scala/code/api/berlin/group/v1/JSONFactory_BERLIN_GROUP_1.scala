@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1
 
+import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil
@@ -35,7 +36,7 @@ object JSONFactory_BERLIN_GROUP_1 {
   )
   case class ClosingBookedBody(
     amount : AmountOfMoneyV1,
-    date: Date
+    date: String //eg:  “2017-10-25”, this is not a valid datetime (not java.util.Date)
   )
   case class ExpectedBody(
     amount : AmountOfMoneyV1,
@@ -91,7 +92,8 @@ object JSONFactory_BERLIN_GROUP_1 {
     
     AccountBalances(
       AccountBalance(
-        closingBooked = ClosingBookedBody(amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance ), date = latestCompletedEndDate),
+        closingBooked = ClosingBookedBody(amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance ), 
+                                          date = new SimpleDateFormat("yyyy-MM-dd").format(latestCompletedEndDate)),
         expected = ExpectedBody (amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = sumOfAll), lastActionDateTime = latestUncompletedEndDate)
       ) :: Nil
     )
