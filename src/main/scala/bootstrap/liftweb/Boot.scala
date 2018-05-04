@@ -72,6 +72,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
+import code.scope.MappedScope
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
@@ -515,7 +516,8 @@ object ToSchemify {
     MappedEntitlement,
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest
+    MappedEntitlementRequest,
+    MappedScope
   )
 
   // The following tables are accessed directly via Mapper / JDBC
