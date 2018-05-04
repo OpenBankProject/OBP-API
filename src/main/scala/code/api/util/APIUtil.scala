@@ -87,7 +87,7 @@ object APIUtil extends MdcLoggable {
   val emptyObjectJson = EmptyClassJson()
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-  lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case e: _ => ""}
+  lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
   def httpMethod : String =

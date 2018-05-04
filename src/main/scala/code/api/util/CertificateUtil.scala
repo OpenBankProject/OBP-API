@@ -139,23 +139,6 @@ object CertificateUtil extends MdcLoggable {
     jwtParsed.serialize()
   }
 
-
-  @throws[Exception]
-  def main(args: Array[String]): Unit = {
-
-    print("Enter the Password for the SSL Certificate Stores: ")
-    //As most IDEs do not provide a Console, we fall back to readLine
-    code.api.util.APIUtil.initPasswd =
-      if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("") == "true" ||
-          APIUtil.getPropsValue("jwt.use.ssl").getOrElse("") == "true")
-      {
-        try {
-          System.console.readPassword().toString
-        } catch {
-          case e: NullPointerException => scala.io.StdIn.readLine()
-        }
-      } else {"notused"}
-
     System.out.println("Public key:" + publicKey.getEncoded)
     System.out.println("Private key:" + privateKey.getEncoded)
 
@@ -175,7 +158,6 @@ object CertificateUtil extends MdcLoggable {
 
     // Output
     println(jwk.toJSONObject.toJSONString)
-  }
 
 
 }
