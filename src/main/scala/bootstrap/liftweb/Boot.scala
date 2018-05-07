@@ -32,9 +32,9 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.Locale
-import javax.mail.internet.MimeMessage
+import java.util.{Locale, TimeZone}
 
+import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -72,6 +72,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
+import code.scope.MappedScope
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
@@ -103,6 +104,8 @@ class Boot extends MdcLoggable {
 
     if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
     logger.info("external props folder: " + propsPath)
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
 
     /**
      * Where this application looks for props files:
@@ -513,7 +516,8 @@ object ToSchemify {
     MappedEntitlement,
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest
+    MappedEntitlementRequest,
+    MappedScope
   )
 
   // The following tables are accessed directly via Mapper / JDBC

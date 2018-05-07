@@ -1753,12 +1753,12 @@ Returns a string showed to the developer
                 case Full(payload) =>
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
                     case Full((u, cbsToken)) => // Authentication is successful
-                      GatewayLogin.getOrCreateConsumer(payload, u)
+                      val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
                       val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
                       val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
-                      (Full(u), callContext)
+                      (Full(u), callContext.map(_.copy(consumer=consumer)))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>

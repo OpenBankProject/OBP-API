@@ -30,9 +30,10 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
+import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.branches.Branches.{Branch, BranchId, BranchT, DriveUp, DriveUpString, Lobby, LobbyString}
+import code.branches.Branches.{BranchId, BranchT, Lobby}
 import code.common._
 import code.customer._
 import code.kafka.KafkaHelper
@@ -41,18 +42,16 @@ import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import code.api.util.APIUtil.getSecondsCache
-import code.atms.Atms.{AtmId, AtmT}
-import code.branches.MappedBranch
 import com.google.common.cache.CacheBuilder
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, _}
-import net.liftweb.json.{Extraction, MappingException}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
-import net.liftweb.mapper.{MaxRows, StartAt}
 import net.liftweb.util.Helpers.tryo
+import scalacache.ScalaCache
+import scalacache.guava.GuavaCache
+import scalacache.memoization.{cacheKeyExclude, memoizeSync}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -60,10 +59,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import scalacache.memoization.memoizeSync
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -82,6 +77,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val transactionRequests210TTL = getSecondsCache("getTransactionRequests210")
   val counterpartiesTTL = getSecondsCache("getCounterparties")
   val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
+  val counterpartyTrait = getSecondsCache("getCounterpartyTrait")
   val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
   val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
@@ -448,7 +444,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         statusExample,
         Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, @cacheKeyExclude session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -512,7 +508,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @cacheKeyExclude session: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     memoizeSync(accountTTL second){
       val (userName, cbs) = session match {
         case Some(c) =>
@@ -574,7 +570,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         statusExample, 
         Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @cacheKeyExclude session: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
     memoizeSync(accountTTL second){
 
       val (userName, cbs) = session match {
@@ -618,7 +614,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }}("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @cacheKeyExclude session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
     memoizeSync(accountsTTL second){
 
       val (userName, cbs) = session match {
@@ -795,8 +791,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       toDate = toDate
     )
     
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
-    def getTransactionsCached(req:OutboundGetTransactions): Box[List[TransactionCore]] = memoizeSync(transactionsTTL second){
+    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCoreCached to cache data.
+    //Note: getTransactionsCoreCached and getTransactionsCached have the same parameters,but the different method name.
+    def getTransactionsCoreCached(req:OutboundGetTransactions): Box[List[TransactionCore]] = memoizeSync(transactionsTTL second){
       logger.debug(s"Kafka getTransactions says: req is: $req")
       val box = for {
         kafkaMessage <- processToBox[OutboundGetTransactions](req)
@@ -832,7 +829,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
     
-    getTransactionsCached(req)
+    getTransactionsCoreCached(req)
     
   }("getTransactions")
   
@@ -1316,7 +1313,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }}("getCounterpartyByCounterpartyId")
 
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(0 second){
+  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{memoizeSync(counterpartyTrait second){
     val req = OutboundGetCounterparty(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), thisBankId.value, thisAccountId.value, couterpartyId)
     logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
 
@@ -1365,7 +1362,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = None
   )
 
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
+  override def getCustomersByUserIdFuture(userId: String)(@cacheKeyExclude session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{ memoizeSync(customersByUserIdBoxTTL second) {
 
     val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
     val req = OutboundGetCustomersByUserId(

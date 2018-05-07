@@ -96,6 +96,7 @@ object ErrorMessages {
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 
+  val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
 
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
