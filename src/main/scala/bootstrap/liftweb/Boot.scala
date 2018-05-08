@@ -32,9 +32,9 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.Locale
-import javax.mail.internet.MimeMessage
+import java.util.{Locale, TimeZone}
 
+import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -72,6 +72,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
+import code.scope.MappedScope
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
@@ -103,6 +104,8 @@ class Boot extends MdcLoggable {
 
     if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
     logger.info("external props folder: " + propsPath)
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
 
     /**
      * Where this application looks for props files:
@@ -182,17 +185,6 @@ class Boot extends MdcLoggable {
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
     
-    print("Enter the Password for the SSL Certificate Stores: ")
-    //As most IDEs do not provide a Console, we fall back to readLine
-    code.api.util.APIUtil.initPasswd =  if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("") == "true" ||
-      APIUtil.getPropsValue("jwt.use.ssl").getOrElse("") == "true") {
-      try {
-        System.console.readPassword().toString
-      } catch {
-        case e: NullPointerException => scala.io.StdIn.readLine()
-      }
-    } else {"notused"}
-
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
     if(connector != "mongodb")
@@ -513,7 +505,8 @@ object ToSchemify {
     MappedEntitlement,
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest
+    MappedEntitlementRequest,
+    MappedScope
   )
 
   // The following tables are accessed directly via Mapper / JDBC

@@ -29,24 +29,22 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.token.Tokens
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.consumer.Consumers._
-import code.model.dataAccess.{AuthUser, ResourceUserCaseClass}
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}
-import code.util.Helper.SILENCE_IS_GOLDEN
+import code.token.Tokens
+import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
-import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props}
-import code.util.Helper.MdcLoggable
+import net.liftweb.util.Helpers
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
 * This object provides the API calls necessary to
@@ -473,9 +471,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
     for {
       (httpCode, message, directLoginParameters) <- validatorFuture("protectedResource", httpMethod)
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
+      consumer <- OAuthHandshake.getConsumerFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
       user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
     } yield {
-      (user, Some(sc.copy(user = user, directLoginParams = directLoginParameters)))
+      (user, Some(sc.copy(user = user, directLoginParams = directLoginParameters, consumer = consumer)))
     }
   }
 

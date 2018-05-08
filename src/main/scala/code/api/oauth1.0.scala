@@ -914,8 +914,13 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
     val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 
-    if(httpCode== 200) (getUser(httpCode, oAuthParameters.get("oauth_token")), cc.copy(oAuthParams = oAuthParameters))
-    else (ParamFailure(message, Empty, Empty, APIFailure(message, httpCode)), cc)
+    if(httpCode== 200) {
+      val oauthToken = oAuthParameters.get("oauth_token")
+      val consumer = getConsumer(oauthToken.getOrElse(""))
+      (getUser(httpCode, oauthToken), cc.copy(oAuthParams = oAuthParameters, consumer = consumer))
+    }
+    else 
+      (ParamFailure(message, Empty, Empty, APIFailure(message, httpCode)), cc)
   }
 
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
@@ -950,9 +955,10 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     for {
       (httpCode, message, oAuthParameters) <- validatorFuture("protectedResource", httpMethod)
       _ <- Future { if (httpCode == 200) Full("ok") else Empty } map { x => APIUtil.fullBoxOrException(x ?~! message) }
+      consumer <- getConsumerFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
       user <- getUserFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
     } yield {
-      (user, Some(sc.copy(user = user, oAuthParams = oAuthParameters)))
+      (user, Some(sc.copy(user = user, oAuthParams = oAuthParameters, consumer=consumer)))
     }
   }
   def getUserFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[User]] = {
@@ -973,5 +979,14 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         Future {Empty}
     }
 
+  }
+  
+  def getConsumerFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[Consumer]] = {
+    httpCode match {
+      case 200 =>
+        Tokens.tokens.vend.getTokenByKeyFuture(key.openOrThrowException(attemptedToOpenAnEmptyBox)) map (_.map(_.consumerId.foreign.openOrThrowException(attemptedToOpenAnEmptyBox)))
+      case _ =>
+        Future {Empty}
+    }
   }
 }

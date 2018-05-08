@@ -2227,7 +2227,7 @@ object SwaggerDefinitionsJSON {
   
   val closingBookedBody = ClosingBookedBody(
     amount = amountOfMoneyV1,
-    date = exampleDate
+    date = "2017-10-25"
   )
   
   val expectedBody = ExpectedBody(

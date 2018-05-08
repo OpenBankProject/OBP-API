@@ -50,9 +50,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
       .withProperty("security.protocol","SSL")
       .withProperty("ssl.truststore.location", APIUtil.getPropsValue("truststore.path").getOrElse(""))
-      .withProperty("ssl.truststore.password", initPasswd)
+      .withProperty("ssl.truststore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
       .withProperty("ssl.keystore.location",APIUtil.getPropsValue("keystore.path").getOrElse(""))
-      .withProperty("ssl.keystore.password", initPasswd)
+      .withProperty("ssl.keystore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
   } else {
     ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
       .withBootstrapServers(bootstrapServers)
@@ -75,9 +75,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withParallelism(3)
       .withProperty("security.protocol","SSL")
       .withProperty("ssl.truststore.location", APIUtil.getPropsValue("truststore.path").getOrElse(""))
-      .withProperty("ssl.truststore.password", initPasswd)
+      .withProperty("ssl.truststore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
       .withProperty("ssl.keystore.location",APIUtil.getPropsValue("keystore.path").getOrElse(""))
-      .withProperty("ssl.keystore.password", initPasswd)
+      .withProperty("ssl.keystore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
   } else {
     ProducerSettings(system, new StringSerializer, new StringSerializer)
       .withBootstrapServers(bootstrapServers)

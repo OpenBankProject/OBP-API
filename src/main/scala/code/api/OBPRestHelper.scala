@@ -243,7 +243,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       }
     } else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
-        case Full(u) => fn(cc.copy(user = Full(u)))// Authentication is successful
+        case Full(u) => {
+          val consumer = DirectLogin.getConsumer
+          fn(cc.copy(user = Full(u), consumer=consumer))
+        }// Authentication is successful
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           Full(errorJsonResponse(message, httpCode))
@@ -263,13 +266,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                   val s = S
                   GatewayLogin.getOrCreateResourceUser(payload: String) match {
                     case Full((u, cbsToken)) => // Authentication is successful
-                      GatewayLogin.getOrCreateConsumer(payload, u)
+                      val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
                       setGatewayResponseHeader(s) {
                         GatewayLogin.createJwt(payload, cbsToken)
                       }
                       setGatewayLoginUsername(s)(u.name)
                       setGatewayLoginCbsToken(s)(cbsToken)
-                      fn(cc.copy(user = Full(u)))
+                      fn(cc.copy(user = Full(u), consumer = consumer))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }
