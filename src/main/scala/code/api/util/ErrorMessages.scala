@@ -97,7 +97,9 @@ object ErrorMessages {
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 
   val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
-
+  val ConsumerNotFoundById = "OBP-20024: Consumer not found. Please specify a valid value for CONSUMER_ID."
+  val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
+  val ScopeDoesNotBelongsToUser = "OBP-30213: SCOPE_ID does not belongs to CONSUMER_ID"
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "

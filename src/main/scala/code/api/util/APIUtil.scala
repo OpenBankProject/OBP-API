@@ -54,6 +54,7 @@ import code.entitlement.Entitlement
 import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
 import code.sanitycheck.SanityCheck
+import code.scope.Scope
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
 import net.liftweb.actor.LAFuture
@@ -1191,9 +1192,18 @@ Returns a string showed to the developer
     user_ids.filter(_ == user_id).length > 0
   }
 
-
-
-
+  def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
+    !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
+  }
+  
+  // Function checks does a consumer specified by a parameter consumerId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does consumer has assigned at least one role from the list
+  def hasAtLeastOneScope(bankId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
+    val list: List[Boolean] = for (role <- roles) yield {
+      !Scope.scope.vend.getScope(if (role.requiresBankId == true) bankId else "", consumerId, role.toString).isEmpty
+    }
+    list.exists(_ == true)
+  }
 
 
 

@@ -10,7 +10,7 @@ import code.api.util.ApiRole._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
 import code.api.v3_0_0.custom.JSONFactoryCustom300
-import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -2454,6 +2454,16 @@ object SwaggerDefinitionsJSON {
     Links = Links(s"${Constant.HostName}/open-banking/v2.0/accounts/22289/balances/"),
     Meta = metaBisJson
   )
+  
+  val createScopeJson =  CreateScopeJson(bank_id = "gh.29.uk", role_name = "CanGetEntitlementsForAnyUserAtOneBank")
+   
+  val scopeJson = ScopeJson(
+    scope_id = "88625da4-a671-435e-9d24-e5b6e5cc404f", 
+    role_name = "CanGetEntitlementsForAnyUserAtOneBank", 
+    bank_id = "gh.29.uk"
+  )
+  val scopeJsons = ScopeJsons(List(scopeJson))
+  
   
   //The common error or success format.
   //Just some helper format to use in Json 
