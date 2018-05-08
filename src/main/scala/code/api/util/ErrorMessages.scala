@@ -99,7 +99,7 @@ object ErrorMessages {
   val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
   val ConsumerNotFoundById = "OBP-20024: Consumer not found. Please specify a valid value for CONSUMER_ID."
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
-  val ScopeDoesNotBelongsToUser = "OBP-30213: SCOPE_ID does not belongs to CONSUMER_ID"
+  val ConsumerDoesNotHaveScope = "OBP-30213: CONSUMER_ID does not have the SCOPE_ID "
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
@@ -219,7 +219,7 @@ object ErrorMessages {
   val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."
 
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
-  val EntitlementDoesNotBelongsToUser = "OBP-30213: ENTITLEMENT_ID does not belongs to USER_ID"
+  val UserDoesNotHaveEntitlement = "OBP-30213: USER_ID does not have the ENTITLEMENT_ID."
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
   val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"

@@ -2044,7 +2044,7 @@ trait APIMethods200 {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
               entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
-              _ <- entitlement.filter(_.userId == userId) ?~ EntitlementDoesNotBelongsToUser
+              _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
               _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
             }
             yield noContentJsonResponse

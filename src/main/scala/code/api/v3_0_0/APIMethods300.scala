@@ -2183,7 +2183,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
 
-            _ <- Helper.booleanToFuture(failMsg = ScopeDoesNotBelongsToUser) { scope.scopeId ==scopeId }
+            _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope) { scope.scopeId ==scopeId }
             
             _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
           } yield
