@@ -55,6 +55,7 @@ import code.metrics.{APIMetrics, ConnectorMetricsProvider}
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
+import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import dispatch.url
 import net.liftweb.actor.LAFuture
@@ -1211,6 +1212,33 @@ Returns a string showed to the developer
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
+  case class EntitlementAndScopeStatus(
+    hasBoth: Boolean,
+    reason: Option[String] = None, //for Later
+    errorMessage: String,
+  )
+  
+  val REQUIRE_SCOPES: Boolean = getPropsAsBoolValue("require_scopes", false)
+  
+  def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole): Box[EntitlementAndScopeStatus]= {
+    for{
+      hasEntitlement <- tryo{ !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty} ?~! s"$UnknownError"
+      hasScope <- REQUIRE_SCOPES match {
+        case false => Full(true) // if the props require_scopes == false, we need not check the Scope stuff..
+        case true => tryo{ !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty} ?~! s"$UnknownError "
+      }
+        
+      hasBoth = hasEntitlement && hasScope
+      differentErrorMessages = if (!hasScope && !hasEntitlement ) "User and Customer both are "  else if (!hasEntitlement) "User is "  else if (!hasScope) "Customer is " else ""
+      errorMessage = s"${UserHasMissingRoles.replace("User is ",differentErrorMessages)}$role"
+      
+      _ <- Helper.booleanToBox(hasBoth, errorMessage)
+      
+    } yield{
+      EntitlementAndScopeStatus(hasBoth=hasBoth, errorMessage = errorMessage)
+    }
+  }
+  
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {

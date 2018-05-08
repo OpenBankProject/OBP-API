@@ -2128,10 +2128,10 @@ trait APIMethods300 {
               ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
             }
             
-            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
 
-            _ <- Helper.booleanToFuture(failMsg = s"$UserNotSuperAdmin or does not have entitlements: ${allowedEntitlements.mkString(", ")}!") {
-               isSuperAdmin(u.userId) || hasAtLeastOneScope(postedData.bank_id, consumerId, allowedEntitlements) == true
+            _ <- Helper.booleanToFuture(failMsg = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!") {
+               hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements)
             }
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
@@ -2175,10 +2175,14 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            _ <- Helper.booleanToFuture(failMsg = s"$UserNotSuperAdmin") {isSuperAdmin(u.userId)}
+            u <- unboxFullAndWrapIntoFuture{ user } 
             
-            scope <- Future { Scope.scope.vend.getScopeById(scopeId) ?~ ScopeNotFound } map {
+            consumer <- Future{callContext.get.consumer} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank)}  map ( fullBoxOrException(_))
+            scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
               x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
@@ -2217,9 +2221,10 @@ trait APIMethods300 {
             
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            
-            _ <- Helper.booleanToFuture(failMsg = s"$ConsumerHasMissingRoles + $CanGetEntitlementsForAnyUserAtAnyBank") {hasScope("", consumerId, canGetEntitlementsForAnyUserAtAnyBank)}
-          
+            consumer <- Future{callContext.get.consumer} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank)} flatMap {unboxFullAndWrapIntoFuture(_)}
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }
            
           } yield
