@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+08/05/2018    38e8641       Added Props require_scopes, default is false. Api will not use the scope role guards.
 02/03/2018    6f9ad08       Added Props documented_server_url which is required for some glossary items
 19/02/2018                  Added possibility of Encryption/Decryption of properties in the props file over SSL Private/Public key infrastructure
 19/01/2018    189942e       Added 2 way SSL authentication to kafka connection
