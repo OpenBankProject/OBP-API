@@ -96,6 +96,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
       sender ! extractResult(mapper.getOrCreateOwnerView(bankId, accountId, description))
 
+    case cc.getOrCreateFirehoseView(bankId, accountId, description) =>
+      logger.debug("getOrCreateFirehoseView(" + bankId +", "+ accountId +", "+ description +")")
+      sender ! extractResult(mapper.getOrCreateFirehoseView(bankId, accountId, description))
+
     case cc.getOrCreatePublicView(bankId, accountId, description) =>
       logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +", "+ description +")")
       sender ! extractResult(mapper.getOrCreatePublicView(bankId, accountId, description))
