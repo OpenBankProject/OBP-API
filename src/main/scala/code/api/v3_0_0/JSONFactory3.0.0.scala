@@ -35,8 +35,8 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v1_2_1.{UserJSONV121, _}
-import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
+import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs}
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSON}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.bankconnectors.vJune2017.AccountRule
@@ -46,6 +46,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
+import code.scope.Scope
 import net.liftweb.common.{Box, Full}
 import org.pegdown.PegDownProcessor
 
@@ -412,7 +413,9 @@ case class GlossaryItemJsonV300 (title: String,
 case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
 
 
-
+case class ScopeJson(scope_id: String, role_name: String, bank_id: String)
+case class ScopeJsons(list: List[ScopeJson])
+case class CreateScopeJson(bank_id: String, role_name: String)
 
 object JSONFactory300{
 
@@ -1066,5 +1069,15 @@ object JSONFactory300{
                                   minimum_response_time: Double,
                                   maximum_response_time: Double
                                 )
-
+  def createScopeJson(scope: Scope): ScopeJson = {
+    ScopeJson(
+      scope_id = scope.scopeId,
+      role_name = scope.roleName,
+      bank_id = scope.bankId
+    )
+  }
+  
+  def createScopeJSONs(l: List[Scope]): ScopeJsons = {
+    ScopeJsons(l.map(createScopeJson))
+  }
 }
