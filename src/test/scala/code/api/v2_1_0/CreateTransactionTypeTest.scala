@@ -37,7 +37,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     MappedTransactionType.bulkDelete_!!()
   }
 
-  feature("Assuring that endpoint 'Create Transaction Type offered by the bank' works as expected - v2.1.0") {
+  feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
 
     scenario("We try to put data without Authentication - Create Transaction Type...") {
       When("We make the request")
@@ -119,7 +119,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut2.code should equal(400)
       val errorInsert = for {JObject(o) <- responsePut2.body; JField("error", JString(error)) <- o} yield error
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
-      errorInsert should contain(ErrorMessages.CreateTransactionTypeInsertError)
+      errorInsert.toString.contains(ErrorMessages.CreateTransactionTypeInsertError) should be (true)
 
 
       Then("insert new data and We make the request")
@@ -138,7 +138,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut3.code should equal(400)
       val errorUpdate = for {JObject(o) <- responsePut3.body; JField("error", JString(error)) <- o} yield error
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
-      errorUpdate should contain(ErrorMessages.CreateTransactionTypeUpdateError)
+      errorInsert.toString.contains(ErrorMessages.CreateTransactionTypeInsertError) should be (true)
     }
   }
   /**
