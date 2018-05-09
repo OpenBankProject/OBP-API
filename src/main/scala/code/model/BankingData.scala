@@ -583,7 +583,7 @@ object BankAccount {
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
         toAccountId <- Full(AccountId(counterparty.otherAccountRoutingAddress))
-        toAccount <- BankAccount(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty. "
+        toAccount <- BankAccount(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
       } yield{
         toAccount
       }
