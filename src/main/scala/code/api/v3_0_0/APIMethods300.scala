@@ -13,13 +13,14 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
 import code.api.util._
-import code.api.v2_0_0.JSONFactory200
+import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPFromDate, OBPQueryParam, OBPToDate}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches
 import code.branches.Branches.BranchId
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.MappedMetric
@@ -42,6 +43,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.metrics.AggregateMetrics
+import code.scope.Scope
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.util.Helpers._
 
 
@@ -2061,7 +2064,173 @@ trait APIMethods300 {
 
       }
     }
+  
+    resourceDocs += ResourceDoc(
+      addScope,
+      implementedInApiVersion,
+      "addScope",
+      "POST",
+      "/consumers/CONSUMER_ID/scopes",
+      "Add Scope for a Consumer.",
+      """Create Scope. Grant Role to Consumer.
+        |
+        |Scopes are used to grant System or Bank level roles to Consumer. (For Account level privileges, see Views)
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      SwaggerDefinitionsJSON.createScopeJson,
+      scopeJson,
+      List(
+        UserNotLoggedIn,
+        ConsumerNotFoundById,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        EntitlementAlreadyExists,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
+  
+    lazy val addScope : OBPEndpoint = {
+      //add access for specific user to a list of views
+      case "consumers" :: consumerId :: "scopes" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
 
+            consumerIdInt <- Future { tryo{consumerId.toInt} } map {
+              val msg = s"$ConsumerNotFoundById Current Value is $consumerId"
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            _ <- Future { Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdInt) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ConsumerNotFoundById, 400, Some(cc.toLight)))
+            }
+
+            postedData <- Future { tryo{json.extract[CreateScopeJson]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $CreateScopeJson "
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            
+            allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
+
+            _ <- Helper.booleanToFuture(failMsg = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!") {
+               hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+              postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+              hasScope(postedData.bank_id, consumerId, role) == false
+            }
+            
+            addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumerId, postedData.role_name)} map { unboxFull(_) }
+            
+          } yield {
+            (JSONFactory300.createScopeJson(addedEntitlement), callContext)
+          }
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      deleteScope,
+      implementedInApiVersion,
+      "deleteScope",
+      "DELETE",
+      "/consumers/CONSUMER_ID/scope/SCOPE_ID",
+      "Delete Consumer Scope",
+      """Delete Consumer Scope specified by SCOPE_ID for an consumer specified by CONSUMER_ID
+        |
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagUser, apiTagEntitlement))
+
+    lazy val deleteScope: OBPEndpoint = {
+      case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user } 
+            
+            consumer <- Future{callContext.get.consumer} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank)}  map ( fullBoxOrException(_))
+            scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
+              val msg = s"$ScopeNotFound Current Value is $scopeId"
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+
+            _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope) { scope.scopeId ==scopeId }
+            
+            _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
+          } yield
+            (JsRaw(""), callContext)
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      getScopes,
+      implementedInApiVersion,
+      "getScopes",
+      "GET",
+      "/consumers/CONSUMER_ID/scopes",
+      "Get Scopes for Consumer",
+      s"""Get all the scopes for an consumer specified by CONSUMER_ID
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      scopeJsons,
+      List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagUser, apiTagEntitlement))
+  
+    lazy val getScopes: OBPEndpoint = {
+      case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            consumer <- Future{callContext.get.consumer} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank)} flatMap {unboxFullAndWrapIntoFuture(_)}
+            scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }
+           
+          } yield
+            (JSONFactory300.createScopeJSONs(scopes), callContext)
+      }
+    }
 
     /* WIP
         resourceDocs += ResourceDoc(

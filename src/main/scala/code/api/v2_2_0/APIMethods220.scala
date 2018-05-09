@@ -411,7 +411,8 @@ trait APIMethods220 {
           for {
             bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, canCreateBank) == true, ErrorMessages.InsufficientAuthorisationToCreateBank)
+            consumer <- cc.consumer ?~! ErrorMessages.InvalidConsumerCredentials
+            _ <- hasEntitlementAndScope("", u.userId, consumer.id.get.toString,  canCreateBank)
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
               bank.full_name,

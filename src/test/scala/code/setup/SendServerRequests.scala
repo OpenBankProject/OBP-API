@@ -32,6 +32,7 @@
 package code.setup
 
 import java.nio.charset.Charset
+import java.util.TimeZone
 
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
@@ -59,6 +60,8 @@ case class APIResponse(code: Int, body: JValue)
   */
 trait SendServerRequests {
 
+  TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+  
   case class ReqData (
                       url: String,
                       method: String,

@@ -269,6 +269,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getApiGlossary ::
                           Implementations3_0_0.getAccountsHeld ::
                           Implementations3_0_0.getAggregateMetrics ::
+                          Implementations3_0_0.addScope ::
+                          Implementations3_0_0.deleteScope ::
+                          Implementations3_0_0.getScopes ::
                           Nil
 
 

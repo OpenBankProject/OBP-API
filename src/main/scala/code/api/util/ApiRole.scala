@@ -151,6 +151,18 @@ object ApiRole {
   case class CanReadAggregateMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadAggregateMetrics = CanReadAggregateMetrics()
 
+  case class CanCreateScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateScopeAtOneBank = CanCreateScopeAtOneBank()
+  
+  case class CanCreateScopeAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateScopeAtAnyBank = CanCreateScopeAtAnyBank()
+  
+  case class CanDeleteScopeAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteScopeAtAnyBank = CanDeleteScopeAtAnyBank()
+  
+  case class CanDeleteScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteScopeAtOneBank = CanDeleteScopeAtOneBank()
+  
   private val roles =
     canSearchAllTransactions ::
     canSearchAllAccounts ::
@@ -199,7 +211,11 @@ object ApiRole {
     canGetEntitlementRequestsAtOneBank ::
     canGetEntitlementRequestsAtAnyBank ::
     canUseFirehoseAtAnyBank ::
-    canReadAggregateMetrics ::
+    canReadAggregateMetrics :: 
+    canCreateScopeAtOneBank ::
+    canCreateScopeAtAnyBank ::
+    canDeleteScopeAtAnyBank ::
+    canDeleteScopeAtOneBank ::
     Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

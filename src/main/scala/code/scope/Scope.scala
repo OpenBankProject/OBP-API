@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 object Scope extends SimpleInjector {
 
-  val consumerScope = new Inject(buildOne _) {}
+  val scope = new Inject(buildOne _) {}
 
   def buildOne: ScopeProvider =
     APIUtil.getPropsAsBoolValue("use_akka", false) match {

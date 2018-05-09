@@ -190,6 +190,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     (nameOf(Implementations3_0_0.createViewForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.updateViewForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.dataWarehouseSearch), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.addScope), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.deleteScope), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getScopes), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.dataWarehouseStatistics), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString)
