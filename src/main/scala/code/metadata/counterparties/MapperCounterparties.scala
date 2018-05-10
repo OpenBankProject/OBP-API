@@ -168,18 +168,11 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       .saveMe()
   
     // This is especially for OneToMany table, to save a List to database.
-    bespoke.map(mBespoke => MappedCounterpartyBespoke.create
-      .mKey(mBespoke.key)
-      .mVaule(mBespoke.value)
-      .saveMe()
-    ).map(
-      mappedBespoke =>
-        mappedCounterparty.mBespoke += mappedBespoke
-    )
+    CounterpartyBespokes.counterpartyBespokers.vend
+      .createCounterpartyBespokes(mappedCounterparty.id.get, bespoke)
+      .map(mappedBespoke =>mappedCounterparty.mBespoke += mappedBespoke)
     
-    Some(
-      mappedCounterparty
-    )
+    Some(mappedCounterparty)
     
   }
 
@@ -457,18 +450,14 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def description: String = mDescription.get
   override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
   override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
-  override def bespoke: List[CounterpartyBespoke] = mBespoke.map(a=>CounterpartyBespoke(a.mKey.get,a.mVaule.get)).toList
+  override def bespoke: List[CounterpartyBespoke] = 
+    CounterpartyBespokes.counterpartyBespokers.vend
+      .getCounterpartyBespokesByCounterpartyId(this.id.get)
+      .map(
+        mappedBespoke=>CounterpartyBespoke(mappedBespoke.mKey.get,mappedBespoke.mVaule.get)
+      )
 }
 
 object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {
   override def dbIndexes = UniqueIndex(mCounterPartyId) :: UniqueIndex(mName, mThisBankId, mThisAccountId, mThisViewId) :: super.dbIndexes
 }
-
-class MappedCounterpartyBespoke extends LongKeyedMapper[MappedCounterpartyBespoke] with IdPK {
-  def getSingleton = MappedCounterpartyBespoke
-  
-  object mCounterparty extends MappedLongForeignKey(this, MappedCounterparty)
-  object mKey extends MappedString(this, 255)
-  object mVaule extends MappedString(this, 255)
-}
-object MappedCounterpartyBespoke extends MappedCounterpartyBespoke with LongKeyedMetaMapper[MappedCounterpartyBespoke]{}

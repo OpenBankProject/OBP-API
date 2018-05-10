@@ -122,7 +122,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       responsePost.code should equal(400)
 
       val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error  should contain  (ErrorMessages.CounterpartyAlreadyExists)
+      error.toString contains  (ErrorMessages.CounterpartyAlreadyExists) should be (true)
 
     }
   }

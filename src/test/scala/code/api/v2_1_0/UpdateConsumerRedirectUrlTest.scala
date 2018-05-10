@@ -59,7 +59,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
         case _ => ""
       }
       And("We should get a message " + UserNoPermissionUpdateConsumer)
-      error should equal(UserNoPermissionUpdateConsumer)
+      error.toString contains (UserNoPermissionUpdateConsumer) should be (true)
     }
 
     scenario("Try to Update Redirect Url successfully ") {
