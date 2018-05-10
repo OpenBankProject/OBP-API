@@ -125,7 +125,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
         case _ => ""
       }
       Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
-      error should equal(ErrorMessages.InvalidAccountIdFormat)
+      error.toString contains (ErrorMessages.InvalidAccountIdFormat) should be (true)
     }
   }
 
