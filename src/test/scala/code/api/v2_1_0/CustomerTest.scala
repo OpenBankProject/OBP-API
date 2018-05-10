@@ -87,7 +87,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       secondResponsePost.code should equal(400)
       val error = for { JObject(o) <- secondResponsePost.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      error should contain (ErrorMessages.CustomerNumberAlreadyExists)
+      error.toString() contains (ErrorMessages.CustomerNumberAlreadyExists) should be (true)
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
 
@@ -118,7 +118,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       secondResponsePost4.code should equal(400)
       val error4 = for { JObject(o) <- secondResponsePost4.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      error4 should contain (ErrorMessages.CustomerNumberAlreadyExists)
+      error4.toString contains (ErrorMessages.CustomerNumberAlreadyExists) should be (true) 
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(3)
     }
