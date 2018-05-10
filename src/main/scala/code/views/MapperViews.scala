@@ -336,13 +336,13 @@ object MapperViews extends Views with MdcLoggable {
     
     val theView =
       if (ownerView)
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+        getOrCreateOwnerView(bankId, accountId, "Owner View")
       else if (publicView)
-        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+        getOrCreatePublicView(bankId, accountId, "Public View")
       else if (accountantsView)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else if (auditorsView)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else 
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
     
