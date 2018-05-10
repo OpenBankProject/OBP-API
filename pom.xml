@@ -360,7 +360,7 @@
       <version>4.23</version>
     </dependency>
     <dependency>
-      <groupId>com.github.constantine2nd</groupId>
+      <groupId>com.github.OpenBankProject</groupId>
       <artifactId>scala-macros</artifactId>
       <version>v1.0.0-alpha</version>
     </dependency>
