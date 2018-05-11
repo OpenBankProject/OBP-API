@@ -7,12 +7,10 @@ import code.consumer.{ConsumersProvider, RemotedataConsumersCaseClasses}
 import code.model._
 import com.google.common.cache.CacheBuilder
 import net.liftweb.common._
+import scalacache.ScalaCache
+import scalacache.guava.GuavaCache
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import scalacache.guava.GuavaCache
-import scalacache.memoization.{cacheKeyExclude, memoizeSync}
-import scalacache.{Flags, ScalaCache}
 
 
 object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
@@ -31,21 +29,7 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
     (actor ? cc.getConsumerByConsumerKeyFuture(consumerKey)).mapTo[Box[Consumer]]
 
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer] = {
-
-    def getConsumerByConsumerKey(consumerKey: String)(implicit @cacheKeyExclude flags: Flags): Box[Consumer] = memoizeSync(getConsumerTTL millisecond) {
-      extractFutureToBox(actor ? cc.getConsumerByConsumerKey(consumerKey))
-    }
-
-    def getConsumer(consumerKey: String, skipCache: Boolean): Box[Consumer] = {
-      implicit val flags = Flags(readsEnabled = !skipCache)
-      getConsumerByConsumerKey(consumerKey)
-    }
-
-    // First try to obtain cache value,
-    getConsumer(consumerKey, false) match {
-      case Full(x)  => Full(x) // Success
-      case _ => getConsumer(consumerKey, true) // Failure - make full round trip i.e. without caching
-    }
+    extractFutureToBox(actor ? cc.getConsumerByConsumerKey(consumerKey))
   }
 
   def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] =

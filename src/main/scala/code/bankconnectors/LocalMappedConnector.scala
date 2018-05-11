@@ -1,10 +1,12 @@
 package code.bankconnectors
 
+import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
+import code.api.cache.Caching
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ErrorMessages, CallContext}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
@@ -33,6 +35,7 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
 import com.google.common.cache.CacheBuilder
+import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
@@ -200,49 +203,59 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams : Seq[QueryParam[MappedTransaction]]) : Box[List[Transaction]]
-    =  memoizeSync(getTransactionsTTL millisecond){
+    = {
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
 
-      //logger.info("Cache miss getTransactionsCached")
+          //logger.info("Cache miss getTransactionsCached")
 
-      val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+          val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
-      updateAccountTransactions(bankId, accountId)
+          updateAccountTransactions(bankId, accountId)
 
-      for (account <- getBankAccount(bankId, accountId))
-        yield mappedTransactions.flatMap(_.toTransaction(account))//each transaction will be modified by account, here we return the `class Transaction` not a trait. 
+          for (account <- getBankAccount(bankId, accountId))
+            yield mappedTransactions.flatMap(_.toTransaction(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
+        }
+      }
     }
-
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
   }
   
-  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = {
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] =
+    {
 
-    // TODO Refactor this. No need for database lookups etc.
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+      // TODO Refactor this. No need for database lookups etc.
+      val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+      val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+      val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+      val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+      val ordering = queryParams.collect {
+        //we don't care about the intended sort field and only sort on finish date for now
+        case OBPOrdering(_, direction) =>
+          direction match {
+            case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+            case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+          }
+      }
+
+      val optionalParams: Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+      val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+
+      def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[TransactionCore]]
+      = {
+        var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+        CacheKeyFromArguments.buildCacheKey {
+          Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
+
+          //logger.info("Cache miss getTransactionsCached")
+
+          val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+
+          for (account <- getBankAccount(bankId, accountId))
+            yield mappedTransactions.flatMap(_.toTransactionCore(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
         }
-    }
-
-    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
-
-    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams : Seq[QueryParam[MappedTransaction]]) : Box[List[TransactionCore]]
-    =  memoizeSync(getTransactionsTTL millisecond){
-
-      //logger.info("Cache miss getTransactionsCached")
-
-      val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
-
-      for (account <- getBankAccount(bankId, accountId))
-        yield mappedTransactions.flatMap(_.toTransactionCore(account))//each transaction will be modified by account, here we return the `class Transaction` not a trait. 
+      }
     }
 
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)

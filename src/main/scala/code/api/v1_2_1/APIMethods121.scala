@@ -1,8 +1,10 @@
 package code.api.v1_2_1
 
 import java.net.URL
-
+import java.util.UUID.randomUUID
+import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
@@ -25,14 +27,11 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
-import scalacache.memoization.memoizeSync
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
-  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
-  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
   
   // helper methods begin here
@@ -2108,15 +2107,20 @@ trait APIMethods121 {
       accountId: AccountId,
       bankId: BankId,
       viewId : ViewId
-    ): Box[JsonResponse] = memoizeSync(apiMethods121GetTransactionsTTL millisecond){
-      for {
-        params <- paramsBox
-        bankAccount <- BankAccount(bankId, accountId)
-        view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
-        transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)(None)
-      } yield {
-        val json = JSONFactory.createTransactionsJSON(transactions)
-        successJsonResponse(Extraction.decompose(json))
+    ): Box[JsonResponse] = {
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(apiMethods121GetTransactionsTTL millisecond) {
+          for {
+            params <- paramsBox
+            bankAccount <- BankAccount(bankId, accountId)
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+            transactions <- bankAccount.getModeratedTransactions(user, view, params: _*)(None)
+          } yield {
+            val json = JSONFactory.createTransactionsJSON(transactions)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
       }
     }
   

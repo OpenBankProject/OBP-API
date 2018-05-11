@@ -13,7 +13,7 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
-import com.tesobe.CacheKeyFromArguments
+import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
@@ -38,7 +38,6 @@ import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 
 import scala.concurrent.duration._
-import scalacache.memoization.memoizeSync
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -548,25 +547,28 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(@CacheKeyOmit showCore: Option[Boolean],@CacheKeyOmit showPSD2: Option[Boolean],@CacheKeyOmit showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
-      memoizeSync (getResourceDocsTTL millisecond) {
-        logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
-        val jsonOut = for {
-            requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-          rd <- getResourceDocsList(requestedApiVersion)
-        } yield {
-          // Filter
-          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
-          // Format the data as json
-          val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
-          //Get definitions of objects of success responses
-          val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
-          // Merge both results and return
-          successJsonResponse(Extraction.decompose(json) merge jsonAST)
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
+          logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
+          val jsonOut = for {
+              requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
+              _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+            rd <- getResourceDocsList(requestedApiVersion)
+          } yield {
+            // Filter
+            val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            // Format the data as json
+            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
+            //Get definitions of objects of success responses
+            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
+            // Merge both results and return
+            successJsonResponse(Extraction.decompose(json) merge jsonAST)
+          }
+          jsonOut
         }
-        jsonOut
       }
     }
 
