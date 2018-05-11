@@ -81,6 +81,7 @@ trait Counterparties {
   def getMoreInfo(counterpartyId : String): Box[String]
   def getPublicAlias(counterpartyId : String): Box[String]
   def getPrivateAlias(counterpartyId : String): Box[String]
+  def bulkDeleteAllCounterparties(): Box[Boolean]
 }
 
 trait CounterpartyTrait {
@@ -192,6 +193,8 @@ class RemotedataCounterpartiesCaseClasses {
   case class getPublicAlias(counterpartyId : String)
 
   case class getPrivateAlias(counterpartyId : String)
+  
+  case class bulkDeleteAllCounterparties()
 }
 
 object RemotedataCounterpartiesCaseClasses extends RemotedataCounterpartiesCaseClasses

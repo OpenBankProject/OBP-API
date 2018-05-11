@@ -120,5 +120,8 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
 
   override def deleteCorporateLocation(counterpartyId: String): Box[Boolean] =
     extractFutureToBox(actor ? cc.deleteCorporateLocation(counterpartyId))
+  
+  override def bulkDeleteAllCounterparties(): Box[Boolean] =
+    extractFutureToBox(actor ? cc.bulkDeleteAllCounterparties())
 
 }

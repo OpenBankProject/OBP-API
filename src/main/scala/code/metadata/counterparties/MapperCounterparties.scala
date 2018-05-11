@@ -273,6 +273,10 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   override def deleteCorporateLocation(counterpartyId : String): Box[Boolean] = {
     getCounterpartyMetadata(counterpartyId).flatMap(_.corporateLocation.obj).map(_.delete_!)
   }
+  
+  override def bulkDeleteAllCounterparties(): Box[Boolean] = {
+    Full(MappedCounterparty.bulkDelete_!!())
+  }
 }
 
 
