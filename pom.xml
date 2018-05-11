@@ -362,7 +362,7 @@
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
       <artifactId>scala-macros</artifactId>
-      <version>v1.0.0-alpha</version>
+      <version>v1.0.0-alpha.3</version>
     </dependency>
 
 

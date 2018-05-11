@@ -9,8 +9,10 @@ import scala.language.postfixOps
 object Caching {
 
   def memoizeSyncWithProvider[A](unique: Option[String])(ttl: Duration)(f: => A)(implicit m: Manifest[A]): A = {
-    unique match {
-      case Some(_) => // Caching a call
+    (unique, ttl) match {
+      case (_, t) if t == Duration.Zero  => // Just forwarding a call
+        f
+      case (Some(_), _) => // Caching a call
         APIUtil.getPropsValue("guava.cache") match {
           case Full(value) if value.toLowerCase == "redis" =>
             Redis.memoizeSyncWithRedis(unique)(ttl)(f)
