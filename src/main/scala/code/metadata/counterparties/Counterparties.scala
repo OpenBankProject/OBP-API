@@ -8,6 +8,8 @@ import code.remotedata.RemotedataCounterparties
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.collection.immutable.List
+
 object Counterparties extends SimpleInjector {
 
   val counterparties = new Inject(buildOne _) {}
@@ -135,16 +137,22 @@ class RemotedataCounterpartiesCaseClasses {
   case class getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId)
 
   case class createCounterparty(
-                                 createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String,
-                                 name: String,
-                                 otherAccountRoutingScheme: String,
-                                 otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
-                                 otherBranchRoutingScheme: String, otherBranchRoutingAddress: String,
-                                 otherBankRoutingAddress: String, isBeneficiary: Boolean,
-                                 otherAccountSecondaryRoutingScheme: String,
-                                 otherAccountSecondaryRoutingAddress: String,
-                                 description: String,
-                                 bespoke: List[CounterpartyBespoke]
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    name: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    isBeneficiary: Boolean,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    description: String,
+    bespoke: List[CounterpartyBespoke]
   )
 
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)

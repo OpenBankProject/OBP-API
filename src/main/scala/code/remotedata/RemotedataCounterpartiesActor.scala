@@ -8,6 +8,8 @@ import code.metadata.counterparties.{MapperCounterparties, RemotedataCounterpart
 import code.model._
 import code.util.Helper.MdcLoggable
 
+import scala.collection.immutable.List
+
 
 class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -20,15 +22,23 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("checkCounterpartyAvailable(" + name +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +")")
       sender ! extractResult(mapper.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
 
-    case cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
-                               name, otherAccountRoutingScheme,
-                               otherAccountRoutingAddress, otherBankRoutingScheme,
-                               otherBranchRoutingScheme, otherBranchRoutingAddress,
-                               otherBankRoutingAddress, isBeneficiary,
-                               otherAccountSecondaryRoutingScheme: String,
-                               otherAccountSecondaryRoutingAddress: String,
-                               description: String,
-                               bespoke: List[CounterpartyBespoke]
+    case cc.createCounterparty(
+      createdByUserId: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String,
+      name: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      isBeneficiary: Boolean,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      description: String,
+      bespoke: List[CounterpartyBespoke]
     ) =>
       logger.debug("createCounterparty(" +createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
                     + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ otherBranchRoutingScheme+
@@ -36,13 +46,13 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       sender ! extractResult(mapper.createCounterparty(
         createdByUserId: String,
         thisBankId: String,
-        thisAccountId : String,
-        thisViewId : String,
+        thisAccountId: String,
+        thisViewId: String,
         name: String,
-        otherAccountRoutingScheme : String,
-        otherAccountRoutingAddress : String,
-        otherBankRoutingScheme : String,
-        otherBankRoutingAddress : String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
         otherBranchRoutingScheme: String,
         otherBranchRoutingAddress: String,
         isBeneficiary: Boolean,

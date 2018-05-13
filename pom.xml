@@ -324,8 +324,18 @@
       <version>0.9.1</version>
     </dependency>
     <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>chill-bijection_${scala.version}</artifactId>
+      <version>0.9.1</version>
+    </dependency>
+    <dependency>
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-guava_${scala.version}</artifactId>
+      <version>0.9.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.cb372</groupId>
+      <artifactId>scalacache-redis_${scala.version}</artifactId>
       <version>0.9.3</version>
     </dependency>
     <dependency>
@@ -348,6 +358,11 @@
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>4.23</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.OpenBankProject</groupId>
+      <artifactId>scala-macros</artifactId>
+      <version>v1.0.0-alpha.3</version>
     </dependency>
 
 

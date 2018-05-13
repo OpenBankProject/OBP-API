@@ -6,12 +6,13 @@ import code.api.APIFailure
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
+import code.customer.MappedCustomer
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
-import net.liftweb.mapper.{By, Schemifier}
+import net.liftweb.mapper.{By, ByList, Schemifier}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
@@ -308,7 +309,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
-    Views.views.vend.privateViewsUserCanAccess(user).filter(
+    privateViewsUserCanAccess(user).filter(
       view =>
         view.bankId == bankIdAccountId.bankId &&
           view.accountId == bankIdAccountId.accountId
@@ -335,13 +336,13 @@ object MapperViews extends Views with MdcLoggable {
     
     val theView =
       if (ownerView)
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+        getOrCreateOwnerView(bankId, accountId, "Owner View")
       else if (publicView)
-        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+        getOrCreatePublicView(bankId, accountId, "Public View")
       else if (accountantsView)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        getOrCreateAccountantsView(bankId, accountId, "Accountants View")
       else if (auditorsView)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        getOrCreateAuditorsView(bankId, accountId, "Auditors View")
       else 
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
     

@@ -15,7 +15,7 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
     extractFuture(actor ? cc.createAccountHolder(userId, bankId, accountId))
   
   override def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] =
-    extractFuture(actor ? cc.getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId))
+    extractFutureToBox(actor ? cc.getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId))
 
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     extractFuture(actor ? cc.getAccountHolders(bankId, accountId))

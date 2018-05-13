@@ -1,7 +1,10 @@
 package code.api.ResourceDocs1_4_0
 
+import java.util.UUID.randomUUID
+
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiVersion}
@@ -10,6 +13,7 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.util.Helper.MdcLoggable
+import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
@@ -34,7 +38,6 @@ import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 
 import scala.concurrent.duration._
-import scalacache.memoization.memoizeSync
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -197,34 +200,37 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
-      memoizeSync (getResourceDocsTTL millisecond) {
-        logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
-        val obpResourceDocJson = for {
-          rd <- getResourceDocsList(requestedApiVersion)
-        } yield {
-          // Filter
-          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
-          // Format the data as json
-          val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
-          // Return
-  
-          /**
-            * replace JValue key: jsonClass --> api_role
-            */
-          def replaceJsonKey(json: JValue): JValue = json transformField {
-            case JField("jsonClass", x) => JField("role", x)
-            case JField("requiresBankId", x) => JField("requires_bank_id", x)
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
+          logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
+          val obpResourceDocJson = for {
+            rd <- getResourceDocsList(requestedApiVersion)
+          } yield {
+            // Filter
+            val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            // Format the data as json
+            val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
+            // Return
+
+            /**
+              * replace JValue key: jsonClass --> api_role
+              */
+            def replaceJsonKey(json: JValue): JValue = json transformField {
+              case JField("jsonClass", x) => JField("role", x)
+              case JField("requiresBankId", x) => JField("requires_bank_id", x)
+            }
+
+            /**
+              * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
+              */
+            def replaceJsonValue(json: JValue): JValue = json transformField {
+              case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
+            }
+            successJsonResponse(replaceJsonValue(replaceJsonKey(Extraction.decompose(innerJson))))
           }
-  
-          /**
-            * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
-            */
-          def replaceJsonValue(json: JValue): JValue = json transformField {
-            case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
-          }
-          successJsonResponse(replaceJsonValue(replaceJsonKey(Extraction.decompose(innerJson))))
+          obpResourceDocJson
         }
-        obpResourceDocJson
       }
     }
 
@@ -541,25 +547,28 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(@CacheKeyOmit showCore: Option[Boolean],@CacheKeyOmit showPSD2: Option[Boolean],@CacheKeyOmit showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
-      memoizeSync (getResourceDocsTTL millisecond) {
-        logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
-        val jsonOut = for {
-            requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-          rd <- getResourceDocsList(requestedApiVersion)
-        } yield {
-          // Filter
-          val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
-          // Format the data as json
-          val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
-          //Get definitions of objects of success responses
-          val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
-          // Merge both results and return
-          successJsonResponse(Extraction.decompose(json) merge jsonAST)
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
+          logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
+          val jsonOut = for {
+              requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
+              _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+            rd <- getResourceDocsList(requestedApiVersion)
+          } yield {
+            // Filter
+            val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            // Format the data as json
+            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
+            //Get definitions of objects of success responses
+            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
+            // Merge both results and return
+            successJsonResponse(Extraction.decompose(json) merge jsonAST)
+          }
+          jsonOut
         }
-        jsonOut
       }
     }
 

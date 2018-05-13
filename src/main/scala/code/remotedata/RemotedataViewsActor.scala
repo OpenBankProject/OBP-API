@@ -72,7 +72,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       sender ! extractResult(mapper.privateViewsUserCanAccess(user: User))
 
     case cc.privateViewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId)=>
-      logger.debug("viewsUserCanAccessForAccount(" + user +"bankAccountId"+bankAccountId+")")
+      logger.debug("privateViewsUserCanAccessForAccount(" + user +"bankAccountId"+bankAccountId+")")
       sender ! extractResult(mapper.privateViewsUserCanAccessForAccount(user: User, bankAccountId : BankIdAccountId))
       
       
@@ -95,6 +95,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.getOrCreateOwnerView(bankId, accountId, description) =>
       logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
       sender ! extractResult(mapper.getOrCreateOwnerView(bankId, accountId, description))
+
+    case cc.getOrCreateFirehoseView(bankId, accountId, description) =>
+      logger.debug("getOrCreateFirehoseView(" + bankId +", "+ accountId +", "+ description +")")
+      sender ! extractResult(mapper.getOrCreateFirehoseView(bankId, accountId, description))
 
     case cc.getOrCreatePublicView(bankId, accountId, description) =>
       logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +", "+ description +")")
