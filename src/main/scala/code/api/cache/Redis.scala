@@ -3,10 +3,12 @@ package code.api.cache
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import scalacache._
-import scalacache.memoization.{cacheKeyExclude, memoizeSync}
+import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 import scalacache.redis._
 import scalacache.serialization.Codec
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 
@@ -43,6 +45,10 @@ object Redis extends MdcLoggable {
 
   def memoizeSyncWithRedis[A](unique: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A)(implicit @cacheKeyExclude m: Manifest[A]): A = {
     memoizeSync(ttl)(f)
+  }
+
+  def memoizeWithRedis[A](unique: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
+    memoize(ttl)(f)
   }
 
 }

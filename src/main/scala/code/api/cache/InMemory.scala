@@ -3,10 +3,12 @@ package code.api.cache
 import com.google.common.cache.CacheBuilder
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
-import scalacache.memoization.{cacheKeyExclude, memoizeSync}
+import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object InMemory {
 
@@ -17,4 +19,7 @@ object InMemory {
     memoizeSync(ttl)(f)
   }
 
+  def memoizeWithInMemory[A](unique: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
+    memoize(ttl)(f)
+  }
 }

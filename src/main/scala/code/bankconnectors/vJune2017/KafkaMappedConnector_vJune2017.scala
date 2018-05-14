@@ -44,7 +44,6 @@ import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import com.google.common.cache.CacheBuilder
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}
@@ -408,7 +407,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
@@ -647,7 +646,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit session: Option[CallContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second){
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second){
 
         val (userName, cbs) = session match {
           case Some(c) =>
@@ -1437,7 +1436,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getCustomersByUserIdFuture(userId: String)(@CacheKeyOmit session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
 
         val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
         val req = OutboundGetCustomersByUserId(
@@ -1646,7 +1645,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundBranchVJune2017]]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(branchesTTL millisecond){
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchesTTL second){
         val req = OutboundGetBranches(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString)
         logger.info(s"Kafka getBranchesFuture Req is: $req")
 
@@ -1734,7 +1733,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     logger.debug("Enter getBranch for: " + branchId)
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(branchTTL millisecond){
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(branchTTL second){
         val req = OutboundGetBranch(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString, branchId.toString)
         logger.info(s"Kafka getBranch Req is: $req")
 
@@ -1771,7 +1770,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     logger.debug("Enter getBranch for: " + branchId)
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(branchTTL millisecond){
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchTTL second){
         val req = OutboundGetBranch(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString, branchId.toString)
         logger.info(s"Kafka getBranchFuture Req is: $req")
 
@@ -1864,7 +1863,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundAtmJune2017]]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(atmsTTL millisecond){
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
         val req = OutboundGetAtms(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value)
         logger.info(s"Kafka getAtmsFuture Req is: $req")
 
@@ -1956,7 +1955,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(atmTTL millisecond){
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(atmTTL second){
         val req = OutboundGetAtm(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, atmId.value)
         logger.info(s"Kafka getAtm Req is: $req")
 
@@ -1992,7 +1991,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[AtmT]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(atmTTL millisecond){
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second){
         val req = OutboundGetAtm(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, atmId.value)
         logger.info(s"Kafka getAtmFuture Req is: $req")
 

@@ -3,6 +3,7 @@ package code.api.cache
 import code.api.util.APIUtil
 import net.liftweb.common.Full
 
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 
@@ -27,4 +28,22 @@ object Caching {
 
   }
 
+  def memoizeWithProvider[A](unique: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
+    (unique, ttl) match {
+      case (_, t) if t == Duration.Zero  => // Just forwarding a call
+        f
+      case (Some(_), _) => // Caching a call
+        APIUtil.getPropsValue("guava.cache") match {
+          case Full(value) if value.toLowerCase == "redis" =>
+            Redis.memoizeWithRedis(unique)(ttl)(f)
+          case Full(value) if value.toLowerCase == "in-memory" =>
+            InMemory.memoizeWithInMemory(unique)(ttl)(f)
+          case _ =>
+            InMemory.memoizeWithInMemory(unique)(ttl)(f)
+        }
+      case _  => // Just forwarding a call
+        f
+    }
+
+  }
 }
