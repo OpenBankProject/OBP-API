@@ -1427,17 +1427,26 @@ trait APIMethods300 {
 
 
 
-
+    // This can be considered a reference new style endpoint.
+    // This is a partial function. The lazy value should have a meaningful name.
     lazy val getCustomersForUser : OBPEndpoint = {
+      // This defines the URL path and method (GET) for which this partial function will accept the call.
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        // We have the Call Context (cc) object (provided through the OBPEndpoint type)
+        // The Call Context contains the authorisation headers etc.
         cc => {
           for {
+            // Extract the (boxed) user from the headers and get an updated callContext
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            // Unbox the user so we can use its attributes e.g. username
             u <- unboxFullAndWrapIntoFuture{ user }
+            // Now here is the business logic.
+            // Get The customers related to a user. Process the resonse which might be an Exception
             customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(callContext) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           } yield {
+            // Create the JSON to return. We also return the callContext
             (JSONFactory300.createCustomersJson(customers), callContext)
           }
         }
