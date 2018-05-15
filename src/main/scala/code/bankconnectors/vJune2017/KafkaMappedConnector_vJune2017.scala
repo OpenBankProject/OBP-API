@@ -1434,7 +1434,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = None
   )
 
-  override def getCustomersByUserIdFuture(userId: String)(@CacheKeyOmit session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
+  override def getCustomersByUserIdFuture(userId: String, @CacheKeyOmit session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {

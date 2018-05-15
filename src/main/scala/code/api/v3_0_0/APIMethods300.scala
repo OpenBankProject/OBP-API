@@ -1442,7 +1442,7 @@ trait APIMethods300 {
             u <- unboxFullAndWrapIntoFuture{ user }
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
-            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId)(callContext) map {
+            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           } yield {
