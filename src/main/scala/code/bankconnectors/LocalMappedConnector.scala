@@ -48,9 +48,6 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.math.BigInt
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import scalacache.memoization._
 
 
 object LocalMappedConnector extends Connector with MdcLoggable {
@@ -58,8 +55,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 //  override type AccountType = MappedBankAccount
   val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "10"
 
-  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
-  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getTransactionsTTL                    = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
   //This is the implicit parameter for saveConnectorMetric function.
@@ -1650,7 +1645,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   
   
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[CallContext]): Future[Box[List[Customer]]] =
+  override def getCustomersByUserIdFuture(userId: String, session: Option[CallContext]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
   
 }
