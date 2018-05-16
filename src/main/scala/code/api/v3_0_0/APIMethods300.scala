@@ -469,9 +469,11 @@ trait APIMethods300 {
          |
          |This endpoint allows bulk access to accounts.
          |
-         |Requires the canUseFirehoseAtAnyBank Role
+         |Requires the CanUseFirehoseAtAnyBank Role
          |
          |To be shown on the list, each Account must have a firehose View linked to it.
+         |
+         |For VIEW_ID try 'firehose'
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -527,9 +529,12 @@ trait APIMethods300 {
       s"""
          |Get Transactions for an Account that has a firehose View.
          |
-         |Allows bulk access to accounts and their transactions.
+         |Allows bulk access to an account's transactions.
+         |User must have the CanUseFirehoseAtAnyBank Role
          |
-         |User must have the canUseFirehoseAtAnyBank Role
+         |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
+         |
+         |For VIEW_ID try 'firehose'
          |
          |${authenticationRequiredMessage(true)}
          |
