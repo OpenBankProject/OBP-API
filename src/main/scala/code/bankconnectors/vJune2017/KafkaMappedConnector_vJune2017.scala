@@ -97,9 +97,19 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse("22/08/2013")
   val emptyObjectJson: JValue = decompose(Nil)
-  def currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-  def getUsername = APIUtil.getGatewayLoginUsername
-  def getCbsToken = APIUtil.getGatewayLoginCbsToken
+  
+  def getAuthInfo (session: Option[CallContext]): Box[AuthInfo]=
+    for{
+      cc <- tryo {session.get} ?~! NoCallContext
+      user <- cc.user
+      username <- Full(user.name)
+      currentResourceUserId <- Some(user.userId)
+      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload
+      cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
+      isFirst <- Full(gatewayLoginPayLoad.is_first)
+    } yield{
+      AuthInfo(currentResourceUserId,username, cbs_token, isFirst)
+    }
 
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
@@ -184,12 +194,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetUserByUsernamePassword]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetUserByUsernamePassword]().toString(true)))
   )
+  //TODO This method do not use in Leumi, and it is not used in api level, so not CallContext here for now..  
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(userTTL second) {
-
-        val req = OutboundGetUserByUsernamePassword(AuthInfo(currentResourceUserId, username, getCbsToken), password = password)
+        //Note: Here we omit the userId and cbsToken here, we do not use it in Adapter sie.
+        val req = OutboundGetUserByUsernamePassword(AuthInfo("", username, ""), password = password)
 
         logger.debug(s"Kafka getUser Req says:  is: $req")
 
@@ -251,7 +262,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val req = OutboundGetBanks(AuthInfo(currentResourceUserId, getUsername, getCbsToken))
+        val req = OutboundGetBanks(AuthInfo())
         logger.info(s"Kafka getBanks Req is: $req")
 
         val box: Box[(List[InboundBank], Status)] = for {
@@ -311,7 +322,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(bankTTL second) {
         val req = OutboundGetBank(
-          authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
+          authInfo = AuthInfo(),
           bankId = bankId.toString
         )
         logger.debug(s"Kafka getBank Req says:  is: $req")
@@ -373,10 +384,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
+        //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
+        val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
-
-        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
+      
+        //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
+        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
         logger.debug(s"Kafka getBankAccounts says: req is: $req")
 
         val box = for {
@@ -408,10 +422,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
+        //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
+        val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
-        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, getCbsToken),forceFresh,internalCustomers)
+        //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
+        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
         val future = for {
@@ -465,28 +482,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-
-        val (userName, cbs) = session match {
-          case Some(c) =>
-            c.gatewayLoginRequestPayload match {
-              case Some(p) =>
-                (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-              case _ =>
-                (getUsername, getCbsToken) // Old Style Endpoints use S object
-            }
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-
-        // Generate random uuid to be used as request-response match id
-        val req = OutboundGetAccountbyAccountID(
-          authInfo = AuthInfo(currentResourceUserId, userName, cbs),
-          bankId = bankId.toString,
-          accountId = accountId.value
-        )
-        logger.debug(s"Kafka getBankAccount says: req is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetAccountbyAccountID(authInfo, bankId.toString, accountId.value)
+          _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
           inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error"
           (inboundAccountJune2017, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
@@ -533,27 +532,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-        val (userName, cbs) = session match {
-          case Some(c) =>
-            c.gatewayLoginRequestPayload match {
-              case Some(p) =>
-                (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-              case _ =>
-                (getUsername, getCbsToken) // Old Style Endpoints use S object
-            }
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-
-        // Generate random uuid to be used as request-response match id
-        val req = OutboundCheckBankAccountExists(
-          authInfo = AuthInfo(currentResourceUserId, userName, cbs),
-          bankId = bankId.toString,
-          accountId = accountId.value
-        )
-        logger.debug(s"Kafka checkBankAccountExists says: req is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+            req = OutboundCheckBankAccountExists(
+            authInfo = authInfo,
+            bankId = bankId.toString,
+            accountId = accountId.value
+          )
+          _ <- Full(logger.debug(s"Kafka checkBankAccountExists says: req is: $req"))
           kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
           inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error"
           (inboundAccountJune2017, status) <- Full(inboundCheckBankAccountExists.data, inboundCheckBankAccountExists.status)
@@ -599,26 +585,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-
-        val (userName, cbs) = session match {
-          case Some(c) =>
-            c.gatewayLoginRequestPayload match {
-              case Some(p) =>
-                (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-              case _ =>
-                (getUsername, getCbsToken) // Old Style Endpoints use S object
-            }
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-
-        val req = OutboundGetCoreBankAccounts(
-          authInfo = AuthInfo(currentResourceUserId, userName, cbs),
-          BankIdAccountIds
-        )
-        logger.debug(s"Kafka getCoreBankAccounts says: req is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetCoreBankAccounts(
+            authInfo = authInfo,
+            BankIdAccountIds
+          )
+          _<-Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
           inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error"
           internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
@@ -648,20 +621,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second){
 
-        val (userName, cbs) = session match {
-          case Some(c) =>
-            c.gatewayLoginRequestPayload match {
-              case Some(p) =>
-                (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-              case _ =>
-                (getUsername, getCbsToken) // Old Style Endpoints use S object
-            }
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-
         val req = OutboundGetCoreBankAccounts(
-          authInfo = AuthInfo(currentResourceUserId, userName, cbs),
+          authInfo = getAuthInfo(session).openOrThrowException(NoCallContext),
           BankIdAccountIds
         )
         logger.debug(s"Kafka getCoreBankAccountsFuture says: req is: $req")
@@ -736,20 +697,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(new Date(0).toString)
 
-    val (userName, cbs) = session match {
-      case Some(c) =>
-        c.gatewayLoginRequestPayload match {
-          case Some(p) =>
-            (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-      case _ =>
-        (getUsername, getCbsToken) // Old Style Endpoints use S object
-    }
-
     val req = OutboundGetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
+      authInfo = getAuthInfo(session).openOrThrowException(NoCallContext),
       bankId = bankId.toString,
       accountId = accountId.value,
       limit = limit,
@@ -809,20 +758,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
   
-    val (userName, cbs) = session match {
-      case Some(c) =>
-        c.gatewayLoginRequestPayload match {
-          case Some(p) =>
-            (p.login_user_name, p.cbs_token.getOrElse("")) // New Style Endpoints use SessionContext
-          case _ =>
-            (getUsername, getCbsToken) // Old Style Endpoints use S object
-        }
-      case _ =>
-        (getUsername, getCbsToken) // Old Style Endpoints use S object
-    }
-    
     val req = OutboundGetTransactions(
-      authInfo = AuthInfo(userId = currentResourceUserId, username = userName, cbsToken = cbs),
+      authInfo = getAuthInfo(session).openOrThrowException(NoCallContext),
       bankId = bankId.toString,
       accountId = accountId.value,
       limit = limit,
@@ -909,18 +846,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               )))
     )
   )
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = saveConnectorMetric{
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, session: Option[CallContext]): Box[Transaction] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(transactionTTL second){
-        val req =  OutboundGetTransaction(
-          authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
-          bankId = bankId.toString,
-          accountId = accountId.value,
-          transactionId = transactionId.toString)
-        logger.debug(s"Kafka getTransaction Req says:  is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+          req =  OutboundGetTransaction(authInfo,bankId.value, accountId.value, transactionId.value)
+          _ <- Full(logger.debug(s"Kafka getTransaction Req says:  is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransaction](req)
           inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error"
           (internalTransaction, status) <- Full(inboundGetTransaction.data, inboundGetTransaction.status)
@@ -937,7 +870,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Full((Some(data), status)) if (transactionId.value == data.transactionId && status.errorCode=="") =>
             for {
-              bankAccount <- checkBankAccountExists(BankId(data.bankId), AccountId(data.accountId)) ?~! ErrorMessages.BankAccountNotFound
+              bankAccount <- checkBankAccountExists(BankId(data.bankId), AccountId(data.accountId),session) ?~! ErrorMessages.BankAccountNotFound
               transaction: Transaction <- createInMemoryTransaction(bankAccount,data)
             } yield {
               transaction
@@ -983,19 +916,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeJune2017]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeJune2017]().toString(true)))
   )
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
-    val req = OutboundCreateChallengeJune2017(
-      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
-      bankId = bankId.value,
-      accountId = accountId.value,
-      userId = userId,
-      username = AuthUser.getCurrentUserUsername,
-      transactionRequestType = transactionRequestType.value,
-      transactionRequestId = transactionRequestId
-    )
-    logger.debug(s"Kafka createChallenge Req says:  is: $req")
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, session: Option[CallContext] = None) = {
     
     val box = for {
+      authInfo <- getAuthInfo(session)
+      req = OutboundCreateChallengeJune2017(
+        authInfo = authInfo, 
+        bankId = bankId.value,
+        accountId = accountId.value,
+        userId = userId,
+        username = AuthUser.getCurrentUserUsername,
+        transactionRequestType = transactionRequestType.value,
+        transactionRequestId = transactionRequestId
+      )
+      _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
       kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
       inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error"
       internalCreateChallengeJune2017 <- Full(inboundCreateChallengeJune2017.data)
@@ -1091,10 +1025,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke]
-  ): Box[CounterpartyTrait] = {
-    val req = OutboundCreateCounterparty(
-      authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
-      counterparty = OutboundCounterparty(
+  , session: Option[CallContext] = None): Box[CounterpartyTrait] = {
+  
+    val box = for {
+      authInfo <- getAuthInfo(session)
+        req  = OutboundCreateCounterparty(
+        authInfo = authInfo,
+        counterparty = OutboundCounterparty(
         name: String,
         description: String,
         createdByUserId: String,
@@ -1110,12 +1047,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         otherBranchRoutingScheme: String,
         otherBranchRoutingAddress: String,
         isBeneficiary:Boolean,
-        bespoke: List[CounterpartyBespoke]
+        bespoke: List[CounterpartyBespoke])
       )
-    )
-    logger.debug(s"Kafka createCounterparty Req says: is: $req")
-  
-    val box = for {
+      _<- Full(logger.debug(s"Kafka createCounterparty Req says: is: $req"))
       kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
       inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error"
       (internalCounterparty, status) <- Full(inboundCreateCounterparty.data, inboundCreateCounterparty.status)
@@ -1194,13 +1128,16 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
     
   )
-  override def getTransactionRequests210(user : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = saveConnectorMetric{
+  override def getTransactionRequests210(user : User, fromAccount : BankAccount, session: Option[CallContext] = None) : Box[List[TransactionRequest]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(transactionRequests210TTL second){
-        val req = OutboundGetTransactionRequests210(
-          authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
-          counterparty = OutboundTransactionRequests(
+
+        val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetTransactionRequests210(
+            authInfo = authInfo,
+            counterparty = OutboundTransactionRequests(
             accountId = fromAccount.accountId.value,
             accountType = fromAccount.accountType,
             currency = fromAccount.currency,
@@ -1209,12 +1146,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             bankId = fromAccount.bankId.value,
             branchId = fromAccount.bankId.value,
             accountRoutingScheme = fromAccount.accountRoutingScheme,
-            accountRoutingAddress= fromAccount.accountRoutingAddress
+            accountRoutingAddress= fromAccount.accountRoutingAddress)
           )
-        )
-        logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req")
-
-        val box = for {
+          _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
           inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error"
           (internalGetTransactionRequests, status) <- Full(inboundGetTransactionRequests210.data, inboundGetTransactionRequests210.status)
@@ -1287,21 +1221,20 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = saveConnectorMetric{
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, session: Option[CallContext] = None): Box[List[CounterpartyTrait]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(counterpartiesTTL second){
-        val req = OutboundGetCounterparties(
-          authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken),
-          counterparty = InternalOutboundGetCounterparties(
+        val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetCounterparties(
+            authInfo = authInfo,
+            counterparty = InternalOutboundGetCounterparties(
             thisBankId = thisBankId.value,
             thisAccountId = thisAccountId.value,
-            viewId = viewId.value
+            viewId = viewId.value)
           )
-        )
-        logger.debug(s"Kafka getCounterparties Req says: is: $req")
-
-        val box = for {
+          _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparties](req)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error"
           (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
@@ -1343,14 +1276,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = saveConnectorMetric{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, session: Option[CallContext] = None): Box[CounterpartyTrait] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(counterpartyByCounterpartyIdTTL second) {
-        val req = OutboundGetCounterpartyByCounterpartyId(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), OutboundGetCounterpartyById(counterpartyId.value))
-        logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetCounterpartyByCounterpartyId(authInfo, OutboundGetCounterpartyById(counterpartyId.value))
+          _ <- Full(logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterpartyByCounterpartyId](req)
           inboundGetCustomersByUserIdFuture <- tryo {
             kafkaMessage.extract[InboundGetCounterparty]
@@ -1379,14 +1312,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getCounterpartyByCounterpartyId")
 
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[CounterpartyTrait] = saveConnectorMetric{
+  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String, session: Option[CallContext] = None): Box[CounterpartyTrait] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(counterpartyTrait second){
-        val req = OutboundGetCounterparty(authInfo = AuthInfo(currentResourceUserId, getUsername, getCbsToken), thisBankId.value, thisAccountId.value, couterpartyId)
-        logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(session)
+          req = OutboundGetCounterparty(authInfo, thisBankId.value, thisAccountId.value, couterpartyId)
+          _ <- Full(logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparty](req)
           inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error"
           (data, status) <- Full(inboundGetCounterparty.data, inboundGetCounterparty.status)
@@ -1433,21 +1366,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = None
   )
 
-  override def getCustomersByUserIdFuture(userId: String)(@CacheKeyOmit session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
+  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit session: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
 
-        val payloadOfJwt = ApiSession.getGatawayLoginRequestInfo(session)
-        val req = OutboundGetCustomersByUserId(
-          authInfo =
-            AuthInfo(
-              currentResourceUserId,
-              payloadOfJwt.login_user_name,
-              payloadOfJwt.cbs_token.getOrElse(""),
-              payloadOfJwt.is_first
-            )
-        )
+        val req = OutboundGetCustomersByUserId(getAuthInfo(session).openOrThrowException(NoCallContext))
         logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
 
         val future = for {
@@ -1646,7 +1570,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchesTTL second){
-        val req = OutboundGetBranches(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString)
+        val req = OutboundGetBranches(AuthInfo(), bankId.toString)
         logger.info(s"Kafka getBranchesFuture Req is: $req")
 
         val future: Future[(List[InboundBranchVJune2017], Status)] = for {
@@ -1728,50 +1652,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT] = saveConnectorMetric {
-
-    logger.debug("Enter getBranch for: " + branchId)
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(branchTTL second){
-        val req = OutboundGetBranch(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString, branchId.toString)
-        logger.info(s"Kafka getBranch Req is: $req")
-
-        val box = for {
-          kafkaMessage <- processToBox[OutboundGetBranch](req)
-          inboundGetBranch <- tryo{kafkaMessage.extract[InboundGetBranch]} ?~! s"$InboundGetBranch extract error"
-          (inboundBranch, status) <- Full(inboundGetBranch.data, inboundGetBranch.status)
-        } yield{
-          (inboundBranch, status)
-        }
-
-
-        logger.debug(s"Kafka getBranch Res says:  is: $Box")
-        val res = box match {
-          case Full((Some(branch), status)) if (status.errorCode=="") =>
-            Full(branch)
-          case Full((_, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-OBP-ADAPTER-xxx: "+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-        logger.info(s"Kafka getBranch says res is $res")
-        res
-      }
-    }
-  }("getBranch")
-
   override def getBranchFuture(bankId : BankId, branchId: BranchId) : Future[Box[BranchT]] = saveConnectorMetric {
 
     logger.debug("Enter getBranch for: " + branchId)
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchTTL second){
-        val req = OutboundGetBranch(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.toString, branchId.toString)
+        val req = OutboundGetBranch(AuthInfo(), bankId.toString, branchId.toString)
         logger.info(s"Kafka getBranchFuture Req is: $req")
 
         val future: Future[(Option[InboundBranchVJune2017], Status)] = for {
@@ -1864,7 +1751,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
-        val req = OutboundGetAtms(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value)
+        val req = OutboundGetAtms(AuthInfo(), bankId.value)
         logger.info(s"Kafka getAtmsFuture Req is: $req")
 
         val future = for {
@@ -1952,47 +1839,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT] = saveConnectorMetric {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(atmTTL second){
-        val req = OutboundGetAtm(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, atmId.value)
-        logger.info(s"Kafka getAtm Req is: $req")
-
-        val box = for {
-          kafkaMessage <- processToBox[OutboundGetAtm](req)
-          inboundGetAtm <- tryo{kafkaMessage.extract[InboundGetAtm]} ?~! s"$InboundGetAtm extract error"
-          (inboundAtm, inboundStatus) <- Full(inboundGetAtm.data, inboundGetAtm.status)
-        } yield{
-          (inboundAtm, inboundStatus)
-        }
-
-
-        logger.debug(s"Kafka getAtm Res says:  is: $Box")
-        val res = box match {
-          case Full((Some(atm), status)) if (status.errorCode=="") =>
-            Full(atm)
-          case Full((_, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-        logger.info(s"Kafka getAtm says res is $res")
-        res
-      }
-    }
-  }("getAtm")
-
-
   override def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[AtmT]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second){
-        val req = OutboundGetAtm(AuthInfo(currentResourceUserId, getUsername, getCbsToken), bankId.value, atmId.value)
+        val req = OutboundGetAtm(AuthInfo(), bankId.value, atmId.value)
         logger.info(s"Kafka getAtmFuture Req is: $req")
 
         val future: Future[(Option[InboundAtmJune2017], Status)] = for {
@@ -2022,7 +1873,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getAtmFuture")
-
 
 }
 

@@ -270,6 +270,7 @@ object ErrorMessages {
   val KafkaStreamTimeoutException = "OBP-50008: Akka Kafka stream timeout exception."
   val KafkaUnknownError = "OBP-50009: Kafka unknown error."
   val ScalaEmptyBoxToLiftweb = "OBP-50010: Scala return Empty box to Liftweb."
+  val NoCallContext = "OBP-50012: Can not get the CallContext object here."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200

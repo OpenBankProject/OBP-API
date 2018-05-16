@@ -38,7 +38,7 @@ import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.APIUtil._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}

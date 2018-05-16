@@ -453,7 +453,7 @@ trait APIMethods210 {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {CounterpartyNotFoundByCounterpartyId}
+                  toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), Some(cc)) ?~! {CounterpartyNotFoundByCounterpartyId}
                   toAccount <- BankAccount.toBankAccount(toCounterparty)
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
@@ -579,7 +579,7 @@ trait APIMethods210 {
               _ <- Bank(bankId) ?~! {BankNotFound}
 
               // Check Account exists on this server
-              fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! {BankAccountNotFound}
+              fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
@@ -613,9 +613,9 @@ trait APIMethods210 {
               // All Good, proceed with the Transaction creation...
               transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
                 case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
-                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType)
+                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType, Some(cc))
                 case _ =>
-                  Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest)
+                  Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest, Some(cc))
               } 
             } yield {
               val json = JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
@@ -676,11 +676,11 @@ trait APIMethods210 {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
+              fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
-              transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount)
+              transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, Some(cc))
             }
               yield {
                 // Format the data as V2.0.0 json

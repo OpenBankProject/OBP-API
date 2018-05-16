@@ -405,7 +405,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getChargeLevel")
   
   //TODO, not implement in Adapter, just fake the response 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = saveConnectorMetric{
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, session: Option[CallContext] = None) = saveConnectorMetric{
     LocalMappedConnector.createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)}("createChallenge")
   
   //TODO, not implement in Adapter, just fake the response 
@@ -423,8 +423,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getTransaction(
                                bankId: BankId,
                                accountId: AccountId,
-                               transactionId: TransactionId
-                             ): Box[Transaction] =
+                               transactionId: TransactionId,
+                               session: Option[CallContext] = None): Box[Transaction] =
     saveConnectorMetric {
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
@@ -714,7 +714,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
   // Get one counterparty by the Counterparty Id
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = 
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, session: Option[CallContext] = None): Box[CounterpartyTrait] = 
     LocalMappedConnector.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId)
   
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
@@ -1306,7 +1306,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     transactionRequestTypeCharge
   }
   
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] =
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, session: Option[CallContext] = None): Box[List[CounterpartyTrait]] =
     LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
   
   override def getEmptyBankAccount(): Box[BankAccount] = {

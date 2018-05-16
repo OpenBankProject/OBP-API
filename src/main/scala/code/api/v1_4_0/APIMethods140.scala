@@ -448,11 +448,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-              transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
+              transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, Some(cc))
               transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
                 val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)

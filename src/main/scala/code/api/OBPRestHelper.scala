@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.api
 
 import code.api.Constant._
+import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
@@ -45,7 +46,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
-import net.liftweb.json.Extraction
+import net.liftweb.json.{Extraction, parse}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
@@ -270,12 +271,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                   GatewayLogin.getOrCreateResourceUser(payload: String) match {
                     case Full((u, cbsToken)) => // Authentication is successful
                       val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
-                      setGatewayResponseHeader(s) {
-                        GatewayLogin.createJwt(payload, cbsToken)
-                      }
-                      setGatewayLoginUsername(s)(u.name)
-                      setGatewayLoginCbsToken(s)(cbsToken)
-                      fn(cc.copy(user = Full(u), consumer = consumer))
+                      val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
+                      val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
+                      setGatewayResponseHeader(s) {GatewayLogin.createJwt(payload, cbsToken)}
+                      val jwt = GatewayLogin.createJwt(payload, cbsToken)
+                      val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
+                      fn(callContext.map( cc =>cc.copy(user = Full(u), consumer = consumer)).getOrElse(cc.copy(user = Full(u), consumer = consumer)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }

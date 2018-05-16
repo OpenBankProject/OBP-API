@@ -94,7 +94,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, session: Option[CallContext] = None) = {
 //    val challengeId = UUID.randomUUID().toString
 //    val challenge = StringHelpers.randomString(6)
 //    // Random string. For instance: EONXOA
@@ -173,7 +173,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }("getBanks")
 
 
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, session: Option[CallContext]): Box[Transaction] = {
 
     updateAccountTransactions(bankId, accountId)
 
@@ -407,11 +407,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   //Note: in local mapped database, we have the unique constraint counterparty Id, so just call `getCounterpartyByCounterpartyId` is enough.
-  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String): Box[CounterpartyTrait]= {
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, session: Option[CallContext] = None): Box[CounterpartyTrait]= {
     getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId))
   }
   
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, session: Option[CallContext] = None): Box[CounterpartyTrait] ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
   }
 
@@ -1565,7 +1565,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(transactionRequestTypeCharge)
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, session: Option[CallContext] = None): Box[List[CounterpartyTrait]] = {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
   }
 
@@ -1629,7 +1629,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke]
-  ): Box[CounterpartyTrait] =
+  , session: Option[CallContext] = None): Box[CounterpartyTrait] =
     Counterparties.counterparties.vend.createCounterparty(
       createdByUserId = createdByUserId,
       thisBankId = thisBankId,
@@ -1650,7 +1650,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   
   
-  override def getCustomersByUserIdFuture(userId: String)(session: Option[CallContext]): Future[Box[List[Customer]]] =
+  override def getCustomersByUserIdFuture(userId: String, session: Option[CallContext]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
   
 }
