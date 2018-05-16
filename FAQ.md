@@ -1,5 +1,18 @@
 # FAQ
 
+
+## How do I create new endpoints in OBP API?
+
+See lazy val getCustomersForUser in /src/main/scala/code/api/v3_0_0/APIMethods300.scala as a code example
+
+
+## How do I minimise merge conflicts in my fork?
+
+Note: If you want to maintain a fork of OBP-API, we suggest you place your custom code in folders named "custom"
+e.g. /src/main/scala/code/api/custom to reduce the possibility of merge conflicts
+Please make sure you follow the terms of the AGPL or obtain a proprietary license from TESOBE or our partners.
+
+
 ## How do endpoints become available to the OBP API?
 
 In summary, we:
