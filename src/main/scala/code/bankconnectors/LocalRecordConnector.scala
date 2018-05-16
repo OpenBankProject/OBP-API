@@ -146,7 +146,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, session: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
     for{
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
@@ -617,7 +617,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   
   override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, session: Option[CallContext] = None): Box[List[CounterpartyTrait]] = Empty
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = Empty
 
   override def getEmptyBankAccount(): Box[BankAccount] = Empty
   

@@ -196,7 +196,7 @@ trait Connector extends MdcLoggable{
     )
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, session: Option[CallContext] = None) : Box[String] = Failure(NotImplemented + currentMethodName)
+  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) : Box[String] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
 
@@ -257,17 +257,17 @@ trait Connector extends MdcLoggable{
     getBankAccount(bankId, accountId, None)
   }
 
-  def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[CallContext]) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
-  def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
+  def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
 
-  def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
-  def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
+  def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[CoreAccount]]= Failure(NotImplemented + currentMethodName)
+  def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[CoreAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
   
-  def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Box[List[AccountHeld]]= Failure(NotImplemented + currentMethodName)
-  def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], session: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
+  def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[AccountHeld]]= Failure(NotImplemented + currentMethodName)
+  def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
 
-  def checkBankAccountExists(bankId : BankId, accountId : AccountId, session: Option[CallContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
@@ -301,9 +301,9 @@ trait Connector extends MdcLoggable{
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, session: Option[CallContext] = None): Box[CounterpartyTrait]= getCounterpartyByCounterpartyId(CounterpartyId(couterpartyId))
+  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext] = None): Box[CounterpartyTrait]= getCounterpartyByCounterpartyId(CounterpartyId(couterpartyId))
 
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, session: Option[CallContext] = None): Box[CounterpartyTrait]= Failure(NotImplemented + currentMethodName)
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait]= Failure(NotImplemented + currentMethodName)
 
   /**
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
@@ -311,7 +311,7 @@ trait Connector extends MdcLoggable{
     */
   def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
 
-  def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, session: Option[CallContext] = None): Box[List[CounterpartyTrait]]= Failure(NotImplemented + currentMethodName)
+  def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]]= Failure(NotImplemented + currentMethodName)
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= {
     getTransactions(bankId, accountID, None, queryParams: _*)
@@ -319,10 +319,10 @@ trait Connector extends MdcLoggable{
 
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
-  def getTransactions(bankId: BankId, accountID: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
-  def getTransactionsCore(bankId: BankId, accountID: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]]= Failure(NotImplemented + currentMethodName)
+  def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
+  def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]]= Failure(NotImplemented + currentMethodName)
 
-  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, session: Option[CallContext] = None): Box[Transaction] = Failure(NotImplemented + currentMethodName)
+  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[Transaction] = Failure(NotImplemented + currentMethodName)
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
   
@@ -751,7 +751,7 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, session: Option[CallContext] = None) : Box[List[TransactionRequest]] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
         transactionRequests <- getTransactionRequestsImpl210(fromAccount)
@@ -788,9 +788,9 @@ trait Connector extends MdcLoggable{
 
   def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
 
-  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, session: Option[CallContext] = None) : Box[List[TransactionRequestType]] = {
+  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[List[TransactionRequestType]] = {
     for {
-      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId, session) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId, callContext) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes
@@ -870,7 +870,7 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, session: Option[CallContext] = None) : Box[TransactionRequest] = {
+  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext] = None) : Box[TransactionRequest] = {
     for {
       
 //      details <- Full(transactionRequest.details)
@@ -906,7 +906,7 @@ trait Connector extends MdcLoggable{
         case COUNTERPARTY   =>
           for{
            counterpartyId <- tryo{CounterpartyId(body.to_counterparty.get.counterparty_id)}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
-           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId, session) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
            toAccount <- BankAccount.toBankAccount(toCounterparty)
            counterpartyBody <- Full(
              TransactionRequestBodyCounterpartyJSON(
@@ -1255,7 +1255,7 @@ trait Connector extends MdcLoggable{
     fromAccount: BankAccount,
     transReqId: TransactionRequestId,
     transactionRequestType: TransactionRequestType
-  , session: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+  , callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
   
   def makePaymentv300(
     initiator: User,
@@ -1265,7 +1265,7 @@ trait Connector extends MdcLoggable{
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     transactionRequestType: TransactionRequestType,
     chargePolicy: String
-  , session: Option[CallContext] = None): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+  , callContext: Option[CallContext] = None): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
   
   def createTransactionRequestv300(
     initiator: User,
@@ -1277,7 +1277,7 @@ trait Connector extends MdcLoggable{
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     detailsPlain: String,
     chargePolicy: String
-  , session: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
+  , callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1311,9 +1311,9 @@ trait Connector extends MdcLoggable{
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke]
-  , session: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+  , callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
-  def getCustomersByUserIdFuture(userId: String, session: Option[CallContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + "createCounterparty in Connector!")}
+  def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + "createCounterparty in Connector!")}
   
 }

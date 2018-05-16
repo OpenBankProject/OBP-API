@@ -481,9 +481,9 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], session: Option[CallContext] = None) : Box[ModeratedTransaction] = {
+  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[ModeratedTransaction] = {
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, session).flatMap(view.moderate)
+      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext).flatMap(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -493,10 +493,10 @@ trait BankAccount extends MdcLoggable {
   */
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactions(user : Box[User], view : View, session: Option[CallContext], queryParams: OBPQueryParam* ): Box[List[ModeratedTransaction]] = {
+  final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[List[ModeratedTransaction]] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        transactions <- Connector.connector.vend.getTransactions(bankId, accountId, session, queryParams: _*)
+        transactions <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
       } yield moderated
     }
@@ -504,10 +504,10 @@ trait BankAccount extends MdcLoggable {
   }
   
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactionsCore(user : Box[User], view : View, session: Option[CallContext] , queryParams: OBPQueryParam* ): Box[List[ModeratedTransactionCore]] = {
+  final def getModeratedTransactionsCore(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[List[ModeratedTransactionCore]] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        transactions <- Connector.connector.vend.getTransactionsCore(bankId, accountId, session, queryParams: _*)
+        transactions <- Connector.connector.vend.getTransactionsCore(bankId, accountId, callContext, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! "Server error"
       } yield moderated
     }
