@@ -10,7 +10,6 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
-import code.api.util.APIUtil.initPasswd
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
@@ -20,7 +19,6 @@ import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
@@ -35,11 +33,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   implicit val materializer = ActorMaterializer()
 
   import materializer._
-  /**
-    *Random select the partitions number from 0 to kafka.partitions value
-    *The specified partition number will be inside the Key.
-    */
-  private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
+  private def key = UUID.randomUUID().toString
 
   private val consumerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
@@ -62,8 +56,8 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
   }
 
-  private val consumer: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
-    val assignment = Subscriptions.assignmentWithOffset(new TopicPartition(topic, partition), 0)
+  private val consumer: ((String) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic) =>
+    val assignment = Subscriptions.topics(topic)
     Consumer.plainSource(consumerSettings, assignment)
       .completionTimeout(completionTimeout)
   }
@@ -94,16 +88,14 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     * And get the message from the specified partition and filter by key
     */
   private val sendRequestAndGetResponseFromKafka: ((TopicPair, String, String) => Future[String]) = { (topic, key, value) =>
-    //When we send RequestTopic message, contain the partition in it, and when we get the ResponseTopic according to the partition.
-    val specifiedPartition = key.split("_")(0).toInt 
     val requestTopic = topic.request
     val responseTopic = topic.response
     //producer will publish the message to broker
-    val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
+    val message = new ProducerRecord[String, String](requestTopic, key, value)
     producer.send(message)
     
     //consumer will wait for the message from broker
-    consumer(responseTopic, specifiedPartition)
+    consumer(responseTopic)
       .filter(_.key() == key) // double check the key 
       .map { msg => 
         logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
@@ -174,7 +166,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       logger.debug("kafka_request[value]: " + value)
       for {
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
-        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
+        r <- sendRequestAndGetResponseFromKafka(t, key, value)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
@@ -189,7 +181,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
         d <- anyToJValueF(request)
         s <- serializeF(d)
-        r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s)
+        r <- sendRequestAndGetResponseFromKafka(t,key, s)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
@@ -205,7 +197,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         t <- Future(Topics.topicPairFromProps) // Just have two Topics: Request and Response
         d <- anyToJValueF(request)
         v <- serializeF(d)
-        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, v)
+        r <- sendRequestAndGetResponseFromKafka(t, key, v)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
