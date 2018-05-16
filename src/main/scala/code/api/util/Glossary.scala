@@ -146,8 +146,6 @@ object Glossary {
 		title = "Direct Login",
 		description =
 		  s"""
-			|## TL;DR
-			|
 			|Direct Login is a simple authentication process to be used at hackathons and trusted environments:
 			|
 			|
