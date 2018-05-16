@@ -1376,40 +1376,6 @@ Returns a string showed to the developer
         Some(x._2)
     }
   }
-  /**
-    * Set value of GatewayLogin username.
-    */
-  def setGatewayLoginUsername(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName + "username", value)
-
-  /**
-    * Set value of GatewayLogin cbsToken.
-    */
-  def setGatewayLoginCbsToken(s: S)(value: Option[String]) = {
-    value match  {
-      case Some(v) => s.setSessionAttribute(gatewayResponseHeaderName + "cbstoken", v)
-      case _ => // Do nothing
-    }
-  }
-
-  /**
-    * @return - GatewayLogin username Header.
-    */
-  def getGatewayLoginUsername() = {
-    S.getSessionAttribute(gatewayResponseHeaderName + "username") match {
-      case Full(h) => h
-      case _ => ""
-    }
-  }
-
-  /**
-    * @return - GatewayLogin cbsToken Header.
-    */
-  def getGatewayLoginCbsToken() = {
-    S.getSessionAttribute(gatewayResponseHeaderName + "cbstoken") match {
-      case Full(h) => h
-      case _ => ""
-    }
-  }
 
   /**
     * Turn a string of format "FooBar" into snake case "foo_bar"

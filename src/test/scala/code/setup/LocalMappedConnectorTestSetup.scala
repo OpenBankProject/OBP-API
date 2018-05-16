@@ -185,7 +185,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       MappedTransaction.bulkDelete_!!()
       MappedBank.bulkDelete_!!()
       MappedBankAccount.bulkDelete_!!()
-      MappedCounterparty.bulkDelete_!!()
+      Counterparties.counterparties.vend.bulkDeleteAllCounterparties()
     }
   }
 }

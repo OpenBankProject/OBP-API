@@ -155,4 +155,5 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   override def getMoreInfo(counterpartyId : String): Box[String] = ???
   override def getPublicAlias(counterpartyId : String): Box[String] = ???
   override def getPrivateAlias(counterpartyId : String): Box[String] = ???
+  override def bulkDeleteAllCounterparties(): Box[Boolean] = ???
 }

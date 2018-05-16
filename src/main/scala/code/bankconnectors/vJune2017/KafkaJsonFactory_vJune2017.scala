@@ -125,7 +125,7 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
-case class AuthInfo(userId: String, username: String, cbsToken: String, isFirst: Boolean = true)
+case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true)
 case class AccountRule(scheme: String, value: String)
 case class InboundAccountJune2017(
   errorCode: String,

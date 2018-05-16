@@ -294,11 +294,11 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
+            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
             _ <- tryo {for{counterparty <-counterparties}Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name)} ?~! CreateOrUpdateCounterpartyMetadataError 
@@ -333,12 +333,12 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
-            counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value)
+            counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value, Some(cc))
           } yield {
             val counterpartyJson = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
             successJsonResponse(Extraction.decompose(counterpartyJson))
@@ -1107,7 +1107,7 @@ trait APIMethods220 {
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
+            account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! s"$ViewNotFound Current VIEW_ID = $viewId"
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
@@ -1122,7 +1122,7 @@ trait APIMethods220 {
               for{
                 _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maxsinec length of `description` filed is ${MappedCounterparty.mDescription.maxLen}")
                 _ <- Bank(BankId(postJson.other_bank_routing_address)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
-                account <- Connector.connector.vend.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+                account <- Connector.connector.vend.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address),Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account
               }
@@ -1147,7 +1147,7 @@ trait APIMethods220 {
               otherBranchRoutingAddress=postJson.other_branch_routing_address,
               isBeneficiary=postJson.is_beneficiary,
               bespoke=postJson.bespoke.map(bespoke =>CounterpartyBespoke(bespoke.key,bespoke.value))
-            )
+            , Some(cc))
           
             counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
   

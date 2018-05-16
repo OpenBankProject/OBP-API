@@ -158,6 +158,10 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("deletePhysicalLocation(" + counterpartyId + ")")
       sender ! extractResult(mapper.deletePhysicalLocation(counterpartyId))
 
+    case cc.bulkDeleteAllCounterparties() =>
+      logger.debug("bulkDeleteAllCounterparties()")
+      sender ! extractResult(mapper.bulkDeleteAllCounterparties())
+      
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
