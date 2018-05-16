@@ -490,7 +490,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getTransactions(
                                 bankId: BankId,
                                 accountId: AccountId,
-                                session: Option[CallContext],
+                                callContext: Option[CallContext],
                                 queryParams: OBPQueryParam*
   ): Box[List[Transaction]] = 
     saveConnectorMetric 
@@ -572,7 +572,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getBankAccount(
                                bankId: BankId,
                                accountId: AccountId,
-                               session: Option[CallContext]
+                               callContext: Option[CallContext]
                              ): Box[BankAccount] = saveConnectorMetric {
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
