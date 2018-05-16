@@ -9,18 +9,18 @@ import scala.language.postfixOps
 
 object Caching {
 
-  def memoizeSyncWithProvider[A](unique: Option[String])(ttl: Duration)(f: => A)(implicit m: Manifest[A]): A = {
-    (unique, ttl) match {
+  def memoizeSyncWithProvider[A](cacheKey: Option[String])(ttl: Duration)(f: => A)(implicit m: Manifest[A]): A = {
+    (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
         APIUtil.getPropsValue("guava.cache") match {
           case Full(value) if value.toLowerCase == "redis" =>
-            Redis.memoizeSyncWithRedis(unique)(ttl)(f)
+            Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
           case Full(value) if value.toLowerCase == "in-memory" =>
-            InMemory.memoizeSyncWithInMemory(unique)(ttl)(f)
+            InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(f)
           case _ =>
-            InMemory.memoizeSyncWithInMemory(unique)(ttl)(f)
+            InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(f)
         }
       case _  => // Just forwarding a call
         f
@@ -28,18 +28,18 @@ object Caching {
 
   }
 
-  def memoizeWithProvider[A](unique: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
-    (unique, ttl) match {
+  def memoizeWithProvider[A](cacheKey: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
+    (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
         APIUtil.getPropsValue("guava.cache") match {
           case Full(value) if value.toLowerCase == "redis" =>
-            Redis.memoizeWithRedis(unique)(ttl)(f)
+            Redis.memoizeWithRedis(cacheKey)(ttl)(f)
           case Full(value) if value.toLowerCase == "in-memory" =>
-            InMemory.memoizeWithInMemory(unique)(ttl)(f)
+            InMemory.memoizeWithInMemory(cacheKey)(ttl)(f)
           case _ =>
-            InMemory.memoizeWithInMemory(unique)(ttl)(f)
+            InMemory.memoizeWithInMemory(cacheKey)(ttl)(f)
         }
       case _  => // Just forwarding a call
         f
