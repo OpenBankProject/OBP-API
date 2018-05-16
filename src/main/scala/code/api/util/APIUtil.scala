@@ -1592,6 +1592,7 @@ Returns a string showed to the developer
     // Endpoints
     val enabledEndpoints = getEnabledEndpoints
 
+    val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
 
 
     val routes = for (
@@ -1603,7 +1604,8 @@ Returns a string showed to the developer
            (enabledEndpoints.contains(item.partialFunctionName) || enabledEndpoints.isEmpty)  &&
            // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
              // i.e. this function may recieve more Resource Docs than version endpoints
-            endpoints.exists(_ == item.partialFunction)
+            endpoints.exists(_ == item.partialFunction) &&
+             (NewStyle.endpoints.exists(x => x == (item.partialFunctionName, item.implementedInApiVersion.toString())) || !onlyNewStyle)
     )
       yield item.partialFunction
     routes.toList

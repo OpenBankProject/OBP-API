@@ -453,3 +453,9 @@ organisation_website = https://www.tesobe.com
 # guava.redis.url=127.0.0.1
 # guava.redis.port=6379
 # ---------------------------------------------------------
+
+# -- New Style Endpoints -----------------------
+# Filter or not Resource Doc by New Style
+# true implies we only have new style endpoints
+# new_style_only=false
+# ----------------------------------------------
