@@ -63,7 +63,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getBanks(): Box[List[Bank]] =
     Full(HostedBank.findAll)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId, session: Option[CallContext]) : Box[BankAccount] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -135,7 +135,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, session: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
       bank <- getHostedBank(bankId)
