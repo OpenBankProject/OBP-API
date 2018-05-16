@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
@@ -390,7 +390,10 @@ trait OBPDataImport extends MdcLoggable {
     val accountId = AccountId(acc.id)
   
     val firehoseView =
-      createFirehoseView(bankId, accountId, "Firehose View")
+      // Only create Firehose view if they are enabled at instance.
+      if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+        createFirehoseView(bankId, accountId, "Firehose View")
+      else Empty
     
     val ownerView =
         createOwnerView(bankId, accountId, "Owner View")

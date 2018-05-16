@@ -360,7 +360,7 @@ object MapperViews extends Views with MdcLoggable {
   
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
     getExistingView(bankId, accountId, "Firehose") match {
-      case Empty => createDefaultOwnerView(bankId, accountId, description)
+      case Empty => createDefaultFirehoseView(bankId, accountId, description)
       case Full(v) => Full(v)
     }
   }
@@ -742,7 +742,7 @@ object MapperViews extends Views with MdcLoggable {
       .canAddWhereTag_(true)
       .canSeeWhereTag_(true)
       .canDeleteWhereTag_(true)
-      .canInitiateTransaction_(true)
+      .canInitiateTransaction_(false)
       .canSeeBankRoutingScheme_(true) //added following in V300
       .canSeeBankRoutingAddress_(true)
       .canSeeBankAccountRoutingScheme_(true)
@@ -751,8 +751,8 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherBankRoutingAddress_(true)
       .canSeeOtherAccountRoutingScheme_(true)
       .canSeeOtherAccountRoutingAddress_(true)
-      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(true)
+      .canAddTransactionRequestToOwnAccount_(false) //added following two for payments
+      .canAddTransactionRequestToAnyAccount_(false)
   }
   
   def createAndSaveFirehoseView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

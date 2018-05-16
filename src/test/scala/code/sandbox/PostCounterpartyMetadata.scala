@@ -77,7 +77,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
     //load json for counterpaties
     // val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/korea/loaded_06/OBP_sandbox_counterparties_pretty.json"
 
-    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_irb/loaded_to_bnpp_irb-as_4/OBP_sandbox_counterparties_pretty.json"
+    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/May_2018_ABN_Netherlands_extra/loaded_01/OBP_sandbox_counterparties_pretty.json"
 
 
 
@@ -118,7 +118,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
     // val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/korea/loaded_06/OBP_sandbox_pretty.json"
 
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/bnpp_irb/loaded_to_bnpp_irb-as_4/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/May_2018_ABN_Netherlands_extra/loaded_01/OBP_sandbox_pretty.json"
 
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
