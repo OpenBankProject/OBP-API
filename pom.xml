@@ -364,6 +364,12 @@
       <artifactId>scala-macros</artifactId>
       <version>v1.0.0-alpha.3</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/org.scalameta/scalameta -->
+    <dependency>
+      <groupId>org.scalameta</groupId>
+      <artifactId>scalameta_${scala.version}</artifactId>
+      <version>3.7.4</version>
+    </dependency>
 
 
   </dependencies>
