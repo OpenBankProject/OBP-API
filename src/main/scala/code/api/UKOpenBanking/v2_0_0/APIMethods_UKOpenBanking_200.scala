@@ -98,7 +98,7 @@ trait APIMethods_UKOpenBanking_200 {
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
-            params <- Future { getTransactionParams(callContext.get.requestHeaders)} map {
+            params <- Future { getHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           

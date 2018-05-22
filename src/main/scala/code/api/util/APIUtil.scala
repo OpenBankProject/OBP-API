@@ -661,7 +661,7 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getTransactionParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
+  def getHttpParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
       sortDirection <- getSortDirection(headers)
       fromDate <- getFromDate(headers)

@@ -1,6 +1,7 @@
 package code.users
 
 import code.api.util.APIUtil
+import code.bankconnectors.OBPQueryParam
 import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
@@ -48,7 +49,7 @@ trait Users {
 
   def getAllUsers() : Box[List[ResourceUser]]
 
-  def getAllUsersF() : Future[List[(ResourceUser, Box[List[Entitlement]])]]
+  def getAllUsersF(queryParams: List[OBPQueryParam]) : Future[List[(ResourceUser, Box[List[Entitlement]])]]
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
@@ -75,7 +76,7 @@ class RemotedataUsersCaseClasses {
   case class getUserByEmail(email : String)
   case class getUserByEmailFuture(email : String)
   case class getAllUsers()
-  case class getAllUsersF()
+  case class getAllUsersF(queryParams: List[OBPQueryParam])
   case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)

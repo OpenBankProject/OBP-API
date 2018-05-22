@@ -566,7 +566,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(callContext.get.requestHeaders)
+                params <- getHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -628,7 +628,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(callContext.get.requestHeaders)
+                params <- getHttpParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -693,7 +693,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getTransactionParams(callContext.get.requestHeaders)
+                params <- getHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -1392,14 +1392,14 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
-          val s = S
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            users <- Users.users.vend.getAllUsersF()
+            queryParams <- unboxFullAndWrapIntoFuture{ getHttpParams(callContext.get.requestHeaders) }
+            users <- Users.users.vend.getAllUsersF(queryParams)
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }
