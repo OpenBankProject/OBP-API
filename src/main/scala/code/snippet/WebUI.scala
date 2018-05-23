@@ -169,6 +169,19 @@ class WebUI extends MdcLoggable{
     ".faq-email a [href]" #> emailMailto
   }
 
+  // DirectLogin link on FAQ
+  def faqDirectLogin: CssSel = {
+  val faqdirectloginlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_direct_login_url", "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login/"))
+          ".faq-direct-login-link a [href]" #> faqdirectloginlink
+  }
+
+  // Slack link
+  def slackLink: CssSel = {
+    val slacklink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_slack_url", "https://slack.openbankproject.com/"))
+        ".slack-link a [href]" #> slacklink
+  }
+
+
   // Page title
   def pageTitle = {
     val prefix = APIUtil.getPropsValue("webui_page_title_prefix", "Open Bank Project: ")

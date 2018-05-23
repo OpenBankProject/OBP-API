@@ -431,7 +431,6 @@ import net.liftweb.util.Helpers._
     }
   }
 
-
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup">
       <form method="post" action={S.uri}>
