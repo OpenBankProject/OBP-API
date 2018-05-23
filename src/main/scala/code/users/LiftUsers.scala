@@ -1,11 +1,12 @@
 package code.users
 
 import code.api.GatewayLogin.gateway
+import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
 import net.liftweb.common.{Box, Full}
 import code.model.User
-import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
-import net.liftweb.mapper.By
+import code.model.dataAccess.ResourceUser
+import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -101,8 +102,15 @@ object LiftUsers extends Users {
     Full(ResourceUser.findAll())
   }
 
-  override def getAllUsersF(): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
-    val users = ResourceUser.findAll()
+  override def getAllUsersF(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
+    
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
+  
+    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
+    
+    val users = ResourceUser.findAll(optionalParams: _*)
+    
     Future {
       for {
         user <- users
@@ -112,8 +120,13 @@ object LiftUsers extends Users {
     }
   }
 
-  def getAllUsersFF(): List[(ResourceUser, Box[List[Entitlement]])] = {
-    val users = ResourceUser.findAll()
+  def getAllUsersFF(queryParams: List[OBPQueryParam]): List[(ResourceUser, Box[List[Entitlement]])] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
+  
+    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
+  
+    val users = ResourceUser.findAll(optionalParams: _*)
     for {
       user <- users
     } yield {

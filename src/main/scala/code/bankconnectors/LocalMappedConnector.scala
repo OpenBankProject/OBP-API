@@ -1628,8 +1628,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[CounterpartyBespoke]
-  , callContext: Option[CallContext] = None): Box[CounterpartyTrait] =
+    bespoke: List[CounterpartyBespoke],
+    callContext: Option[CallContext] = None): Box[CounterpartyTrait] =
     Counterparties.counterparties.vend.createCounterparty(
       createdByUserId = createdByUserId,
       thisBankId = thisBankId,

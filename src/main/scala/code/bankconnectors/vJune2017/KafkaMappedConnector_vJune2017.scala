@@ -1025,8 +1025,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[CounterpartyBespoke]
-  , callContext: Option[CallContext] = None): Box[CounterpartyTrait] = {
+    bespoke: List[CounterpartyBespoke], 
+    callContext: Option[CallContext] = None): Box[CounterpartyTrait] = {
   
     val box = for {
       authInfo <- getAuthInfo(callContext)
