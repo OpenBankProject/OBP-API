@@ -2,9 +2,12 @@ package code.remotedata
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
+import code.bankconnectors.OBPQueryParam
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemotedataUsersCaseClasses}
 import code.util.Helper.MdcLoggable
+
+import scala.collection.immutable.List
 
 class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
 
@@ -65,9 +68,9 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       logger.debug("getAllUsers()")
       sender ! extractResult(mapper.getAllUsers())
 
-    case cc.getAllUsersF() =>
-      logger.debug("getAllUsersF()")
-      sender ! (mapper.getAllUsersFF())
+    case cc.getAllUsersF(queryParams: List[OBPQueryParam]) =>
+      logger.debug("getAllUsersF(queryParams: List[OBPQueryParam])")
+      sender ! (mapper.getAllUsersFF(queryParams: List[OBPQueryParam]))
 
     case cc.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")

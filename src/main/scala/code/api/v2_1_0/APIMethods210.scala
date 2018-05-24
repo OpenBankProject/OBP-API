@@ -38,6 +38,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -1005,7 +1006,8 @@ trait APIMethods210 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            users <- Users.users.vend.getAllUsersF()
+            queryParams <- unboxFullAndWrapIntoFuture{ getHttpParams(callContext.get.requestHeaders) }
+            users <- Users.users.vend.getAllUsersF(queryParams)
           } yield {
             (JSONFactory210.createUserJSONs (users), callContext)
           }

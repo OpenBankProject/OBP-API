@@ -1254,8 +1254,8 @@ trait Connector extends MdcLoggable{
     initiator: User,
     fromAccount: BankAccount,
     transReqId: TransactionRequestId,
-    transactionRequestType: TransactionRequestType
-  , callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+    transactionRequestType: TransactionRequestType,
+    callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
   
   def makePaymentv300(
     initiator: User,
@@ -1264,8 +1264,8 @@ trait Connector extends MdcLoggable{
     toCounterparty: CounterpartyTrait,
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     transactionRequestType: TransactionRequestType,
-    chargePolicy: String
-  , callContext: Option[CallContext] = None): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+    chargePolicy: String, 
+    callContext: Option[CallContext] = None): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
   
   def createTransactionRequestv300(
     initiator: User,
@@ -1276,8 +1276,8 @@ trait Connector extends MdcLoggable{
     transactionRequestType: TransactionRequestType,
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     detailsPlain: String,
-    chargePolicy: String
-  , callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
+    chargePolicy: String,
+    callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1310,8 +1310,8 @@ trait Connector extends MdcLoggable{
     otherBranchRoutingScheme: String,
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
-    bespoke: List[CounterpartyBespoke]
-  , callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+    bespoke: List[CounterpartyBespoke],
+    callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + "createCounterparty in Connector!")}

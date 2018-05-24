@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.bankconnectors.OBPQueryParam
 import code.entitlement.Entitlement
 import code.model.User
 import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
@@ -56,8 +57,8 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getAllUsers() : Box[List[ResourceUser]] =
     extractFutureToBox(actor ? cc.getAllUsers())
 
-  def getAllUsersF() : Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
-    val res = (actor ? cc.getAllUsersF())
+  def getAllUsersF(queryParams: List[OBPQueryParam]) : Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
+    val res = (actor ? cc.getAllUsersF(queryParams))
     res.mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
   }
 
