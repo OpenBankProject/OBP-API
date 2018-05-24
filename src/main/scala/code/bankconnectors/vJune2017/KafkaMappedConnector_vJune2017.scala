@@ -292,7 +292,44 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBanks")
-  
+
+  override def getBanksFuture(): Future[Box[List[Bank]]] = saveConnectorMetric {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val req = OutboundGetBanks(AuthInfo())
+        logger.info(s"Kafka getBanksFuture Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetBanks](req) map {
+            f =>
+              try {
+                f.extract[InboundGetBanks]
+              } catch {
+                case e: Exception => throw new MappingException(s"$InboundGetBanks extract error", e)
+              }
+          } map {
+            (x => (x.data, x.status))
+          }
+        } yield {
+          Full(res)
+        }
+
+        val res = future map {
+          case Full((banks, status)) if (status.errorCode=="") =>
+            val banksResponse =  banks map (new Bank2(_))
+            logger.debug(s"Kafka getBanksFuture Res says:  is: $banksResponse")
+            Full(banksResponse)
+          case Full((banks, status)) if (status.errorCode!="") =>
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case _ =>
+            Failure(ErrorMessages.UnknownError)
+        }
+        logger.info(s"Kafka getBanksFuture says res is $res")
+        res
+      }
+    }
+  }("getBanks")
   
   messageDocs += MessageDoc(
     process = "obp.get.Bank",

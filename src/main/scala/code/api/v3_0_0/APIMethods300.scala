@@ -7,12 +7,13 @@ import java.util.{Date, Locale}
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{banksJSON, _}
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
 import code.api.util._
+import code.api.v1_2_1.{BankJSON, BanksJSON, JSONFactory}
 import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
@@ -45,6 +46,7 @@ import scala.concurrent.Future
 import code.metrics.AggregateMetrics
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
 
@@ -2243,6 +2245,37 @@ trait APIMethods300 {
            
           } yield
             (JSONFactory300.createScopeJSONs(scopes), callContext)
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getBanks,
+      implementedInApiVersion,
+      "getBanks",
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |* ID used as parameter in URLs
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      emptyObjectJson,
+      banksJSON,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val getBanks : OBPEndpoint = {
+      case "banks" :: Nil JsonGet req => {
+        cc =>
+          for {
+            banksBox <- Connector.connector.vend.getBanksFuture()
+            banks <- unboxFullAndWrapIntoFuture{ banksBox }
+          } yield 
+            (JSONFactory300.createbanksJson(banks), Some(cc))
       }
     }
 

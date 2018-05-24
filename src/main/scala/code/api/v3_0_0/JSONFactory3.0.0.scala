@@ -415,6 +415,7 @@ case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
 
 case class ScopeJson(scope_id: String, role_name: String, bank_id: String)
 case class ScopeJsons(list: List[ScopeJson])
+case class BanksJson(banks: List[BankJSON])
 case class CreateScopeJson(bank_id: String, role_name: String)
 
 object JSONFactory300{
@@ -1079,5 +1080,9 @@ object JSONFactory300{
   
   def createScopeJSONs(l: List[Scope]): ScopeJsons = {
     ScopeJsons(l.map(createScopeJson))
+  }
+
+  def createbanksJson(l: List[Bank]): BanksJson = {
+    BanksJson(l.map(JSONFactory.createBankJSON))
   }
 }
