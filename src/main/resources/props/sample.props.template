@@ -278,8 +278,8 @@ webui_faq_url = https://openbankproject.com/faq/
 # Email address in FAQ for further inquiries
 webui_faq_email = contact@openbankproject.com
 
-# Link to slack channel
-webui_slack_url =
+# Link to support platform
+webui_support_platform_url = https://slack.openbankproject.com/
 
 # Link to Direct Login glossary on api explorer
 webui_faq_direct_login_url =

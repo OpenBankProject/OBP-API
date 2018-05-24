@@ -175,10 +175,10 @@ class WebUI extends MdcLoggable{
           ".faq-direct-login-link a [href]" #> faqdirectloginlink
   }
 
-  // Slack link
-  def slackLink: CssSel = {
-    val slacklink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_slack_url", "https://slack.openbankproject.com/"))
-        ".slack-link a [href]" #> slacklink
+  // Support platform link
+  def supportPlatformLink: CssSel = {
+    val supportplatformlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
+        ".support-platform-link a [href]" #> supportplatformlink
   }
 
 

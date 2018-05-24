@@ -436,7 +436,7 @@ import net.liftweb.util.Helpers._
     if (url.isEmpty) {
       s""
     } else {
-      scala.xml.Unparsed(s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE Ltd according to our Privacy Policy <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
+      scala.xml.Unparsed(s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE Ltd according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
     }
   }
 
