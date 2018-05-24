@@ -284,6 +284,9 @@ webui_slack_url =
 # Link to Direct Login glossary on api explorer
 webui_faq_direct_login_url =
 
+# Link to Privacy Policy on signup page
+webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
+
 ## For partner logos and links
 webui_main_partners=[\
 {"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 1"},\
