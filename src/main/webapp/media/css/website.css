@@ -426,14 +426,17 @@ footer #copyright {
 #signup #signup-error,
 #signup .form-group,
 #signup #signup-agree-terms,
+#signup #signup-agree-privacy-policy,
 #signup #signup-submit {
 	margin-bottom: 20px;
+	text-align: justify;
 }
 
 
 
 #create-account a,
 #signup #signup-agree-terms a,
+#signup #signup-agree-privacy-policy a,
 #register-consumer a,
 #authorise #manual-redirect a {
 	color: white;

@@ -41,6 +41,21 @@ $(document).ready(function() {
 		}
 		return true;
 	});
+
+	// Enforce check of Privacy Policy (if existing) on signup form
+	$('#signup form').submit(function() {
+		var agreePrivacyPolicy = $('#signup #signup-agree-privacy-policy input');
+		if (agreePrivacyPolicy.length > 0) {
+			if (!agreePrivacyPolicy.prop('checked')) {
+				var msg = 'Please agree to the Privacy Policy';
+				$('#signup #signup-error #error').html(msg);
+				$('#signup #signup-error').removeClass('hide');
+				return false;
+			}
+		}
+		return true;
+	});
+
 	// Show sign up errors - FIXME: Change backend to (not) show errors
 	var signupError = $('#signup #signup-error #error');
 	if (signupError.length > 0 && signupError.html().length > 0) {
