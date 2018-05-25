@@ -169,7 +169,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     */
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
-      case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion)) =>
+      case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion.toString())) =>
         true
       case _ =>
         false
