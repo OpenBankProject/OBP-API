@@ -7,7 +7,7 @@ import java.util.{Date, Locale}
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{banksJSON, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, _}
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -2308,6 +2308,7 @@ trait APIMethods300 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
+    //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val getBanks : OBPEndpoint = {
       case "banks" :: Nil JsonGet req => {
         cc =>
@@ -2315,7 +2316,39 @@ trait APIMethods300 {
             banksBox <- Connector.connector.vend.getBanksFuture()
             banks <- unboxFullAndWrapIntoFuture{ banksBox }
           } yield 
-            (JSONFactory300.createbanksJson(banks), Some(cc))
+            (JSONFactory300.createBanksJson(banks), Some(cc))
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      bankById,
+      implementedInApiVersion,
+      "bankById",
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      emptyObjectJson,
+      bankJSON,
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    //The Json Body is totally the same as V121, just use new style endpoint.
+    lazy val bankById : OBPEndpoint = {
+      //get bank by id
+      case "banks" :: BankId(bankId) :: Nil JsonGet req => {
+        cc =>
+          for {
+            bankBox <- Connector.connector.vend.getBankFuture(bankId)
+            bank <- unboxFullAndWrapIntoFuture{ bankBox }
+          } yield
+            (JSONFactory.createBankJSON(bank), Some(cc))
       }
     }
 

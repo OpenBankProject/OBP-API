@@ -397,6 +397,44 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBank")
   
+  override def getBankFuture(bankId: BankId): Future[Box[Bank]] = saveConnectorMetric {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val req = OutboundGetBank(authInfo = AuthInfo(), bankId.toString)
+        logger.info(s"Kafka getBankFuture Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetBank](req) map {
+            f =>
+              try {
+                f.extract[InboundGetBank]
+              } catch {
+                case e: Exception => throw new MappingException(s"$InboundGetBank extract error", e)
+              }
+          } map {
+            (x => (x.data, x.status))
+          }
+        } yield {
+          Full(res)
+        }
+
+        val res = future map {
+          case Full((bank, status)) if (status.errorCode=="") =>
+            val bankResponse =  (new Bank2(bank))
+            logger.debug(s"Kafka getBankFuture Res says:  is: $bankResponse")
+            Full(bankResponse)
+          case Full((bank, status)) if (status.errorCode!="") =>
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case _ =>
+            Failure(ErrorMessages.UnknownError)
+        }
+        logger.info(s"Kafka getBankFuture says res is $res")
+        res
+      }
+    }
+  }("getBank")
+  
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
     messageFormat = messageFormat,

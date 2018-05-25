@@ -1084,7 +1084,7 @@ object JSONFactory300{
     ScopeJsons(l.map(createScopeJson))
   }
 
-  def createbanksJson(l: List[Bank]): BanksJson = {
+  def createBanksJson(l: List[Bank]): BanksJson = {
     BanksJson(l.map(JSONFactory.createBankJSON))
   }
 }
