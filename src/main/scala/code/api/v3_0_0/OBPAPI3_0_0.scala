@@ -172,7 +172,6 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getKycStatuses ::
                           Implementations2_0_0.getMeeting ::
                           Implementations2_0_0.getMeetings ::
-                          //Implementations2_0_0.getPermissionForUserForBankAccount ::
                           Implementations2_0_0.getPermissionsForBankAccount ::
                           Implementations2_0_0.getSocialMediaHandles ::
                           Implementations2_0_0.getTransactionTypes ::
