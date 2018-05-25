@@ -2168,6 +2168,7 @@ object SwaggerDefinitionsJSON {
     can_see_other_bank_routing_address = true,
     can_see_other_account_routing_scheme = true,
     can_see_other_account_routing_address = true,
+    can_initiate_transaction = true,
     can_add_transaction_request_to_own_account = true, //added following two for payments
     can_add_transaction_request_to_any_account = true,
     can_see_bank_account_credit_limit = true

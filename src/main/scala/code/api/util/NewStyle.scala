@@ -41,6 +41,7 @@ object NewStyle {
     (nameOf(Implementations3_0_0.getScopes), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.dataWarehouseStatistics), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getBanks), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString)
   )

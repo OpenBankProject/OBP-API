@@ -195,6 +195,46 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getPermissionForUserForBankAccount,
+      implementedInApiVersion,
+      "getPermissionForUserForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
+      "Get Account access for User.",
+      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
+         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+        |The user needs to have access to the owner view.""",
+      emptyObjectJson,
+      viewsJsonV300,
+      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagView, apiTagAccount, apiTagUser))
+  
+    lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
+      //get access for specific user
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bank <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(AccountNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            permission <- Future { account permission(u, provider, providerId) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+          } yield {
+            (createViewsJSON(permission.views.sortBy(_.viewId.value)), callContext)
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,

@@ -32,7 +32,7 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
-import code.api.v1_2_1.JSONFactory._
+import code.api.v1_2_1.JSONFactory.{createViewJSON, _}
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs}
@@ -149,6 +149,7 @@ case class ViewJsonV300(
   val can_see_other_bank_routing_address: Boolean,
   val can_see_other_account_routing_scheme: Boolean,
   val can_see_other_account_routing_address: Boolean,
+  val can_initiate_transaction: Boolean,
   val can_add_transaction_request_to_own_account: Boolean, //added following two for payments
   val can_add_transaction_request_to_any_account: Boolean,
   val can_see_bank_account_credit_limit: Boolean
@@ -643,6 +644,7 @@ object JSONFactory300{
       can_see_other_bank_routing_address   = view.canSeeOtherBankRoutingAddress,
       can_see_other_account_routing_scheme = view.canSeeOtherAccountRoutingScheme,
       can_see_other_account_routing_address= view.canSeeOtherAccountRoutingAddress,
+      can_initiate_transaction = view.canInitiateTransaction,
       can_add_transaction_request_to_own_account = view.canAddTransactionRequestToOwnAccount, //added following two for payments
       can_add_transaction_request_to_any_account = view.canAddTransactionRequestToAnyAccount,
       can_see_bank_account_credit_limit = view.canSeeBankAccountCreditLimit
