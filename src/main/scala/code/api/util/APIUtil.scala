@@ -1764,7 +1764,7 @@ Returns a string showed to the developer
                       val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
-                      (Full(u), callContext.map(_.copy(consumer=consumer)))
+                      (Full(u), callContext.map(_.copy(consumer=consumer, user = Full(u))))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>
